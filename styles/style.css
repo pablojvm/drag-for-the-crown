@@ -1,0 +1,61 @@
+body {
+    margin: 0;
+    background-color: lightgray;
+    background-image: url("/images/RDR13.webp");
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+  
+  #boton-inicio {
+    background-color: rgb(232, 157, 243);
+    color: white;
+    height: 100px;
+    width: 250px;
+    padding: 20px;
+    font-size: 50px;
+    margin-top: 40px;
+    border-radius: 10px; 
+    text-shadow:2px 2px 5px rgb(215, 3, 194);
+  }
+  #boton-inicio:hover {
+    background-color: rgb(232, 157, 243);
+    color: white;
+    padding: 20px;
+    width: 280px;
+    height: 125px;
+    font-size: 70px;
+    margin-top: 40px;
+    border-radius: 10px white; 
+    text-shadow:2px 2px 5px rgb(215, 3, 194);
+    transition: 0.3s;
+  }
+  
+  .container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 50px;
+  }
+  
+  #caja-juego {
+    background-color: darkgray;
+    width:600px;
+    height:400px;
+  
+    position: relative; /* permite posicionar los elementos de forma absoluta dentro del game-box */
+    overflow: hidden; /* previene que los elementos salgan visualmente del game-box */
+    user-select: none; /* previene que los elementos del game-box sean resaltados al hacer click */
+    background-image: url("../images/bg.png");
+    background-position: center;
+    background-size: cover;
+  
+  }
+  
+  #caja-juego * {
+    pointer-events: none; /* previene que todos los elementos del game-box sean arrastrados al clickar sobre ellos */
+  }
+  
+  #pantalla-juego, #pantalla-final {
+    display: none;
+  }
