@@ -37,19 +37,27 @@ body {
     align-items: center;
     margin: 50px;
   }
+  .container2 {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 50px;
+  }
   
   #caja-juego {
-    background-color: darkgray;
-    width:600px;
-    height:400px;
+    background-color: rgb(242, 245, 155);
+    width:1000px;
+    height:800px;
+    border-radius: 10px;
+    border: 5px solid rgb(241, 154, 239);
   
     position: relative; /* permite posicionar los elementos de forma absoluta dentro del game-box */
     overflow: hidden; /* previene que los elementos salgan visualmente del game-box */
     user-select: none; /* previene que los elementos del game-box sean resaltados al hacer click */
-    background-image: url("../images/bg.png");
+    background-image: url();
     background-position: center;
     background-size: cover;
-  
   }
   
   #caja-juego * {
