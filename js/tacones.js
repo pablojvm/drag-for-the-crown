@@ -15,20 +15,17 @@ class Tacones {
     this.node.style.top = `${this.y}px`;
     this.node.style.left = `${this.x}px`;
 
-    this.speed = 10;
+    this.speed = 15;
   }
 
+  
+  
+
   taconesVolando() {
-    this.y--;
+    this.y -= 6;
     this.node.style.top = `${this.y}px`;
   }
 
-  taconesAppear() {
-
-    let taconesObj = new Tacones(); //console.log(pollitoObj)
-    tuberiasArr.push(taconesObj);
-    tuberiasDestroy();
-  }
 
   taconesDestroy() {
     if (taconesArr.length > 0 && taconesArr[0].x + taconesArr[0].w <= 0) {
@@ -37,3 +34,15 @@ class Tacones {
     }
   }
 }
+
+
+
+
+
+
+const frutas = [10, 20, 100]
+
+frutas.forEach((eachFruta) => {
+
+    console.log(eachFruta)
+})
