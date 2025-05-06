@@ -1,7 +1,20 @@
 class Enemigos {
   constructor() {
     this.node = document.createElement("img");
-    this.node.src = "./images/trinity.png";
+    let randNumber= Math.floor(Math.random() * 6 + 1)
+    if (randNumber === 1) {
+      this.node.src = "./images/drags/trinity.png";
+    } else if (randNumber === 2) {
+      this.node.src = "./images/drags/sheaCoulee.png";
+    } else if (randNumber === 3) {
+      this.node.src = "./images/drags/plastiqueTiara.png";
+    } else if (randNumber === 4) {
+      this.node.src = "./images/drags/monetXChange.png";
+    } else if (randNumber === 5) {
+      this.node.src = "./images/drags/jimbo.png";
+    } else if (randNumber === 6) {
+      this.node.src = "./images/drags/angeriaPVM.png";
+    } console.log(randNumber)
     cajaJuegoNode.append(this.node);
 
     this.x = 450;
@@ -45,7 +58,7 @@ class Enemigos {
     if (this.x <= 0) {
       this.isMovingRight = true;
     }
-    if (this.y > (cajaJuegoNode.offsetHeight)/2 - this.h) {
+    if (this.y > cajaJuegoNode.offsetHeight / 2 - this.h) {
       this.isMovingDown = false;
     }
     if (this.y <= 0) {

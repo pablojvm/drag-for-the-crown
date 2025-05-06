@@ -18,14 +18,10 @@ class Tacones {
     this.speed = 15;
   }
 
-  
-  
-
   taconesVolando() {
     this.y -= 6;
     this.node.style.top = `${this.y}px`;
   }
-
 
   taconesDestroy() {
     if (taconesArr.length > 0 && taconesArr[0].x + taconesArr[0].w <= 0) {
@@ -33,16 +29,6 @@ class Tacones {
       taconesArr.shift();
     }
   }
+
+
 }
-
-
-
-
-
-
-const frutas = [10, 20, 100]
-
-frutas.forEach((eachFruta) => {
-
-    console.log(eachFruta)
-})

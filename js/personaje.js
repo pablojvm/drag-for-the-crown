@@ -1,7 +1,7 @@
 class Personaje {
     constructor() {
         this.node = document.createElement("img")
-        this.node.src= "./images/jimbo.png"
+        this.node.src= "./images/drags/jimbo.png"
         cajaJuegoNode.append(this.node);
 
         this.x= 450;

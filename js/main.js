@@ -19,11 +19,14 @@ let taconesProyectilId = 1;
 let mainPersonaje = null;
 let enemigosDrag = null;
 let taconesArr = [];
+let enemigoDeTurno = 0;
 
 //funciones globales
 function startGame() {
   pantallaInicioNode.style.display = "none";
   pantallaJuegoNode.style.display = "flex";
+
+  
 
   mainPersonaje = new Personaje();
   enemigosDrag = new Enemigos();
@@ -34,15 +37,36 @@ function startGame() {
 
   taconesProyectilId = setInterval(() => {
     taconesAppear();
-  }, 3000);
+  }, 2000);
+}
+
+function checkColissionEnemigosTacones() {
+  taconesArr.forEach((taconObj, i) => {
+    if (
+      enemigosDrag.x < taconObj.x + taconObj.w &&
+      enemigosDrag.x + enemigosDrag.w > taconObj.x &&
+      enemigosDrag.y < taconObj.y + taconObj.h &&
+      enemigosDrag.y + enemigosDrag.h > taconObj.y
+    ) {
+      console.log("estan chocando");
+      //taconObj.dissappearTacon()
+      //enemigosDrag.dissappearEnemigo()
+      //enemigosDrag.appearEnemigo()
+      enemigosDrag.node.remove();
+      enemigosDrag = new Enemigos();
+      taconObj.node.remove();
+      taconesArr.splice(i, 1);
+    }
+  });
 }
 
 function gameLoop() {
   enemigosDrag.checkColissionEnemigosWall();
   enemigosDrag.moverEnemigos();
-  taconesArr.forEach( (cadaTacon) => {
+  taconesArr.forEach((cadaTacon) => {
     cadaTacon.taconesVolando();
-  } )
+  });
+  checkColissionEnemigosTacones();
 }
 
 function taconesAppear() {
@@ -51,6 +75,10 @@ function taconesAppear() {
   //taconesDestroy();
 }
 
+//function gameOver() {
+  pantallaJuegoNode.style.display = "none";
+  pantallaFinalNode.style.display = "flex";
+//}
 //event listener
 botonInicioNode.addEventListener("click", () => {
   startGame();
