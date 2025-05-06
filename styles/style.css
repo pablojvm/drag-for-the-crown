@@ -6,7 +6,7 @@ body {
     background-repeat: no-repeat;
   }
   
-  #boton-inicio, #boton-restart {
+  #boton-inicio, #boton-restart, #boton-restart2 {
     background-color: rgb(232, 157, 243);
     color: white;
     height: 100px;
@@ -17,7 +17,7 @@ body {
     border-radius: 10px; 
     text-shadow:2px 2px 5px rgb(215, 3, 194);
   }
-  #boton-inicio, #boton-restart:hover {
+  #boton-inicio, #boton-restart, #boton-restart2:hover {
     background-color: rgb(232, 157, 243);
     color: white;
     padding: 20px;
@@ -47,6 +47,7 @@ body {
   
   #caja-juego {
     background-color: rgb(242, 245, 155);
+    background-image: url("/images/rupaulfondo.jpg");
     width:1000px;
     height:800px;
     border-radius: 10px;
@@ -55,7 +56,6 @@ body {
     position: relative; /* permite posicionar los elementos de forma absoluta dentro del game-box */
     overflow: hidden; /* previene que los elementos salgan visualmente del game-box */
     user-select: none; /* previene que los elementos del game-box sean resaltados al hacer click */
-    background-image: url();
     background-position: center;
     background-size: cover;
   }
@@ -64,6 +64,6 @@ body {
     pointer-events: none; /* previene que todos los elementos del game-box sean arrastrados al clickar sobre ellos */
   }
   
-  #pantalla-juego, #pantalla-final {
+  #pantalla-juego, #pantalla-final, #pantalla-gameover {
     display: none;
   }

@@ -2,11 +2,13 @@
 const pantallaInicioNode = document.querySelector("#pantalla-inicio");
 const pantallaJuegoNode = document.querySelector("#pantalla-juego");
 const pantallaFinalNode = document.querySelector("#pantalla-final");
+const pantallaGameOverNode = document.querySelector("#pantalla-gameover");
 
 // botones
 
 const botonInicioNode = document.querySelector("#boton-inicio");
 const botonReStartNode = document.querySelector("#boton-restart");
+const botonReStart2Node = document.querySelector("#boton-restart2");
 
 //caja de juego
 
@@ -27,11 +29,17 @@ audio3Node.volume= 0.1
 let gameIntervalId = 1;
 let enemigosIntervalId = 1;
 let taconesProyectilId = 1;
+let taconesEnemiesId = 1;
 let mainPersonaje = null;
 let enemigosDrag = null;
 let taconesArr = [];
+let taconesEnemiesArr= []
+
 let colisiones = 0;
 const maxColisiones = 5;
+let colisionesPersonaje= 0;
+const colisionesPersonajeMax= 3;
+
 let enemiesSrc = [
   "./images/drags/trinity.png",
   "./images/drags/sheaCoulee.png",
@@ -59,6 +67,10 @@ function startGame() {
   taconesProyectilId = setInterval(() => {
     taconesAppear();
   }, 2000);
+
+  taconesEnemiesId = setInterval(() => {
+    taconesEnemiesAppear();
+  }, 2000);
 }
 
 function checkColissionEnemigosTacones() {
@@ -85,6 +97,25 @@ function checkColissionEnemigosTacones() {
   });
 }
 
+function checkColissionPersonajeTacones() {
+  taconesEnemiesArr.forEach((taconObj, i) => {
+    if (
+      mainPersonaje.x < taconObj.x + taconObj.w &&
+      mainPersonaje.x + mainPersonaje.w > taconObj.x &&
+      mainPersonaje.y < taconObj.y + taconObj.h &&
+      mainPersonaje.y + mainPersonaje.h > taconObj.y
+    ) {
+      
+      colisionesPersonaje++;
+      taconObj.node.remove();
+      taconesEnemiesArr.splice(i, 1);
+      if (colisionesPersonaje >= colisionesPersonajeMax) {
+        GameOver();
+      }
+    }
+  });
+}
+
 function gameLoop() {
   enemigosDrag.checkColissionEnemigosWall();
   enemigosDrag.moverEnemigos();
@@ -92,11 +123,21 @@ function gameLoop() {
     cadaTacon.taconesVolando();
   });
   checkColissionEnemigosTacones();
+  taconesEnemiesArr.forEach((cadaTaconEnemigo) => {
+    cadaTaconEnemigo.taconesEnemigosVolando()
+  })
+  checkColissionPersonajeTacones();
 }
 
 function taconesAppear() {
   let taconesObj = new Tacones(); //console.log(pollitoObj)
   taconesArr.push(taconesObj);
+  //taconesDestroy();
+}
+
+function taconesEnemiesAppear() {
+  let taconesObj = new TaconesEnemigos(); //console.log(pollitoObj)
+  taconesEnemiesArr.push(taconesObj);
   //taconesDestroy();
 }
 
@@ -108,10 +149,34 @@ function finishedGame() {
 
 }
 
+function GameOver() {
+  pantallaJuegoNode.style.display = "none";
+  pantallaFinalNode.style.display = "none";
+  pantallaGameOverNode.style.display = "flex";
+  audio1Node.pause()
+  audio3Node.play()
+
+}
+
 function reStartGame() {
   pantallaFinalNode.style.display = "none";
   pantallaJuegoNode.style.display = "flex";
   colisiones = 0;
+  enemiesSrc = [
+    "./images/drags/trinity.png",
+    "./images/drags/sheaCoulee.png",
+    "./images/drags/plastiqueTiara.png",
+    "./images/drags/monetXChange.png",
+    "./images/drags/jimbo.png",
+    "./images/drags/angeriaPVM.png",
+  ];
+  audio1Node.play()
+}
+function reStartGameOver() {
+  pantallaGameOverNode.style.display = "none";
+  pantallaJuegoNode.style.display = "flex";
+  colisiones = 0;
+  colisionesPersonaje = 0
   enemiesSrc = [
     "./images/drags/trinity.png",
     "./images/drags/sheaCoulee.png",
@@ -153,4 +218,8 @@ document.addEventListener("keydown", (event) => {
 
 botonReStartNode.addEventListener("click", () => {
   reStartGame();
+});
+
+botonReStart2Node.addEventListener("click", () => {
+  reStartGameOver();
 });
