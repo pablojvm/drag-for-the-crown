@@ -6,7 +6,7 @@ body {
     background-repeat: no-repeat;
   }
   
-  #boton-inicio {
+  #boton-inicio, #boton-restart {
     background-color: rgb(232, 157, 243);
     color: white;
     height: 100px;
@@ -17,7 +17,7 @@ body {
     border-radius: 10px; 
     text-shadow:2px 2px 5px rgb(215, 3, 194);
   }
-  #boton-inicio:hover {
+  #boton-inicio, #boton-restart:hover {
     background-color: rgb(232, 157, 243);
     color: white;
     padding: 20px;
