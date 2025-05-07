@@ -113,13 +113,18 @@ function checkColissionPersonajeTacones() {
       mainPersonaje.y < taconObj.y + taconObj.h &&
       mainPersonaje.y + mainPersonaje.h > taconObj.y
     ) {
-      
       colisionesPersonaje++;
       taconObj.node.remove();
       taconesEnemiesArr.splice(i, 1);
-      
       if (colisionesPersonaje >= colisionesPersonajeMax) {
         GameOver();
+      }
+      if(colisionesPersonaje === 1 ) {
+        lipstickArr[2].node.remove()
+      } else if(colisionesPersonaje === 2 ) {
+        lipstickArr[1].node.remove()
+      } else if(colisionesPersonaje === 3 ) {
+        lipstickArr[0].node.remove()
       }
     }
   });
