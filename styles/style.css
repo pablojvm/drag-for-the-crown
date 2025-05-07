@@ -1,7 +1,7 @@
 body {
     margin: 0;
     background-color: lightgray;
-    background-image: url("/images/RDR13.webp");
+    background-image: url("../images/RDR13.webp");
     background-size: cover;
     background-repeat: no-repeat;
   }
@@ -17,7 +17,7 @@ body {
     border-radius: 10px; 
     text-shadow:2px 2px 5px rgb(215, 3, 194);
   }
-  #boton-inicio, #boton-restart, #boton-restart2:hover {
+  #boton-inicio:hover, #boton-restart:hover, #boton-restart2:hover {
     background-color: rgb(232, 157, 243);
     color: white;
     padding: 20px;
@@ -47,7 +47,7 @@ body {
   
   #caja-juego {
     background-color: rgb(242, 245, 155);
-    background-image: url("/images/rupaulfondo.jpg");
+    background-image: url("../images/rupaulfondo.jpg");
     width:1000px;
     height:800px;
     border-radius: 10px;
@@ -58,6 +58,13 @@ body {
     user-select: none; /* previene que los elementos del game-box sean resaltados al hacer click */
     background-position: center;
     background-size: cover;
+  }
+
+  #caja-vidas {
+    width: 300px;
+    height: 100px;
+    background-color: none;
+    position: relative;
   }
   
   #caja-juego * {

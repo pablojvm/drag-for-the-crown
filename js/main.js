@@ -13,6 +13,7 @@ const botonReStart2Node = document.querySelector("#boton-restart2");
 //caja de juego
 
 const cajaJuegoNode = document.querySelector("#caja-juego");
+const cajaDeVidasNode= document.querySelector("#caja-vidas");
 
 //variables globales
 
@@ -32,6 +33,7 @@ let taconesProyectilId = 1;
 let taconesEnemiesId = 1;
 let mainPersonaje = null;
 let enemigosDrag = null;
+let lipstickArr= null;
 let taconesArr = [];
 let taconesEnemiesArr= []
 
@@ -54,11 +56,17 @@ let enemiesSrc = [
 function startGame() {
   pantallaInicioNode.style.display = "none";
   pantallaJuegoNode.style.display = "flex";
+  cajaJuegoNode.style.visibility= "visible"
 
   audio1Node.play()
 
   mainPersonaje = new Personaje();
   enemigosDrag = new Enemigos();
+  lipstickArr = [
+    new Vidas(0,0),
+    new Vidas(100,0),
+    new Vidas(200,0),
+  ]
 
   gameIntervalId = setInterval(() => {
     gameLoop();
@@ -109,6 +117,7 @@ function checkColissionPersonajeTacones() {
       colisionesPersonaje++;
       taconObj.node.remove();
       taconesEnemiesArr.splice(i, 1);
+      
       if (colisionesPersonaje >= colisionesPersonajeMax) {
         GameOver();
       }
@@ -127,6 +136,7 @@ function gameLoop() {
     cadaTaconEnemigo.taconesEnemigosVolando()
   })
   checkColissionPersonajeTacones();
+  console.log("patata")
 }
 
 function taconesAppear() {
@@ -145,23 +155,41 @@ function finishedGame() {
   pantallaJuegoNode.style.display = "none";
   pantallaFinalNode.style.display = "flex";
   audio1Node.pause()
+  audio1Node.currentTime= 0
   audio2Node.play()
 
+  clearInterval(gameIntervalId)
+  clearInterval(enemigosIntervalId)
+  clearInterval(taconesEnemiesId)
+  clearInterval(taconesProyectilId)
 }
 
 function GameOver() {
+  clearInterval(gameIntervalId)
+  clearInterval(enemigosIntervalId)
+  clearInterval(taconesEnemiesId)
+  clearInterval(taconesProyectilId)
   pantallaJuegoNode.style.display = "none";
   pantallaFinalNode.style.display = "none";
   pantallaGameOverNode.style.display = "flex";
+  
   audio1Node.pause()
+  audio1Node.currentTime= 0
   audio3Node.play()
-
+// Detener los intervalos
 }
 
 function reStartGame() {
   pantallaFinalNode.style.display = "none";
   pantallaJuegoNode.style.display = "flex";
-  colisiones = 0;
+  
+  mainPersonaje.x= 450;
+  mainPersonaje.y= 600;
+  enemigosDrag.x= 450;
+  enemigosDrag.y= 10;
+
+  colisiones = 0; // Reiniciar las variables al valor original y vaciar el dom y reiniciar el juego activando de nuevo starGame
+  colisionesPersonaje= 0;
   enemiesSrc = [
     "./images/drags/trinity.png",
     "./images/drags/sheaCoulee.png",
@@ -170,11 +198,18 @@ function reStartGame() {
     "./images/drags/jimbo.png",
     "./images/drags/angeriaPVM.png",
   ];
-  audio1Node.play()
+  cajaJuegoNode.innerHTML= ""
+  startGame()
 }
 function reStartGameOver() {
   pantallaGameOverNode.style.display = "none";
   pantallaJuegoNode.style.display = "flex";
+
+  mainPersonaje.x= 450;
+  mainPersonaje.y= 600;
+  enemigosDrag.x= 450;
+  enemigosDrag.y= 10;
+
   colisiones = 0;
   colisionesPersonaje = 0
   enemiesSrc = [
@@ -185,7 +220,8 @@ function reStartGameOver() {
     "./images/drags/jimbo.png",
     "./images/drags/angeriaPVM.png",
   ];
-  audio1Node.play()
+  cajaJuegoNode.innerHTML= ""
+  startGame()
 }
 
 //event listener
