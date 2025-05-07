@@ -17,6 +17,19 @@ body {
     border-radius: 10px; 
     text-shadow:2px 2px 5px rgb(215, 3, 194);
   }
+
+  #boton-choose {
+    background-color: rgb(232, 157, 243);
+    color: white;
+    height: 150px;
+    width: 250px;
+    padding: 20px;
+    font-size: 30px;
+    margin-top: 40px;
+    border-radius: 10px; 
+    text-shadow:2px 2px 5px rgb(215, 3, 194);
+  }
+
   #boton-inicio:hover, #boton-restart:hover, #boton-restart2:hover {
     background-color: rgb(232, 157, 243);
     color: white;
@@ -29,7 +42,107 @@ body {
     text-shadow:2px 2px 5px rgb(215, 3, 194);
     transition: 0.3s;
   }
+
+  #boton-choose:hover {
+    background-color: rgb(232, 157, 243);
+    color: white;
+    padding: 20px;
+    width: 270px;
+    height: 170px;
+    font-size: 30px;
+    margin-top: 40px;
+    border-radius: 10px white; 
+    text-shadow:2px 2px 5px rgb(215, 3, 194);
+    transition: 0.3s;
+  }
   
+  #caja-eleccion {
+    background-color: none;
+    width:1000px;
+    height:800px;
+    display: flex;
+
+    flex-wrap: wrap;
+    gap: 80px; /* permite posicionar los elementos de forma absoluta dentro del game-box */
+    overflow: hidden; /* previene que los elementos salgan visualmente del game-box */
+    user-select: none; /* previene que los elementos del game-box sean resaltados al hacer click */
+    background-position: center;
+    background-size: cover;
+
+  }
+
+  #btn-jimbo, #btn-trinity, #btn-monet, #btn-shea, #btn-plastique, #btn-angeria {
+    background-color: rgb(232, 157, 243);
+    color: white;
+    padding: 20px;
+    width: 270px;
+    height: 170px;
+    font-size: 30px;
+    margin-top: 40px;
+    border-radius: 10px white;
+    justify-content: space-around ;
+  }
+
+  #btn-jimbo:hover {
+    background-image: url("../images/jimbo.jpeg");
+    background-size: cover;
+    padding: 20px;
+    width: 300px;
+    height: 300px;
+    text-shadow:2px 2px 5px rgb(215, 3, 194);
+    transition: 0.3s;
+  }
+
+  #btn-shea:hover {
+    background-image: url("../images/shea.jpeg");
+    background-size: cover;
+    padding: 20px;
+    width: 300px;
+    height: 300px;
+    text-shadow:2px 2px 5px rgb(215, 3, 194);
+    transition: 0.3s;
+  }
+
+  #btn-angeria:hover {
+    background-image: url("../images/angeria.jpeg");
+    background-size: cover;
+    padding: 20px;
+    width: 300px;
+    height: 300px;
+    text-shadow:2px 2px 5px rgb(215, 3, 194);
+    transition: 0.3s;
+  }
+
+  #btn-monet:hover {
+    background-image: url("../images/Monet.jpeg");
+    background-size: cover;
+    padding: 20px;
+    width: 300px;
+    height: 300px;
+    text-shadow:2px 2px 5px rgb(215, 3, 194);
+    transition: 0.3s;
+  }
+
+  #btn-plastique:hover {
+    background-image: url("../images/plastique.jpeg");
+    background-size: cover;
+    padding: 20px;
+    width: 300px;
+    height: 300px;
+    text-shadow:2px 2px 5px rgb(215, 3, 194);
+    transition: 0.3s;
+  }
+
+  #btn-trinity:hover {
+    background-image: url("../images/trinity.jpeg");
+    background-size: cover;
+    padding: 20px;
+    width: 300px;
+    height: 300px;
+    text-shadow:2px 2px 5px rgb(215, 3, 194);
+    transition: 0.3s;
+  }
+
   .container {
     display: flex;
     flex-direction: column;
@@ -60,6 +173,7 @@ body {
     background-size: cover;
   }
 
+  
   #caja-vidas {
     width: 300px;
     height: 100px;
@@ -71,6 +185,6 @@ body {
     pointer-events: none; /* previene que todos los elementos del game-box sean arrastrados al clickar sobre ellos */
   }
   
-  #pantalla-juego, #pantalla-final, #pantalla-gameover {
+  #pantalla-juego, #pantalla-final, #pantalla-gameover, #pantalla-eleccion {
     display: none;
   }
