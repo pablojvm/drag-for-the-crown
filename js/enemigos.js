@@ -6,8 +6,8 @@ class Enemigos {
     enemiesSrc.splice(randIndex, 1)
     cajaJuegoNode.append(this.node);
 
-    this.x = 450;
-    this.y = 10;
+    this.x = Math.floor(Math.random() * 750);
+    this.y = Math.floor(Math.random() * 350);
     this.w = 150;
     this.h = 150;
     this.node.style.width = `${this.w}px`;

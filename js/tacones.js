@@ -19,7 +19,7 @@ class Tacones {
   }
 
   taconesVolando() {
-    this.y -= 6;
+    this.y -= 10;
     this.node.style.top = `${this.y}px`;
   }
 

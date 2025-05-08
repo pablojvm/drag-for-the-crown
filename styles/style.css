@@ -15,6 +15,7 @@ body {
     font-size: 50px;
     margin-top: 40px;
     border-radius: 10px; 
+    border: 2px solid rgb(255, 250, 106);
     text-shadow:2px 2px 5px rgb(215, 3, 194);
   }
 
@@ -27,6 +28,7 @@ body {
     font-size: 30px;
     margin-top: 40px;
     border-radius: 10px; 
+    border: 2px solid rgb(255, 250, 106);
     text-shadow:2px 2px 5px rgb(215, 3, 194);
   }
 
@@ -38,10 +40,19 @@ body {
     height: 125px;
     font-size: 70px;
     margin-top: 40px;
-    border-radius: 10px white; 
+    border-radius: 10px; 
+    border: 2px solid rgb(255, 250, 106);
     text-shadow:2px 2px 5px rgb(215, 3, 194);
     transition: 0.3s;
   }
+
+  #btn-jimbo:active, #btn-trinity:active, #btn-monet:active, #btn-shea:active, 
+  #btn-plastique:active, #btn-angeria:active, #boton-inicio:active, #boton-restart:active, 
+  #boton-restart2:active, #boton-choose:active {
+  transform: scale(0.95);
+  background-color: rgb(200, 120, 230);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
 
   #boton-choose:hover {
     background-color: rgb(232, 157, 243);
@@ -51,7 +62,8 @@ body {
     height: 170px;
     font-size: 30px;
     margin-top: 40px;
-    border-radius: 10px white; 
+    border-radius: 10px; 
+    border: 2px solid rgb(255, 250, 106);
     text-shadow:2px 2px 5px rgb(215, 3, 194);
     transition: 0.3s;
   }
@@ -79,7 +91,8 @@ body {
     height: 170px;
     font-size: 30px;
     margin-top: 40px;
-    border-radius: 10px white;
+    border-radius: 10px;
+    border: 2px solid rgb(255, 250, 106);
     justify-content: space-around ;
   }
 
@@ -157,6 +170,11 @@ body {
     align-items: center;
     margin: 50px;
   }
+
+  #cajas-extra {
+    display: flex;
+    flex-direction: row;
+  }
   
   #caja-juego {
     background-color: rgb(242, 245, 155);
@@ -173,11 +191,22 @@ body {
     background-size: cover;
   }
 
-  
   #caja-vidas {
     width: 300px;
     height: 100px;
-    background-color: none;
+    background-color: rgb(242, 245, 155);
+    border-radius: 10px;
+    border: 2px solid rgb(241, 154, 239);
+    background-color:  transparent;
+    position: relative;
+  }
+
+  #contador {
+    width: 150px;
+    height: 100px;
+    border-radius: 10px;
+    border: 2px solid rgb(241, 154, 239);
+    background-color:  transparent;
     position: relative;
   }
   
