@@ -53,7 +53,7 @@ const btnMonetNode = document.querySelector("#btn-monet");
 const btnSheaNode = document.querySelector("#btn-shea");
 const btnPlastiqueNode = document.querySelector("#btn-plastique");
 const btnAngeriaNode = document.querySelector("#btn-angeria");
-let srcPersonajeSeleccionado = null;
+
 
 // botones
 
@@ -126,6 +126,7 @@ let taconesEnemiesId = 1;
 let mainPersonaje = null;
 let enemigosDrag = null;
 let lipstickArr = null;
+let srcPersonajeSeleccionado = null;
 let taconesArr = [];
 let taconesEnemiesArr = [];
 let enemiesSrc = [
@@ -391,6 +392,10 @@ btnAngeriaNode.addEventListener("click", () => {
 });
 
 botonInicioNode.addEventListener("click", () => {
+  let randIndex = Math.floor(Math.random() * enemiesSrc.length)
+  if(srcPersonajeSeleccionado === null) {
+    srcPersonajeSeleccionado = enemiesSrc[randIndex]
+  }
   startGame();
 });
 
