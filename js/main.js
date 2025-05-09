@@ -7,7 +7,7 @@ const controlesNode = document.createElement("img");
 controlesNode.src = "./images/controles.png";
 controlesNode.style.position = "absolute";
 controlesNode.style.top = "320px";
-controlesNode.style.left = "365px";
+controlesNode.style.left = "280px";
 controlesNode.style.width = "150px";
 controlesNode.style.height = "150px";
 pantallaInicioNode.append(controlesNode);
@@ -15,15 +15,15 @@ const logo3Node = document.createElement("img");
 logo3Node.src = "./images/logo3.png";
 logo3Node.style.position = "absolute";
 logo3Node.style.top = "300px";
-logo3Node.style.left = "120px";
+logo3Node.style.left = "70px";
 logo3Node.style.width = "200px";
 logo3Node.style.height = "200px";
 pantallaInicioNode.append(logo3Node);
 const instruccionesNode = document.createElement("img");
 instruccionesNode.src = "./images/instrucciones.png";
 instruccionesNode.style.position = "absolute";
-instruccionesNode.style.top = "300px";
-instruccionesNode.style.left = "1300px";
+instruccionesNode.style.top = "280px";
+instruccionesNode.style.left = "1100px";
 instruccionesNode.style.width = "300px";
 instruccionesNode.style.height = "400px";
 pantallaInicioNode.append(instruccionesNode);
@@ -31,7 +31,7 @@ const logo5Node = document.createElement("img");
 logo5Node.src = "./images/logo5.png";
 logo5Node.style.position = "absolute";
 logo5Node.style.top = "500px";
-logo5Node.style.left = "120px";
+logo5Node.style.left = "70px";
 logo5Node.style.width = "200px";
 logo5Node.style.height = "200px";
 pantallaInicioNode.append(logo5Node);
@@ -39,10 +39,23 @@ const spaceNode = document.createElement("img");
 spaceNode.src = "./images/spaceBar.png";
 spaceNode.style.position = "absolute";
 spaceNode.style.top = "500px";
-spaceNode.style.left = "340px";
+spaceNode.style.left = "270px";
 spaceNode.style.width = "200px";
 spaceNode.style.height = "200px";
 pantallaInicioNode.append(spaceNode);
+const cajaCoronaNode = document.querySelector("#caja-corona")
+const coronaGifNode = document.createElement("img")
+const logo10Node = document.createElement("img")
+logo10Node.src = "./images/logo10.png"
+logo10Node.style.width = "200px"
+logo10Node.style.height = "200px"
+coronaGifNode.src = "./images/tiara.gif"
+coronaGifNode.style.width = "400px"
+coronaGifNode.style.height = "400px"
+cajaCoronaNode.append(logo10Node)
+cajaCoronaNode.append(coronaGifNode)
+
+
 
 //pantalla de eleccion de personaje
 const pantallaEleccionNode = document.querySelector("#pantalla-eleccion");
@@ -395,6 +408,7 @@ botonInicioNode.addEventListener("click", () => {
   let randIndex = Math.floor(Math.random() * enemiesSrc.length)
   if(srcPersonajeSeleccionado === null) {
     srcPersonajeSeleccionado = enemiesSrc[randIndex]
+
   }
   startGame();
 });
