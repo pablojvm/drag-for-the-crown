@@ -1,80 +1,41 @@
 # Drag for The Crown!
 
-# Description
-Drag for the crown es un minijuego donde tendrás que superar y sobrevivir a 5 enemigos o Drags que constantemente estarán arrojando tacones. Contarás con un total de 3 vidas(representados en LipSticks) de las cuales se te restará una si eres alcanzado por un tacón enemigo. Tu tendrás que eleminar a las demás Drags tratando de darles con los tacones que tu mismo les arrojarás.
+# Descripción
+Drag for the Crown es un minijuego arcade de navegador. Eliges a tu queen y te enfrentas a las otras cinco en 5 rondas, esquivando sus tacones y lanzando los tuyos. La última ronda es el jefe final: *Lip Sync for Your Life*.
 
-# Funciones
+# Cómo se juega
 
-- Moverás a tu personaje con las flechas del teclado "Arriba", "Abajo", "Izquierda" y "Derecha".
-- Lanzarás tacones al presionar la tecla "SpaceBar".
-- Las Drags enemigas se moveran de forma automática y apareceran en una posicion aleatoria dentro de su cuadro de movimiento. 
-- Las Drags enemigas lanzan tacones de formas automática.
-- La dificultad del juego aumentará con la velocidad de las drags según elimines a la que tengas en pantalla.
-- Podrás elegir a tu Drag favorita para jugar.
-- Con la pérdida de los 3 Lipsticks tendrás opción de reiniciar el juego.
-- Una vez consigas el Shantay You Stay!(ganes el juego), tendrás opción de reiniciar el juego.
+- Muévete con las flechas (o WASD) por la mitad inferior de la pasarela.
+- Lanza tacones con Espacio (mantén pulsado para disparo continuo).
+- `P` / `Esc` para pausar y `M` para silenciar.
+- En móvil aparecen controles táctiles.
 
-# Tecnologías utilizadas
+# Funcionalidades
 
-- HTML.
-- CSS.
-- JavaScript.
-- Manipulación de DOM.
-- Lienzo JS.
-- Clases JS.
-- Almacenamiento local.
-- Github.
-- JS Audio y JS Image.
+- 5 rondas con dificultad creciente: cada rival tiene barra de vida, su propio movimiento (rebote, onda, embestida, figura en ocho) y su patrón de ataque (disparo recto, dirigido, abanico, ráfagas y combinación en el jefe final).
+- Puntuación con combos (hasta x8), bonus por eliminar rival, ronda sin daño ("Flawless") y vidas restantes.
+- Power-ups: pintalabios (+1 vida) y corona (doble tacón durante 7 s).
+- Invulnerabilidad breve tras recibir un golpe.
+- Récord guardado en el navegador y pantalla final con estadísticas (puntos, precisión, combo máximo, tiempo).
+- Efectos: partículas de purpurina, textos flotantes, temblor de cámara, focos animados y pasarela en perspectiva.
+- Pausa automática al cambiar de pestaña.
+- Escalado a cualquier tamaño de pantalla y controles táctiles.
 
-# Pantallas del Juego
+# Tecnologías
 
-- Pantalla de Inicio.
-- Pantalla de elección.
-- Pantalla de Juego.
-- Pantalla de Sashay(GameOver)
-- Pantalla de Shantay(WIN!)
+- HTML, CSS y JavaScript sin frameworks.
+- Canvas 2D para el juego y bucle con `requestAnimationFrame` basado en delta time.
+- Web Audio API para efectos sintetizados y `Audio` para música y voces.
+- `localStorage` para el récord y la preferencia de sonido.
 
-# Estructura del Proyecto
+# Estructura
 
-## main.js
-
-- Declaración de variables globales del juego(para pantallas, imagenes, audios...)
-- startGame()
-- checkColissionEnemigosTacones() 
-- checkColissionPersonajeTacones()
-- gameLoop()
-- taconesAppear()
-- taconesEnemiesAppear()
-- finishedGame()
-- GameOver()
-- reStartGame()
-- reStartGameOver()
-
-## personaje.js
-
-- class Personaje
-
-## tacones.js
-
-- class Tacones
-- taconesVolando()
-- taconesDestroy()
-
-## enemigos.js
-
-- class enemigos
-- moverEnemigos()
-- checkColissionEnemigosWall()
-
-## lipstick.js
-
-- class vidas
-
-## taconesEnemigos.js
-
-- class TaconesEnemigos
-- taconesEnemigosVolando()
-- taconesDestroy()
+- `js/config.js`: constantes, queens, configuración de rondas y utilidades.
+- `js/audio.js`: música, voces y efectos de sonido.
+- `js/effects.js`: partículas, textos flotantes, temblor y fondo animado.
+- `js/entities.js`: jugadora, rivales, tacones y power-ups.
+- `js/game.js`: bucle, estados, colisiones, puntuación y HUD.
+- `js/ui.js`: pantallas, elección de queen, pausa, sonido, escalado y controles táctiles.
 
 # ENLACES IMPORTANTES
 

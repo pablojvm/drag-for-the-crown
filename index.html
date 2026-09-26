@@ -1,72 +1,97 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drag for the Crown</title>
-    <link href="https://fonts.googleapis.com/css2?family=Londrina+Outline&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Drag for the Crown: minijuego arcade de navegador hecho con JavaScript y Canvas.">
+  <meta name="theme-color" content="#14031f">
+  <title>Drag for the Crown</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/style.css">
 </head>
 <body>
   <div id="stage">
-    <!-- PANTALLA DE INICIO -->
-    <div id="pantalla-inicio" class="container">
-      <img src="./images/logo2.png" width="500" alt="Drag for the Crown">
-      <button id="boton-choose">CHOOSE YOUR QUEEN!</button>
-    </div>
 
-    <!-- PANTALLA DE ELECCION DE PERSONAJE -->
-    <div id="pantalla-eleccion" class="container2">
-      <div id="caja-eleccion">
-        <button class="btn-queen" id="btn-jimbo" data-src="./images/drags/jimbo.png" data-audio="jimbo">Jimbo</button>
-        <button class="btn-queen" id="btn-trinity" data-src="./images/drags/trinity.png" data-audio="trinity">Trinity The Tuck</button>
-        <button class="btn-queen" id="btn-monet" data-src="./images/drags/monetXChange.png" data-audio="monet">Monet X Change</button>
-        <button class="btn-queen" id="btn-shea" data-src="./images/drags/sheaCoulee.png" data-audio="shea">Shea Coulee</button>
-        <button class="btn-queen" id="btn-plastique" data-src="./images/drags/plastiqueTiara.png" data-audio="plastique">Plastique Tiara</button>
-        <button class="btn-queen" id="btn-angeria" data-src="./images/drags/angeriaPVM.png" data-audio="angeria">Angeria Paris VanMichael</button>
+    <!-- ============ INICIO ============ -->
+    <section id="screen-menu" class="screen">
+      <img class="menu-logo" src="./images/logo2.png" alt="Drag for the Crown">
+      <p class="tagline">5 queens. 5 rondas. Solo una se lleva la corona.</p>
+      <button class="btn btn-primary" id="btn-play">Jugar</button>
+      <div class="controls-help">
+        <div class="ctrl"><span class="keys"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span><span>Moverte</span></div>
+        <div class="ctrl"><span class="keys"><kbd class="wide">Espacio</kbd></span><span>Lanzar tacones</span></div>
+        <div class="ctrl"><span class="keys"><kbd>P</kbd></span><span>Pausa</span></div>
+        <div class="ctrl"><span class="keys"><kbd>M</kbd></span><span>Sonido</span></div>
       </div>
-      <button id="boton-inicio">RunWay!</button>
-    </div>
+      <p class="best">Récord: <strong id="menu-best">0</strong></p>
+    </section>
 
-    <!-- PANTALLA DE JUEGO -->
-    <div id="pantalla-juego" class="container2">
-      <div id="cajas-extra">
-        <div id="caja-vidas"></div>
-        <div id="contador"></div>
+    <!-- ============ ELECCIÓN ============ -->
+    <section id="screen-select" class="screen">
+      <h1 class="title">Choose your queen</h1>
+      <div id="queen-grid"></div>
+      <div class="row">
+        <button class="btn btn-ghost" id="btn-back">Volver</button>
+        <button class="btn btn-primary" id="btn-start" disabled>¡Runway!</button>
       </div>
-      <div id="caja-juego"></div>
-    </div>
+    </section>
 
-    <!-- PANTALLA FINAL -->
-    <div id="pantalla-final" class="container">
-      <img src="./images/shantay.png" width="500" alt="Shantay you stay">
-      <div id="caja-corona"></div>
-      <button id="boton-restart">ReStart!</button>
-    </div>
+    <!-- ============ PARTIDA ============ -->
+    <section id="screen-game" class="screen">
+      <canvas id="game" aria-label="Zona de juego"></canvas>
+      <div id="overlay-pause" class="overlay">
+        <div class="panel">
+          <h2 class="title">Pausa</h2>
+          <button class="btn btn-primary" id="btn-resume">Seguir</button>
+          <button class="btn btn-ghost" id="btn-quit">Salir al menú</button>
+        </div>
+      </div>
+    </section>
 
-    <!-- PANTALLA GAME OVER -->
-    <div id="pantalla-gameover" class="container">
-      <img src="./images/sashay.png" width="500" alt="Sashay away">
-      <button id="boton-restart2">ReStart!</button>
-    </div>
+    <!-- ============ RESULTADO ============ -->
+    <section id="screen-end" class="screen">
+      <img id="end-image" src="./images/shantay.png" alt="">
+      <h2 class="title" id="end-title">Shantay, you stay</h2>
+      <div class="stats">
+        <div class="stat"><span>Puntos</span><strong id="stat-score">0</strong></div>
+        <div class="stat"><span>Récord</span><strong id="stat-best">0</strong></div>
+        <div class="stat"><span>Rondas</span><strong id="stat-rounds">0/5</strong></div>
+        <div class="stat"><span>Precisión</span><strong id="stat-acc">0%</strong></div>
+        <div class="stat"><span>Combo máx.</span><strong id="stat-combo">x0</strong></div>
+        <div class="stat"><span>Tiempo</span><strong id="stat-time">0:00</strong></div>
+      </div>
+      <p id="new-record" class="new-record">¡Nuevo récord!</p>
+      <div class="row">
+        <button class="btn btn-ghost" id="btn-change">Cambiar queen</button>
+        <button class="btn btn-primary" id="btn-again">Otra vez</button>
+      </div>
+    </section>
   </div>
 
-  <!-- CONTROLES TÁCTILES (solo en pantallas táctiles, durante la partida) -->
-  <div id="controles-touch" aria-hidden="true">
+  <!-- Botones fijos -->
+  <div id="hud-buttons">
+    <button id="btn-mute" class="icon-btn" aria-label="Silenciar">🔊</button>
+    <button id="btn-pause" class="icon-btn" aria-label="Pausa">⏸</button>
+  </div>
+
+  <!-- Controles táctiles -->
+  <div id="touch-controls" aria-hidden="true">
     <div class="pad">
-      <button data-key="ArrowUp" class="pad-up">▲</button>
-      <button data-key="ArrowLeft" class="pad-left">◀</button>
-      <button data-key="ArrowDown" class="pad-down">▼</button>
-      <button data-key="ArrowRight" class="pad-right">▶</button>
+      <button data-key="up" class="pad-up">▲</button>
+      <button data-key="left" class="pad-left">◀</button>
+      <button data-key="down" class="pad-down">▼</button>
+      <button data-key="right" class="pad-right">▶</button>
     </div>
-    <button data-key="Space" class="btn-fire">👠</button>
+    <button data-key="fire" class="btn-fire">👠</button>
   </div>
 
-  <script src="./js/personaje.js"></script>
-  <script src="./js/enemigos.js"></script>
-  <script src="./js/tacones.js"></script>
-  <script src="./js/taconesEnemigos.js"></script>
-  <script src="./js/lipstick.js"></script>
-  <script src="./js/main.js"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/audio.js"></script>
+  <script src="./js/effects.js"></script>
+  <script src="./js/entities.js"></script>
+  <script src="./js/game.js"></script>
+  <script src="./js/ui.js"></script>
 </body>
 </html>
