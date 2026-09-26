@@ -6,6 +6,7 @@ const FX = (() => {
   let texts = [];
   let shake = 0;
   let flash = 0; // destello rojo al recibir daño
+  let bolts = [];
 
   const stars = Array.from({ length: 90 }, () => ({
     x: rand(0, W),
@@ -53,6 +54,7 @@ const FX = (() => {
       t.y += t.vy * dt;
       return t.life > 0;
     });
+    bolts = bolts.filter((b) => (b.life -= dt) > 0);
     shake = Math.max(0, shake - dt * 30);
     flash = Math.max(0, flash - dt * 2.2);
     stars.forEach((s) => {
@@ -135,6 +137,7 @@ const FX = (() => {
   }
 
   function drawParticles(ctx) {
+    drawBolts(ctx);
     particles.forEach((p) => {
       ctx.globalAlpha = Math.max(0, p.life / p.max);
       ctx.fillStyle = p.color;
@@ -145,6 +148,34 @@ const FX = (() => {
       ctx.restore();
     });
     ctx.globalAlpha = 1;
+  }
+
+  function bolt(x1, y1, x2, y2) {
+    const pts = [];
+    const n = 12;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      pts.push({ x: x1 + (x2 - x1) * t + (i && i < n ? rand(-26, 26) : 0), y: y1 + (y2 - y1) * t });
+    }
+    bolts.push({ pts, life: 0.5 });
+  }
+
+  function drawBolts(ctx) {
+    bolts.forEach((b) => {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, b.life * 3);
+      ctx.strokeStyle = COLORS.cyan;
+      ctx.shadowColor = COLORS.cyan;
+      ctx.shadowBlur = 25;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      b.pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      ctx.stroke();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    });
   }
 
   function drawTexts(ctx) {
@@ -174,6 +205,7 @@ const FX = (() => {
 
   return {
     burst,
+    bolt,
     text,
     update,
     drawBackground,
@@ -188,6 +220,7 @@ const FX = (() => {
     reset() {
       particles = [];
       texts = [];
+      bolts = [];
       shake = 0;
       flash = 0;
     },

@@ -18,20 +18,39 @@
     <section id="screen-menu" class="screen">
       <img class="menu-logo" src="./images/logo2.png" alt="Drag for the Crown">
       <p class="tagline">5 queens. 5 rondas. Solo una se lleva la corona.</p>
-      <button class="btn btn-primary" id="btn-play">Jugar</button>
+      <div class="row">
+        <button class="btn btn-primary" id="btn-play">Jugar</button>
+        <button class="btn btn-ghost" id="btn-scores">🏆 Puntuaciones</button>
+      </div>
       <div class="controls-help">
         <div class="ctrl"><span class="keys"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span><span>Moverte</span></div>
         <div class="ctrl"><span class="keys"><kbd class="wide">Espacio</kbd></span><span>Lanzar tacones</span></div>
+        <div class="ctrl"><span class="keys"><kbd>E</kbd></span><span>Poder especial</span></div>
         <div class="ctrl"><span class="keys"><kbd>P</kbd></span><span>Pausa</span></div>
         <div class="ctrl"><span class="keys"><kbd>M</kbd></span><span>Sonido</span></div>
       </div>
-      <p class="best">Récord: <strong id="menu-best">0</strong></p>
+      <p class="best">Récord: <strong id="menu-best">0</strong> · Puntos acumulados: <strong id="menu-total">0</strong></p>
     </section>
 
     <!-- ============ ELECCIÓN ============ -->
     <section id="screen-select" class="screen">
       <h1 class="title">Choose your queen</h1>
       <div id="queen-grid"></div>
+      <div id="queen-details" aria-live="polite">
+        <div class="details-inner">
+          <span class="details-portrait" id="det-portrait"></span>
+          <div class="details-main">
+            <h3 id="det-name"></h3>
+            <div id="det-stats"></div>
+          </div>
+          <div class="details-power">
+            <span class="power-label">✨ Poder especial</span>
+            <strong id="det-power"></strong>
+            <p id="det-power-desc"></p>
+            <p id="det-lock" class="lock-msg"></p>
+          </div>
+        </div>
+      </div>
       <div class="row">
         <button class="btn btn-ghost" id="btn-back">Volver</button>
         <button class="btn btn-primary" id="btn-start" disabled>¡Runway!</button>
@@ -50,6 +69,33 @@
       </div>
     </section>
 
+    <!-- ============ PUNTUACIONES ============ -->
+    <section id="screen-scores" class="screen">
+      <h1 class="title">Hall of Fame</h1>
+      <div class="scores-layout">
+        <div class="panel-card">
+          <h3>Top 10</h3>
+          <table id="scores-table">
+            <thead><tr><th>#</th><th>Nombre</th><th>Reina</th><th>Rondas</th><th>Puntos</th><th>Fecha</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <p id="scores-empty" class="muted">Todavía no hay partidas. ¡A la pasarela!</p>
+        </div>
+        <div class="panel-card side">
+          <h3>Tu carrera</h3>
+          <div class="career">
+            <div><span>Partidas</span><strong id="car-games">0</strong></div>
+            <div><span>Coronas</span><strong id="car-wins">0</strong></div>
+            <div><span>Mejor combo</span><strong id="car-combo">x0</strong></div>
+            <div><span>Puntos totales</span><strong id="car-total">0</strong></div>
+          </div>
+          <h3>Reinas por desbloquear</h3>
+          <div id="unlock-list"></div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" id="btn-scores-back">Volver</button>
+    </section>
+
     <!-- ============ RESULTADO ============ -->
     <section id="screen-end" class="screen">
       <img id="end-image" src="./images/shantay.png" alt="">
@@ -63,8 +109,14 @@
         <div class="stat"><span>Tiempo</span><strong id="stat-time">0:00</strong></div>
       </div>
       <p id="new-record" class="new-record">¡Nuevo récord!</p>
+      <p id="unlocked-msg" class="unlocked-msg"></p>
+      <label id="name-entry" class="name-entry">
+        <span id="name-label">Entras en el Top 10. Tu nombre:</span>
+        <input id="name-input" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Tu nombre">
+      </label>
       <div class="row">
         <button class="btn btn-ghost" id="btn-change">Cambiar queen</button>
+        <button class="btn btn-ghost" id="btn-end-scores">🏆</button>
         <button class="btn btn-primary" id="btn-again">Otra vez</button>
       </div>
     </section>
@@ -84,7 +136,10 @@
       <button data-key="down" class="pad-down">▼</button>
       <button data-key="right" class="pad-right">▶</button>
     </div>
-    <button data-key="fire" class="btn-fire">👠</button>
+    <div class="action-btns">
+      <button data-key="special" class="btn-special">✨</button>
+      <button data-key="fire" class="btn-fire">👠</button>
+    </div>
   </div>
 
   <script src="./js/config.js"></script>

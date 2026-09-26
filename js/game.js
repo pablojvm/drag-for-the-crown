@@ -28,7 +28,7 @@ const Game = (() => {
   ]);
 
   // ------------------------------ Entrada --------------------------------
-  const input = { left: false, right: false, up: false, down: false, fire: false };
+  const input = { left: false, right: false, up: false, down: false, fire: false, special: false };
   const KEYMAP = {
     ArrowLeft: "left",
     KeyA: "left",
@@ -40,6 +40,10 @@ const Game = (() => {
     KeyS: "down",
     Space: "fire",
     KeyJ: "fire",
+    KeyE: "special",
+    KeyK: "special",
+    ShiftLeft: "special",
+    ShiftRight: "special",
   };
   const clearInput = () => Object.keys(input).forEach((k) => (input[k] = false));
 
@@ -63,17 +67,28 @@ const Game = (() => {
   let shots = 0;
   let hits = 0;
   let tookDamageThisRound = false;
+  let special = 0; // carga del poder especial (0 a 1)
+  let slowUntil = 0;
+  let doublePointsUntil = 0;
+  let pendingFans = [];
+  let queen = null;
   let lastCount = null;
   let rafId = null;
   let lastTs = 0;
   let onEnd = () => {};
 
-  function start(queen, endCallback) {
+  function start(selectedQueen, endCallback) {
     onEnd = endCallback;
+    queen = selectedQueen;
     player = new Player(queen, images[queen.id]);
-    rivalsQueue = QUEENS.filter((q) => q.id !== queen.id).sort(() => Math.random() - 0.5);
+    rivalsQueue = QUEENS.filter((q) => q.id !== queen.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, ROUNDS.length);
     roundIndex = 0;
-    lives = START_LIVES;
+    lives = statLives(queen.stats.lives);
+    special = 0;
+    slowUntil = doublePointsUntil = 0;
+    pendingFans = [];
     score = displayScore = combo = maxCombo = shots = hits = 0;
     playTime = 0;
     heels = [];
@@ -147,9 +162,20 @@ const Game = (() => {
 
     player.update(dt, input);
     if (input.fire && player.cooldown <= 0) shoot();
-    rival.update(dt, player, (h) => heels.push(h));
+    if (input.special) {
+      input.special = false;
+      if (special >= 1) activateSpecial();
+    }
+    pendingFans = pendingFans.filter((f) => {
+      if (clock < f.at) return true;
+      fan(11);
+      return false;
+    });
 
-    heels.forEach((h) => h.update(dt));
+    const slow = clock < slowUntil ? 0.35 : 1;
+    rival.update(dt * slow, player, (h) => heels.push(h));
+
+    heels.forEach((h) => h.update(h.owner === "enemy" ? dt * slow : dt, rival));
     powerups.forEach((p) => p.update(dt));
 
     collisions();
@@ -166,13 +192,107 @@ const Game = (() => {
   }
 
   function shoot() {
-    player.cooldown = PLAYER.shotCooldown;
+    player.cooldown = player.shotCooldown;
     const y = player.y + 10;
+    const triple = clock < player.tripleUntil;
     const double = clock < player.doubleUntil;
-    const origins = double ? [player.cx - 22, player.cx + 22] : [player.cx];
-    origins.forEach((x) => heels.push(new Heel(x, y, 0, -PLAYER.shotSpeed, "player")));
-    shots += origins.length;
+    const homing = clock < player.homingUntil;
+    const v = PLAYER.shotSpeed;
+    const shotsNow = [];
+    if (triple) {
+      [-0.18, 0, 0.18].forEach((a) => shotsNow.push([player.cx, Math.sin(a) * v, -Math.cos(a) * v]));
+    } else if (double) {
+      shotsNow.push([player.cx - 22, 0, -v], [player.cx + 22, 0, -v]);
+    } else {
+      shotsNow.push([player.cx, 0, -v]);
+    }
+    if (clock < player.clonesUntil) {
+      [-1, 1].forEach((side) => shotsNow.push([player.cx + side * player.w * 0.9, 0, -v]));
+    }
+    shotsNow.forEach(([x, vx, vy]) => {
+      const h = new Heel(x, y, vx, vy, "player");
+      h.homing = homing;
+      heels.push(h);
+    });
+    shots += shotsNow.length;
     Sound.shoot();
+  }
+
+  function fan(count) {
+    const v = PLAYER.shotSpeed;
+    for (let i = 0; i < count; i++) {
+      const a = -0.7 + (1.4 * i) / (count - 1);
+      heels.push(new Heel(player.cx, player.y + 10, Math.sin(a) * v, -Math.cos(a) * v, "player"));
+    }
+    shots += count;
+    Sound.shoot();
+  }
+
+  // ------------------------------ Poderes --------------------------------
+  function activateSpecial() {
+    special = 0;
+    const p = queen.power;
+    Sound.powerup();
+    FX.shake(6);
+    FX.burst(player.cx, player.cy, 50, [COLORS.gold, COLORS.pink, COLORS.cyan], 380);
+    FX.text(W / 2, H * 0.62, p.name.toUpperCase(), COLORS.gold, 38);
+    switch (p.id) {
+      case "shield":
+        player.shieldUntil = clock + 5;
+        break;
+      case "fan":
+        fan(11);
+        pendingFans.push({ at: clock + 0.3 });
+        break;
+      case "sponge": {
+        let absorbed = 0;
+        heels.forEach((h) => {
+          if (h.owner === "enemy" && !h.dead) {
+            h.dead = true;
+            absorbed++;
+            FX.burst(h.x, h.y, 8, [COLORS.pinkSoft, COLORS.white], 160);
+          }
+        });
+        score += absorbed * 75;
+        lives = Math.min(MAX_LIVES, lives + 1);
+        FX.text(player.cx, player.y - 20, `+1 VIDA · ${absorbed} ABSORBIDOS`, COLORS.pink, 24);
+        break;
+      }
+      case "slowmo":
+        slowUntil = clock + 5;
+        break;
+      case "triple":
+        player.tripleUntil = clock + 6;
+        break;
+      case "homing":
+        player.homingUntil = clock + 6;
+        break;
+      case "zap":
+        FX.bolt(player.cx, player.y, rival.cx, rival.cy);
+        damageRival(3, rival.cx, rival.cy, true);
+        break;
+      case "bomb":
+        heels.forEach((h) => {
+          if (h.owner === "enemy") h.dead = true;
+        });
+        FX.burst(W / 2, H / 2, 160, [COLORS.gold, COLORS.pink, COLORS.cyan, COLORS.white], 700, [3, 9]);
+        FX.shake(18);
+        damageRival(2, rival.cx, rival.cy, true);
+        break;
+      case "magnet":
+        doublePointsUntil = clock + 8;
+        powerups.push(new PowerUp(player.cx, HUD_H + 60, lives < MAX_LIVES ? "life" : "double"));
+        break;
+      case "clones":
+        player.clonesUntil = clock + 6;
+        break;
+      case "divine":
+        player.invUntil = Math.max(player.invUntil, clock + 6);
+        player.shieldUntil = clock + 6;
+        player.tripleUntil = clock + 6;
+        player.homingUntil = clock + 6;
+        break;
+    }
   }
 
   function collisions() {
@@ -186,6 +306,10 @@ const Game = (() => {
         h.dead = true;
         hitRival(h);
         if (state !== "playing") return;
+      } else if (h.owner === "enemy" && clock < player.shieldUntil && circleInRect(h, { x: player.x - 20, y: player.y - 20, w: player.w + 40, h: player.h + 40 })) {
+        h.dead = true;
+        FX.burst(h.x, h.y, 10, [COLORS.pinkSoft, COLORS.white], 200);
+        score += 25;
       } else if (h.owner === "enemy" && !invulnerable && circleInRect(h, playerBox)) {
         h.dead = true;
         hitPlayer();
@@ -206,22 +330,29 @@ const Game = (() => {
     hits++;
     combo++;
     maxCombo = Math.max(maxCombo, combo);
-    const mult = Math.min(combo, 8);
-    const points = 50 * mult;
+    special = Math.min(1, special + SPECIAL_PER_HIT);
+    if (special >= 1 && special - SPECIAL_PER_HIT < 1) FX.text(W / 2, H * 0.66, "¡PODER LISTO! [E]", COLORS.cyan, 26);
+    damageRival(player.damage, h.x, h.y, false);
+  }
+
+  function damageRival(amount, x, y, isSpecial) {
+    const mult = Math.min(Math.max(combo, 1), 8);
+    const points = Math.round((isSpecial ? 300 : 50 * mult) * (clock < doublePointsUntil ? 2 : 1));
     score += points;
-    rival.hp--;
+    rival.hp -= amount;
     rival.hurt = 0.25;
     Sound.impact();
-    FX.burst(h.x, h.y, 18, [COLORS.gold, COLORS.pink, COLORS.white], 280);
-    FX.text(h.x, h.y - 20, combo >= 3 ? `${pick(HIT_QUIPS)} x${mult}` : `+${points}`, combo >= 3 ? COLORS.gold : COLORS.white, combo >= 3 ? 30 : 24);
-    FX.shake(3);
+    FX.burst(x, y, isSpecial ? 50 : 18, [COLORS.gold, COLORS.pink, COLORS.white], isSpecial ? 420 : 280);
+    const big = combo >= 3 || isSpecial;
+    FX.text(x, y - 20, big && !isSpecial ? `${pick(HIT_QUIPS)} x${mult}` : `+${points}`, big ? COLORS.gold : COLORS.white, big ? 30 : 24);
+    FX.shake(isSpecial ? 10 : 3);
 
-    if (Math.random() < POWERUP_CHANCE) {
+    if (!isSpecial && Math.random() < POWERUP_CHANCE) {
       const type = lives < MAX_LIVES && Math.random() < 0.5 ? "life" : "double";
       powerups.push(new PowerUp(rival.cx, rival.cy, type));
     }
 
-    if (rival.hp <= 0) eliminateRival();
+    if (rival.hp <= 0.001) eliminateRival();
   }
 
   function eliminateRival() {
@@ -273,21 +404,27 @@ const Game = (() => {
     Sound.stopAll();
     won ? Sound.win() : Sound.lose();
     if (won) score += lives * 750; // bonus por vidas restantes
+    score = Math.round(score);
     const best = store.get("dftc-best", 0);
     const isRecord = score > best;
     if (isRecord) store.set("dftc-best", score);
+    const stats = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: store.get("dftc-name", ""),
+      queen: queen.id,
+      won,
+      score,
+      rounds: won ? ROUNDS.length : roundIndex,
+      accuracy: shots ? Math.round((Math.min(hits, shots) / shots) * 100) : 0,
+      maxCombo,
+      time: playTime,
+      date: new Date().toISOString(),
+    };
+    const boardPos = Progress.recordGame(stats);
+    const unlocked = Progress.addTotal(score);
     render();
     setTimeout(() => {
-      onEnd({
-        won,
-        score,
-        best: Math.max(best, score),
-        isRecord,
-        rounds: won ? ROUNDS.length : roundIndex,
-        accuracy: shots ? Math.round((hits / shots) * 100) : 0,
-        maxCombo,
-        time: playTime,
-      });
+      onEnd({ ...stats, best: Math.max(best, score), isRecord, boardPos, unlocked });
     }, won ? 400 : 700);
   }
 
@@ -333,9 +470,35 @@ const Game = (() => {
     // Vidas
     for (let i = 0; i < MAX_LIVES; i++) {
       ctx.globalAlpha = i < lives ? 1 : 0.15;
-      ctx.drawImage(images.lipstick, 24 + i * 34, 20, 28, 44);
+      ctx.drawImage(images.lipstick, 24 + i * 30, 12, 24, 38);
     }
     ctx.globalAlpha = 1;
+
+    // Barra del poder especial
+    const sx = 24;
+    const sy = 58;
+    const sw = 150;
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    roundRect(sx, sy, sw, 12, 6);
+    ctx.fill();
+    const full = special >= 1;
+    const sg = ctx.createLinearGradient(sx, 0, sx + sw, 0);
+    sg.addColorStop(0, COLORS.cyan);
+    sg.addColorStop(1, full ? COLORS.gold : COLORS.pink);
+    ctx.fillStyle = sg;
+    if (full) {
+      ctx.shadowColor = COLORS.gold;
+      ctx.shadowBlur = 12 + Math.sin(clock * 8) * 8;
+    }
+    roundRect(sx, sy, sw * special, 12, 6);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.font = "12px Poppins, sans-serif";
+    ctx.fillStyle = full ? COLORS.gold : "rgba(255,255,255,0.7)";
+    ctx.fillText(full ? `✨ ${queen.power.name.toUpperCase()} · [E]` : "✨ PODER", sx + sw + 10, sy + 6);
+    ctx.textBaseline = "alphabetic";
 
     // Ronda + rival + vida del rival
     ctx.textAlign = "center";
@@ -376,11 +539,18 @@ const Game = (() => {
       ctx.font = "16px Bungee, Poppins, sans-serif";
       ctx.fillText(`COMBO x${Math.min(combo, 8)}`, W - 24, 70);
     }
-    if (clock < player.doubleUntil) {
-      ctx.textAlign = "left";
-      ctx.fillStyle = COLORS.gold;
-      ctx.font = "13px Poppins, sans-serif";
-      ctx.fillText(`👑 DOBLE TACÓN ${Math.ceil(player.doubleUntil - clock)}s`, 24, HUD_H + 22);
+    // Efectos activos
+    const active = [];
+    if (clock < player.doubleUntil) active.push(`👑 DOBLE TACÓN ${Math.ceil(player.doubleUntil - clock)}s`);
+    const powerEnd = Math.max(player.shieldUntil, player.tripleUntil, player.homingUntil, player.clonesUntil, slowUntil, doublePointsUntil);
+    if (clock < powerEnd) active.push(`✨ ${queen.power.name.toUpperCase()} ${Math.ceil(powerEnd - clock)}s`);
+    ctx.textAlign = "left";
+    ctx.fillStyle = COLORS.gold;
+    ctx.font = "13px Poppins, sans-serif";
+    active.forEach((t, i) => ctx.fillText(t, 24, HUD_H + 22 + i * 18));
+    if (clock < slowUntil) {
+      ctx.fillStyle = "rgba(83,242,255,0.08)";
+      ctx.fillRect(0, HUD_H, W, H - HUD_H);
     }
   }
 
@@ -457,12 +627,13 @@ const Game = (() => {
     const k = KEYMAP[e.code];
     if (k && ["intro", "playing", "cleared"].includes(state)) {
       e.preventDefault();
+      if (k === "special" && e.repeat) return;
       input[k] = true;
     }
   });
   document.addEventListener("keyup", (e) => {
     const k = KEYMAP[e.code];
-    if (k) input[k] = false;
+    if (k && k !== "special") input[k] = false;
   });
   window.addEventListener("blur", () => {
     clearInput();
@@ -483,6 +654,6 @@ const Game = (() => {
       return state;
     },
     // Solo para pruebas automatizadas
-    _debug: () => ({ state, lives, score, roundIndex, combo, shots, hits, heels: heels.length, rival, player }),
+    _debug: () => ({ state, lives, score, roundIndex, combo, shots, hits, heels: heels.length, rival, player, special, setSpecial: (v) => (special = v) }),
   };
 })();

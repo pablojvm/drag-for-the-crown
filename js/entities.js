@@ -21,6 +21,15 @@ class Player {
     this.invUntil = 0;
     this.doubleUntil = 0;
     this.tilt = 0;
+    // Estadísticas propias de cada reina
+    this.speed = PLAYER.speed * statSpeed(queen.stats.speed);
+    this.shotCooldown = statCooldown(queen.stats.rate);
+    this.damage = statDamage(queen.stats.power);
+    // Efectos de poderes especiales (marcas de tiempo)
+    this.shieldUntil = 0;
+    this.tripleUntil = 0;
+    this.homingUntil = 0;
+    this.clonesUntil = 0;
   }
 
   get cx() {
@@ -46,14 +55,38 @@ class Player {
       dx *= Math.SQRT1_2;
       dy *= Math.SQRT1_2;
     }
-    this.x = clamp(this.x + dx * PLAYER.speed * dt, 0, W - this.w);
-    this.y = clamp(this.y + dy * PLAYER.speed * dt, PLAYER_MIN_Y, H - this.h - 6);
+    this.x = clamp(this.x + dx * this.speed * dt, 0, W - this.w);
+    this.y = clamp(this.y + dy * this.speed * dt, PLAYER_MIN_Y, H - this.h - 6);
     this.tilt += (dx * 0.12 - this.tilt) * Math.min(1, dt * 10);
     this.cooldown -= dt;
   }
 
   draw(ctx, now) {
-    const invulnerable = now < this.invUntil;
+    // Clones holográficos
+    if (now < this.clonesUntil) {
+      [-1, 1].forEach((side) => {
+        ctx.save();
+        ctx.globalAlpha = 0.35 + Math.sin(now * 12 + side) * 0.1;
+        ctx.shadowColor = COLORS.cyan;
+        ctx.shadowBlur = 20;
+        ctx.drawImage(this.img, this.x + side * this.w * 0.9, this.y + 10, this.w * 0.85, this.h * 0.85);
+        ctx.restore();
+      });
+    }
+    // Escudo
+    if (now < this.shieldUntil) {
+      ctx.save();
+      const r = Math.max(this.w, this.h) * 0.62;
+      const g = ctx.createRadialGradient(this.cx, this.cy, r * 0.6, this.cx, this.cy, r);
+      g.addColorStop(0, "rgba(255,155,233,0)");
+      g.addColorStop(1, `rgba(255,155,233,${0.45 + Math.sin(now * 10) * 0.15})`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(this.cx, this.cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    const invulnerable = now < this.invUntil && now >= this.shieldUntil;
     if (invulnerable && Math.floor(now * 14) % 2 === 0) return; // parpadeo
     // Sombra en la pasarela
     ctx.fillStyle = "rgba(0,0,0,0.35)";
@@ -64,7 +97,7 @@ class Player {
     ctx.save();
     ctx.translate(this.cx, this.y + this.h);
     ctx.rotate(this.tilt);
-    if (now < this.doubleUntil) {
+    if (now < this.doubleUntil || now < this.tripleUntil || now < this.homingUntil) {
       ctx.shadowColor = COLORS.gold;
       ctx.shadowBlur = 25;
     }
@@ -238,9 +271,21 @@ class Heel {
     this.trail = [];
   }
 
-  update(dt) {
+  update(dt, target) {
     this.trail.push({ x: this.x, y: this.y });
     if (this.trail.length > 6) this.trail.shift();
+    // Tacones teledirigidos: giran poco a poco hacia la rival
+    if (this.homing && target && !target.entering) {
+      const speed = Math.hypot(this.vx, this.vy);
+      const want = Math.atan2(target.cy - this.y, target.cx - this.x);
+      const cur = Math.atan2(this.vy, this.vx);
+      let diff = want - cur;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      const a = cur + clamp(diff, -6 * dt, 6 * dt);
+      this.vx = Math.cos(a) * speed;
+      this.vy = Math.sin(a) * speed;
+    }
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.rot += this.spin * dt;

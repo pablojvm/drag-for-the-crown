@@ -15,7 +15,7 @@ const Sound = (() => {
   const win = make("./audio/Shantay.mp3", 0.3);
   const lose = make("./audio/Sashay.mp3", 0.3);
   const hits = [make("./audio/gurl.mp3", 0.3), make("./audio/honey.mp3", 0.35), make("./audio/security.mp3", 0.3)];
-  const voices = Object.fromEntries(QUEENS.map((q) => [q.id, make(q.voice, 0.3)]));
+  const voices = Object.fromEntries(QUEENS.filter((q) => q.voice).map((q) => [q.id, make(q.voice, 0.3)]));
   const all = [music, win, lose, ...hits, ...Object.values(voices)];
 
   let muted = store.get("dftc-muted", false);

@@ -171,17 +171,19 @@ kbd.wide { min-width: 120px; }
 .best strong { color: var(--gold); }
 
 /* ------------------------------- Elección -------------------------------- */
+#screen-select { gap: 18px; }
+
 #queen-grid {
   display: grid;
-  grid-template-columns: repeat(3, 280px);
-  gap: 26px;
+  grid-template-columns: repeat(6, 196px);
+  gap: 16px;
 }
 
 .queen-card {
   position: relative;
-  height: 300px;
+  height: 220px;
   padding: 0;
-  border-radius: 22px;
+  border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
   border: 3px solid rgba(255, 255, 255, 0.12);
@@ -204,23 +206,23 @@ kbd.wide { min-width: 120px; }
 }
 .queen-card .name {
   position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
   z-index: 1;
   font-family: "Bungee", sans-serif;
-  font-size: 22px;
+  font-size: 17px;
   line-height: 1.15;
   color: #fff;
   text-align: left;
 }
 .queen-card .check {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 12px;
+  right: 12px;
   z-index: 1;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -230,15 +232,203 @@ kbd.wide { min-width: 120px; }
   transform: scale(0);
   transition: transform 0.2s ease;
 }
-.queen-card:hover { transform: translateY(-6px); border-color: var(--pink-soft); }
+.queen-card:hover { transform: translateY(-5px); border-color: var(--pink-soft); }
 .queen-card:hover .portrait { filter: none; transform: scale(1.05); }
+.queen-card.active { border-color: var(--pink-soft); }
 .queen-card.selected {
   border-color: var(--gold);
   box-shadow: 0 0 0 4px rgba(255, 216, 77, 0.25), 0 18px 50px -10px rgba(255, 79, 216, 0.8);
-  transform: translateY(-6px);
+  transform: translateY(-5px);
 }
 .queen-card.selected .portrait { filter: none; }
 .queen-card.selected .check { transform: scale(1); }
+
+.queen-card.locked .portrait,
+.queen-card.locked:hover .portrait {
+  filter: grayscale(1) brightness(0.25) blur(2px);
+  transform: none;
+}
+.queen-card .lock {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 34px;
+}
+.queen-card .lock small {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gold);
+}
+.queen-card.locked .name { color: rgba(255, 255, 255, 0.6); }
+
+/* Desplegable con las estadísticas */
+#queen-details {
+  width: 1276px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+#queen-details.open { max-height: 260px; opacity: 1; }
+.details-inner {
+  display: grid;
+  grid-template-columns: 150px 1fr 1.2fr;
+  gap: 28px;
+  align-items: center;
+  padding: 18px 26px;
+  border-radius: 22px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+}
+.details-portrait {
+  width: 150px;
+  height: 150px;
+  border-radius: 18px;
+  background-size: cover;
+  background-position: center 20%;
+  border: 2px solid var(--line);
+}
+.details-portrait.locked { filter: grayscale(1) brightness(0.4); }
+.details-main h3 {
+  margin: 0 0 10px;
+  font-family: "Bungee", sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+}
+.stat-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  margin: 6px 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.8);
+}
+.pips { display: flex; gap: 6px; }
+.pips i {
+  width: 34px;
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.pips i.on { background: linear-gradient(90deg, var(--pink), var(--gold)); box-shadow: 0 0 8px rgba(255, 79, 216, 0.6); }
+.details-power {
+  padding-left: 26px;
+  border-left: 1px solid var(--line);
+}
+.power-label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--cyan);
+}
+#det-power {
+  display: block;
+  margin: 4px 0;
+  font-family: "Bungee", sans-serif;
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--gold);
+}
+.details-power p { margin: 0; font-size: 16px; color: rgba(255, 255, 255, 0.85); }
+.lock-msg { margin-top: 10px !important; font-size: 14px !important; }
+.lock-msg small { color: rgba(255, 255, 255, 0.6); }
+.progress {
+  display: block;
+  height: 8px;
+  margin: 6px 0 4px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+.progress span { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--gold)); }
+
+/* ------------------------------ Puntuaciones ------------------------------ */
+.scores-layout {
+  display: grid;
+  grid-template-columns: 820px 400px;
+  gap: 24px;
+  align-items: start;
+}
+.panel-card {
+  padding: 22px 26px;
+  border-radius: 22px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+}
+.panel-card h3 {
+  margin: 0 0 14px;
+  font-family: "Bungee", sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--pink-soft);
+}
+.panel-card.side h3:not(:first-child) { margin-top: 22px; }
+#scores-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+#scores-table th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0 8px 10px;
+}
+#scores-table td { padding: 9px 8px; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+#scores-table td.pts { font-family: "Bungee", sans-serif; color: var(--gold); }
+#scores-table tr.me td { background: rgba(255, 79, 216, 0.14); }
+.mini {
+  display: inline-block;
+  vertical-align: middle;
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center 20%;
+}
+.mini.locked { filter: grayscale(1) brightness(0.5); width: 40px; height: 40px; }
+.muted { color: rgba(255, 255, 255, 0.55); }
+.career { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.career div {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.career span { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255, 255, 255, 0.55); }
+.career strong { font-family: "Bungee", sans-serif; font-weight: 400; font-size: 24px; }
+.unlock-item { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.unlock-item div { flex: 1; }
+.unlock-item small { float: right; color: var(--gold); font-weight: 800; }
+
+/* Nombre para el Top 10 y aviso de desbloqueo */
+.name-entry { display: none; align-items: center; gap: 12px; font-size: 18px; }
+.name-entry.active { display: flex; }
+.name-entry input {
+  width: 220px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font: 700 18px "Poppins", sans-serif;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid var(--pink-soft);
+  outline: none;
+}
+.unlocked-msg {
+  display: none;
+  margin: 0;
+  font-family: "Bungee", sans-serif;
+  font-size: 22px;
+  color: var(--cyan);
+}
+.unlocked-msg.active { display: block; }
 
 /* -------------------------------- Partida -------------------------------- */
 #game {
@@ -269,8 +459,9 @@ kbd.wide { min-width: 120px; }
 }
 
 /* ------------------------------- Resultado ------------------------------- */
+#screen-end { gap: 18px; }
 #end-image {
-  width: 280px;
+  width: 230px;
   height: auto;
   margin-bottom: -10px;
   filter: drop-shadow(0 10px 30px rgba(255, 79, 216, 0.5));
@@ -377,13 +568,24 @@ kbd.wide { min-width: 120px; }
 .pad-left { grid-column: 1; grid-row: 2; }
 .pad-down { grid-column: 2; grid-row: 2; }
 .pad-right { grid-column: 3; grid-row: 2; }
+#touch-controls .action-btns { display: flex; align-items: flex-end; gap: 12px; }
 #touch-controls .btn-fire {
   width: 86px;
   height: 86px;
   border-radius: 50%;
   font-size: 38px;
 }
+#touch-controls .btn-special {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  font-size: 26px;
+  background: rgba(83, 242, 255, 0.3);
+  border-color: rgba(83, 242, 255, 0.7);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .menu-logo, .new-record, .screen.active { animation: none; }
 }
+
+.lock-msg strong { color: var(--gold); }
