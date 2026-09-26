@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,58 +8,65 @@
     <link rel="stylesheet" href="styles/style.css">
 </head>
 <body>
+  <div id="stage">
     <!-- PANTALLA DE INICIO -->
-      <div id="pantalla-inicio" class="container">
-        <img src="./images/logo2.png" width="500">
-        <button id="boton-choose">CHOOSE YOUR QUEEN!</button>
-      </div>
+    <div id="pantalla-inicio" class="container">
+      <img src="./images/logo2.png" width="500" alt="Drag for the Crown">
+      <button id="boton-choose">CHOOSE YOUR QUEEN!</button>
+    </div>
 
-      <!-- PANTALLA DE ELECCION DE PERSONAJE -->
-      <div id="pantalla-eleccion" class="container2">
-        <div id="caja-eleccion">
-          <button id="btn-jimbo">Jimbo</button>
-          <button id="btn-trinity">Trinity The Tuck</button>
-          <button id="btn-monet">Monet X Change</button>
-          <button id="btn-shea">Shea Coulee</button>
-          <button id="btn-plastique">Plastique Tiara</button>
-          <button id="btn-angeria">Angeria Paris VanMichael</button>
-        </div>
-        <button id="boton-inicio">RunWay!</button>
-        </div>
+    <!-- PANTALLA DE ELECCION DE PERSONAJE -->
+    <div id="pantalla-eleccion" class="container2">
+      <div id="caja-eleccion">
+        <button class="btn-queen" id="btn-jimbo" data-src="./images/drags/jimbo.png" data-audio="jimbo">Jimbo</button>
+        <button class="btn-queen" id="btn-trinity" data-src="./images/drags/trinity.png" data-audio="trinity">Trinity The Tuck</button>
+        <button class="btn-queen" id="btn-monet" data-src="./images/drags/monetXChange.png" data-audio="monet">Monet X Change</button>
+        <button class="btn-queen" id="btn-shea" data-src="./images/drags/sheaCoulee.png" data-audio="shea">Shea Coulee</button>
+        <button class="btn-queen" id="btn-plastique" data-src="./images/drags/plastiqueTiara.png" data-audio="plastique">Plastique Tiara</button>
+        <button class="btn-queen" id="btn-angeria" data-src="./images/drags/angeriaPVM.png" data-audio="angeria">Angeria Paris VanMichael</button>
       </div>
-      
-      <!-- PANTALLA DE JUEGO -->
-      <div id="pantalla-juego" class="container2">
-        <!-- Elementos del juego -->
-        <div id="cajas-extra">
-          <div id="caja-vidas"></div>
+      <button id="boton-inicio">RunWay!</button>
+    </div>
+
+    <!-- PANTALLA DE JUEGO -->
+    <div id="pantalla-juego" class="container2">
+      <div id="cajas-extra">
+        <div id="caja-vidas"></div>
         <div id="contador"></div>
       </div>
-        <div id="caja-juego">
-    
-        </div>
-      </div>
-      
-      <!-- PANTALLA FINAL -->
-      <div id="pantalla-final" class="container">
-        <img src="./images/shantay.png" width="500" alt="logo">
-        <div id="caja-corona"></div>
-        <button id="boton-restart">ReStart!</button>
-      </div>
+      <div id="caja-juego"></div>
+    </div>
 
-      <!-- PANTALLA GAME OVER -->
-      <div id="pantalla-gameover" class="container">
-        <img src="./images/sashay.png" width="500" alt="logo">
-        <button id="boton-restart2">ReStart!</button>
-      </div>
-  
-    <script src="./js/main.js"></script>
-    <script src="./js/personaje.js"></script>
-    <script src="./js/enemigos.js"></script>
-    <script src="./js/tacones.js"></script>
-    <script src="./js/taconesEnemigos.js"></script>
-    <script src="./js/lipstick.js"></script>
+    <!-- PANTALLA FINAL -->
+    <div id="pantalla-final" class="container">
+      <img src="./images/shantay.png" width="500" alt="Shantay you stay">
+      <div id="caja-corona"></div>
+      <button id="boton-restart">ReStart!</button>
+    </div>
 
-    
+    <!-- PANTALLA GAME OVER -->
+    <div id="pantalla-gameover" class="container">
+      <img src="./images/sashay.png" width="500" alt="Sashay away">
+      <button id="boton-restart2">ReStart!</button>
+    </div>
+  </div>
+
+  <!-- CONTROLES TÁCTILES (solo en pantallas táctiles, durante la partida) -->
+  <div id="controles-touch" aria-hidden="true">
+    <div class="pad">
+      <button data-key="ArrowUp" class="pad-up">▲</button>
+      <button data-key="ArrowLeft" class="pad-left">◀</button>
+      <button data-key="ArrowDown" class="pad-down">▼</button>
+      <button data-key="ArrowRight" class="pad-right">▶</button>
+    </div>
+    <button data-key="Space" class="btn-fire">👠</button>
+  </div>
+
+  <script src="./js/personaje.js"></script>
+  <script src="./js/enemigos.js"></script>
+  <script src="./js/tacones.js"></script>
+  <script src="./js/taconesEnemigos.js"></script>
+  <script src="./js/lipstick.js"></script>
+  <script src="./js/main.js"></script>
 </body>
 </html>

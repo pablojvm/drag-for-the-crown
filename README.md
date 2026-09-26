@@ -84,4 +84,4 @@ Drag for the crown es un minijuego donde tendrás que superar y sobrevivir a 5 e
 
 ## DIAPOSITIVAS
 
-- 
+- https://www.canva.com/design/DAGm8fj9BcM/hBqL4XWOZ9aIYhxzIkVhKw/edit?utm_content=DAGm8fj9BcM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton

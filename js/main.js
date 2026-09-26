@@ -1,452 +1,380 @@
-//pantallas del juego
+// ---------------------------------------------------------------------------
+// Drag for the Crown
+// ---------------------------------------------------------------------------
+
+// Tamaño del escenario "de diseño". Todo se escala para caber en la ventana.
+const STAGE_W = 1440;
+const STAGE_H = 1000;
+const GAME_W = 1000;
+const GAME_H = 800;
+
+const ENEMIGOS_PARA_GANAR = 5;
+const VIDAS_INICIALES = 3;
+const COOLDOWN_DISPARO_MS = 350;
+
+// ----------------------------- Nodos del DOM --------------------------------
+const stageNode = document.querySelector("#stage");
 const pantallaInicioNode = document.querySelector("#pantalla-inicio");
+const pantallaEleccionNode = document.querySelector("#pantalla-eleccion");
 const pantallaJuegoNode = document.querySelector("#pantalla-juego");
 const pantallaFinalNode = document.querySelector("#pantalla-final");
 const pantallaGameOverNode = document.querySelector("#pantalla-gameover");
-const controlesNode = document.createElement("img");
-controlesNode.src = "./images/controles.png";
-controlesNode.style.position = "absolute";
-controlesNode.style.top = "320px";
-controlesNode.style.left = "280px";
-controlesNode.style.width = "150px";
-controlesNode.style.height = "150px";
-pantallaInicioNode.append(controlesNode);
-const logo3Node = document.createElement("img");
-logo3Node.src = "./images/logo3.png";
-logo3Node.style.position = "absolute";
-logo3Node.style.top = "300px";
-logo3Node.style.left = "70px";
-logo3Node.style.width = "200px";
-logo3Node.style.height = "200px";
-pantallaInicioNode.append(logo3Node);
-const instruccionesNode = document.createElement("img");
-instruccionesNode.src = "./images/instrucciones.png";
-instruccionesNode.style.position = "absolute";
-instruccionesNode.style.top = "280px";
-instruccionesNode.style.left = "1100px";
-instruccionesNode.style.width = "300px";
-instruccionesNode.style.height = "400px";
-pantallaInicioNode.append(instruccionesNode);
-const logo5Node = document.createElement("img");
-logo5Node.src = "./images/logo5.png";
-logo5Node.style.position = "absolute";
-logo5Node.style.top = "500px";
-logo5Node.style.left = "70px";
-logo5Node.style.width = "200px";
-logo5Node.style.height = "200px";
-pantallaInicioNode.append(logo5Node);
-const spaceNode = document.createElement("img");
-spaceNode.src = "./images/spaceBar.png";
-spaceNode.style.position = "absolute";
-spaceNode.style.top = "500px";
-spaceNode.style.left = "270px";
-spaceNode.style.width = "200px";
-spaceNode.style.height = "200px";
-pantallaInicioNode.append(spaceNode);
-const cajaCoronaNode = document.querySelector("#caja-corona")
-const coronaGifNode = document.createElement("img")
-const logo10Node = document.createElement("img")
-logo10Node.src = "./images/logo10.png"
-logo10Node.style.width = "200px"
-logo10Node.style.height = "200px"
-coronaGifNode.src = "./images/tiara.gif"
-coronaGifNode.style.width = "400px"
-coronaGifNode.style.height = "400px"
-cajaCoronaNode.append(logo10Node)
-cajaCoronaNode.append(coronaGifNode)
-
-
-
-//pantalla de eleccion de personaje
-const pantallaEleccionNode = document.querySelector("#pantalla-eleccion");
-const cajaEleccionNode = document.querySelector("#caja-eleccion");
-const btnJimboNode = document.querySelector("#btn-jimbo");
-const btnTrinityNode = document.querySelector("#btn-trinity");
-const btnMonetNode = document.querySelector("#btn-monet");
-const btnSheaNode = document.querySelector("#btn-shea");
-const btnPlastiqueNode = document.querySelector("#btn-plastique");
-const btnAngeriaNode = document.querySelector("#btn-angeria");
-
-
-// botones
+const pantallas = [
+  pantallaInicioNode,
+  pantallaEleccionNode,
+  pantallaJuegoNode,
+  pantallaFinalNode,
+  pantallaGameOverNode,
+];
 
 const botonChooseNode = document.querySelector("#boton-choose");
 const botonInicioNode = document.querySelector("#boton-inicio");
 const botonReStartNode = document.querySelector("#boton-restart");
 const botonReStart2Node = document.querySelector("#boton-restart2");
-
-//cajas de juego
+const botonesQueen = document.querySelectorAll(".btn-queen");
 
 const cajaJuegoNode = document.querySelector("#caja-juego");
 const cajaDeVidasNode = document.querySelector("#caja-vidas");
 const contadorCajaNode = document.querySelector("#contador");
+const cajaCoronaNode = document.querySelector("#caja-corona");
+const controlesTouchNode = document.querySelector("#controles-touch");
+
+// Imágenes decorativas de la pantalla de inicio
+function addDecoracion(src, top, left, w, h) {
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = "";
+  img.className = "decoracion";
+  Object.assign(img.style, {
+    top: `${top}px`,
+    left: `${left}px`,
+    width: `${w}px`,
+    height: `${h}px`,
+  });
+  pantallaInicioNode.append(img);
+}
+addDecoracion("./images/controles.png", 320, 280, 150, 150);
+addDecoracion("./images/logo3.png", 300, 70, 200, 200);
+addDecoracion("./images/instrucciones.png", 280, 1100, 300, 400);
+addDecoracion("./images/logo5.png", 500, 70, 200, 200);
+addDecoracion("./images/spaceBar.png", 500, 270, 200, 200);
+
+// Corona de la pantalla final
+const logo10Node = document.createElement("img");
+logo10Node.src = "./images/logo10.png";
+logo10Node.alt = "";
+logo10Node.style.width = "200px";
+logo10Node.style.height = "200px";
+const coronaGifNode = document.createElement("img");
+coronaGifNode.src = "./images/tiara.gif";
+coronaGifNode.alt = "";
+coronaGifNode.style.width = "400px";
+coronaGifNode.style.height = "400px";
+cajaCoronaNode.append(logo10Node, coronaGifNode);
+
+// Contador de enemigas eliminadas
 const contadorNode = document.createElement("span");
-contadorNode.innerText = "0/5";
-contadorNode.style.display = "flex";
-contadorNode.style.justifyContent = "center";
-contadorNode.style.fontSize = "90px";
-(contadorNode.style.fontFamily = "Londrina Outline"), "sans-serif;";
-contadorNode.style.textShadow = "2px 2px 4px rgb(255, 255, 255)";
-contadorNode.style.color = "rgb(241, 154, 239)";
+contadorNode.id = "contador-texto";
 contadorCajaNode.append(contadorNode);
 
-// Variables de Sonido
-
-const audio1Node = document.createElement("audio");
-audio1Node.src = "./audio/Sissy That Walk.mp3";
-audio1Node.volume = 0.1;
-const audio2Node = document.createElement("audio");
-audio2Node.src = "./audio/Shantay.mp3";
-audio2Node.volume = 0.1;
-const audio3Node = document.createElement("audio");
-audio3Node.src = "./audio/Sashay.mp3";
-audio3Node.volume = 0.1;
-const audioMonetNode = document.createElement("audio");
-audioMonetNode.src = "./audio/audioMonet.mp3";
-audioMonetNode.volume = 0.1;
-const audioTrinityNode = document.createElement("audio");
-audioTrinityNode.src = "./audio/audioTrinity.mp3";
-audioTrinityNode.volume = 0.1;
-const audioSheaNode = document.createElement("audio");
-audioSheaNode.src = "./audio/audioShea.mp3";
-audioSheaNode.volume = 0.1;
-const audioPlastiqueNode = document.createElement("audio");
-audioPlastiqueNode.src = "./audio/audioPlastique.mp3";
-audioPlastiqueNode.volume = 0.1;
-const audioAngeriaNode = document.createElement("audio");
-audioAngeriaNode.src = "./audio/audioAngeria.mp3";
-audioAngeriaNode.volume = 0.1;
-const audioJimboNode = document.createElement("audio");
-audioJimboNode.src = "./audio/audioJimbo.mp3";
-audioJimboNode.volume = 0.1;
-const audioGurlNode = document.createElement("audio");
-audioGurlNode.src = "./audio/gurl.mp3";
-audioGurlNode.volume = 0.1;
-const audioHoneyNode = document.createElement("audio");
-audioHoneyNode.src = "./audio/honey.mp3";
-audioHoneyNode.volume = 0.15;
-const audioSecurityNode = document.createElement("audio");
-audioSecurityNode.src = "./audio/security.mp3";
-audioSecurityNode.volume = 0.1;
-
-
-//variables globales
-
-let gameIntervalId = 1;
-let enemigosIntervalId = 1;
-let taconesProyectilId = 1;
-let taconesEnemiesId = 1;
-let mainPersonaje = null;
-let enemigosDrag = null;
-let lipstickArr = null;
-let srcPersonajeSeleccionado = null;
-let taconesArr = [];
-let taconesEnemiesArr = [];
-let enemiesSrc = [
-  "./images/drags/trinity.png",
-  "./images/drags/sheaCoulee.png",
-  "./images/drags/plastiqueTiara.png",
-  "./images/drags/monetXChange.png",
-  "./images/drags/jimbo.png",
-  "./images/drags/angeriaPVM.png",
+// ------------------------------- Audio --------------------------------------
+function crearAudio(src, volume = 0.1, loop = false) {
+  const audio = new Audio(src);
+  audio.volume = volume;
+  audio.loop = loop;
+  return audio;
+}
+const musicaJuego = crearAudio("./audio/Sissy That Walk.mp3", 0.1, true);
+const musicaVictoria = crearAudio("./audio/Shantay.mp3");
+const musicaDerrota = crearAudio("./audio/Sashay.mp3");
+const audiosQueen = {
+  jimbo: crearAudio("./audio/audioJimbo.mp3"),
+  trinity: crearAudio("./audio/audioTrinity.mp3"),
+  monet: crearAudio("./audio/audioMonet.mp3"),
+  shea: crearAudio("./audio/audioShea.mp3"),
+  plastique: crearAudio("./audio/audioPlastique.mp3"),
+  angeria: crearAudio("./audio/audioAngeria.mp3"),
+};
+const audiosImpacto = [
+  crearAudio("./audio/gurl.mp3"),
+  crearAudio("./audio/honey.mp3", 0.15),
+  crearAudio("./audio/security.mp3"),
+];
+const todosLosAudios = [
+  musicaJuego,
+  musicaVictoria,
+  musicaDerrota,
+  ...Object.values(audiosQueen),
+  ...audiosImpacto,
 ];
 
+function play(audio) {
+  audio.currentTime = 0;
+  // El navegador puede bloquear el audio; no debe romper el juego
+  audio.play().catch(() => {});
+}
+function pararAudios(excepto = []) {
+  todosLosAudios.forEach((a) => {
+    if (excepto.includes(a)) return;
+    a.pause();
+    a.currentTime = 0;
+  });
+}
+function audioImpactoAleatorio() {
+  play(audiosImpacto[Math.floor(Math.random() * audiosImpacto.length)]);
+}
+
+// ---------------------------- Estado del juego ------------------------------
+const TODAS_LAS_QUEENS = Array.from(botonesQueen).map((b) => b.dataset.src);
+
+let srcPersonajeSeleccionado = null;
+let mainPersonaje = null;
+let enemigosDrag = null;
+let enemiesSrc = [];
+let lipstickArr = [];
+let taconesArr = [];
+let taconesEnemiesArr = [];
 let colisiones = 0;
-const maxColisiones = 5;
-let colisionesPersonaje = 0;
-const colisionesPersonajeMax = 3;
+let vidas = VIDAS_INICIALES;
+let isPlaying = false;
+let rafId = null;
+let ultimoDisparo = 0;
+let ultimoDisparoEnemigo = 0;
+const teclas = new Set();
 
-//funciones globales
+function mostrarPantalla(pantalla) {
+  pantallas.forEach((p) => (p.style.display = p === pantalla ? "flex" : "none"));
+  controlesTouchNode.classList.toggle("activo", pantalla === pantallaJuegoNode);
+}
 
+function velocidadEnemiga() {
+  return 3 + colisiones; // la dificultad sube con cada drag eliminada
+}
+function intervaloDisparoEnemigo() {
+  return Math.max(900, 2000 - colisiones * 250);
+}
+
+function nuevaEnemiga() {
+  const i = Math.floor(Math.random() * enemiesSrc.length);
+  const src = enemiesSrc.splice(i, 1)[0];
+  return new Enemigos(src, velocidadEnemiga());
+}
+
+function actualizarContador() {
+  contadorNode.innerText = `${colisiones}/${ENEMIGOS_PARA_GANAR}`;
+}
+
+function limpiarTablero() {
+  taconesArr.forEach((t) => t.destroy());
+  taconesEnemiesArr.forEach((t) => t.destroy());
+  taconesArr = [];
+  taconesEnemiesArr = [];
+}
+
+// ------------------------------- Partida ------------------------------------
 function startGame() {
-  pantallaEleccionNode.style.display = "none";
-  pantallaJuegoNode.style.display = "flex";
-  cajaJuegoNode.style.visibility = "visible";
+  // Si no ha elegido, se asigna una queen aleatoria
+  if (!srcPersonajeSeleccionado) {
+    srcPersonajeSeleccionado =
+      TODAS_LAS_QUEENS[Math.floor(Math.random() * TODAS_LAS_QUEENS.length)];
+  }
 
-  audio1Node.play();
+  // Estado limpio
+  cajaJuegoNode.innerHTML = "";
+  cajaDeVidasNode.innerHTML = "";
+  taconesArr = [];
+  taconesEnemiesArr = [];
+  teclas.clear();
+  colisiones = 0;
+  vidas = VIDAS_INICIALES;
+  // La queen elegida nunca aparece como enemiga
+  enemiesSrc = TODAS_LAS_QUEENS.filter((s) => s !== srcPersonajeSeleccionado);
+  actualizarContador();
 
-  mainPersonaje = new Personaje();
-  enemigosDrag = new Enemigos();
-  lipstickArr = [new Vidas(0, 0), new Vidas(100, 0), new Vidas(200, 0)];
+  mostrarPantalla(pantallaJuegoNode);
+  pararAudios();
+  play(musicaJuego);
 
-  gameIntervalId = setInterval(() => {
-    gameLoop();
-  }, Math.round(1000 / 60));
+  mainPersonaje = new Personaje(srcPersonajeSeleccionado);
+  enemigosDrag = nuevaEnemiga();
+  lipstickArr = Array.from({ length: VIDAS_INICIALES }, (_, i) => new Vidas(i * 100));
 
-  // taconesProyectilId = setInterval(() => {
-  //   taconesAppear();
-  // }, 2000);
+  ultimoDisparo = 0;
+  ultimoDisparoEnemigo = performance.now();
+  isPlaying = true;
+  cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(gameLoop);
+}
 
-  taconesEnemiesId = setInterval(() => {
-    taconesEnemiesAppear();
-  }, 2000);
+function gameLoop(now) {
+  if (!isPlaying) return;
+
+  mainPersonaje.mover(teclas);
+  if (teclas.has("Space")) disparar(now);
+
+  enemigosDrag.checkColissionEnemigosWall();
+  enemigosDrag.moverEnemigos();
+
+  if (now - ultimoDisparoEnemigo >= intervaloDisparoEnemigo()) {
+    taconesEnemiesArr.push(new TaconesEnemigos(enemigosDrag, 5 + colisiones * 0.5));
+    ultimoDisparoEnemigo = now;
+  }
+
+  for (let i = taconesArr.length - 1; i >= 0; i--) {
+    const t = taconesArr[i];
+    t.taconesVolando();
+    if (t.fueraDePantalla()) {
+      t.destroy();
+      taconesArr.splice(i, 1);
+    }
+  }
+  for (let i = taconesEnemiesArr.length - 1; i >= 0; i--) {
+    const t = taconesEnemiesArr[i];
+    t.taconesEnemigosVolando();
+    if (t.fueraDePantalla()) {
+      t.destroy();
+      taconesEnemiesArr.splice(i, 1);
+    }
+  }
+
+  checkColissionEnemigosTacones();
+  if (isPlaying) checkColissionPersonajeTacones();
+  if (isPlaying) rafId = requestAnimationFrame(gameLoop);
+}
+
+function disparar(now) {
+  if (!isPlaying || now - ultimoDisparo < COOLDOWN_DISPARO_MS) return;
+  taconesArr.push(new Tacones(mainPersonaje));
+  ultimoDisparo = now;
+}
+
+function hayColision(a, b, margen = 15) {
+  // Pequeño margen para que las colisiones no se sientan injustas
+  return (
+    a.x + margen < b.x + b.w &&
+    a.x + a.w - margen > b.x &&
+    a.y + margen < b.y + b.h &&
+    a.y + a.h - margen > b.y
+  );
 }
 
 function checkColissionEnemigosTacones() {
-  taconesArr.forEach((taconObj, i) => {
-    if (
-      enemigosDrag.x < taconObj.x + taconObj.w &&
-      enemigosDrag.x + enemigosDrag.w > taconObj.x &&
-      enemigosDrag.y < taconObj.y + taconObj.h &&
-      enemigosDrag.y + enemigosDrag.h > taconObj.y
-    ) {
-      let randAudioIndex= Math.floor(Math.random() * 3 + 1)
-      if(randAudioIndex === 1) {
-        audioGurlNode.play()
-      } else if ( randAudioIndex === 2) {
-        audioHoneyNode.play()
-      } else if ( randAudioIndex === 3) {
-        audioSecurityNode.play()
-      }
-      enemigosDrag.node.remove();
-      enemigosDrag = new Enemigos();
-      colisiones++;
-      taconesArr.forEach((eachTacon, i) => {
-        eachTacon.node.remove();
-      });
-      taconesEnemiesArr.forEach((eachTacon, i) => {
-        eachTacon.node.remove();
-      });
-      taconesArr = [];
-      taconesEnemiesArr = [];
-      //taconObj.node.remove();
-      //taconesArr.splice(i, 1);
-      if (colisiones >= maxColisiones) {
-        finishedGame();
-      } else if (colisiones === 1) {
-        contadorNode.innerText = "1/5";
-        enemigosDrag.speed += 1;
-      } else if (colisiones === 2) {
-        contadorNode.innerText = "2/5";
-        enemigosDrag.speed += 2;
-      } else if (colisiones === 3) {
-        contadorNode.innerText = "3/5";
-        enemigosDrag.speed += 3;
-      } else if (colisiones === 4) {
-        contadorNode.innerText = "4/5";
-        enemigosDrag.speed += 4;
-      } else if (colisiones === 5) {
-        contadorNode.innerText = "5/5";
-      }
+  const impacto = taconesArr.some((t) => hayColision(enemigosDrag, t));
+  if (!impacto) return;
 
-      
-    }
-  });
+  audioImpactoAleatorio();
+  colisiones++;
+  actualizarContador();
+  enemigosDrag.destroy();
+  limpiarTablero();
+
+  if (colisiones >= ENEMIGOS_PARA_GANAR) {
+    finishedGame();
+  } else {
+    enemigosDrag = nuevaEnemiga();
+    ultimoDisparoEnemigo = performance.now();
+  }
 }
 
 function checkColissionPersonajeTacones() {
-  taconesEnemiesArr.forEach((taconObj, i) => {
-    if (
-      mainPersonaje.x < taconObj.x + taconObj.w &&
-      mainPersonaje.x + mainPersonaje.w > taconObj.x &&
-      mainPersonaje.y < taconObj.y + taconObj.h &&
-      mainPersonaje.y + mainPersonaje.h > taconObj.y
-    ) {
-      let randAudioIndex= Math.floor(Math.random() * 3 + 1)
-      if(randAudioIndex === 1) {
-        audioGurlNode.play()
-      } else if ( randAudioIndex === 2) {
-        audioHoneyNode.play()
-      } else if ( randAudioIndex === 3) {
-        audioSecurityNode.play()
-      }
-      colisionesPersonaje++;
-      taconObj.node.remove();
-      taconesEnemiesArr.splice(i, 1);
-      if (colisionesPersonaje >= colisionesPersonajeMax) {
-        GameOver();
-      } else if (colisionesPersonaje === 3) {
-        lipstickArr[0].node.remove();
-      } else if (colisionesPersonaje === 2) {
-        lipstickArr[1].node.remove();
-      } else if (colisionesPersonaje === 1) {
-        lipstickArr[2].node.remove();
-      }
+  for (let i = taconesEnemiesArr.length - 1; i >= 0; i--) {
+    const t = taconesEnemiesArr[i];
+    if (!hayColision(mainPersonaje, t)) continue;
+
+    audioImpactoAleatorio();
+    t.destroy();
+    taconesEnemiesArr.splice(i, 1);
+    vidas--;
+    const vida = lipstickArr.pop();
+    if (vida) vida.destroy();
+
+    if (vidas <= 0) {
+      GameOver();
+      return;
     }
-  });
+  }
 }
 
-function gameLoop() {
-  enemigosDrag.checkColissionEnemigosWall();
-  enemigosDrag.moverEnemigos();
-  taconesArr.forEach((cadaTacon) => {
-    cadaTacon.taconesVolando();
-  });
-  checkColissionEnemigosTacones();
-  taconesEnemiesArr.forEach((cadaTaconEnemigo) => {
-    cadaTaconEnemigo.taconesEnemigosVolando();
-  });
-  checkColissionPersonajeTacones();
-}
-
-function taconesAppear() {
-  let taconesObj = new Tacones(); //console.log(pollitoObj)
-  taconesArr.push(taconesObj);
-  //taconesDestroy();
-}
-
-function taconesEnemiesAppear() {
-  let taconesObj = new TaconesEnemigos(); //console.log(pollitoObj)
-  taconesEnemiesArr.push(taconesObj);
-  //taconesDestroy();
+function pararPartida() {
+  isPlaying = false;
+  cancelAnimationFrame(rafId);
+  teclas.clear();
 }
 
 function finishedGame() {
-  pantallaJuegoNode.style.display = "none";
-  pantallaFinalNode.style.display = "flex";
-  audio1Node.pause();
-  audio1Node.currentTime = 0;
-  audio2Node.play();
-
-  clearInterval(gameIntervalId);
-  clearInterval(enemigosIntervalId);
-  clearInterval(taconesEnemiesId);
-  clearInterval(taconesProyectilId);
+  pararPartida();
+  mostrarPantalla(pantallaFinalNode);
+  pararAudios();
+  play(musicaVictoria);
 }
 
 function GameOver() {
-  clearInterval(gameIntervalId);
-  clearInterval(enemigosIntervalId);
-  clearInterval(taconesEnemiesId);
-  clearInterval(taconesProyectilId);
-  pantallaJuegoNode.style.display = "none";
-  pantallaFinalNode.style.display = "none";
-  pantallaGameOverNode.style.display = "flex";
-
-  audio1Node.pause();
-  audio1Node.currentTime = 0;
-  audio3Node.play();
-  // Detener los intervalos
+  pararPartida();
+  mostrarPantalla(pantallaGameOverNode);
+  pararAudios();
+  play(musicaDerrota);
 }
 
-function reStartGame() {
-  pantallaFinalNode.style.display = "none";
-  pantallaJuegoNode.style.display = "flex";
-
-  mainPersonaje.x = 450;
-  mainPersonaje.y = 600;
-  enemigosDrag.x = 450;
-  enemigosDrag.y = 10;
-
-  colisiones = 0; // Reiniciar las variables al valor original y vaciar el dom y reiniciar el juego activando de nuevo starGame
-  colisionesPersonaje = 0;
-  enemiesSrc = [
-    "./images/drags/trinity.png",
-    "./images/drags/sheaCoulee.png",
-    "./images/drags/plastiqueTiara.png",
-    "./images/drags/monetXChange.png",
-    "./images/drags/jimbo.png",
-    "./images/drags/angeriaPVM.png",
-  ];
-  cajaJuegoNode.innerHTML = "";
-  cajaDeVidasNode.innerHTML = "";
-  contadorNode.innerHTML = "0/5";
-  startGame();
-}
-function reStartGameOver() {
-  pantallaGameOverNode.style.display = "none";
-  pantallaJuegoNode.style.display = "flex";
-
-  mainPersonaje.x = 450;
-  mainPersonaje.y = 600;
-  enemigosDrag.x = 450;
-  enemigosDrag.y = 10;
-
-  colisiones = 0;
-  colisionesPersonaje = 0;
-  enemiesSrc = [
-    "./images/drags/trinity.png",
-    "./images/drags/sheaCoulee.png",
-    "./images/drags/plastiqueTiara.png",
-    "./images/drags/monetXChange.png",
-    "./images/drags/jimbo.png",
-    "./images/drags/angeriaPVM.png",
-  ];
-  cajaJuegoNode.innerHTML = "";
-  cajaDeVidasNode.innerHTML = "";
-  contadorNode.innerText = "0/5";
-  startGame();
-}
-
-//event listener
-botonChooseNode.addEventListener("click", () => {
-  pantallaInicioNode.style.display = "none";
-  pantallaEleccionNode.style.display = "flex";
-});
-
-btnJimboNode.addEventListener("click", () => {
-  srcPersonajeSeleccionado = "./images/drags/jimbo.png";
-  audioJimboNode.play();
-});
-
-btnTrinityNode.addEventListener("click", () => {
-  srcPersonajeSeleccionado = "./images/drags/trinity.png";
-  audioTrinityNode.play();
-});
-
-btnMonetNode.addEventListener("click", () => {
-  srcPersonajeSeleccionado = "./images/drags/monetXChange.png";
-  audioMonetNode.play();
-});
-
-btnSheaNode.addEventListener("click", () => {
-  srcPersonajeSeleccionado = "./images/drags/sheaCoulee.png";
-  audioSheaNode.play();
-});
-
-btnPlastiqueNode.addEventListener("click", () => {
-  srcPersonajeSeleccionado = "./images/drags/plastiqueTiara.png";
-  audioPlastiqueNode.play();
-});
-
-btnAngeriaNode.addEventListener("click", () => {
-  srcPersonajeSeleccionado = "./images/drags/angeriaPVM.png";
-  audioAngeriaNode.play();
-});
-
-botonInicioNode.addEventListener("click", () => {
-  let randIndex = Math.floor(Math.random() * enemiesSrc.length)
-  if(srcPersonajeSeleccionado === null) {
-    srcPersonajeSeleccionado = enemiesSrc[randIndex]
-
-  }
-  startGame();
-});
+// ------------------------------ Controles -----------------------------------
+const TECLAS_JUEGO = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space"];
 
 document.addEventListener("keydown", (event) => {
-  const maxX = cajaJuegoNode.offsetWidth - mainPersonaje.w;
-  const maxY = cajaJuegoNode.offsetHeight;
+  if (!isPlaying || !TECLAS_JUEGO.includes(event.code)) return;
+  event.preventDefault(); // evita que la página haga scroll
+  teclas.add(event.code);
+});
+document.addEventListener("keyup", (event) => {
+  teclas.delete(event.code);
+});
+window.addEventListener("blur", () => teclas.clear());
 
-  if (event.key === "ArrowLeft" && mainPersonaje.x > 0) {
-    mainPersonaje.x -= mainPersonaje.speed;
-    mainPersonaje.node.style.left = `${mainPersonaje.x}px`;
-  } else if (event.key === "ArrowRight" && mainPersonaje.x < maxX) {
-    mainPersonaje.x += mainPersonaje.speed;
-    mainPersonaje.node.style.left = `${mainPersonaje.x}px`;
+// Controles táctiles
+controlesTouchNode.querySelectorAll("button").forEach((btn) => {
+  const key = btn.dataset.key;
+  const soltar = () => teclas.delete(key);
+  btn.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    if (isPlaying) teclas.add(key);
+  });
+  btn.addEventListener("pointerup", soltar);
+  btn.addEventListener("pointerleave", soltar);
+  btn.addEventListener("pointercancel", soltar);
+});
+
+// Pausa automática si la pestaña pierde el foco
+document.addEventListener("visibilitychange", () => {
+  if (!mainPersonaje || pantallaJuegoNode.style.display !== "flex") return;
+  if (document.hidden && isPlaying) {
+    pararPartida();
+    musicaJuego.pause();
+  } else if (!document.hidden && !isPlaying) {
+    isPlaying = true;
+    ultimoDisparoEnemigo = performance.now();
+    musicaJuego.play().catch(() => {});
+    rafId = requestAnimationFrame(gameLoop);
   }
-  if (event.key === "ArrowUp" && mainPersonaje.y > maxY / 2) {
-    mainPersonaje.y -= mainPersonaje.speed;
-    mainPersonaje.node.style.top = `${mainPersonaje.y}px`;
-  } else if (
-    event.key === "ArrowDown" &&
-    mainPersonaje.y < maxY - mainPersonaje.h
-  ) {
-    mainPersonaje.y += mainPersonaje.speed;
-    mainPersonaje.node.style.top = `${mainPersonaje.y}px`;
-  }
 });
 
-document.addEventListener("keydown", (event) => {
-  if (event.code === "Space") {
-    taconesAppear();
-    taconesVolando();
-  }
+botonChooseNode.addEventListener("click", () => mostrarPantalla(pantallaEleccionNode));
+
+botonesQueen.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    srcPersonajeSeleccionado = btn.dataset.src;
+    botonesQueen.forEach((b) => b.classList.toggle("selected", b === btn));
+    pararAudios();
+    play(audiosQueen[btn.dataset.audio]);
+  });
 });
 
-botonReStartNode.addEventListener("click", () => {
-  reStartGame();
-});
+botonInicioNode.addEventListener("click", startGame);
+botonReStartNode.addEventListener("click", startGame);
+botonReStart2Node.addEventListener("click", startGame);
 
-botonReStart2Node.addEventListener("click", () => {
-  reStartGameOver();
-});
+// --------------------- Escalado para cualquier pantalla ---------------------
+function ajustarEscala() {
+  const escala = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+  stageNode.style.transform = `translate(-50%, -50%) scale(${escala})`;
+}
+window.addEventListener("resize", ajustarEscala);
+ajustarEscala();
+mostrarPantalla(pantallaInicioNode);
