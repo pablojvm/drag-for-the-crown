@@ -332,9 +332,9 @@ class PowerUp {
     this.x = x;
     this.y = y;
     this.type = type; // "life" | "double"
-    this.vy = 150;
+    this.vy = 190;
     this.t = 0;
-    this.r = 26;
+    this.r = 30;
   }
 
   update(dt) {

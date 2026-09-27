@@ -107,7 +107,7 @@ const Game = (() => {
     const q = rivalsQueue[roundIndex];
     rival = new Rival(q, images[q.id], ROUNDS[roundIndex], roundIndex);
     heels = [];
-    powerups = [];
+    // Los premios que aún caen se mantienen entre rondas para poder recogerlos
     tookDamageThisRound = false;
     lastCount = null;
     setState("intro");
@@ -136,6 +136,7 @@ const Game = (() => {
     if (state === "intro") {
       rival.update(dt, player, () => {});
       player.update(dt, input);
+      updatePowerups(dt);
       // Cuenta atrás 3, 2, 1
       const count = introCount();
       if (count !== lastCount) {
@@ -149,6 +150,7 @@ const Game = (() => {
     if (state === "cleared") {
       player.update(dt, input);
       heels.forEach((h) => h.update(dt));
+      updatePowerups(dt);
       if (stateTime >= 2) {
         roundIndex++;
         if (roundIndex >= ROUNDS.length) finish(true);
@@ -187,6 +189,19 @@ const Game = (() => {
         return false;
       }
       return true;
+    });
+    powerups = powerups.filter((p) => !p.dead && !p.offscreen);
+  }
+
+  // Premios fuera de la partida activa (entre rondas): siguen cayendo y se pueden recoger
+  function updatePowerups(dt) {
+    const box = player.hitbox;
+    powerups.forEach((p) => {
+      p.update(dt);
+      if (!p.dead && circleInRect(p, box)) {
+        p.dead = true;
+        collect(p);
+      }
     });
     powerups = powerups.filter((p) => !p.dead && !p.offscreen);
   }
