@@ -78,6 +78,12 @@ const QUEENS = [
     unlock: 70000,
   },
   {
+    id: "denebola", name: "Denebola Murnau", sprite: "./images/drags/denebola.png", portrait: "./images/portraits/denebola_portrait.jpg",
+    stats: { speed: 3, rate: 3, power: 4, lives: 3 },
+    power: { id: "reflect", name: "Sombra de Nosferatu", desc: "Durante 5 s los tacones rivales que te alcanzan rebotan y vuelven contra ella." },
+    unlock: 85000,
+  },
+  {
     id: "carmesi", name: "Brooke Lynn Hytes", sprite: "./images/drags/carmesi.png", portrait: "./images/portraits/carmesi_portrait.jpg",
     stats: { speed: 4, rate: 5, power: 4, lives: 4 },
     power: { id: "divine", name: "Plumas de fuego", desc: "6 s invencible con triple tacón teledirigido." },

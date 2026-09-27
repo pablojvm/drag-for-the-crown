@@ -173,15 +173,21 @@ kbd.wide { min-width: 120px; }
 /* ------------------------------- Elección -------------------------------- */
 #screen-select { gap: 18px; }
 
+.select-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
 #queen-grid {
   display: grid;
-  grid-template-columns: repeat(6, 196px);
+  grid-template-columns: repeat(4, 200px);
   gap: 16px;
 }
 
 .queen-card {
   position: relative;
-  height: 220px;
+  height: 206px;
   padding: 0;
   border-radius: 20px;
   overflow: hidden;
@@ -266,37 +272,37 @@ kbd.wide { min-width: 120px; }
 }
 .queen-card.locked .name { color: rgba(255, 255, 255, 0.6); }
 
-/* Desplegable con las estadísticas */
+/* Desplegable lateral con las estadísticas */
 #queen-details {
-  width: 1276px;
-  max-height: 0;
+  width: 0;
+  max-height: 650px;
   overflow: hidden;
   opacity: 0;
-  transition: max-height 0.4s ease, opacity 0.3s ease;
+  transition: width 0.4s ease, opacity 0.3s ease, margin 0.4s ease;
 }
-#queen-details.open { max-height: 260px; opacity: 1; }
+#queen-details.open { width: 440px; margin-left: 24px; opacity: 1; }
 .details-inner {
-  display: grid;
-  grid-template-columns: 150px 1fr 1.2fr;
-  gap: 28px;
-  align-items: center;
-  padding: 18px 26px;
+  width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 26px;
   border-radius: 22px;
   background: var(--glass);
   border: 1px solid var(--line);
   backdrop-filter: blur(10px);
 }
 .details-portrait {
-  width: 150px;
-  height: 150px;
-  border-radius: 18px;
+  width: 100%;
+  height: 190px;
+  border-radius: 16px;
   background-size: cover;
-  background-position: center 20%;
+  background-position: center 22%;
   border: 2px solid var(--line);
 }
 .details-portrait.locked { filter: grayscale(1) brightness(0.4); }
 .details-main h3 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-family: "Bungee", sans-serif;
   font-weight: 400;
   font-size: 24px;
@@ -311,15 +317,15 @@ kbd.wide { min-width: 120px; }
 }
 .pips { display: flex; gap: 6px; }
 .pips i {
-  width: 34px;
+  width: 44px;
   height: 10px;
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.12);
 }
 .pips i.on { background: linear-gradient(90deg, var(--pink), var(--gold)); box-shadow: 0 0 8px rgba(255, 79, 216, 0.6); }
 .details-power {
-  padding-left: 26px;
-  border-left: 1px solid var(--line);
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
 }
 .power-label {
   font-size: 13px;

@@ -286,6 +286,9 @@ const Game = (() => {
       case "clones":
         player.clonesUntil = clock + 6;
         break;
+      case "reflect":
+        player.reflectUntil = clock + 5;
+        break;
       case "divine":
         player.invUntil = Math.max(player.invUntil, clock + 6);
         player.shieldUntil = clock + 6;
@@ -306,6 +309,16 @@ const Game = (() => {
         h.dead = true;
         hitRival(h);
         if (state !== "playing") return;
+      } else if (h.owner === "enemy" && clock < player.reflectUntil && circleInRect(h, { x: player.x - 30, y: player.y - 30, w: player.w + 60, h: player.h + 60 })) {
+        // El tacón rebota y pasa a ser de la jugadora, dirigido a la rival
+        h.owner = "player";
+        h.homing = true;
+        const a = Math.atan2(rival.cy - h.y, rival.cx - h.x);
+        const v = PLAYER.shotSpeed * 0.9;
+        h.vx = Math.cos(a) * v;
+        h.vy = Math.sin(a) * v;
+        h.trail = [];
+        FX.burst(h.x, h.y, 10, [COLORS.cyan, COLORS.white], 200);
       } else if (h.owner === "enemy" && clock < player.shieldUntil && circleInRect(h, { x: player.x - 20, y: player.y - 20, w: player.w + 40, h: player.h + 40 })) {
         h.dead = true;
         FX.burst(h.x, h.y, 10, [COLORS.pinkSoft, COLORS.white], 200);
@@ -542,7 +555,7 @@ const Game = (() => {
     // Efectos activos
     const active = [];
     if (clock < player.doubleUntil) active.push(`👑 DOBLE TACÓN ${Math.ceil(player.doubleUntil - clock)}s`);
-    const powerEnd = Math.max(player.shieldUntil, player.tripleUntil, player.homingUntil, player.clonesUntil, slowUntil, doublePointsUntil);
+    const powerEnd = Math.max(player.shieldUntil, player.tripleUntil, player.homingUntil, player.clonesUntil, player.reflectUntil, slowUntil, doublePointsUntil);
     if (clock < powerEnd) active.push(`✨ ${queen.power.name.toUpperCase()} ${Math.ceil(powerEnd - clock)}s`);
     ctx.textAlign = "left";
     ctx.fillStyle = COLORS.gold;

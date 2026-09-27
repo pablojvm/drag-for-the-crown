@@ -30,6 +30,7 @@ class Player {
     this.tripleUntil = 0;
     this.homingUntil = 0;
     this.clonesUntil = 0;
+    this.reflectUntil = 0;
   }
 
   get cx() {
@@ -72,6 +73,18 @@ class Player {
         ctx.drawImage(this.img, this.x + side * this.w * 0.9, this.y + 10, this.w * 0.85, this.h * 0.85);
         ctx.restore();
       });
+    }
+    // Aura de reflejo (Denebola)
+    if (now < this.reflectUntil) {
+      ctx.save();
+      ctx.strokeStyle = `rgba(83,242,255,${0.5 + Math.sin(now * 14) * 0.3})`;
+      ctx.lineWidth = 4;
+      ctx.setLineDash([10, 8]);
+      ctx.lineDashOffset = -now * 60;
+      ctx.beginPath();
+      ctx.ellipse(this.cx, this.cy, this.w * 0.75, this.h * 0.62, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     }
     // Escudo
     if (now < this.shieldUntil) {

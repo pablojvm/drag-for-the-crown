@@ -13,8 +13,8 @@ Drag for the Crown es un minijuego arcade de navegador. Eliges a tu queen y te e
 
 # Funcionalidades
 
-- 11 reinas, cada una con sus estadísticas (velocidad, cadencia, potencia y resistencia) y un poder especial propio que se carga golpeando a la rival.
-- 5 reinas bloqueadas que se desbloquean al acumular puntos entre partidas (Jujubee 10.000, Crystal Methyd 25.000, Dafne Mugler 45.000, Trixie Mattel 70.000 y Brooke Lynn Hytes 100.000).
+- 12 reinas, cada una con sus estadísticas (velocidad, cadencia, potencia y resistencia) y un poder especial propio que se carga golpeando a la rival.
+- 6 reinas bloqueadas que se desbloquean al acumular puntos entre partidas (Jujubee 10.000, Crystal Methyd 25.000, Dafne Mugler 45.000, Trixie Mattel 70.000, Denebola Murnau 85.000 y Brooke Lynn Hytes 100.000).
 - Al elegir reina se despliega su ficha con estadísticas y poder.
 - Pantalla de puntuaciones (Hall of Fame) con el Top 10, nombre del jugador, estadísticas de carrera y progreso de desbloqueos.
 
