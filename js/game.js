@@ -13,18 +13,22 @@ const Game = (() => {
 
   // ----------------------------- Recursos --------------------------------
   const images = {};
-  function loadImage(key, src) {
+  // Si la foto de una reina no existe todavía, se usa su silueta provisional
+  function loadImage(key, src, fallback) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => resolve((images[key] = img));
-      img.onerror = () => resolve((images[key] = img)); // no bloquear si falta una imagen
+      img.onerror = () => {
+        if (fallback && img.src !== fallback) img.src = fallback;
+        else resolve((images[key] = img)); // no bloquear si falta una imagen
+      };
       img.src = src;
     });
   }
   const ready = Promise.all([
     loadImage("heel", "./images/tacon.png"),
     loadImage("lipstick", "./images/lipstick.png"),
-    ...QUEENS.map((q) => loadImage(q.id, q.sprite)),
+    ...QUEENS.map((q) => loadImage(q.id, q.sprite, placeholderSVG(q.name, false))),
   ]);
 
   // ------------------------------ Entrada --------------------------------
@@ -72,18 +76,48 @@ const Game = (() => {
   let doublePointsUntil = 0;
   let pendingFans = [];
   let queen = null;
+  let season = null;
+  let difficulty = 1;
+
+  // Rivales: el resto del reparto de la temporada en orden de expulsión.
+  // La última es la ganadora (si juegas con la ganadora, la jefa final es la finalista).
+  function buildRivals() {
+    return season.cast
+      .filter((id) => id !== queen.id)
+      .map((id) => QUEENS.find((q) => q.id === id))
+      .filter(Boolean);
+  }
+  const totalRounds = () => rivalsQueue.length;
+  const isFinalRound = () => roundIndex >= totalRounds() - 1;
+
+  // Dificultad de cada ronda: va de la plantilla fácil a la del jefe final
+  function roundConfig(i) {
+    const n = totalRounds();
+    const t = n > 1 ? i / (n - 1) : 1;
+    const last = i === n - 1;
+    const base = last ? ROUNDS[ROUNDS.length - 1] : ROUNDS[Math.min(ROUNDS.length - 2, Math.floor(t * (ROUNDS.length - 1)))];
+    // Con muchas rondas, cada rival tiene algo menos de vida para que la partida no se alargue
+    const hpScale = last ? 1 : Math.max(0.55, Math.min(1, 6 / n));
+    return {
+      ...base,
+      hp: Math.max(2, Math.round(base.hp * hpScale * difficulty)),
+      speed: base.speed * (0.9 + t * 0.2) * difficulty,
+      every: base.every / difficulty,
+      bullet: base.bullet * Math.min(1.3, difficulty),
+    };
+  }
   let lastCount = null;
   let rafId = null;
   let lastTs = 0;
   let onEnd = () => {};
 
-  function start(selectedQueen, endCallback) {
+  function start(selectedQueen, selectedSeason, endCallback) {
     onEnd = endCallback;
     queen = selectedQueen;
+    season = selectedSeason;
+    difficulty = seasonDifficulty(season);
     player = new Player(queen, images[queen.id]);
-    rivalsQueue = QUEENS.filter((q) => q.id !== queen.id)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, ROUNDS.length);
+    rivalsQueue = buildRivals();
     roundIndex = 0;
     lives = statLives(queen.stats.lives);
     special = 0;
@@ -105,7 +139,7 @@ const Game = (() => {
 
   function beginRound() {
     const q = rivalsQueue[roundIndex];
-    rival = new Rival(q, images[q.id], ROUNDS[roundIndex], roundIndex);
+    rival = new Rival(q, images[q.id] || images.__fallback, roundConfig(roundIndex), roundIndex);
     heels = [];
     // Los premios que aún caen se mantienen entre rondas para poder recogerlos
     tookDamageThisRound = false;
@@ -153,7 +187,7 @@ const Game = (() => {
       updatePowerups(dt);
       if (stateTime >= 2) {
         roundIndex++;
-        if (roundIndex >= ROUNDS.length) finish(true);
+        if (roundIndex >= totalRounds()) finish(true);
         else beginRound();
       }
       return;
@@ -440,19 +474,22 @@ const Game = (() => {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name: store.get("dftc-name", ""),
       queen: queen.id,
+      season: season.id,
       won,
       score,
-      rounds: won ? ROUNDS.length : roundIndex,
+      rounds: won ? totalRounds() : roundIndex,
+      totalRounds: totalRounds(),
       accuracy: shots ? Math.round((Math.min(hits, shots) / shots) * 100) : 0,
       maxCombo,
       time: playTime,
       date: new Date().toISOString(),
     };
     const boardPos = Progress.recordGame(stats);
-    const unlocked = Progress.addTotal(score);
+    Progress.addTotal(score);
+    const unlockedSeason = won ? Progress.winSeason(season) : null;
     render();
     setTimeout(() => {
-      onEnd({ ...stats, best: Math.max(best, score), isRecord, boardPos, unlocked });
+      onEnd({ ...stats, best: Math.max(best, score), isRecord, boardPos, unlockedSeason, seasonObj: season });
     }, won ? 400 : 700);
   }
 
@@ -533,9 +570,9 @@ const Game = (() => {
     ctx.textBaseline = "alphabetic";
     ctx.fillStyle = COLORS.pinkSoft;
     ctx.font = "14px Poppins, sans-serif";
-    const r = ROUNDS[Math.min(roundIndex, ROUNDS.length - 1)];
+    const r = { boss: isFinalRound() };
     ctx.fillText(
-      r.boss ? "RONDA FINAL · LIP SYNC FOR YOUR LIFE" : `RONDA ${roundIndex + 1}/${ROUNDS.length}`,
+      `${season ? season.name.toUpperCase() + " · " : ""}${r.boss ? "RONDA FINAL · LIP SYNC FOR YOUR LIFE" : `RONDA ${roundIndex + 1}/${totalRounds()}`}`,
       W / 2,
       26,
     );
@@ -601,7 +638,7 @@ const Game = (() => {
   }
 
   function drawIntro() {
-    const r = ROUNDS[roundIndex];
+    const r = { boss: isFinalRound() };
     const count = introCount();
     if (count === null) {
       drawBanner(r.boss ? "LIP SYNC" : `RONDA ${roundIndex + 1}`, `contra ${rival.queen.name}`, r.boss ? COLORS.gold : COLORS.pink);
@@ -615,7 +652,7 @@ const Game = (() => {
   }
 
   function drawCleared() {
-    const last = roundIndex >= ROUNDS.length - 1;
+    const last = isFinalRound();
     drawBanner(last ? "¡LA CORONA ES TUYA!" : "SASHAY AWAY", last ? null : `${rival.queen.name} queda eliminada`, COLORS.gold);
   }
 

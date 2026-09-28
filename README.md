@@ -13,8 +13,21 @@ Drag for the Crown es un minijuego arcade de navegador. Eliges a tu queen y te e
 
 # Funcionalidades
 
-- 12 reinas, cada una con sus estadísticas (velocidad, cadencia, potencia y resistencia) y un poder especial propio que se carga golpeando a la rival.
-- 6 reinas bloqueadas que se desbloquean al acumular puntos entre partidas (Jujubee 10.000, Crystal Methyd 25.000, Dafne Mugler 45.000, Trixie Mattel 70.000, Denebola Murnau 85.000 y Brooke Lynn Hytes 100.000).
+- Modo campaña por temporadas: eliges franquicia, temporada y una reina de su reparto. Te enfrentas al resto del reparto en el orden real de expulsión y la ganadora es la jefa final. Ganar una temporada desbloquea la siguiente, que es algo más difícil.
+- Disponibles: Drag Race España (temporadas 1 a 5) y Drag Race España All Stars 1, con sus 58 reinas. El resto de franquicias aparecen como "Próximamente".
+- Cada reina tiene estadísticas (según su mejor puesto en el programa) y un poder especial.
+
+# Cómo añadir fotos, audios y frases
+
+Todo está en `js/reinas.js`. Cada reina tiene un `id` (por ejemplo `pitita`):
+
+- Foto de cuerpo entero sin fondo: `images/queens/<id>.png` y pon `foto: true`.
+- Retrato para la tarjeta: `images/queens/<id>_retrato.jpg` y pon `retrato: true`.
+- Audio con su frase: `audio/queens/<id>.mp3` y pon `audio: true`.
+- Frase: escríbela en `frase`.
+
+Mientras una reina no tenga foto, aparece con una silueta provisional con sus iniciales.
+
 - Al elegir reina se despliega su ficha con estadísticas y poder.
 - Pantalla de puntuaciones (Hall of Fame) con el Top 10, nombre del jugador, estadísticas de carrera y progreso de desbloqueos.
 

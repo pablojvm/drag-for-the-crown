@@ -1,0 +1,2 @@
+Audios de las reinas: <id>.mp3 con su frase.
+Los <id> están en js/reinas.js.

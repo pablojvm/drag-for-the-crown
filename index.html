@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/style.css?v=5">
+  <link rel="stylesheet" href="styles/style.css?v=15">
 </head>
 <body>
   <div id="stage">
@@ -32,8 +32,25 @@
       <p class="best">Récord: <strong id="menu-best">0</strong> · Puntos acumulados: <strong id="menu-total">0</strong></p>
     </section>
 
+    <!-- ============ FRANQUICIA ============ -->
+    <section id="screen-franchise" class="screen">
+      <h1 class="title">Elige franquicia</h1>
+      <div id="franchise-grid"></div>
+      <button class="btn btn-ghost" id="btn-franchise-back">Volver</button>
+    </section>
+
+    <!-- ============ TEMPORADA ============ -->
+    <section id="screen-season" class="screen">
+      <p class="eyebrow" id="season-franchise"></p>
+      <h1 class="title">Elige temporada</h1>
+      <div id="season-grid"></div>
+      <p class="muted hint">Gana una temporada para desbloquear la siguiente. Cada una es un poco más difícil.</p>
+      <button class="btn btn-ghost" id="btn-season-back">Volver</button>
+    </section>
+
     <!-- ============ ELECCIÓN ============ -->
     <section id="screen-select" class="screen">
+      <p class="eyebrow" id="select-season"></p>
       <h1 class="title">Choose your queen</h1>
       <div class="select-layout">
       <div id="queen-grid"></div>
@@ -42,6 +59,8 @@
           <span class="details-portrait" id="det-portrait"></span>
           <div class="details-main">
             <h3 id="det-name"></h3>
+            <p id="det-place" class="det-place"></p>
+            <p id="det-quote" class="det-quote"></p>
             <div id="det-stats"></div>
           </div>
           <div class="details-power">
@@ -91,7 +110,7 @@
             <div><span>Mejor combo</span><strong id="car-combo">x0</strong></div>
             <div><span>Puntos totales</span><strong id="car-total">0</strong></div>
           </div>
-          <h3>Reinas por desbloquear</h3>
+          <h3>Temporadas</h3>
           <div id="unlock-list"></div>
         </div>
       </div>
@@ -144,11 +163,12 @@
     </div>
   </div>
 
-  <script src="./js/config.js?v=5"></script>
-  <script src="./js/audio.js?v=5"></script>
-  <script src="./js/effects.js?v=5"></script>
-  <script src="./js/entities.js?v=5"></script>
-  <script src="./js/game.js?v=5"></script>
-  <script src="./js/ui.js?v=5"></script>
+  <script src="./js/reinas.js?v=15"></script>
+  <script src="./js/config.js?v=15"></script>
+  <script src="./js/audio.js?v=15"></script>
+  <script src="./js/effects.js?v=15"></script>
+  <script src="./js/entities.js?v=15"></script>
+  <script src="./js/game.js?v=15"></script>
+  <script src="./js/ui.js?v=15"></script>
 </body>
 </html>

@@ -10,6 +10,8 @@ const UI = (() => {
 
   const screens = {
     menu: $("#screen-menu"),
+    franchise: $("#screen-franchise"),
+    season: $("#screen-season"),
     select: $("#screen-select"),
     game: $("#screen-game"),
     scores: $("#screen-scores"),
@@ -21,8 +23,11 @@ const UI = (() => {
   const btnStart = $("#btn-start");
   const touch = $("#touch-controls");
   let selected = null;
+  let currentFranchise = null;
+  let currentSeason = null;
   let current = "menu";
   let lastEntryId = null;
+  let nextSeason = null;
 
   function show(name) {
     current = name;
@@ -34,6 +39,8 @@ const UI = (() => {
       $("#menu-best").textContent = fmt(store.get("dftc-best", 0));
       $("#menu-total").textContent = fmt(Progress.total);
     }
+    if (name === "franchise") renderFranchises();
+    if (name === "season") renderSeasons();
     if (name === "select") renderGrid();
     if (name === "scores") renderScores();
   }
@@ -42,36 +49,130 @@ const UI = (() => {
     pauseOverlay.classList.toggle("active", on);
   }
 
+  // ---------------------------- Franquicias --------------------------------
+  const queenById2 = (id) => QUEENS.find((q) => q.id === id);
+  // Fondo con la foto y, debajo, la silueta por si la foto aún no existe
+  const portraitBg = (q) => `url('${q.portrait}'), url('${placeholderSVG(q.name, true)}')`;
+
+  function renderFranchises() {
+    const grid = $("#franchise-grid");
+    grid.innerHTML = "";
+    FRANCHISES.forEach((f) => {
+      const won = f.seasons.filter((s) => Progress.hasWon(s.id)).length;
+      const faces = [...new Set(f.seasons.flatMap((s) => s.cast.slice(-2)))].slice(0, 6);
+      const card = document.createElement("button");
+      card.className = "franchise-card" + (f.comingSoon ? " soon" : "");
+      card.style.setProperty("--accent", f.color);
+      card.innerHTML = `
+        <span class="tag">${f.tag}</span>
+        <span class="f-name">${esc(f.name)}</span>
+        ${
+          f.comingSoon
+            ? `<span class="soon-badge">Próximamente</span>`
+            : `<span class="faces">${faces.map((id) => `<i style="background-image:${portraitBg(queenById2(id))}"></i>`).join("")}</span>
+        <span class="f-progress"><span class="progress"><span style="width:${(won / f.seasons.length) * 100}%"></span></span>
+        <small>${won}/${f.seasons.length} temporadas ganadas</small></span>`
+        }`;
+      card.addEventListener("click", () => {
+        if (f.comingSoon) {
+          Sound.countdown(false);
+          return;
+        }
+        currentFranchise = f;
+        show("season");
+      });
+      grid.append(card);
+    });
+  }
+
+  function renderSeasons() {
+    const f = currentFranchise;
+    $("#season-franchise").textContent = f.name;
+    const grid = $("#season-grid");
+    grid.innerHTML = "";
+    allSeasons()
+      .filter((s) => s.franchise.id === f.id)
+      .forEach((s) => {
+        const unlocked = Progress.isSeasonUnlocked(s);
+        const won = Progress.hasWon(s.id);
+        const card = document.createElement("button");
+        const cover = typeof PORTADAS !== "undefined" && PORTADAS[s.id];
+        card.className = "season-card" + (unlocked ? "" : " locked") + (won ? " won" : "") + (cover ? " has-cover" : "");
+        card.style.setProperty("--accent", f.color);
+        if (cover) card.style.backgroundImage = `linear-gradient(180deg, rgba(20,3,31,.75) 0%, rgba(20,3,31,.15) 28%, rgba(20,3,31,.45) 60%, rgba(20,3,31,.95) 100%), url('${cover}')`;
+        card.innerHTML = `
+          <span class="s-top"><span class="s-name">${esc(s.name)}</span><span class="s-year">${s.year}</span></span>
+          ${cover ? "" : `<span class="faces">${s.cast.slice(0, 7).map((id) => `<i style="background-image:${portraitBg(queenById2(id))}"></i>`).join("")}${s.cast.length > 7 ? `<b>+${s.cast.length - 7}</b>` : ""}</span>`}
+          <span class="s-cast">${s.cast.length} reinas · ${s.enEmision ? "📺 En emisión" : won ? `Ganadora: ${esc(queenById2(s.winner).name)}` : "¿Quién se llevará la corona?"}</span>
+          <span class="s-state">${won ? "👑 Ganada" : unlocked ? `Dificultad ${"★".repeat(Math.min(5, s.index + 1))}` : "🔒 Gana la anterior"}</span>`;
+        card.addEventListener("click", () => {
+          if (!unlocked) {
+            Sound.countdown(false);
+            return;
+          }
+          currentSeason = s;
+          if (selected && !s.cast.includes(selected.id)) selected = null;
+          show("select");
+        });
+        grid.append(card);
+      });
+    // Temporadas anunciadas: portada + "Próximamente", no jugables
+    (typeof PROXIMAS_TEMPORADAS !== "undefined" ? PROXIMAS_TEMPORADAS : [])
+      .filter((t) => t.franchise === f.id)
+      .forEach((t) => {
+        const cover = typeof PORTADAS !== "undefined" && PORTADAS[t.id];
+        const card = document.createElement("button");
+        card.className = "season-card soon-season" + (cover ? " has-cover" : "");
+        card.style.setProperty("--accent", f.color);
+        if (cover) card.style.backgroundImage = `linear-gradient(180deg, rgba(20,3,31,.75) 0%, rgba(20,3,31,.15) 28%, rgba(20,3,31,.45) 60%, rgba(20,3,31,.95) 100%), url('${cover}')`;
+        card.innerHTML = `
+          <span class="s-top"><span class="s-name">${esc(t.name)}</span><span class="s-year">${t.year}</span></span>
+          <span class="soon-badge">Próximamente</span>`;
+        card.addEventListener("click", () => Sound.countdown(false));
+        grid.append(card);
+      });
+  }
+
   // -------------------------- Elección de reina ----------------------------
   const grid = $("#queen-grid");
   const details = $("#queen-details");
 
   function renderGrid() {
     grid.innerHTML = "";
-    QUEENS.forEach((q) => {
-      const locked = !Progress.isUnlocked(q);
+    $("#select-season").textContent = `${currentSeason.franchise.name} · ${currentSeason.name}`;
+    const cast = currentSeason.cast.map((id) => QUEENS.find((q) => q.id === id));
+    const cols = cast.length > 8 ? 5 : Math.min(cast.length, 4);
+    grid.style.gridTemplateColumns = `repeat(${cols}, ${cast.length > 8 ? 150 : 200}px)`;
+    grid.classList.toggle("compact", cast.length > 8);
+    cast.forEach((q) => {
+      const locked = false;
       const card = document.createElement("button");
       card.className = "queen-card" + (locked ? " locked" : "") + (selected && selected.id === q.id ? " selected" : "");
       card.dataset.id = q.id;
       card.innerHTML = `
-        <span class="portrait" style="background-image:url('${q.portrait}')"></span>
+        <span class="portrait" style="background-image:${portraitBg(q)}"></span>
         <span class="name">${esc(q.name)}</span>
-        ${locked ? `<span class="lock"><span>🔒</span><small>${fmt(q.unlock)} pts</small></span>` : ""}
         <span class="check" aria-hidden="true">✓</span>`;
       card.addEventListener("click", () => selectQueen(q));
       grid.append(card);
     });
-    if (selected && !Progress.isUnlocked(selected)) selected = null;
+    if (selected && !currentSeason.cast.includes(selected.id)) selected = null;
+    if (!selected && cast.length === 1) selected = cast[0];
     btnStart.disabled = !selected;
     if (selected) openDetails(selected);
     else details.classList.remove("open");
   }
 
   function openDetails(q) {
-    const locked = !Progress.isUnlocked(q);
-    $("#det-portrait").style.backgroundImage = `url('${q.portrait}')`;
+    const locked = false;
+    $("#det-portrait").style.backgroundImage = portraitBg(q);
     $("#det-portrait").classList.toggle("locked", locked);
     $("#det-name").textContent = q.name;
+    const pos = currentSeason ? currentSeason.cast.indexOf(q.id) : -1;
+    const n = currentSeason ? currentSeason.cast.length : 0;
+    $("#det-place").textContent =
+      pos < 0 ? "" : currentSeason.enEmision ? "📺 Temporada en emisión" : pos === n - 1 ? "👑 Ganadora de la temporada" : `Puesto ${n - pos}º de ${n}`;
+    $("#det-quote").textContent = q.quote ? `“${q.quote}”` : "";
     $("#det-stats").innerHTML = Object.entries(STAT_LABELS)
       .map(
         ([k, label]) => `
@@ -83,26 +184,13 @@ const UI = (() => {
       .join("");
     $("#det-power").textContent = q.power.name;
     $("#det-power-desc").textContent = q.power.desc;
-    const lockMsg = $("#det-lock");
-    if (locked) {
-      const pct = Math.min(100, (Progress.total / q.unlock) * 100);
-      lockMsg.innerHTML = `🔒 Se desbloquea con <strong>${fmt(q.unlock)}</strong> puntos acumulados
-        <span class="progress"><span style="width:${pct}%"></span></span>
-        <small>Llevas ${fmt(Progress.total)}</small>`;
-    } else {
-      lockMsg.innerHTML = "";
-    }
+    $("#det-lock").innerHTML = "";
     details.classList.add("open");
   }
 
   function selectQueen(q) {
     grid.querySelectorAll(".queen-card").forEach((c) => c.classList.toggle("active", c.dataset.id === q.id));
     openDetails(q);
-    if (!Progress.isUnlocked(q)) {
-      Sound.countdown(false);
-      btnStart.disabled = !selected || !Progress.isUnlocked(selected);
-      return;
-    }
     selected = q;
     grid.querySelectorAll(".queen-card").forEach((c) => c.classList.toggle("selected", c.dataset.id === q.id));
     btnStart.disabled = false;
@@ -112,9 +200,9 @@ const UI = (() => {
 
   // ------------------------------ Partida ----------------------------------
   function startGame() {
-    if (!selected || !Progress.isUnlocked(selected)) return;
+    if (!selected || !currentSeason) return;
     show("game");
-    Game.start(selected, showEnd);
+    Game.start(selected, currentSeason, showEnd);
   }
 
   function formatTime(s) {
@@ -127,17 +215,21 @@ const UI = (() => {
     $("#end-title").textContent = stats.won ? "¡La corona es tuya!" : "Sashay away...";
     $("#stat-score").textContent = fmt(stats.score);
     $("#stat-best").textContent = fmt(stats.best);
-    $("#stat-rounds").textContent = `${stats.rounds}/${ROUNDS.length}`;
+    $("#stat-rounds").textContent = `${stats.rounds}/${stats.totalRounds}`;
     $("#stat-acc").textContent = `${stats.accuracy}%`;
     $("#stat-combo").textContent = `x${stats.maxCombo}`;
     $("#stat-time").textContent = formatTime(stats.time);
     $("#new-record").classList.toggle("active", stats.isRecord && stats.score > 0);
 
     const unlockedMsg = $("#unlocked-msg");
-    unlockedMsg.textContent = stats.unlocked.length
-      ? `🔓 ¡Nueva reina desbloqueada: ${stats.unlocked.map((q) => q.name).join(", ")}!`
-      : "";
-    unlockedMsg.classList.toggle("active", stats.unlocked.length > 0);
+    let msg = "";
+    if (stats.unlockedSeason) msg = `🔓 ¡Desbloqueada ${stats.seasonObj.franchise.name} · ${stats.unlockedSeason.name}!`;
+    else if (stats.won && stats.seasonObj.index === stats.seasonObj.franchise.seasons.length - 1)
+      msg = `🏆 ¡Has completado ${stats.seasonObj.franchise.name}!`;
+    unlockedMsg.textContent = msg;
+    unlockedMsg.classList.toggle("active", !!msg);
+    $("#btn-change").textContent = stats.unlockedSeason ? "Siguiente temporada" : "Temporadas";
+    nextSeason = stats.unlockedSeason ? seasonById(stats.unlockedSeason.id) : null;
 
     // Entrada en el Top 10: pedir nombre
     lastEntryId = stats.boardPos >= 0 ? stats.id : null;
@@ -179,7 +271,7 @@ const UI = (() => {
           <td>${i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</td>
           <td>${esc(e.name || "Anónima")}</td>
           <td><span class="mini" style="background-image:url('${q ? q.portrait : ""}')"></span>${esc(q ? q.name : e.queen)}</td>
-          <td>${e.won ? "👑 5/5" : `${e.rounds}/${ROUNDS.length}`}</td>
+          <td>${e.season && seasonById(e.season) ? `<small class="muted">${esc(seasonById(e.season).franchise.tag)} ${esc(seasonById(e.season).name.replace("Temporada ", "T").replace("All Stars ", ""))}</small> ` : ""}${e.won ? "👑" : `${e.rounds}/${e.totalRounds || "?"}`}</td>
           <td class="pts">${fmt(e.score)}</td>
           <td class="muted">${date}</td>
         </tr>`;
@@ -194,29 +286,32 @@ const UI = (() => {
     $("#car-combo").textContent = `x${s.bestCombo}`;
     $("#car-total").textContent = fmt(Progress.total);
 
-    const pending = QUEENS.filter((q) => !Progress.isUnlocked(q));
-    $("#unlock-list").innerHTML = pending.length
-      ? pending
-          .map((q) => {
-            const pct = Math.min(100, (Progress.total / q.unlock) * 100);
-            return `<div class="unlock-item">
-              <span class="mini locked" style="background-image:url('${q.portrait}')"></span>
-              <div><strong>${esc(q.name)}</strong><small>${fmt(q.unlock)} pts</small>
-              <span class="progress"><span style="width:${pct}%"></span></span></div>
-            </div>`;
-          })
-          .join("")
-      : `<p class="muted">¡Las tienes todas! 👑</p>`;
+    $("#unlock-list").innerHTML = FRANCHISES.map((f) => {
+      const won = f.seasons.filter((x) => Progress.hasWon(x.id)).length;
+      return `<div class="unlock-item">
+        <span class="tag-mini" style="background:${f.color}">${f.tag}</span>
+        <div><strong>${esc(f.name)}</strong><small>${won}/${f.seasons.length}</small>
+        <span class="progress"><span style="width:${(won / f.seasons.length) * 100}%"></span></span></div>
+      </div>`;
+    }).join("");
   }
 
   // ------------------------------ Botones ----------------------------------
-  $("#btn-play").addEventListener("click", () => show("select"));
+  $("#btn-play").addEventListener("click", () => show("franchise"));
+  $("#btn-franchise-back").addEventListener("click", () => show("menu"));
+  $("#btn-season-back").addEventListener("click", () => show("franchise"));
   $("#btn-scores").addEventListener("click", () => show("scores"));
   $("#btn-scores-back").addEventListener("click", () => show("menu"));
-  $("#btn-back").addEventListener("click", () => show("menu"));
+  $("#btn-back").addEventListener("click", () => show("season"));
   btnStart.addEventListener("click", startGame);
   $("#btn-again").addEventListener("click", startGame);
-  $("#btn-change").addEventListener("click", () => show("select"));
+  $("#btn-change").addEventListener("click", () => {
+    if (nextSeason) {
+      currentSeason = nextSeason;
+      selected = null;
+      show("select");
+    } else show("season");
+  });
   $("#btn-end-scores").addEventListener("click", () => show("scores"));
   $("#btn-resume").addEventListener("click", () => {
     showPause(false);
@@ -255,7 +350,7 @@ const UI = (() => {
       Sound.toggleMute();
       refreshMuteIcon();
     } else if (e.code === "Enter") {
-      if (current === "menu") show("select");
+      if (current === "menu") show("franchise");
       else if (current === "select" && selected) startGame();
       else if (current === "end") startGame();
     }

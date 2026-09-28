@@ -1,0 +1,2 @@
+Fotos de las reinas: <id>.png (cuerpo entero sin fondo) y <id>_retrato.jpg (tarjeta).
+Los <id> están en js/reinas.js.

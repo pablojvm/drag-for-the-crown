@@ -595,3 +595,161 @@ kbd.wide { min-width: 120px; }
 }
 
 .lock-msg strong { color: var(--gold); }
+
+/* ------------------------- Franquicias y temporadas ------------------------ */
+.eyebrow {
+  margin: 0 0 -14px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--pink-soft);
+}
+.hint { margin: 0; font-size: 15px; }
+
+#franchise-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 340px);
+  gap: 26px;
+}
+.franchise-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  height: 360px;
+  padding: 28px;
+  border-radius: 26px;
+  cursor: pointer;
+  text-align: left;
+  color: #fff;
+  background:
+    radial-gradient(circle at 80% 0%, color-mix(in srgb, var(--accent) 45%, transparent), transparent 60%),
+    var(--glass);
+  border: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  backdrop-filter: blur(10px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.franchise-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 50px -12px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+.franchise-card .tag {
+  font-family: "Bungee", sans-serif;
+  font-size: 54px;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 0 24px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.franchise-card .f-name {
+  font-family: "Bungee", sans-serif;
+  font-size: 26px;
+  line-height: 1.1;
+}
+.faces { display: flex; }
+.faces i {
+  width: 58px;
+  height: 58px;
+  margin-right: -12px;
+  border-radius: 50%;
+  border: 3px solid #1b0529;
+  background-size: cover;
+  background-position: center 20%;
+}
+.f-progress { width: 100%; margin-top: auto; }
+.f-progress small { color: rgba(255, 255, 255, 0.7); font-size: 14px; }
+
+#season-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 290px);
+  gap: 18px;
+  justify-content: center;
+}
+.season-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 190px;
+  padding: 20px 22px;
+  border-radius: 20px;
+  cursor: pointer;
+  text-align: left;
+  color: #fff;
+  background: var(--glass);
+  border: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  backdrop-filter: blur(10px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s;
+}
+.season-card:hover:not(.locked) {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 40px -12px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+.season-card.won { border-color: var(--gold); }
+.season-card.locked { opacity: 0.45; cursor: default; }
+.season-card.locked .faces i { filter: grayscale(1); }
+.s-top { display: flex; width: 100%; justify-content: space-between; align-items: baseline; }
+.s-name { font-family: "Bungee", sans-serif; font-size: 22px; }
+.s-year { font-size: 14px; color: rgba(255, 255, 255, 0.55); }
+.s-cast { font-size: 14px; color: rgba(255, 255, 255, 0.8); }
+.s-state { margin-top: auto; font-size: 14px; font-weight: 800; color: var(--accent); }
+.season-card.won .s-state { color: var(--gold); }
+
+.tag-mini {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  font-family: "Bungee", sans-serif;
+  font-size: 14px;
+  color: #14031f;
+}
+
+/* Próximamente, repartos grandes y ficha */
+.franchise-card.soon { cursor: default; opacity: 0.55; filter: grayscale(0.5); }
+.franchise-card.soon:hover { transform: none; box-shadow: none; }
+.soon-badge {
+  margin-top: auto;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: "Bungee", sans-serif;
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--accent);
+}
+#franchise-grid { grid-template-columns: repeat(3, 320px); }
+.franchise-card { height: 300px; }
+.faces b {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 3px solid #1b0529;
+}
+.season-card .faces i, .season-card .faces b { width: 42px; height: 42px; margin-right: -10px; }
+#queen-grid.compact { gap: 12px; }
+#queen-grid.compact .queen-card { height: 172px; border-radius: 16px; }
+#queen-grid.compact .queen-card .name { font-size: 13px; left: 10px; right: 10px; bottom: 10px; }
+#queen-grid.compact .queen-card .check { width: 26px; height: 26px; top: 8px; right: 8px; }
+.det-place { margin: -4px 0 6px; font-size: 14px; font-weight: 800; color: var(--gold); }
+.det-quote { margin: 0 0 8px; font-style: italic; color: var(--pink-soft); }
+.det-quote:empty, .det-place:empty { display: none; }
+
+/* Temporadas con portada (póster del reparto) */
+.season-card.has-cover {
+  min-height: 250px;
+  background-size: cover;
+  background-position: center 35%;
+  background-repeat: no-repeat;
+  justify-content: flex-end;
+}
+.season-card.has-cover .s-top { margin-bottom: auto; text-shadow: 0 2px 8px #000; }
+.season-card.has-cover .s-state { margin-top: 0; }
+.season-card.locked.has-cover { filter: grayscale(1); }
+.season-card.soon-season { cursor: default; }
+.season-card.soon-season .soon-badge { margin-top: 0; }
