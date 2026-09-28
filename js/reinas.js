@@ -234,7 +234,13 @@ const PORTADAS = {
   es5: "./images/temporadas/es5.jpg",
   es6: "./images/temporadas/es6.jpg",
   esas1: "./images/temporadas/esas1.jpg",
+  esas2: "./images/temporadas/esas2.jpg",
 };
 
 // Temporadas anunciadas que aún no se pueden jugar (reparto pendiente)
-const PROXIMAS_TEMPORADAS = [];
+const PROXIMAS_TEMPORADAS = [{ franchise: "esas", id: "esas2", name: "All Stars 2", year: 2026 }];
+
+// Looks propios de una temporada (p. ej. All Stars): images/queens/<temporada>/<id>.png y <id>_retrato.jpg
+const LOOKS = {
+  esas1: ["drag-sethlas", "hornella-gongora", "juriji-der-klee", "onyx", "pakita", "pink-chadora", "pupi-poisson", "sagittaria", "samantha-ballentines"],
+};

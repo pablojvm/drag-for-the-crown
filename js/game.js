@@ -29,6 +29,9 @@ const Game = (() => {
     loadImage("heel", "./images/tacon.png"),
     loadImage("lipstick", "./images/lipstick.png"),
     ...QUEENS.map((q) => loadImage(q.id, q.sprite, placeholderSVG(q.name, false))),
+    ...Object.entries(typeof LOOKS !== "undefined" ? LOOKS : {}).flatMap(([sid, ids]) =>
+      ids.map((id) => loadImage(`${sid}:${id}`, `./images/queens/${sid}/${id}.png`, `./images/queens/${id}.png`))
+    ),
   ]);
 
   // ------------------------------ Entrada --------------------------------
@@ -78,10 +81,12 @@ const Game = (() => {
   let queen = null;
   let season = null;
   let difficulty = 1;
+  let opts = {}; // modo historia: { rivals: [reina], story: true }
 
   // Rivales: el resto del reparto de la temporada en orden de expulsión.
   // La última es la ganadora (si juegas con la ganadora, la jefa final es la finalista).
   function buildRivals() {
+    if (opts.rivals) return opts.rivals;
     return season.cast
       .filter((id) => id !== queen.id)
       .map((id) => QUEENS.find((q) => q.id === id))
@@ -111,12 +116,13 @@ const Game = (() => {
   let lastTs = 0;
   let onEnd = () => {};
 
-  function start(selectedQueen, selectedSeason, endCallback) {
+  function start(selectedQueen, selectedSeason, endCallback, options = {}) {
     onEnd = endCallback;
+    opts = options;
     queen = selectedQueen;
     season = selectedSeason;
     difficulty = seasonDifficulty(season);
-    player = new Player(queen, images[queen.id]);
+    player = new Player(queen, images[`${season.id}:${queen.id}`] || images[queen.id]);
     rivalsQueue = buildRivals();
     roundIndex = 0;
     lives = statLives(queen.stats.lives);
@@ -139,7 +145,7 @@ const Game = (() => {
 
   function beginRound() {
     const q = rivalsQueue[roundIndex];
-    rival = new Rival(q, images[q.id] || images.__fallback, roundConfig(roundIndex), roundIndex);
+    rival = new Rival(q, images[`${season.id}:${q.id}`] || images[q.id] || images.__fallback, roundConfig(roundIndex), roundIndex);
     heels = [];
     // Los premios que aún caen se mantienen entre rondas para poder recogerlos
     tookDamageThisRound = false;
@@ -467,6 +473,11 @@ const Game = (() => {
     won ? Sound.win() : Sound.lose();
     if (won) score += lives * 750; // bonus por vidas restantes
     score = Math.round(score);
+    if (opts.story) {
+      render();
+      setTimeout(() => onEnd({ won, score, story: true }), won ? 900 : 1100);
+      return;
+    }
     const best = store.get("dftc-best", 0);
     const isRecord = score > best;
     if (isRecord) store.set("dftc-best", score);

@@ -16,7 +16,9 @@ const UI = (() => {
     game: $("#screen-game"),
     scores: $("#screen-scores"),
     end: $("#screen-end"),
+    story: $("#screen-story"),
   };
+  let mode = "arcade"; // "arcade" | "story"
   const pauseOverlay = $("#overlay-pause");
   const btnPause = $("#btn-pause");
   const btnMute = $("#btn-mute");
@@ -52,7 +54,7 @@ const UI = (() => {
   // ---------------------------- Franquicias --------------------------------
   const queenById2 = (id) => QUEENS.find((q) => q.id === id);
   // Fondo con la foto y, debajo, la silueta por si la foto aún no existe
-  const portraitBg = (q) => `url('${q.portrait}'), url('${placeholderSVG(q.name, true)}')`;
+  const portraitBg = (q, sid) => `url('${lookOf(q, sid).portrait}'), url('${q.portrait}'), url('${placeholderSVG(q.name, true)}')`;
 
   function renderFranchises() {
     const grid = $("#franchise-grid");
@@ -87,13 +89,17 @@ const UI = (() => {
 
   function renderSeasons() {
     const f = currentFranchise;
-    $("#season-franchise").textContent = f.name;
+    $("#season-franchise").textContent = (mode === "story" ? "Modo historia · " : "") + f.name;
+    $("#season-hint").textContent =
+      mode === "story"
+        ? "Vive la temporada como concursante: retos, pasarela y lip syncs hasta la corona."
+        : "Gana una temporada para desbloquear la siguiente. Cada una es un poco más difícil.";
     const grid = $("#season-grid");
     grid.innerHTML = "";
     allSeasons()
       .filter((s) => s.franchise.id === f.id)
       .forEach((s) => {
-        const unlocked = Progress.isSeasonUnlocked(s);
+        const unlocked = mode === "story" || Progress.isSeasonUnlocked(s);
         const won = Progress.hasWon(s.id);
         const card = document.createElement("button");
         const cover = typeof PORTADAS !== "undefined" && PORTADAS[s.id];
@@ -102,7 +108,7 @@ const UI = (() => {
         if (cover) card.style.backgroundImage = `linear-gradient(180deg, rgba(20,3,31,.75) 0%, rgba(20,3,31,.15) 28%, rgba(20,3,31,.45) 60%, rgba(20,3,31,.95) 100%), url('${cover}')`;
         card.innerHTML = `
           <span class="s-top"><span class="s-name">${esc(s.name)}</span><span class="s-year">${s.year}</span></span>
-          ${cover ? "" : `<span class="faces">${s.cast.slice(0, 7).map((id) => `<i style="background-image:${portraitBg(queenById2(id))}"></i>`).join("")}${s.cast.length > 7 ? `<b>+${s.cast.length - 7}</b>` : ""}</span>`}
+          ${cover ? "" : `<span class="faces">${s.cast.slice(0, 7).map((id) => `<i style="background-image:${portraitBg(queenById2(id), s.id)}"></i>`).join("")}${s.cast.length > 7 ? `<b>+${s.cast.length - 7}</b>` : ""}</span>`}
           <span class="s-cast">${s.cast.length} reinas · ${s.enEmision ? "📺 En emisión" : won ? `Ganadora: ${esc(queenById2(s.winner).name)}` : "¿Quién se llevará la corona?"}</span>
           <span class="s-state">${won ? "👑 Ganada" : unlocked ? `Dificultad ${"★".repeat(Math.min(5, s.index + 1))}` : "🔒 Gana la anterior"}</span>`;
         card.addEventListener("click", () => {
@@ -142,7 +148,7 @@ const UI = (() => {
     $("#select-season").textContent = `${currentSeason.franchise.name} · ${currentSeason.name}`;
     const cast = currentSeason.cast.map((id) => QUEENS.find((q) => q.id === id));
     const cols = cast.length > 8 ? 5 : Math.min(cast.length, 4);
-    grid.style.gridTemplateColumns = `repeat(${cols}, ${cast.length > 8 ? 150 : 200}px)`;
+    grid.style.width = `${cols * (cast.length > 8 ? 150 : 200) + (cols - 1) * (cast.length > 8 ? 12 : 16)}px`;
     grid.classList.toggle("compact", cast.length > 8);
     cast.forEach((q) => {
       const locked = false;
@@ -150,7 +156,7 @@ const UI = (() => {
       card.className = "queen-card" + (locked ? " locked" : "") + (selected && selected.id === q.id ? " selected" : "");
       card.dataset.id = q.id;
       card.innerHTML = `
-        <span class="portrait" style="background-image:${portraitBg(q)}"></span>
+        <span class="portrait" style="background-image:${portraitBg(q, currentSeason && currentSeason.id)}"></span>
         <span class="name">${esc(q.name)}</span>
         <span class="check" aria-hidden="true">✓</span>`;
       card.addEventListener("click", () => selectQueen(q));
@@ -165,7 +171,7 @@ const UI = (() => {
 
   function openDetails(q) {
     const locked = false;
-    $("#det-portrait").style.backgroundImage = portraitBg(q);
+    $("#det-portrait").style.backgroundImage = portraitBg(q, currentSeason && currentSeason.id);
     $("#det-portrait").classList.toggle("locked", locked);
     $("#det-name").textContent = q.name;
     const pos = currentSeason ? currentSeason.cast.indexOf(q.id) : -1;
@@ -201,6 +207,7 @@ const UI = (() => {
   // ------------------------------ Partida ----------------------------------
   function startGame() {
     if (!selected || !currentSeason) return;
+    if (mode === "story") return Story.start(selected, currentSeason);
     show("game");
     Game.start(selected, currentSeason, showEnd);
   }
@@ -297,7 +304,14 @@ const UI = (() => {
   }
 
   // ------------------------------ Botones ----------------------------------
-  $("#btn-play").addEventListener("click", () => show("franchise"));
+  $("#btn-play").addEventListener("click", () => {
+    mode = "arcade";
+    show("franchise");
+  });
+  $("#btn-story").addEventListener("click", () => {
+    mode = "story";
+    show("franchise");
+  });
   $("#btn-franchise-back").addEventListener("click", () => show("menu"));
   $("#btn-season-back").addEventListener("click", () => show("franchise"));
   $("#btn-scores").addEventListener("click", () => show("scores"));
@@ -319,6 +333,7 @@ const UI = (() => {
   });
   $("#btn-quit").addEventListener("click", () => {
     Game.quit();
+    if (mode === "story") Story.abandon();
     show("menu");
   });
   btnPause.addEventListener("click", togglePause);
@@ -382,12 +397,14 @@ const UI = (() => {
   refreshMuteIcon();
   btnStart.disabled = true;
   $("#btn-play").disabled = true;
-  $("#btn-play").textContent = "Cargando...";
+  $("#btn-story").disabled = true;
+  $("#btn-play-label").textContent = "Cargando...";
   Game.ready.then(() => {
     $("#btn-play").disabled = false;
-    $("#btn-play").textContent = "Jugar";
+    $("#btn-story").disabled = false;
+    $("#btn-play-label").textContent = "👠 Arcade";
   });
   show("menu");
 
-  return { showPause };
+  return { showPause, show, get mode() { return mode; } };
 })();

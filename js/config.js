@@ -301,3 +301,10 @@ const store = {
 const rand = (min, max) => Math.random() * (max - min) + min;
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+// Foto de una reina en una temporada concreta (si tiene look propio en esa temporada)
+function lookOf(q, seasonId) {
+  if (q && seasonId && typeof LOOKS !== "undefined" && (LOOKS[seasonId] || []).includes(q.id))
+    return { sprite: `./images/queens/${seasonId}/${q.id}.png`, portrait: `./images/queens/${seasonId}/${q.id}_retrato.jpg` };
+  return { sprite: q && q.sprite, portrait: q && q.portrait };
+}

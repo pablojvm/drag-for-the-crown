@@ -6,10 +6,13 @@
   <meta name="description" content="Drag for the Crown: minijuego arcade de navegador hecho con JavaScript y Canvas.">
   <meta name="theme-color" content="#14031f">
   <title>Drag for the Crown</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/style.css?v=15">
+  <link rel="stylesheet" href="styles/style.css?v=19">
 </head>
 <body>
   <div id="stage">
@@ -19,7 +22,16 @@
       <img class="menu-logo" src="./images/logo2.png" alt="Drag for the Crown">
       <p class="tagline">5 queens. 5 rondas. Solo una se lleva la corona.</p>
       <div class="row">
-        <button class="btn btn-primary" id="btn-play">Jugar</button>
+        <button class="mode-card" id="btn-story" style="background-image:url('./images/modo-historia.png')">
+          <span class="mode-name">📖 Modo historia</span>
+          <span class="mode-desc">Retos, pasarela y lip syncs hasta la corona</span>
+        </button>
+        <button class="mode-card" id="btn-play" style="background-image:url('./images/modo-arcade.png')">
+          <span class="mode-name" id="btn-play-label">👠 Arcade</span>
+          <span class="mode-desc">Duelo de tacones contra todo el reparto</span>
+        </button>
+      </div>
+      <div class="row">
         <button class="btn btn-ghost" id="btn-scores">🏆 Puntuaciones</button>
       </div>
       <div class="controls-help">
@@ -44,7 +56,7 @@
       <p class="eyebrow" id="season-franchise"></p>
       <h1 class="title">Elige temporada</h1>
       <div id="season-grid"></div>
-      <p class="muted hint">Gana una temporada para desbloquear la siguiente. Cada una es un poco más difícil.</p>
+      <p class="muted hint" id="season-hint">Gana una temporada para desbloquear la siguiente. Cada una es un poco más difícil.</p>
       <button class="btn btn-ghost" id="btn-season-back">Volver</button>
     </section>
 
@@ -88,6 +100,19 @@
           <button class="btn btn-ghost" id="btn-quit">Salir al menú</button>
         </div>
       </div>
+    </section>
+
+
+    <!-- ============ MODO HISTORIA ============ -->
+    <section id="screen-story" class="screen">
+      <div class="story-top">
+        <div>
+          <p class="eyebrow" id="story-season"></p>
+          <h2 id="story-ep"></h2>
+        </div>
+        <div id="story-cast"></div>
+      </div>
+      <div id="story-body"></div>
     </section>
 
     <!-- ============ PUNTUACIONES ============ -->
@@ -163,12 +188,13 @@
     </div>
   </div>
 
-  <script src="./js/reinas.js?v=15"></script>
-  <script src="./js/config.js?v=15"></script>
-  <script src="./js/audio.js?v=15"></script>
-  <script src="./js/effects.js?v=15"></script>
-  <script src="./js/entities.js?v=15"></script>
-  <script src="./js/game.js?v=15"></script>
-  <script src="./js/ui.js?v=15"></script>
+  <script src="./js/reinas.js?v=19"></script>
+  <script src="./js/config.js?v=19"></script>
+  <script src="./js/audio.js?v=19"></script>
+  <script src="./js/effects.js?v=19"></script>
+  <script src="./js/entities.js?v=19"></script>
+  <script src="./js/game.js?v=19"></script>
+  <script src="./js/ui.js?v=19"></script>
+  <script src="./js/historia.js?v=19"></script>
 </body>
 </html>
