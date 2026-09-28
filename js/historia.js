@@ -42,21 +42,203 @@ const Story = (() => {
       run: runSnatch,
     },
   };
-  const ORDEN_RETOS = ["pasarela", "snatch", "baile"];
+  RETOS.diseno = {
+    titulo: () => "Reto de diseño: materiales inesperados",
+    desc: "Recoge lentejuelas, telas, plumas y cristales para tu look. ¡Esquiva las tijeras rotas y la cinta aislante!",
+    ctrl: "Flechas ← → o A/D, arrastra el ratón o toca los lados",
+    run: runDiseno,
+  };
+  RETOS.rusical = {
+    titulo: () => "El Rusical",
+    desc: "Canta y baila a ritmo: pulsa cada nota justo cuando llegue a la línea.",
+    ctrl: "Teclas D F J K (o flechas ← ↓ ↑ →) o toca los carriles",
+    run: runRusical,
+  };
+  RETOS.maquillaje = {
+    titulo: () => "Reto de maquillaje: copia el look",
+    desc: "Memoriza la carta de maquillaje de la jueza y reprodúcela zona por zona.",
+    ctrl: "Clic o toca los colores",
+    run: runMaquillaje,
+  };
+  RETOS.lectura = {
+    titulo: () => "La biblioteca está abierta",
+    desc: "Es hora de leer. Elige la lectura más afilada (y con cariño) para cada compañera.",
+    ctrl: "Clic o teclas 1, 2 y 3",
+    run: (el, done) => runSnatch(el, done, LECTURAS, "📚 La biblioteca", "Lectura"),
+  };
+  const ORDEN_RETOS = ["pasarela", "snatch", "baile", "diseno", "lectura", "rusical", "maquillaje"];
 
   // --------------------------- Flujo principal -----------------------------
+  const SAVE_KEY = "dftc-story-save";
+  const qById = (id) => QUEENS.find((q) => q.id === id);
+
   function start(queen, season) {
-    const rivals = season.cast.filter((id) => id !== queen.id).map((id) => QUEENS.find((q) => q.id === id)).filter(Boolean);
-    S = { queen, season, rivals, out: [], ep: 0, wins: 0, bottoms: 0 };
+    const rivals = season.cast.filter((id) => id !== queen.id).map(qById).filter(Boolean);
+    S = { queen, season, rivals, out: [], ep: 0, wins: 0, bottoms: 0, points: 0, lipsyncs: 0 };
     UI.show("story");
     Sound.stopAll();
     nextEpisode();
   }
 
+  // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
+  function save() {
+    store.set(SAVE_KEY, {
+      queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id),
+      ep: S.ep, wins: S.wins, bottoms: S.bottoms, points: S.points, lipsyncs: S.lipsyncs, date: new Date().toISOString(),
+    });
+  }
+  const saved = () => {
+    const d = store.get(SAVE_KEY, null);
+    return d && qById(d.queen) && seasonById(d.season) ? d : null;
+  };
+  function resume() {
+    const d = saved();
+    if (!d) return;
+    S = {
+      queen: qById(d.queen), season: seasonById(d.season), rivals: d.rivals.map(qById).filter(Boolean), out: d.out.map(qById).filter(Boolean),
+      ep: d.ep, wins: d.wins, bottoms: d.bottoms, points: d.points, lipsyncs: d.lipsyncs,
+    };
+    UI.show("story");
+    Sound.stopAll();
+    nextEpisode();
+  }
+
+  // Pantalla al pulsar "Modo historia": continuar la guardada o empezar otra
+  function menu(onNew) {
+    const d = saved();
+    if (!d) return onNew();
+    const q = qById(d.queen), se = seasonById(d.season);
+    UI.show("story");
+    $("#story-season").textContent = "Modo historia";
+    $("#story-ep").textContent = "Partida guardada";
+    $("#story-exit").textContent = "← Volver";
+    $("#story-cast").innerHTML = "";
+    body().innerHTML = `
+      <div class="story-card intro">
+        <img class="story-queen" src="${lookOf(q, se.id).sprite || q.sprite}" alt="">
+        <div>
+          <p class="eyebrow">${esc(se.franchise.name)} · ${esc(se.name)}</p>
+          <h3>${esc(q.name)}</h3>
+          <p>Vas por el episodio ${d.ep + 1}. Quedan ${d.rivals.length + 1} reinas en la competición.</p>
+          <p class="muted">${Math.round(d.points).toLocaleString("es-ES")} puntos · ${d.wins} retos ganados</p>
+          <div class="row">
+            <button class="btn btn-ghost" id="story-new">Nueva historia</button>
+            <button class="btn btn-primary" id="story-continue">Continuar</button>
+          </div>
+          <p class="muted small">Si empiezas una nueva, la partida guardada se borrará al comenzar.</p>
+        </div>
+      </div>`;
+    $("#story-continue").addEventListener("click", resume);
+    $("#story-new").addEventListener("click", onNew);
+  }
+
+  // Salir sin perder la partida (queda guardada desde el inicio del episodio)
   function abandon() {
     if (cleanup) cleanup();
     cleanup = null;
     S = null;
+  }
+  function exitToMenu() {
+    abandon();
+    Sound.stopAll();
+    UI.show("menu");
+  }
+
+  // --------------------------- Diálogos ------------------------------------
+  function fill(txt, ctx) {
+    return txt.replace(/\{(\w+)\}/g, (m, k) => (ctx[k] !== undefined ? ctx[k] : m));
+  }
+  function who(key, ctx) {
+    if (PRESENTADORAS[key]) return { ...PRESENTADORAS[key], side: "left" };
+    if (key === "me") return { name: S.queen.name, role: "Tú", img: sprite(S.queen), side: "right" };
+    const q = ctx.q[key];
+    return { name: q.name, role: "Concursante", img: sprite(q), side: "right" };
+  }
+  // lines: [[speaker, text]]; choices: opcional, se muestran al final
+  function dialog(lines, ctx, then, choices) {
+    let i = 0;
+    const scene = document.createElement("div");
+    scene.className = "dlg";
+    body().innerHTML = "";
+    body().append(scene);
+    function showLine() {
+      if (i >= lines.length) {
+        if (choices) return showChoices();
+        return finish();
+      }
+      const [k, t] = lines[i];
+      const w = who(k, ctx);
+      scene.innerHTML = `
+        <img class="dlg-char ${w.side}" src="${w.img}" alt="">
+        <div class="dlg-box">
+          <p class="dlg-name">${esc(w.name)} <small>${esc(w.role)}</small></p>
+          <p class="dlg-text">${esc(fill(t, ctx))}</p>
+          <p class="dlg-hint">Clic, Espacio o Enter para continuar ▸</p>
+        </div>
+        <button class="btn btn-ghost dlg-skip" id="dlg-skip">Saltar</button>`;
+      scene.querySelector("#dlg-skip").addEventListener("click", (e) => {
+        e.stopPropagation();
+        i = lines.length;
+        showLine();
+      });
+    }
+    function showChoices() {
+      scene.innerHTML = `
+        <img class="dlg-char right" src="${sprite(S.queen)}" alt="">
+        <div class="dlg-box">
+          <p class="dlg-name">${esc(S.queen.name)} <small>Tú</small></p>
+          <div class="dlg-choices">${choices.map((c, k) => `<button class="btn btn-ghost" data-k="${k}"><b>${k + 1}</b> ${esc(c.txt)}</button>`).join("")}</div>
+        </div>`;
+      scene.querySelectorAll(".dlg-choices button").forEach((b) => b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        pickChoice(+b.dataset.k);
+      }));
+    }
+    function pickChoice(k) {
+      const c = choices[k];
+      if (!c) return;
+      S.points += c.bonus || 0;
+      choices = null;
+      lines = [["me", c.txt], c.reply];
+      i = 0;
+      showLine();
+    }
+    function finish() {
+      stop();
+      then();
+    }
+    const next = () => {
+      if (!scene.querySelector(".dlg-choices")) {
+        i++;
+        showLine();
+      }
+    };
+    const onKey = (e) => {
+      if (scene.querySelector(".dlg-choices")) {
+        const k = { Digit1: 0, Digit2: 1, Digit3: 2 }[e.code];
+        if (k !== undefined) pickChoice(k);
+        return;
+      }
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        next();
+      }
+    };
+    function stop() {
+      document.removeEventListener("keydown", onKey);
+    }
+    scene.addEventListener("click", next);
+    document.addEventListener("keydown", onKey);
+    cleanup = stop;
+    showLine();
+  }
+  function ctxFor(titulo) {
+    const pool = shuffle(S.rivals);
+    const r1 = pool[0], r2 = pool[1] || pool[0];
+    return {
+      yo: S.queen.name, r1: r1 && r1.name, r2: r2 && r2.name, fuera: S.out[0] && S.out[0].name,
+      reto: titulo, temporada: S.season.name, q: { r1, r2 },
+    };
   }
 
   const isFinal = () => S.rivals.length <= 2;
@@ -64,6 +246,7 @@ const Story = (() => {
   function header() {
     $("#story-season").textContent = `Modo historia · ${S.season.franchise.name} · ${S.season.name}`;
     $("#story-ep").textContent = isFinal() ? "Gran final" : `Episodio ${S.ep}`;
+    $("#story-exit").textContent = "💾 Guardar y salir";
     const all = [S.queen, ...S.rivals];
     $("#story-cast").innerHTML =
       all.map((q) => `<i title="${esc(q.name)}" class="${q === S.queen ? "me" : ""}" style="background-image:url('${photo(q)}')"></i>`).join("") +
@@ -71,11 +254,25 @@ const Story = (() => {
   }
 
   function nextEpisode() {
+    save();
     S.ep++;
     const tipo = isFinal() ? "pasarela" : ORDEN_RETOS[(S.ep - 1) % ORDEN_RETOS.length];
     const reto = RETOS[tipo];
     const titulo = isFinal() ? "La pasarela de coronación" : reto.titulo();
     header();
+    const ctx = ctxFor(titulo);
+    let lines;
+    if (isFinal()) lines = [...DIALOGOS.final, ...DIALOGOS.anuncio.slice(0, 1)];
+    else if (S.ep === 1) lines = [...DIALOGOS.bienvenida, ...DIALOGOS.tallerPrimerDia];
+    else lines = DIALOGOS.tallerTrasExpulsion;
+    const choices = !isFinal() && ctx.q.r1 ? DIALOGOS.respuestas : null;
+    dialog(lines, ctx, () => {
+      if (isFinal()) return challengeIntro(reto, titulo);
+      dialog(DIALOGOS.anuncio, ctx, () => challengeIntro(reto, titulo));
+    }, choices);
+  }
+
+  function challengeIntro(reto, titulo) {
     body().innerHTML = `
       <div class="story-card intro">
         <img class="story-queen" src="${sprite(S.queen)}" alt="">
@@ -92,6 +289,7 @@ const Story = (() => {
       body().innerHTML = `<div id="story-play"></div>`;
       reto.run($("#story-play"), (score) => {
         cleanup = null;
+        if (isFinal()) S.points += Math.round(score) * 10;
         isFinal() ? finalLipSync(score) : results(Math.round(score), titulo);
       });
     });
@@ -113,6 +311,7 @@ const Story = (() => {
     const n = rows.length;
     const myPos = rows.findIndex((r) => r.me);
     const bottom = myPos >= n - 2;
+    S.points += myScore * 10 + (myPos === 0 ? 500 : 0);
     if (myPos === 0) S.wins++;
     if (bottom) S.bottoms++;
     const badge = (k) =>
@@ -129,6 +328,10 @@ const Story = (() => {
       </div>`;
     const loser = S.rivals[0];
     $("#story-next").addEventListener("click", () => {
+      const crit = DIALOGOS.critica[myPos === 0 ? "win" : bottom ? "bottom" : "safe"];
+      dialog(crit, ctxFor(titulo), () => afterCritique());
+    });
+    const afterCritique = () => {
       if (bottom) return lipSync(loser, false);
       // Tú a salvo: se van las otras dos al lip sync y cae la que toca
       const other = S.rivals[1];
@@ -143,7 +346,7 @@ const Story = (() => {
       eliminate(loser);
       header();
       $("#story-next").addEventListener("click", nextEpisode);
-    });
+    };
   }
 
   function eliminate(q) {
@@ -165,6 +368,11 @@ const Story = (() => {
       Game.start(S.queen, S.season, (res) => {
         UI.show("story");
         header();
+        S.points += Math.round(res.score || 0);
+        if (res.won) {
+          S.lipsyncs++;
+          S.points += forCrown ? 5000 : 1000;
+        }
         if (!res.won) return theEnd(false, rival, forCrown);
         if (forCrown) return theEnd(true);
         eliminate(rival);
@@ -200,6 +408,22 @@ const Story = (() => {
 
   function theEnd(won, rival, forCrown) {
     const place = won ? 1 : forCrown ? 2 : S.rivals.length + 1;
+    const entry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: store.get("dftc-name", ""),
+      queen: S.queen.id,
+      season: S.season.id,
+      won,
+      place,
+      cast: S.season.cast.length,
+      wins: S.wins,
+      lipsyncs: S.lipsyncs,
+      score: Math.round(S.points),
+      date: new Date().toISOString(),
+    };
+    const pos = StoryBoard.record(entry);
+    store.set(SAVE_KEY, null);
+    Story.lastEntryId = pos >= 0 ? entry.id : null;
     if (won) {
       const w = store.get("dftc-story-wins", []);
       if (!w.includes(S.season.id)) store.set("dftc-story-wins", [...w, S.season.id]);
@@ -212,16 +436,30 @@ const Story = (() => {
           <p class="eyebrow">${esc(S.season.name)} · resultado final</p>
           <h3>${won ? `¡${esc(S.queen.name)}, eres la ganadora! 👑` : `Sashay away... puesto ${place}º`}</h3>
           <p>${won ? "La corona es tuya. Condragulations." : `${esc(rival.name)} te ha ganado el lip sync.`}</p>
-          <p class="muted">Retos ganados: ${S.wins} · Veces en el bottom: ${S.bottoms}</p>
+          <p class="story-pts">${entry.score.toLocaleString("es-ES")} puntos</p>
+          <p class="muted">Retos ganados: ${S.wins} · Veces en el bottom: ${S.bottoms} · Lip syncs ganados: ${S.lipsyncs}</p>
+          ${pos >= 0 ? `<label class="name-entry active story-name">Puesto ${pos + 1} del Top 10 de historia. Tu nombre:
+            <input id="story-name" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="${esc(entry.name)}"></label>` : ""}
           <div class="row">
             <button class="btn btn-ghost" id="story-menu">Menú</button>
+            <button class="btn btn-ghost" id="story-scores">🏆</button>
             <button class="btn btn-primary" id="story-again">Otra vez</button>
           </div>
         </div>
       </div>`;
     const q = S.queen, s = S.season;
+    const nameInput = $("#story-name");
+    if (nameInput) {
+      if (!entry.name) StoryBoard.rename(entry.id, "Anónima");
+      nameInput.addEventListener("input", () => {
+        const nm = nameInput.value.trim().slice(0, 12) || "Anónima";
+        store.set("dftc-name", nameInput.value.trim().slice(0, 12));
+        StoryBoard.rename(entry.id, nm);
+      });
+    }
     $("#story-menu").addEventListener("click", () => { abandon(); UI.show("menu"); });
     $("#story-again").addEventListener("click", () => start(q, s));
+    $("#story-scores").addEventListener("click", () => { UI.scoresTab("story"); UI.show("scores"); });
   }
 
   // ------------------------- Minijuego: pasarela ---------------------------
@@ -399,14 +637,14 @@ const Story = (() => {
     ["¿Cuál es tu plato favorito?", ["El de las joyas, cariño, el de la cena ya si eso", "La tortilla de patatas", "No tengo"]],
     ["¿Qué opinas del gimnasio?", ["Lo visito cada año, para ver si sigue ahí", "Voy tres veces por semana", "Está bien"]],
   ];
-  function runSnatch(el, done) {
+  function runSnatch(el, done, bank = PREGUNTAS, host = "🎤 La presentadora", label = "Pregunta") {
     const N = 5, TIME = 9;
-    const qs = shuffle(PREGUNTAS).slice(0, N);
+    const qs = shuffle(bank).slice(0, N);
     let i = 0, total = 0, t0 = 0, raf = 0, answered = false, opts = [];
     el.innerHTML = `
       <div class="mg snatch">
-        <p class="mg-info">Pregunta <b id="sg-n">1</b>/${N}</p>
-        <div class="sg-host"><span>🎤 La presentadora</span><p id="sg-q"></p></div>
+        <p class="mg-info">${label} <b id="sg-n">1</b>/${N}</p>
+        <div class="sg-host"><span>${host}</span><p id="sg-q"></p></div>
         <div class="sg-bar"><div id="sg-time"></div></div>
         <div class="sg-opts" id="sg-opts"></div>
         <p class="mg-info" id="sg-msg"></p>
@@ -461,5 +699,244 @@ const Story = (() => {
     raf = requestAnimationFrame(tick);
   }
 
-  return { start, abandon };
+  const LECTURAS = [
+    ["Lee a la compañera que siempre llega tarde", ["Cariño, tú no llegas tarde: llegas en otro huso horario", "Siempre llegas tarde, eh", "Llegas tarde"]],
+    ["Lee a la reina de la peluca más grande", ["Tu peluca tiene código postal propio", "Qué peluca tan grande", "Bonita peluca"]],
+    ["Lee a la que se maquilla en cinco minutos", ["Se nota, reina, se nota. Pero con mucha seguridad", "Te maquillas rápido", "Vas guapa"]],
+    ["Lee a la que cose fatal", ["Tu vestido tiene más grapas que costuras", "No sabes coser mucho", "Bueno, coses regular"]],
+    ["Lee a la que siempre habla de sí misma", ["Tu espejo ya pidió vacaciones", "Hablas mucho de ti", "Eres muy tú"]],
+    ["Lee a la más pija del grupo", ["Su bolso tiene más estudios que yo", "Eres un poco pija", "Te gusta lo caro"]],
+    ["Lee a la que siempre llora en el taller", ["Trae el rímel resistente, que hoy toca episodio", "Lloras mucho", "Eres sensible"]],
+    ["Lee a la que baila como un pato", ["Tu coreografía tiene fans en el estanque del Retiro", "No bailas muy bien", "Bailas distinto"]],
+    ["Lee a la que se cree la favorita", ["Ya ha ensayado el discurso de la corona... de la de Burger", "Te crees favorita", "Tienes confianza"]],
+  ];
+
+  // ------------------------- Minijuego: diseño -----------------------------
+  function runDiseno(el, done) {
+    const W = 1000, H = 560, DUR = 25;
+    el.innerHTML = `
+      <div class="mg diseno">
+        <p class="mg-info">Tiempo <b id="ds-t">${DUR}</b> s · Materiales <b id="ds-p">0</b></p>
+        <canvas id="ds-c" width="${W}" height="${H}"></canvas>
+        <div class="ds-touch"><button class="btn btn-ghost" id="ds-l">◀</button><button class="btn btn-ghost" id="ds-r">▶</button></div>
+      </div>`;
+    const cv = $("#ds-c"), ctx = cv.getContext("2d");
+    const img = new Image();
+    img.src = sprite(S.queen);
+    const GOOD = [["✨", 10], ["🧵", 10], ["🪶", 12], ["💎", 18], ["🎀", 10]];
+    const BAD = [["✂️", -15], ["🩹", -10]];
+    let x = W / 2, vx = 0, keys = { l: false, r: false }, items = [], t = 0, spawn = 0, pts = 0, raf = 0, last = performance.now(), mouseX = null;
+    function tick(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      t += dt;
+      const dir = (keys.r ? 1 : 0) - (keys.l ? 1 : 0);
+      if (dir) x += dir * 620 * dt;
+      else if (mouseX !== null) x += (mouseX - x) * Math.min(1, dt * 12);
+      x = Math.max(60, Math.min(W - 60, x));
+      spawn -= dt;
+      if (spawn <= 0) {
+        spawn = Math.max(0.28, 0.7 - t * 0.015);
+        const bad = Math.random() < 0.25 + t * 0.006;
+        const [e, v] = bad ? BAD[Math.floor(Math.random() * BAD.length)] : GOOD[Math.floor(Math.random() * GOOD.length)];
+        items.push({ x: rnd(40, W - 40), y: -30, vy: rnd(200, 300) + t * 9, e, v });
+      }
+      ctx.clearRect(0, 0, W, H);
+      ctx.font = "40px serif";
+      ctx.textAlign = "center";
+      items = items.filter((it) => {
+        it.y += it.vy * dt;
+        if (it.y > H - 150 && it.y < H - 40 && Math.abs(it.x - x) < 70) {
+          pts = Math.max(0, pts + it.v);
+          it.v > 0 ? Sound.powerup && Sound.powerup() : Sound.impact();
+          return false;
+        }
+        ctx.fillText(it.e, it.x, it.y);
+        return it.y < H + 40;
+      });
+      const h = 150, w = img.naturalWidth ? (img.naturalWidth / img.naturalHeight) * h : 70;
+      if (img.complete) ctx.drawImage(img, x - w / 2, H - h - 6, w, h);
+      $("#ds-t").textContent = Math.max(0, Math.ceil(DUR - t));
+      $("#ds-p").textContent = pts;
+      if (t >= DUR) {
+        stop();
+        return done(Math.min(100, (pts / 300) * 100));
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    const KEYS = { ArrowLeft: "l", KeyA: "l", ArrowRight: "r", KeyD: "r" };
+    const kd = (e) => { const k = KEYS[e.code]; if (k) { e.preventDefault(); keys[k] = true; mouseX = null; } };
+    const ku = (e) => { const k = KEYS[e.code]; if (k) keys[k] = false; };
+    const mm = (e) => { const r = cv.getBoundingClientRect(); mouseX = ((e.clientX - r.left) / r.width) * W; };
+    cv.addEventListener("pointermove", mm);
+    const hold = (id, k) => {
+      const b = $(id);
+      b.addEventListener("pointerdown", () => (keys[k] = true));
+      ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => (keys[k] = false)));
+    };
+    hold("#ds-l", "l");
+    hold("#ds-r", "r");
+    function stop() {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("keydown", kd);
+      document.removeEventListener("keyup", ku);
+    }
+    document.addEventListener("keydown", kd);
+    document.addEventListener("keyup", ku);
+    cleanup = stop;
+    raf = requestAnimationFrame(tick);
+  }
+
+  // ------------------------- Minijuego: Rusical ----------------------------
+  function runRusical(el, done) {
+    const W = 760, H = 560, LANES = 4, LINE = H - 80, SPEED = 380;
+    const COLORS = ["#ff4fd8", "#ffd84d", "#4fd8ff", "#9dff4f"];
+    const KEYS = { KeyD: 0, KeyF: 1, KeyJ: 2, KeyK: 3, ArrowLeft: 0, ArrowDown: 1, ArrowUp: 2, ArrowRight: 3 };
+    el.innerHTML = `
+      <div class="mg rusical">
+        <p class="mg-info"><span id="rs-msg">¡Que empiece el número!</span> · Combo <b id="rs-c">0</b></p>
+        <canvas id="rs-cv" width="${W}" height="${H}"></canvas>
+        <p class="muted">D · F · J · K</p>
+      </div>`;
+    const cv = $("#rs-cv"), ctx = cv.getContext("2d"), lw = W / LANES;
+    // Partitura: ~36 notas a 120 bpm con algún acorde
+    const notes = [];
+    let tt = 1.5;
+    while (tt < 21) {
+      const lane = Math.floor(Math.random() * LANES);
+      notes.push({ t: tt, lane, hit: null });
+      if (Math.random() < 0.15) notes.push({ t: tt, lane: (lane + 2) % LANES, hit: null });
+      tt += [0.5, 0.5, 0.25, 0.75, 1][Math.floor(Math.random() * 5)];
+    }
+    let t0 = performance.now(), raf = 0, combo = 0, score = 0, flash = [0, 0, 0, 0];
+    const now = () => (performance.now() - t0) / 1000;
+    function press(lane) {
+      const t = now();
+      flash[lane] = 0.15;
+      let best = null;
+      notes.forEach((n) => { if (n.lane === lane && n.hit === null && Math.abs(n.t - t) < 0.2 && (!best || Math.abs(n.t - t) < Math.abs(best.t - t))) best = n; });
+      if (!best) return;
+      const d = Math.abs(best.t - t);
+      best.hit = d < 0.08 ? 1 : 0.6;
+      score += best.hit;
+      combo++;
+      $("#rs-msg").textContent = best.hit === 1 ? "¡Perfecto!" : "¡Bien!";
+      $("#rs-c").textContent = combo;
+      Sound.countdown(false);
+    }
+    function tick() {
+      const t = now();
+      ctx.clearRect(0, 0, W, H);
+      for (let i = 0; i < LANES; i++) {
+        ctx.fillStyle = flash[i] > 0 ? "rgba(255,255,255,.12)" : i % 2 ? "rgba(255,255,255,.04)" : "rgba(255,255,255,.07)";
+        ctx.fillRect(i * lw, 0, lw, H);
+        flash[i] = Math.max(0, flash[i] - 1 / 60);
+        ctx.strokeStyle = COLORS[i];
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(i * lw + lw / 2, LINE, 30, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      notes.forEach((n) => {
+        if (n.hit === null && t - n.t > 0.2) {
+          n.hit = 0;
+          combo = 0;
+          $("#rs-c").textContent = 0;
+          $("#rs-msg").textContent = "¡Fallo!";
+        }
+        if (n.hit !== null && n.hit > 0) return;
+        const y = LINE - (n.t - t) * SPEED;
+        if (y < -40 || y > H + 40) return;
+        ctx.fillStyle = COLORS[n.lane];
+        ctx.globalAlpha = n.hit === 0 ? 0.3 : 1;
+        ctx.beginPath();
+        ctx.arc(n.lane * lw + lw / 2, y, 26, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+      if (t > notes[notes.length - 1].t + 1) {
+        stop();
+        return done((score / notes.length) * 100);
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    const kd = (e) => { const l = KEYS[e.code]; if (l !== undefined) { e.preventDefault(); if (!e.repeat) press(l); } };
+    cv.addEventListener("pointerdown", (e) => {
+      const r = cv.getBoundingClientRect();
+      press(Math.min(LANES - 1, Math.floor(((e.clientX - r.left) / r.width) * LANES)));
+    });
+    function stop() {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("keydown", kd);
+    }
+    document.addEventListener("keydown", kd);
+    cleanup = stop;
+    raf = requestAnimationFrame(tick);
+  }
+
+  // ------------------------- Minijuego: maquillaje -------------------------
+  function runMaquillaje(el, done) {
+    const ZONAS = ["Sombra", "Delineado", "Colorete", "Labios"];
+    const PALETA = ["#ff4fd8", "#ffd84d", "#4fd8ff", "#ff3b3b", "#9d4fff", "#1b1b1b", "#ff9a3d", "#3dff9a"];
+    const ROUNDS = 4;
+    el.innerHTML = `
+      <div class="mg maquillaje">
+        <p class="mg-info">Look <b id="mq-n">1</b>/${ROUNDS} · <span id="mq-msg"></span></p>
+        <div class="mq-chart" id="mq-chart"></div>
+        <div class="mq-pal" id="mq-pal"></div>
+      </div>`;
+    let round = 0, ok = 0, target = [], pick = [], zone = 0, timers = [];
+    const later = (f, ms) => timers.push(setTimeout(f, ms));
+    function chart(cols, active = -1) {
+      $("#mq-chart").innerHTML = ZONAS.map((z, i) => `<div class="mq-z ${i === active ? "act" : ""}"><i style="background:${cols[i] || "transparent"}"></i><span>${z}</span></div>`).join("");
+    }
+    function play() {
+      target = ZONAS.map(() => PALETA[Math.floor(Math.random() * PALETA.length)]);
+      pick = [];
+      zone = 0;
+      $("#mq-n").textContent = round + 1;
+      $("#mq-msg").textContent = "Memoriza la carta...";
+      $("#mq-pal").innerHTML = "";
+      chart(target);
+      later(() => {
+        $("#mq-msg").textContent = `Elige el color de: ${ZONAS[0]}`;
+        chart([], 0);
+        $("#mq-pal").innerHTML = PALETA.map((c) => `<button class="mq-c" style="background:${c}" data-c="${c}"></button>`).join("");
+        el.querySelectorAll(".mq-c").forEach((b) => b.addEventListener("click", () => choose(b.dataset.c)));
+      }, 2600 - round * 350);
+    }
+    function choose(c) {
+      if (zone >= ZONAS.length) return;
+      pick.push(c);
+      if (c === target[zone]) ok++;
+      zone++;
+      chart(pick, zone);
+      if (zone < ZONAS.length) return ($("#mq-msg").textContent = `Elige el color de: ${ZONAS[zone]}`);
+      const good = pick.filter((p, i) => p === target[i]).length;
+      $("#mq-msg").textContent = good === 4 ? "¡Idéntico! 💄" : `${good}/4 zonas bien`;
+      good === 4 ? Sound.powerup && Sound.powerup() : Sound.impact();
+      $("#mq-chart").innerHTML += `<p class="mq-sol">Carta original: ${target.map((c) => `<i style="background:${c}"></i>`).join("")}</p>`;
+      later(() => {
+        round++;
+        if (round >= ROUNDS) {
+          stop();
+          return done((ok / (ROUNDS * ZONAS.length)) * 100);
+        }
+        play();
+      }, 1500);
+    }
+    function stop() {
+      timers.forEach(clearTimeout);
+    }
+    cleanup = stop;
+    play();
+  }
+
+  // Solo para pruebas automatizadas: lanza un reto concreto
+  const _test = (tipo, cb) => {
+    if (cleanup) cleanup();
+    body().innerHTML = `<div id="story-play"></div>`;
+    RETOS[tipo].run($("#story-play"), (sc) => { cleanup = null; cb && cb(sc); window.__lastScore = sc; });
+  };
+  return { start, abandon, menu, exitToMenu, _test, lastEntryId: null };
 })();

@@ -308,3 +308,35 @@ function lookOf(q, seasonId) {
     return { sprite: `./images/queens/${seasonId}/${q.id}.png`, portrait: `./images/queens/${seasonId}/${q.id}_retrato.jpg` };
   return { sprite: q && q.sprite, portrait: q && q.portrait };
 }
+
+// Puntuaciones del modo historia (tabla y carrera aparte del arcade)
+const StoryBoard = {
+  get board() {
+    return store.get("dftc-story-board", []);
+  },
+  get stats() {
+    return store.get("dftc-story-stats", { games: 0, crowns: 0, challengeWins: 0, lipsyncs: 0, total: 0 });
+  },
+  record(entry) {
+    const s = this.stats;
+    s.games++;
+    if (entry.won) s.crowns++;
+    s.challengeWins += entry.wins || 0;
+    s.lipsyncs += entry.lipsyncs || 0;
+    s.total += entry.score;
+    store.set("dftc-story-stats", s);
+    const board = this.board;
+    board.push(entry);
+    board.sort((a, b) => b.score - a.score);
+    store.set("dftc-story-board", board.slice(0, 10));
+    return board.slice(0, 10).findIndex((e) => e.id === entry.id);
+  },
+  rename(id, name) {
+    const board = this.board;
+    const e = board.find((x) => x.id === id);
+    if (e) {
+      e.name = name;
+      store.set("dftc-story-board", board);
+    }
+  },
+};

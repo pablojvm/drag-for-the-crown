@@ -267,18 +267,28 @@ const UI = (() => {
   });
 
   // ---------------------------- Puntuaciones -------------------------------
+  let scoresTab = "arcade";
+  const seasonTag = (id) => {
+    const s = id && seasonById(id);
+    return s ? `<small class="muted">${esc(s.franchise.tag)} ${esc(s.name.replace("Temporada ", "T").replace("All Stars ", ""))}</small> ` : "";
+  };
   function renderScores() {
-    const board = Progress.board;
-    const tbody = $("#scores-table tbody");
-    tbody.innerHTML = board
+    const story = scoresTab === "story";
+    document.querySelectorAll("#scores-tabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === scoresTab));
+    $("#th-res").textContent = story ? "Resultado" : "Rondas";
+    const board = story ? StoryBoard.board : Progress.board;
+    const mine = story ? Story.lastEntryId : lastEntryId;
+    $("#scores-table tbody").innerHTML = board
       .map((e, i) => {
         const q = queenById(e.queen);
         const date = new Date(e.date).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
-        return `<tr class="${e.id === lastEntryId ? "me" : ""}">
+        const res = story ? (e.won ? "👑 Ganadora" : `Puesto ${e.place}º`) : e.won ? "👑" : `${e.rounds}/${e.totalRounds || "?"}`;
+        const pic = q ? (story ? lookOf(q, e.season).portrait : q.portrait) : "";
+        return `<tr class="${e.id === mine ? "me" : ""}">
           <td>${i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</td>
           <td>${esc(e.name || "Anónima")}</td>
-          <td><span class="mini" style="background-image:url('${q ? q.portrait : ""}')"></span>${esc(q ? q.name : e.queen)}</td>
-          <td>${e.season && seasonById(e.season) ? `<small class="muted">${esc(seasonById(e.season).franchise.tag)} ${esc(seasonById(e.season).name.replace("Temporada ", "T").replace("All Stars ", ""))}</small> ` : ""}${e.won ? "👑" : `${e.rounds}/${e.totalRounds || "?"}`}</td>
+          <td><span class="mini" style="background-image:url('${pic}')"></span>${esc(q ? q.name : e.queen)}</td>
+          <td>${seasonTag(e.season)}${res}</td>
           <td class="pts">${fmt(e.score)}</td>
           <td class="muted">${date}</td>
         </tr>`;
@@ -286,22 +296,34 @@ const UI = (() => {
       .join("");
     $("#scores-table").style.display = board.length ? "" : "none";
     $("#scores-empty").style.display = board.length ? "none" : "";
+    $("#scores-empty").textContent = story ? "Todavía no has jugado ninguna temporada en modo historia." : "Todavía no hay partidas. ¡A la pasarela!";
 
-    const s = Progress.stats;
-    $("#car-games").textContent = fmt(s.games);
-    $("#car-wins").textContent = fmt(s.wins);
-    $("#car-combo").textContent = `x${s.bestCombo}`;
-    $("#car-total").textContent = fmt(Progress.total);
+    const box = (label, value) => `<div><span>${label}</span><strong>${value}</strong></div>`;
+    if (story) {
+      const s = StoryBoard.stats;
+      $("#career").innerHTML = box("Temporadas jugadas", fmt(s.games)) + box("Coronas", fmt(s.crowns)) + box("Retos ganados", fmt(s.challengeWins)) + box("Lip syncs ganados", fmt(s.lipsyncs));
+    } else {
+      const s = Progress.stats;
+      $("#career").innerHTML = box("Partidas", fmt(s.games)) + box("Coronas", fmt(s.wins)) + box("Mejor combo", `x${s.bestCombo}`) + box("Puntos totales", fmt(Progress.total));
+    }
 
-    $("#unlock-list").innerHTML = FRANCHISES.map((f) => {
-      const won = f.seasons.filter((x) => Progress.hasWon(x.id)).length;
+    const crowned = story ? store.get("dftc-story-wins", []) : null;
+    const hasWon = (id) => (story ? crowned.includes(id) : Progress.hasWon(id));
+    $("#unlock-list").innerHTML = FRANCHISES.filter((f) => f.seasons.length).map((f) => {
+      const won = f.seasons.filter((x) => hasWon(x.id)).length;
       return `<div class="unlock-item">
         <span class="tag-mini" style="background:${f.color}">${f.tag}</span>
-        <div><strong>${esc(f.name)}</strong><small>${won}/${f.seasons.length}</small>
+        <div><strong>${esc(f.name)}</strong><small>${won}/${f.seasons.length}${story ? " coronas" : ""}</small>
         <span class="progress"><span style="width:${(won / f.seasons.length) * 100}%"></span></span></div>
       </div>`;
     }).join("");
   }
+  document.querySelectorAll("#scores-tabs .tab").forEach((t) =>
+    t.addEventListener("click", () => {
+      scoresTab = t.dataset.tab;
+      renderScores();
+    })
+  );
 
   // ------------------------------ Botones ----------------------------------
   $("#btn-play").addEventListener("click", () => {
@@ -310,11 +332,15 @@ const UI = (() => {
   });
   $("#btn-story").addEventListener("click", () => {
     mode = "story";
-    show("franchise");
+    Story.menu(() => show("franchise"));
   });
+  $("#story-exit").addEventListener("click", () => Story.exitToMenu());
   $("#btn-franchise-back").addEventListener("click", () => show("menu"));
   $("#btn-season-back").addEventListener("click", () => show("franchise"));
-  $("#btn-scores").addEventListener("click", () => show("scores"));
+  $("#btn-scores").addEventListener("click", () => {
+    scoresTab = mode === "story" ? "story" : "arcade";
+    show("scores");
+  });
   $("#btn-scores-back").addEventListener("click", () => show("menu"));
   $("#btn-back").addEventListener("click", () => show("season"));
   btnStart.addEventListener("click", startGame);
@@ -326,7 +352,10 @@ const UI = (() => {
       show("select");
     } else show("season");
   });
-  $("#btn-end-scores").addEventListener("click", () => show("scores"));
+  $("#btn-end-scores").addEventListener("click", () => {
+    scoresTab = "arcade";
+    show("scores");
+  });
   $("#btn-resume").addEventListener("click", () => {
     showPause(false);
     Game.resume();
@@ -406,5 +435,5 @@ const UI = (() => {
   });
   show("menu");
 
-  return { showPause, show, get mode() { return mode; } };
+  return { showPause, show, scoresTab: (t) => (scoresTab = t), get mode() { return mode; } };
 })();

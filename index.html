@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/style.css?v=19">
+  <link rel="stylesheet" href="styles/style.css?v=23">
 </head>
 <body>
   <div id="stage">
@@ -110,7 +110,10 @@
           <p class="eyebrow" id="story-season"></p>
           <h2 id="story-ep"></h2>
         </div>
-        <div id="story-cast"></div>
+        <div class="story-right">
+          <div id="story-cast"></div>
+          <button class="btn btn-ghost story-exit" id="story-exit">💾 Guardar y salir</button>
+        </div>
       </div>
       <div id="story-body"></div>
     </section>
@@ -118,23 +121,22 @@
     <!-- ============ PUNTUACIONES ============ -->
     <section id="screen-scores" class="screen">
       <h1 class="title">Hall of Fame</h1>
+      <div class="tabs" id="scores-tabs">
+        <button class="tab active" data-tab="arcade">👠 Arcade</button>
+        <button class="tab" data-tab="story">📖 Modo historia</button>
+      </div>
       <div class="scores-layout">
         <div class="panel-card">
           <h3>Top 10</h3>
           <table id="scores-table">
-            <thead><tr><th>#</th><th>Nombre</th><th>Reina</th><th>Rondas</th><th>Puntos</th><th>Fecha</th></tr></thead>
+            <thead><tr><th>#</th><th>Nombre</th><th>Reina</th><th id="th-res">Rondas</th><th>Puntos</th><th>Fecha</th></tr></thead>
             <tbody></tbody>
           </table>
           <p id="scores-empty" class="muted">Todavía no hay partidas. ¡A la pasarela!</p>
         </div>
         <div class="panel-card side">
           <h3>Tu carrera</h3>
-          <div class="career">
-            <div><span>Partidas</span><strong id="car-games">0</strong></div>
-            <div><span>Coronas</span><strong id="car-wins">0</strong></div>
-            <div><span>Mejor combo</span><strong id="car-combo">x0</strong></div>
-            <div><span>Puntos totales</span><strong id="car-total">0</strong></div>
-          </div>
+          <div class="career" id="career"></div>
           <h3>Temporadas</h3>
           <div id="unlock-list"></div>
         </div>
@@ -188,13 +190,14 @@
     </div>
   </div>
 
-  <script src="./js/reinas.js?v=19"></script>
-  <script src="./js/config.js?v=19"></script>
-  <script src="./js/audio.js?v=19"></script>
-  <script src="./js/effects.js?v=19"></script>
-  <script src="./js/entities.js?v=19"></script>
-  <script src="./js/game.js?v=19"></script>
-  <script src="./js/ui.js?v=19"></script>
-  <script src="./js/historia.js?v=19"></script>
+  <script src="./js/reinas.js?v=23"></script>
+  <script src="./js/config.js?v=23"></script>
+  <script src="./js/audio.js?v=23"></script>
+  <script src="./js/effects.js?v=23"></script>
+  <script src="./js/entities.js?v=23"></script>
+  <script src="./js/game.js?v=23"></script>
+  <script src="./js/ui.js?v=23"></script>
+  <script src="./js/dialogos.js?v=23"></script>
+  <script src="./js/historia.js?v=23"></script>
 </body>
 </html>

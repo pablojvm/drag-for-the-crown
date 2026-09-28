@@ -861,3 +861,41 @@ kbd.wide { min-width: 120px; }
 #btn-story.mode-card { background-position: right -40px top 0, center; }
 .mode-card::before { background: linear-gradient(90deg, rgba(20,3,31,.85) 0%, rgba(20,3,31,.35) 55%, rgba(20,3,31,0) 100%); }
 .mode-card .mode-name, .mode-card .mode-desc { max-width: 230px; }
+/* Retos nuevos */
+#ds-c, #rs-cv { border-radius: 18px; background: rgba(0,0,0,.25); max-width: 100%; touch-action: none; }
+.ds-touch { display: flex; gap: 20px; }
+.ds-touch .btn { font-size: 28px; padding: 10px 40px; }
+.mq-chart { display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
+.mq-z { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px; border-radius: 20px; border: 2px solid transparent; }
+.mq-z.act { border-color: var(--gold); background: rgba(255,216,77,.08); }
+.mq-z i { width: 120px; height: 120px; border-radius: 50%; border: 3px dashed rgba(255,255,255,.35); }
+.mq-z span { font-size: 18px; }
+.mq-pal { display: flex; gap: 16px; margin-top: 30px; }
+.mq-c { width: 74px; height: 74px; border-radius: 50%; border: 3px solid rgba(255,255,255,.6); cursor: pointer; transition: transform .1s; }
+.mq-c:hover { transform: scale(1.12); }
+.mq-sol { width: 100%; text-align: center; font-size: 16px; }
+.mq-sol i { display: inline-block; width: 26px; height: 26px; border-radius: 50%; margin: 0 4px; vertical-align: middle; }
+.tabs { display: flex; gap: 10px; margin: -6px 0 6px; }
+.tab { padding: 10px 24px; border-radius: 999px; font: 700 17px "Poppins", sans-serif; color: #fff; cursor: pointer; background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.18); }
+.tab.active { background: linear-gradient(135deg, var(--pink), #b23cff); border-color: transparent; }
+.story-pts { font-family: "Bungee", sans-serif; font-size: 30px !important; color: var(--pink-soft); }
+.story-name { display: flex !important; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 16px; }
+.story-name input { font-size: 20px; padding: 8px 12px; border-radius: 12px; border: 2px solid var(--gold); background: rgba(0,0,0,.3); color: #fff; width: 260px; }
+/* Diálogos del modo historia */
+.story-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.story-exit { font-size: 15px; padding: 8px 18px; }
+.small { font-size: 14px !important; }
+.dlg { position: relative; width: 1240px; height: 760px; cursor: pointer; }
+.dlg-char { position: absolute; bottom: 150px; height: 560px; max-width: 520px; object-fit: contain; filter: drop-shadow(0 16px 40px rgba(0,0,0,.6)); animation: dlgin .3s ease; }
+.dlg-char.left { left: 60px; }
+.dlg-char.right { right: 60px; }
+@keyframes dlgin { from { opacity: 0; transform: translateY(20px); } }
+.dlg-box { position: absolute; left: 0; right: 0; bottom: 0; min-height: 190px; padding: 22px 30px; border-radius: 24px; background: rgba(20,3,31,.9); border: 3px solid var(--pink); box-shadow: 0 0 40px rgba(255,79,216,.35); }
+.dlg-name { margin: 0 0 8px; font-family: "Bungee", sans-serif; font-size: 24px; color: var(--gold); }
+.dlg-name small { font-family: "Poppins", sans-serif; font-size: 14px; color: var(--pink-soft); margin-left: 8px; }
+.dlg-text { margin: 0; font-size: 26px; line-height: 1.35; }
+.dlg-hint { position: absolute; right: 26px; bottom: 12px; margin: 0; font-size: 13px; color: rgba(255,255,255,.5); }
+.dlg-skip { position: absolute; top: 0; right: 0; font-size: 14px; padding: 6px 16px; }
+.dlg-choices { display: flex; flex-direction: column; gap: 10px; }
+.dlg-choices .btn { text-align: left; font-size: 20px; padding: 12px 20px; border-radius: 14px; }
+.dlg-choices b { color: var(--gold); margin-right: 8px; }
