@@ -78,6 +78,7 @@ const LOGROS = [
   { id: "armario", icon: "🧵", name: "De compras", desc: "Mejora una estadística en el armario", reward: 50 },
   { id: "stat5", icon: "🌟", name: "Al máximo", desc: "Sube una estadística a 5", reward: 150 },
   { id: "doble-shantay", icon: "🍀", name: "Salvada por la campana", desc: "Vive un doble shantay", reward: 100 },
+  { id: "miss-simpatia", icon: "💐", name: "Miss Simpatía", desc: "Gana Miss Simpatía en el reencuentro", reward: 250 },
   { id: "espana", icon: "🇪🇸", name: "Leyenda de España", desc: "Corónate en todas las temporadas de España en historia", reward: 1000 },
 ];
 const Achievements = {

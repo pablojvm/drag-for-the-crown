@@ -75,6 +75,7 @@ const Game = (() => {
   let hits = 0;
   let tookDamageThisRound = false;
   let special = 0; // carga del poder especial (0 a 1)
+  let readySince = 0; // cuándo se llenó (para recordarlo)
   let slowUntil = 0;
   let doublePointsUntil = 0;
   let pendingFans = [];
@@ -399,7 +400,12 @@ const Game = (() => {
     combo++;
     maxCombo = Math.max(maxCombo, combo);
     special = Math.min(1, special + SPECIAL_PER_HIT);
-    if (special >= 1 && special - SPECIAL_PER_HIT < 1) FX.text(W / 2, H * 0.66, "¡PODER LISTO! [E]", COLORS.cyan, 26);
+    if (special >= 1 && special - SPECIAL_PER_HIT < 1) {
+      FX.text(W / 2, H * 0.66, "¡PODER LISTO! [E]", COLORS.cyan, 26);
+      readySince = clock;
+      Sound.powerup();
+      if (Music.sfx) Music.sfx("achievement");
+    }
     damageRival(player.damage, h.x, h.y, false);
   }
 
@@ -575,6 +581,34 @@ const Game = (() => {
     ctx.fillStyle = full ? COLORS.gold : "rgba(255,255,255,0.7)";
     ctx.fillText(full ? `✨ ${queen.power.name.toUpperCase()} · [E]` : "✨ PODER", sx + sw + 10, sy + 6);
     ctx.textBaseline = "alphabetic";
+
+    // Aviso fijo mientras el poder está listo y sin usar
+    const btnSp = document.querySelector(".btn-special");
+    if (btnSp) btnSp.classList.toggle("ready", full);
+    if (full) {
+      const pulse = 0.5 + 0.5 * Math.sin(clock * 6);
+      const bw = 520, bh = 42, bx = W / 2 - bw / 2, by = HUD_H + 14;
+      ctx.save();
+      ctx.globalAlpha = 0.82 + pulse * 0.18;
+      ctx.fillStyle = "rgba(59,13,79,0.78)";
+      ctx.shadowColor = COLORS.gold;
+      ctx.shadowBlur = 10 + pulse * 16;
+      roundRect(bx, by, bw, bh, 22);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "bold 18px Poppins, sans-serif";
+      ctx.fillStyle = COLORS.gold;
+      ctx.fillText(`✨ ¡PODER LISTO: ${queen.power.name.toUpperCase()}! Pulsa E (o ✨)`, W / 2, by + bh / 2 + 1);
+      ctx.restore();
+      // Si pasa un rato sin usarlo, otro toque
+      if (clock - readySince > 6) {
+        readySince = clock;
+        FX.text(W / 2, H * 0.66, "¡No te olvides del poder! [E]", COLORS.gold, 24);
+        Sound.powerup();
+      }
+    }
 
     // Ronda + rival + vida del rival
     ctx.textAlign = "center";

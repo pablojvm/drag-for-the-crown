@@ -310,7 +310,9 @@ const HISTORIA = {
   ],
   // Final
   final: [
-    [["host", "Hemos llegado a la gran final. Tres reinas, una corona."], ["judge", "Ha sido un camino largo. Ahora demostrad por qué estáis aquí."]],
+    [["host", "Hemos llegado a la gran final. Cuatro reinas, una corona."], ["judge", "Ha sido un camino largo. Ahora demostrad por qué estáis aquí."]],
+    [["host", "Top 4, mis reinas. Aquí ya no hay retos: solo lip syncs."], ["judge", "Y en un lip sync no hay excusas. O lo das todo o te vas."], ["r1", "Llevo toda la temporada esperando este momento."]],
+    [["host", "Bienvenidas a la gran final de {temporada}."], ["r1", "Estoy temblando, pero de ganas."], ["r2", "Que gane la mejor. O sea, yo."]],
   ],
 };
 
@@ -611,3 +613,325 @@ const SNATCH_PREGUNTAS = [
   "¿Qué opinas del gimnasio?", "¿Qué es lo primero que haces al levantarte?", "¿Cómo celebras tu cumpleaños?", "¿Qué harías si fueras presidenta del país?",
 ];
 const SNATCH_PLANAS = ["Pues no sé, la verdad.", "Bien, supongo.", "Eso es muy personal.", "Mmm... siguiente pregunta.", "Lo normal, como todo el mundo.", "Ni idea, cariño."];
+
+// ===========================================================================
+// ROLES DETRÁS DE CÁMARAS: a cada reina se le asigna uno al empezar la
+// temporada. Se descubren poco a poco (escenas, confesionario, untucked).
+// r1 = la reina del rol, r2 = otra compañera.
+// ===========================================================================
+const ROLES_HISTORIA = {
+  villana: {
+    icon: "😈", name: "La villana", desc: "Juega sucio si hace falta. Vota en tu contra si puede.", voto: -1.2,
+    escenas: [
+      { lines: [["r2", "{yo}, ¿has visto tus pestañas? Estaban en tu puesto hace un momento..."], ["r1", "Uy, qué raro. Habrán volado. Pasa mucho aquí."]],
+        choices: [
+          { txt: "Sé que has sido tú, {r1}. Devuélvemelas.", rel: { r1: -1 }, bonus: 120, reply: ["r1", "Qué acusación tan fea. Toma, estaban en el suelo. Casualmente."] },
+          { txt: "No pasa nada, tengo repuesto.", adv: -2, reply: ["r1", "Qué bien preparada. Me encanta. De verdad."] },
+          { txt: "Supreme, alguien me está saboteando.", rel: { r1: -1 }, adv: 2, reply: ["host", "Reinas, en mi taller se compite limpio. Lo digo una vez."] },
+        ] },
+      { lines: [["r1", "{yo}, te lo digo como amiga: ese look de ayer no era para ti."], ["r1", "Yo que tú hoy iría a lo seguro. Algo discretito."]],
+        choices: [
+          { txt: "Gracias por el consejo. Voy a hacer justo lo contrario.", bonus: 150, adv: 2, reply: ["r1", "Allá tú. Luego no llores."] },
+          { txt: "¿Tú crees? A lo mejor tienes razón...", adv: -3, reply: ["r1", "Claro que la tengo. Siempre la tengo."] },
+          { txt: "Qué detalle preocuparte tanto por mí, {r1}.", rel: { r1: 1 }, reply: ["r1", "Ya ves. Soy un encanto."] },
+        ] },
+      { lines: [["r1", "¿Sabéis qué? Esta semana alguien se va a casa y no voy a ser yo."], ["r2", "Qué intensa te pones por las mañanas."], ["r1", "Intensa no. Realista. {yo}, ¿tú qué opinas?"]],
+        choices: [
+          { txt: "Opino que te vas a atragantar con tus palabras.", rel: { r1: -1 }, bonus: 120, reply: ["r1", "Ya veremos quién se atraganta, cariño."] },
+          { txt: "Opino que hoy toca trabajar, no hablar.", adv: 2, reply: ["r2", "Amén."] },
+        ] },
+    ],
+    confesionario: {
+      bien: ["{yo} me cae bien. Es lo más peligroso que me puede pasar aquí dentro.", "No lo voy a decir dos veces: {yo} tiene nivel. Ya está, lo he dicho."],
+      mal: ["{yo} va de buena, pero aquí nadie es buena. Yo por lo menos no finjo.", "Si tengo que elegir a quién mandar a casa, lo tengo clarísimo. Empieza por {yo}.", "{yo} me ha mirado mal en el espejo. Lo apunto."],
+    },
+    untucked: ["¿Qué? ¿Vienes a espiar o a hablar?", "Tranquila, que hoy no muerdo. Mucho."],
+    reencuentro: "Yo no vine a hacer amigas. Y lo he conseguido.",
+  },
+  graciosa: {
+    icon: "🤡", name: "La graciosa", desc: "Todo lo convierte en chiste. Te sube el ánimo.", voto: 0.3,
+    escenas: [
+      { lines: [["r1", "Reinas, noticia de última hora: he encontrado la dignidad de {r2}. Estaba debajo de la mesa."], ["r2", "¡Oye!"], ["r1", "Es broma, es broma. Estaba en la basura."]],
+        choices: [
+          { txt: "(Reírte a carcajadas)", rel: { r1: 1, r2: -1 }, adv: 2, reply: ["r1", "¡Por fin alguien con sentido del humor aquí!"] },
+          { txt: "Pobre {r2}, déjala tranquila.", rel: { r2: 1 }, reply: ["r1", "Vale, vale, la defensora de las causas perdidas."] },
+        ] },
+      { lines: [["r1", "{yo}, te veo muy tensa. ¿Quieres que te cuente un chiste?"], ["r1", "¿Qué le dice una peluca a otra? Nos vemos en la cabeza de alguien."]],
+        choices: [
+          { txt: "Es malísimo. Cuéntame otro.", rel: { r1: 1 }, adv: 3, reply: ["r1", "¡Esa es mi chica! Ya estás más suelta."] },
+          { txt: "Ahora no, {r1}, que me concentro.", adv: 1, reply: ["r1", "Vale, señora seria. Luego no me pidas risas."] },
+        ] },
+      { lines: [["r1", "He hecho un ranking de las peores pelucas del taller."], ["r2", "No te atrevas."], ["r1", "Número uno: la de {r2}. Número dos... uy, {yo}, tú mejor no mires."]],
+        choices: [
+          { txt: "¿Y la tuya en qué puesto va?", rel: { r1: 1 }, bonus: 100, reply: ["r1", "La mía está fuera de concurso. Es patrimonio."] },
+          { txt: "Qué pesada eres a veces, {r1}.", rel: { r1: -1 }, reply: ["r1", "Pesada no, entrañable. Aprende la diferencia."] },
+        ] },
+    ],
+    confesionario: {
+      bien: ["{yo} se ríe de mis chistes. Eso ya la convierte en mi favorita.", "Si gana {yo}, pido ser su bufona oficial."],
+      mal: ["{yo} tiene el sentido del humor de una silla. Una silla seria.", "A {yo} le he hecho mil chistes y ni una sonrisa. Algo le pasa."],
+    },
+    untucked: ["¡Brindemos! Por las que se quedan... y por las pelucas que no.", "Te veo con cara de funeral. ¿Quién ha muerto? ¿Tu look?"],
+    reencuentro: "Me eliminaron, sí. Pero me fui con el mejor chiste de la temporada.",
+  },
+  cizanera: {
+    icon: "🐍", name: "La metemierdas", desc: "Va contando cosas de unas a otras. Siembra cizaña.", voto: -0.5,
+    escenas: [
+      { lines: [["r1", "{yo}, ven un momento... No te lo quería decir, pero {r2} va diciendo que tu reto de ayer era de risa."], ["r1", "Yo no digo nada, eh. Solo te lo cuento."]],
+        choices: [
+          { txt: "Voy ahora mismo a hablar con {r2}.", rel: { r2: -1 }, reply: ["r2", "¿Yo? ¡Yo no he dicho eso! ¿Quién te lo ha contado?"] },
+          { txt: "{r1}, ¿y tú por qué me lo cuentas?", rel: { r1: -1 }, adv: 2, reply: ["r1", "Por... por cariño. Qué desconfiada."] },
+          { txt: "Me da igual lo que diga la gente.", adv: 1, reply: ["r1", "Vale, vale. Yo solo avisaba."] },
+        ] },
+      { lines: [["r1", "Oye, entre nosotras... ¿a quién mandarías tú a casa esta semana?"], ["r2", "(Desde la otra punta del taller) ¿Hablabais de mí?"]],
+        choices: [
+          { txt: "A nadie. No voy a entrar en ese juego.", rel: { r1: -1 }, adv: 2, reply: ["r1", "Qué sosa. Así no se gana, reina."] },
+          { txt: "Pues a {r2}, la verdad.", rel: { r1: 1, r2: -2 }, bonus: 150, reply: ["r1", "¡Lo sabía! Tranquila, que no se lo digo a nadie. (Se lo dice a todas)"] },
+        ] },
+      { lines: [["r1", "¿Sabéis quién llora cada noche en el hotel? No lo voy a decir... Empieza por {r2}."], ["r2", "¡{r1}!"]],
+        choices: [
+          { txt: "Eso es muy feo, {r1}. Déjala.", rel: { r1: -1, r2: 1 }, reply: ["r2", "Gracias, {yo}. De verdad."] },
+          { txt: "(Callarte y seguir cosiendo)", adv: 1, reply: ["r1", "Nadie me sigue el rollo hoy. Qué aburrimiento."] },
+        ] },
+    ],
+    confesionario: {
+      bien: ["A {yo} le cuento cosas porque es la única que me escucha. Y lo que me cuenta, bueno... circula.", "{yo} es buena gente. Pero le he oído decir cosas. Muchas cosas."],
+      mal: ["¿Que si he contado lo de {yo}? Yo solo he contado la verdad. Mi versión de la verdad.", "{yo} se cree que no sé nada. Lo sé todo. Y todas lo van a saber."],
+    },
+    untucked: ["Ay, no sabes lo que me acaban de contar de ti...", "Siéntate, siéntate. Que tengo salseo del bueno."],
+    reencuentro: "Yo nunca he metido cizaña. Yo informo. Es diferente.",
+  },
+  madre: {
+    icon: "🫶", name: "La madre del grupo", desc: "Cuida de todas. Sus consejos siempre funcionan.", voto: 1,
+    escenas: [
+      { lines: [["r1", "{yo}, cariño, ¿has comido algo? Te traigo un bocadillo, que así no se cose."], ["r2", "¿Y para mí no hay?"], ["r1", "Para ti también, pesada. Aquí no se queda nadie sin comer."]],
+        choices: [
+          { txt: "Gracias, mamá {r1}. Te lo debo.", rel: { r1: 1 }, adv: 3, reply: ["r1", "Nada de deber. Tú gana, que me pongo muy contenta."] },
+          { txt: "No tengo hambre, estoy muy nerviosa.", adv: -1, reply: ["r1", "Pues nerviosa y sin comer, peor. Te lo dejo aquí."] },
+        ] },
+      { lines: [["r1", "Ven, que te arreglo ese dobladillo. Llevas toda la mañana peleándote con él."], ["r1", "Así, ¿ves? Puntada pequeña y paciencia. Como en la vida."]],
+        choices: [
+          { txt: "No sé qué haría sin ti, {r1}.", rel: { r1: 1 }, adv: 4, reply: ["r1", "Sobrevivir, pero peor vestida."] },
+          { txt: "Puedo sola, gracias.", rel: { r1: -1 }, bonus: 100, reply: ["r1", "Vale, vale. Pero si me necesitas, silba."] },
+        ] },
+      { lines: [["r2", "No puedo más, de verdad, no puedo..."], ["r1", "Eh, eh, mírame. Respira. Aquí estamos todas juntas."], ["r1", "{yo}, échame una mano con ella."]],
+        choices: [
+          { txt: "(Abrazar a {r2} con {r1})", rel: { r1: 1, r2: 1 }, adv: -1, reply: ["r2", "Gracias, chicas. Sois lo mejor de este concurso."] },
+          { txt: "Lo siento, voy fatal de tiempo.", rel: { r1: -1 }, adv: 2, reply: ["r1", "Ya. Luego hablamos tú y yo."] },
+        ] },
+    ],
+    confesionario: {
+      bien: ["{yo} es como mi hija aquí dentro. Si se va, lloro más que ella.", "Me encanta ver crecer a {yo} semana a semana."],
+      mal: ["Con {yo} me cuesta. No se deja cuidar. Y eso me preocupa.", "A {yo} le falta humildad. Se lo digo con cariño, pero se lo digo."],
+    },
+    untucked: ["Ven, siéntate aquí conmigo. ¿Cómo estás de verdad?", "Toma, bebe agua. Que el jurado te deja seca."],
+    reencuentro: "Aunque me fui antes, os he seguido como una madre sigue a sus hijas.",
+  },
+  diva: {
+    icon: "💅", name: "La diva", desc: "Se cree la ganadora desde el primer día. El espejo es suyo.", voto: -0.2,
+    escenas: [
+      { lines: [["r1", "Perdona, {yo}, pero ese espejo lo necesito yo. Mi cara necesita espacio."], ["r2", "Hay seis espejos más, {r1}."], ["r1", "Pero con esta luz no."]],
+        choices: [
+          { txt: "Todo tuyo, reina. Yo ya estoy perfecta.", bonus: 120, reply: ["r1", "Qué seguridad... Ya veremos en la pasarela."] },
+          { txt: "No. Llegué yo primero.", rel: { r1: -1 }, adv: 1, reply: ["r1", "Increíble. En mi otra vida esto no pasaba."] },
+          { txt: "Compartimos, ¿vale? Tú la izquierda, yo la derecha.", rel: { r1: 1 }, reply: ["r1", "Vale. Pero mi lado bueno es el izquierdo, que lo sepas."] },
+        ] },
+      { lines: [["r1", "Reinas, os lo digo ya para que no os llevéis sorpresas: esta corona es mía."], ["r2", "Qué humilde."], ["r1", "La humildad no gana coronas, cariño."]],
+        choices: [
+          { txt: "La corona se gana, no se reserva.", rel: { r1: -1 }, bonus: 150, reply: ["r1", "Qué frase tan bonita. Enmárcala."] },
+          { txt: "Si te lo crees tú, algo es.", rel: { r1: 1 }, reply: ["r1", "¡Exacto! Tú lo entiendes. Por eso me caes bien."] },
+        ] },
+    ],
+    confesionario: {
+      bien: ["{yo} tiene algo. No tanto como yo, pero algo.", "Si alguien me va a quitar la corona, que sea {yo}. Pero no va a pasar."],
+      mal: ["¿{yo}? ¿Quién es {yo}? Ah, sí, la de la peluca de ayer.", "{yo} está aquí para hacer bulto. Y bulto hace."],
+    },
+    untucked: ["Habla rápido, que el champán se calienta.", "¿Has visto mi look? Dilo. Dilo en voz alta."],
+    reencuentro: "Sigo pensando que la corona era mía. Pero bueno, la vida es injusta.",
+  },
+  sensible: {
+    icon: "😭", name: "La sensible", desc: "Lo vive todo a flor de piel. Si la hieres, se derrumba.", voto: 0.5,
+    escenas: [
+      { lines: [["r1", "(Llorando en un rincón) Perdón, perdón, es que me he acordado de mi abuela..."], ["r2", "Otra vez no..."]],
+        choices: [
+          { txt: "(Sentarte con ella) Cuéntame, te escucho.", rel: { r1: 2 }, adv: -2, reply: ["r1", "Gracias, {yo}. Nadie se había parado a escucharme."] },
+          { txt: "{r2}, un poco de empatía, ¿no?", rel: { r1: 1, r2: -1 }, reply: ["r2", "Vale, vale... Perdona, {r1}."] },
+          { txt: "(Seguir con lo tuyo)", adv: 2, reply: ["r1", "(Sigue llorando más bajito)"] },
+        ] },
+      { lines: [["r1", "{yo}, ¿tú crees que valgo para esto? Dime la verdad."]],
+        choices: [
+          { txt: "Claro que sí. Eres de las mejores aquí.", rel: { r1: 1 }, reply: ["r1", "¿De verdad? Me acabas de alegrar la semana."] },
+          { txt: "Valdrás si dejas de dudar tanto.", bonus: 100, reply: ["r1", "Tienes razón... Lo voy a intentar."] },
+        ] },
+    ],
+    confesionario: {
+      bien: ["{yo} me ha sujetado cuando más lo necesitaba. No lo voy a olvidar nunca.", "Si me voy, lo que más voy a echar de menos es a {yo}."],
+      mal: ["{yo} me hizo mucho daño con lo que dijo. Yo sonrío, pero por dentro...", "No sé qué le he hecho a {yo}. Pero me duele."],
+    },
+    untucked: ["Perdona, tengo el rímel hecho un desastre... ¿Qué tal estás tú?", "Me alegro mucho de que hayas venido a hablar conmigo."],
+    reencuentro: "He llorado mucho viendo el programa. Pero de orgullo, ¿eh?",
+  },
+  estratega: {
+    icon: "♟️", name: "La estratega", desc: "Lo calcula todo. Busca alianzas para llegar a la final.", voto: 0,
+    escenas: [
+      { lines: [["r1", "{yo}, te propongo algo. Tú y yo nos cubrimos: si una cae, la otra la salva."], ["r1", "Llegamos juntas a la final y allí, que gane la mejor."]],
+        choices: [
+          { txt: "Trato hecho. Juntas hasta el final.", rel: { r1: 2 }, reply: ["r1", "Sabía que eras lista. Esto queda entre nosotras."] },
+          { txt: "Yo no hago pactos. Voy sola.", rel: { r1: -1 }, bonus: 150, reply: ["r1", "Respetable. Pero sola se llega menos lejos."] },
+        ] },
+      { lines: [["r1", "He hecho números. Si esta semana cae {r2}, mi camino a la final queda despejado."], ["r1", "Y el tuyo también, {yo}. Piénsalo."]],
+        choices: [
+          { txt: "Me interesa. ¿Qué propones?", rel: { r1: 1, r2: -1 }, adv: 2, reply: ["r1", "Nada ilegal. Solo... no la ayudes. Lo demás viene solo."] },
+          { txt: "{r2} no me ha hecho nada. Paso.", rel: { r1: -1, r2: 1 }, reply: ["r1", "Tú verás. Yo aviso."] },
+        ] },
+    ],
+    confesionario: {
+      bien: ["{yo} es una pieza clave en mi plan. De momento.", "Con {yo} de mi lado, la final está más cerca."],
+      mal: ["{yo} no entra en mis planes. Así que tendré que sacarla de ellos.", "Todas tenemos un plan. El de {yo} es malo."],
+    },
+    untucked: ["Siéntate. Tenemos que hablar de las próximas semanas.", "He estado pensando en quién se va. ¿Quieres saberlo?"],
+    reencuentro: "Mi estrategia era perfecta. El problema fue el lip sync.",
+  },
+  novata: {
+    icon: "🐣", name: "La novata", desc: "Llega sin experiencia y con muchas ganas. Aprende de ti.", voto: 0.6,
+    escenas: [
+      { lines: [["r1", "{yo}, perdona... ¿cómo haces para que no se te mueva la peluca? A mí se me cae en cada vuelta."], ["r2", "Con cinco horquillas y rezando."]],
+        choices: [
+          { txt: "Ven, que te enseño mi truco.", rel: { r1: 2 }, adv: -1, reply: ["r1", "¡Muchísimas gracias! Te debo una. O dos."] },
+          { txt: "Eso se aprende con los años, cielo.", bonus: 80, reply: ["r1", "Ah... vale. Lo buscaré en un tutorial."] },
+        ] },
+      { lines: [["r1", "Es mi primera vez en un escenario tan grande. ¡Estoy muy emocionada!"], ["r2", "Ay, qué tierna. Ya se te pasará."]],
+        choices: [
+          { txt: "Disfrútalo, que eso se nota en la pasarela.", rel: { r1: 1 }, adv: 1, reply: ["r1", "¡Eso haré! Gracias, {yo}."] },
+          { txt: "Pues aquí se viene a competir, no a emocionarse.", rel: { r1: -1 }, bonus: 120, reply: ["r1", "Vale... Tomo nota."] },
+        ] },
+    ],
+    confesionario: {
+      bien: ["{yo} es mi referente aquí dentro. Quiero ser como ella de mayor.", "Todo lo que sé de maquillaje me lo ha enseñado {yo} esta semana."],
+      mal: ["{yo} me mira por encima del hombro. Pero ya aprenderé y le daré una sorpresa.", "Creía que {yo} era simpática. Me equivoqué."],
+    },
+    untucked: ["¡Qué fuerte todo lo que está pasando! ¿Tú cómo lo llevas?", "Me está encantando esto. ¿Es normal estar tan nerviosa?"],
+    reencuentro: "Entré sin saber nada y salí sabiendo… bueno, un poco más.",
+  },
+};
+const ROLES_ORDEN = ["villana", "cizanera", "graciosa", "madre", "diva", "sensible", "estratega", "novata"];
+
+// Aviso de la metemierdas (pasiva): va contando cosas de ti
+const CIZANA_AVISOS = [
+  "{r1} le ha ido con cuentos a {r2} sobre ti",
+  "{r1} ha contado a {r2} algo que dijiste en el hotel",
+  "{r1} le ha dicho a {r2} que la criticas a sus espaldas",
+];
+// Sabotaje de la villana (pasiva)
+const VILLANA_AVISOS = [
+  "Alguien te ha escondido el pegamento de pestañas",
+  "Tu puesto aparece revuelto y te falta material",
+  "Alguien ha descosido un poco tu look...",
+];
+
+// ------------------------------- Reencuentro --------------------------------
+const REENCUENTRO = {
+  intro: [
+    [["host", "Antes de la gran final, reinas... ¡ha llegado el reencuentro!"], ["host", "Vuelven todas las eliminadas. Y vienen con cosas que decir."], ["judge", "Esto se va a poner interesante."]],
+    [["host", "Top 4, estáis en la final. Pero antes toca mirar atrás."], ["host", "¡Que pasen las reinas de {temporada}!"], ["r1", "¡Hola, hola! ¿Me habéis echado de menos?"]],
+  ],
+  buena: [
+    [["r1", "¡{yo}! Ven aquí, dame un abrazo. Estoy orgullosísima de ti."], ["me", "Te he echado mucho de menos, {r1}."], ["r1", "Ahora gana esa corona por las dos."]],
+    [["r1", "Te he visto cada semana desde el sofá, gritando como una loca."], ["r1", "Ni mi madre me anima así en los partidos."]],
+  ],
+  neutra: [
+    [["r1", "Hola, {yo}. Enhorabuena por la final. De verdad."], ["me", "Gracias, {r1}. Te lo merecías tú también."], ["r1", "Bueno... eso díselo al jurado."]],
+    [["r1", "No hablamos mucho dentro, ¿verdad?"], ["me", "Pues no. Una pena."], ["r1", "Siempre hay tiempo. Después de la final, unas cañas."]],
+  ],
+  mala: [
+    [["r1", "Ah, mira quién está en la final. Qué sorpresa."], ["r1", "Yo me acuerdo de todo, {yo}. De TODO."], ["host", "Uy, uy, uy. Esto no lo esperaba."]],
+    [["r1", "Tengo una cosa que decirte delante de todas."], ["r1", "Lo que me hiciste no estuvo bien. Y viéndolo desde casa, peor."]],
+  ],
+  choicesMala: [
+    { txt: "Tienes razón. Te pido perdón.", rel: { r1: 2 }, reply: ["r1", "Vale... Eso no me lo esperaba. Gracias."] },
+    { txt: "Era una competición. No me arrepiento.", bonus: 200, reply: ["r1", "Pues que te aproveche la corona. Si la ganas."] },
+  ],
+  drama: [
+    [["r1", "Yo solo quiero decir una cosa: aquí dentro alguien jugó sucio."], ["r2", "¿Lo dices por mí?"], ["r1", "Si te pica, ráscate."], ["host", "¡Reinas, por favor! Bueno, seguid, seguid."]],
+    [["r1", "He visto el programa. Y he visto lo que decías de mí en el confesionario, {r2}."], ["r2", "Era una broma..."], ["r1", "Pues no me he reído."]],
+    [["r1", "Quiero dar las gracias a todas. Menos a una. Ella sabe quién es."], ["r2", "Qué valiente sin decir nombres."]],
+  ],
+  missIntro: [["host", "Y ahora, el momento más bonito del reencuentro."], ["host", "Las reinas van a votar a su Miss Simpatía: la compañera más querida de la temporada."], ["judge", "El voto es sincero. Aquí no se puede fingir."]],
+};
+
+// ------------------------------- Final ------------------------------------
+const FINAL_SORTEO = [
+  [["host", "Reinas, así va a ser la final: cuatro reinas, dos lip syncs."], ["host", "El sorteo decide las parejas. Las ganadoras se enfrentarán por la corona."], ["judge", "Suerte. La vais a necesitar."]],
+];
+
+// ------------------------------- Capitanas ----------------------------------
+const CAPITANAS = {
+  intro: [
+    [["host", "Reinas, esta semana trabajaréis en equipos. Pero antes... ¡minireto!"], ["host", "Las dos ganadoras serán las capitanas y elegirán a su equipo."]],
+    [["host", "¡Minireto! Las dos mejores serán capitanas."], ["r1", "Por favor, que no me toque elegir, que lo paso fatal."]],
+  ],
+  miniTitulos: ["¡Posa con el flash!", "¡Pelucas al aire!", "¡Selfie de lujo!", "¡Rápidas como el rayo!"],
+};
+
+// ------------------------------- Nuevos retos -------------------------------
+const COMEDIA = [
+  ["Empieza tu monólogo hablando de tu familia", ["Mi madre me pregunta cuándo me caso. Le digo: cuando encuentre a alguien con más pelucas que yo", "Mi familia es muy graciosa, la verdad", "Tengo una familia normal"]],
+  ["Cuenta algo de tu primera vez en drag", ["Salí con tacones de mi prima. Dos números menos. Aún no siento los meñiques", "Fue muy emocionante", "Me puse un vestido"]],
+  ["Un chiste sobre el gimnasio", ["Me apunté al gimnasio en enero. Ya he ido tres veces: a apuntarme, a darme de baja y a por la toalla", "El gimnasio cansa mucho", "No me gusta el gimnasio"]],
+  ["Habla del transporte público", ["En el metro de Madrid a las ocho estás tan pegada que sales embarazada de tres desconocidos", "El metro va lleno", "Voy en autobús"]],
+  ["Remata con algo sobre el amor", ["Mi último novio me dejó por mensaje. Con faltas. Por eso lloré", "El amor es complicado", "Estoy soltera"]],
+  ["Un chiste sobre tu pueblo", ["En mi pueblo hay tan poca gente que el cotilleo lo hace una sola señora. Y hace horas extra", "Mi pueblo es pequeño", "Soy de un pueblo"]],
+  ["Habla de las citas por aplicación", ["Me dijo que medía uno ochenta. Con mis tacones, puede", "Las apps de citas son raras", "Uso aplicaciones"]],
+  ["Cierra el monólogo por todo lo alto", ["Gracias, sois un público maravilloso. Casi tanto como mi peluca", "Gracias por venir", "Ya está, eso es todo"]],
+];
+const ROAST = [
+  ["Asa a Supreme por lo bien que se conserva", ["Supreme no envejece: se restaura, como el Prado", "Supreme está muy guapa", "Supreme es mayor"]],
+  ["Asa a Ana Locking por lo exigente que es", ["Ana es tan exigente que devolvió el sol por falta de brillo", "Ana es muy exigente", "Ana es seria"]],
+  ["Asa a la reina que siempre llega la última", ["Llega tan tarde que su tarjeta de presentación pone: continuará", "Siempre llega tarde", "Es impuntual"]],
+  ["Asa a la compañera más dramática", ["Hace un drama hasta para elegir la pajita del zumo", "Es muy dramática", "Le gusta el drama"]],
+  ["Asa a la reina con más maquillaje", ["Si le quitas el maquillaje, pierde tres kilos y el DNI", "Lleva mucho maquillaje", "Se maquilla mucho"]],
+  ["Asa a la que siempre gana", ["Gana tanto que el trofeo ya tiene su dirección en el GPS", "Gana mucho", "Es buena"]],
+  ["Asa a la que peor canta", ["Cuando canta, los perros del barrio le piden silencio", "Canta regular", "No canta bien"]],
+];
+const GUION = [
+  ["¡No puedes dejarme así, Rodolfo! ¡Llevo tu ___ en el bolso!", "anillo", ["bocadillo", "pasaporte"]],
+  ["Detective, el asesino estaba en la ___ con una peluca rubia.", "biblioteca", ["piscina", "nevera"]],
+  ["Este perfume se llama ___, y huele a victoria.", "Corona", ["Lunes", "Garbanzo"]],
+  ["Mamá, papá: tengo algo que deciros. ¡Me voy a ___!", "París", ["dormir", "Cuenca"]],
+  ["La reina del desierto nunca ___, solo brilla.", "suda", ["canta", "come"]],
+  ["Si me quieres de verdad, cómprame un ___ de purpurina.", "castillo", ["pañuelo", "yogur"]],
+  ["Houston, tenemos un problema: se ha acabado el ___.", "pegamento", ["oxígeno", "café"]],
+  ["¡Soy la heredera de la fortuna ___ y exijo respeto!", "Von Lentejuela", ["Martínez", "del Pozo"]],
+  ["En este hospital solo se cura con ___ y tacones.", "amor", ["jarabe", "pan"]],
+];
+JURADO.reto.comedia = {
+  top: ["Timing perfecto. Sabías cuándo parar y cuándo rematar.", "Me he reído de verdad, y no me pasa desde hace años.", "Tenías al público en la palma de la mano."],
+  mid: ["Algunos chistes buenos, otros que se quedaron colgando.", "Has empezado fuerte y te has ido desinflando.", "Graciosa, pero te faltó personalidad en el texto."],
+  low: ["Eso no era un monólogo, era una lista de la compra.", "El público se reía por pena. Y eso duele verlo.", "Te has quedado en blanco más de lo que has hablado."],
+};
+JURADO.reto.roast = {
+  top: ["Afilada sin ser cruel. Eso es un roast de verdad.", "Me has asado a mí y encima me ha gustado.", "Cada remate llegaba justo a tiempo. Bravo."],
+  mid: ["Tenías buenas ideas, pero no rematabas.", "Algunos golpes muy buenos, otros muy blanditos.", "Te faltó maldad. Un poquito solo."],
+  low: ["Eso no era un roast, era un informe.", "No te has atrevido con nada. Y en un roast eso se paga.", "Ni se han picado las roasteadas."],
+};
+JURADO.reto.actuacion = {
+  top: ["Te sabías el guion y encima lo has hecho tuyo.", "Has hecho que un texto absurdo pareciera de Almodóvar.", "Presencia, texto y verdad. Actriz."],
+  mid: ["Te trabaste un par de veces, pero saliste bien.", "Correcta. Un poco plana en las escenas clave.", "La energía estaba, el texto no tanto."],
+  low: ["No te sabías el guion y se ha notado en cada escena.", "Improvisar está bien, pero no todo el rato.", "Te he visto leer el apuntador con los ojos."],
+};
+JURADO.reto.ball = {
+  top: ["Tres looks, tres historias. El ball es tuyo.", "Cada look superaba al anterior. Eso es saber construir.", "Has entendido las tres categorías a la perfección."],
+  mid: ["Dos looks muy buenos y uno que sobraba.", "El último look no estaba a la altura de los otros.", "Buena idea general, ejecución irregular."],
+  low: ["Los tres looks parecían el mismo con distinto color.", "La categoría no se entendía en ninguno.", "Un ball sin sorpresa no es un ball."],
+};
+JURADO.reto.makeover = {
+  top: ["Parecéis familia de verdad. Qué parecido tan logrado.", "El makeover es impecable. Has sacado a una reina de donde no había.", "Esa conexión con tu pareja se ve desde aquí."],
+  mid: ["El parecido está, pero los acabados fallan.", "Buena química, maquillaje mejorable.", "Vais a juego, pero no parecéis familia."],
+  low: ["No sé cuál de las dos es la drag. Ni ellas tampoco.", "El makeover está a medias. Literalmente.", "Ahí no hay parecido ni con buena voluntad."],
+};
+JURADO.reto.fotos = {
+  top: ["Cada foto es una portada. No hay ni una mala.", "Sabes dónde está la cámara siempre. Eso es un don.", "El fotógrafo me ha dicho que eres la mejor del día."],
+  mid: ["Algunas fotos preciosas y otras en las que no estabas.", "Te costó arrancar, pero al final encontraste la luz.", "Buenas poses, pero demasiado repetidas."],
+  low: ["En la mitad de las fotos sales parpadeando.", "Llegabas tarde a cada flash.", "No he podido elegir ninguna foto buena. Ninguna."],
+};
+JURADO.reto.equipos = JURADO.reto.equipos || JURADO.reto.rusical;

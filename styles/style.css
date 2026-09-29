@@ -1498,3 +1498,55 @@ kbd { color: var(--ink) !important; background: #fff !important; border-color: r
 .sg-laugh i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--gold), var(--pink)); transition: width .5s var(--ease-spring); }
 .sg-opt, .dlg-choices .btn, .role small, .choice-col .btn { font-family: "Poppins", sans-serif !important; font-weight: 600; text-transform: none; letter-spacing: 0; }
 .sg-opt b, .dlg-choices .btn b { font-family: "Bungee", sans-serif; }
+
+/* ===================== Roles, capitanas, reencuentro y final ===================== */
+.role-chip { font-style: normal; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: linear-gradient(135deg, #ffe3f1, #efe3ff); color: var(--ink); white-space: nowrap; }
+.role-chip.unk { background: rgba(59, 13, 79, 0.06); color: var(--ink-soft); font-weight: 600; }
+.story-card .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.track-peek { margin-top: 10px; }
+.score-note { font-weight: 700; color: var(--pink) !important; }
+.track-modal { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center; padding: 16px; background: rgba(59, 13, 79, 0.35); backdrop-filter: blur(6px); animation: fade-in .25s ease both; }
+.track-modal .story-card { max-width: min(1100px, 100%); max-height: 88vh; overflow: auto; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+td.t-miss { background: linear-gradient(135deg, #ffd6ec, #ffe9a8); color: var(--ink); font-weight: 800; }
+
+.teams2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 16px; }
+.team-col { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 18px; background: rgba(255, 255, 255, 0.8); border: 2px solid var(--line); }
+.team-col.mine { border-color: var(--pink); background: #fff2f8; }
+.team-col > b { font-size: 14px; margin-bottom: 4px; }
+.team-col span { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; animation: card-in .35s ease both; }
+.team-col span i { width: 32px; height: 32px; border-radius: 50%; background: center 20% / cover; flex: none; border: 2px solid #fff; }
+
+.draw { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
+.draw-pair { padding: 14px 18px; border-radius: 20px; background: rgba(255, 255, 255, 0.85); box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; gap: 6px; animation: draw-in .7s cubic-bezier(.2,1.4,.4,1) both; animation-delay: calc(var(--i) * .35s + .2s); }
+.draw-pair small { font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--pink); }
+.draw-pair .vs img { width: 92px; height: 92px; }
+@keyframes draw-in { from { opacity: 0; transform: rotateY(90deg) scale(.8); } to { opacity: 1; transform: none; } }
+
+.ball-cat { font-size: clamp(28px, 5vw, 46px); margin: 30px 0; animation: card-in .6s ease both; }
+.guion mark { background: linear-gradient(transparent 55%, #ffd6ec 55%); color: var(--pink); font-weight: 800; padding: 0 4px; }
+
+.mem-grid { display: grid; grid-template-columns: repeat(4, minmax(60px, 96px)); gap: 10px; justify-content: center; margin: 16px auto; }
+.mem-card { aspect-ratio: 3 / 4; border-radius: 14px; border: 0; cursor: pointer; font-size: 38px; background: linear-gradient(135deg, var(--pink), var(--lilac)); box-shadow: var(--shadow); transition: transform .3s ease, background .3s; }
+.mem-card span { opacity: 0; transition: opacity .2s; }
+.mem-card::before { content: "✦"; color: #fff; font-size: 26px; position: absolute; opacity: .7; }
+.mem-card { position: relative; display: grid; place-items: center; }
+.mem-card.open, .mem-card.done { background: #fff; transform: scale(1.04); }
+.mem-card.open::before, .mem-card.done::before { opacity: 0; }
+.mem-card.open span, .mem-card.done span { opacity: 1; }
+.mem-card.done { box-shadow: 0 0 0 3px #22c47a inset; }
+
+.ft-grid { display: grid; grid-template-columns: repeat(3, minmax(80px, 150px)); gap: 12px; justify-content: center; margin: 16px auto; }
+.ft-cell { aspect-ratio: 1; border-radius: 18px; border: 2px dashed var(--line); background: rgba(255, 255, 255, 0.6); cursor: pointer; font-size: 44px; display: grid; place-items: center; padding: 0; overflow: hidden; }
+.ft-cell.on { border-style: solid; animation: pop .18s ease both; }
+.ft-cell.me { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(255, 184, 0, .35), 0 0 30px #fff; }
+.ft-cell.me i { width: 100%; height: 100%; background: center 20% / cover; }
+.ft-cell.pap { background: #2b0a3a; border-color: #ff4d6d; }
+@keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.mini-btn { display: block; margin: 24px auto; width: min(320px, 80vw); aspect-ratio: 1; border-radius: 50%; border: 0; font: 800 24px/1.1 inherit; color: var(--ink-soft); background: rgba(59, 13, 79, 0.08); cursor: pointer; transition: background .1s, transform .1s; }
+.mini-btn.go { background: radial-gradient(circle, #fff 0%, #ffe9a8 35%, var(--pink) 100%); color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.3); transform: scale(1.05); }
+@media (max-width: 560px) { .teams2 { grid-template-columns: 1fr; } .mem-card { font-size: 28px; } }
+.track-modal .story-card { background: #fffafd !important; }
+#touch-controls .btn-special.ready { animation: sp-ready .8s ease-in-out infinite; box-shadow: 0 0 0 4px rgba(255,184,0,.6), 0 0 24px #ffb800; }
+@keyframes sp-ready { 50% { transform: scale(1.15); } }

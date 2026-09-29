@@ -81,7 +81,45 @@ const Story = (() => {
     ctrl: "Eliges papel y luego pulsas las notas (D F J K o toca los carriles)",
     run: runEquipos,
   };
-  const ORDEN_RETOS = ["pasarela", "snatch", "equipos", "diseno", "lectura", "rusical", "baile", "maquillaje"];
+  RETOS.comedia = {
+    titulo: () => "Stand-up: el monólogo",
+    desc: "Sube al escenario y elige el remate más gracioso para cada parte de tu monólogo. Rápido, que el público no espera.",
+    ctrl: "Clic o teclas 1, 2 y 3",
+    run: (el, done) => runSnatch(el, done, COMEDIA, "🎙️ Tu monólogo", "Chiste"),
+  };
+  RETOS.roast = {
+    titulo: () => "El roast de Supreme",
+    desc: "Toca asar a las juezas y a tus compañeras. Elige el remate más afilado sin pasarte de la raya.",
+    ctrl: "Clic o teclas 1, 2 y 3",
+    run: (el, done) => runSnatch(el, done, ROAST, "🔥 El roast", "Remate"),
+  };
+  RETOS.actuacion = {
+    titulo: () => "Reto de actuación por equipos: la película",
+    desc: "Rodáis una película por equipos. Memoriza cada frase del guion y elige la palabra que falta cuando llegue tu toma.",
+    ctrl: "Clic o teclas 1, 2 y 3",
+    team: true,
+    run: (el, done) => runGuion(el, done),
+  };
+  RETOS.ball = {
+    titulo: () => "El Ball: tres looks, tres categorías",
+    desc: "Desfila tres looks seguidos. Cada categoría tiene tres poses: clávalas en la zona dorada.",
+    ctrl: "Espacio, clic o toca el botón ¡POSE!",
+    run: (el, done) => runBall(el, done),
+  };
+  RETOS.makeover = {
+    titulo: () => "El makeover: parecidas de familia",
+    desc: "Transforma a tu pareja en tu hermana drag. Encuentra las parejas de accesorios a juego antes de que acabe el tiempo.",
+    ctrl: "Clic o toca las cartas",
+    run: (el, done) => runMemoria(el, done),
+  };
+  RETOS.fotos = {
+    titulo: () => "Sesión de fotos",
+    desc: "El fotógrafo dispara sin avisar. Toca tu foto en cuanto se ilumine... ¡y nunca la del paparazzi!",
+    ctrl: "Clic o toca las casillas",
+    run: (el, done) => runFotos(el, done),
+  };
+  RETOS.equipos.team = true;
+  const ORDEN_RETOS = ["pasarela", "snatch", "equipos", "diseno", "lectura", "rusical", "baile", "maquillaje", "comedia", "ball", "actuacion", "fotos", "roast", "makeover"];
 
   // --------------------------- Flujo principal -----------------------------
   // La historia NO sigue el orden real de expulsión: cada partida se decide
@@ -98,11 +136,19 @@ const Story = (() => {
     return {
       queen, season, rivals, out: [], ep: 0, wins: 0, bottoms: 0, points: 0, lipsyncs: 0, rel: {}, streak: 0,
       record: {}, form: {}, hearts: {}, memories: [], track: {}, epNames: {}, luck: undefined, flags: {}, advice: 0, helped: false, meOut: false,
+      roles: {}, known: {}, order: null, missC: null,
     };
   }
   function start(queen, season) {
     const rivals = shuffle(season.cast.filter((id) => id !== queen.id).map(qById).filter(Boolean));
     S = blankState(queen, season, rivals);
+    // Roles detrás de cámaras: uno por reina (se descubren jugando)
+    const roles = shuffle(ROLES_ORDEN);
+    shuffle(rivals).forEach((q, i) => (S.roles[q.id] = i < roles.length ? roles[i] : pick1(["graciosa", "madre", "diva", "sensible", "novata", "estratega"])));
+    // Orden de retos de esta temporada: empieza en pasarela y el Snatch Game llega pronto
+    const rest = shuffle(ORDEN_RETOS.filter((t) => t !== "pasarela" && t !== "snatch"));
+    rest.splice(1 + Math.floor(Math.random() * 3), 0, "snatch");
+    S.order = ["pasarela", ...rest];
     Achievements.unlock("debut");
     UI.show("story");
     Sound.stopAll();
@@ -110,7 +156,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -180,7 +226,7 @@ const Story = (() => {
     if (PRESENTADORAS[key]) return { ...PRESENTADORAS[key], side: "left" };
     if (key === "me") return { name: S.queen.name, role: "Tú", img: sprite(S.queen), side: "right" };
     const q = ctx.q[key] || S.rivals[0];
-    return { name: q.name, role: relLabel(q), img: sprite(q), side: key === "r2" || key === "r3" ? "left" : "right" };
+    return { name: q.name, role: (roleKnown(q) ? `${roleOf(q).icon} ${roleOf(q).name} · ` : "") + relLabel(q), img: sprite(q), side: key === "r2" || key === "r3" ? "left" : "right" };
   }
   // lines: [[speaker, text]]; choices: opcional, se muestran al final
   function dialog(lines, ctx, then, choices) {
@@ -227,6 +273,10 @@ const Story = (() => {
       const c = choices[k];
       if (!c) return;
       S.points += c.bonus || 0;
+      if (c.adv) {
+        S.advice += c.adv;
+        Toast.show(c.adv > 0 ? "✨ Te viene bien" : "😣 Te descentra", `${c.adv > 0 ? "+" : ""}${c.adv} en el próximo reto`);
+      }
       Object.entries(c.rel || {}).forEach(([key, d]) => changeRel(ctx.q[key], d));
       if (c.effect === "ayuda") S.helped = true;
       choices = null;
@@ -300,7 +350,33 @@ const Story = (() => {
   }
   const ctxFor = (titulo) => ctxWith(pick1(S.rivals), { reto: titulo });
 
-  const isFinal = () => !S.meOut && S.rivals.length <= 2;
+  const isFinal = () => !S.meOut && S.rivals.length <= 3;
+
+  // --------------------------- Roles --------------------------------------
+  const roleOf = (q) => (q && S.roles && ROLES_HISTORIA[S.roles[q.id]]) || null;
+  const roleKnown = (q) => !!(q && S.known && S.known[q.id] && roleOf(q));
+  function reveal(q) {
+    if (!q || !roleOf(q) || roleKnown(q)) return;
+    S.known[q.id] = true;
+    Toast.show(`${roleOf(q).icon} ${q.name} es ${roleOf(q).name.toLowerCase()}`, roleOf(q).desc);
+  }
+  const withRole = (role) => S.rivals.filter((q) => S.roles[q.id] === role);
+  const roleChip = (q) => (roleKnown(q) ? `<em class="role-chip">${roleOf(q).icon} ${esc(roleOf(q).name)}</em>` : `<em class="role-chip unk">❓ Rol por descubrir</em>`);
+
+  // Track record a mano en cualquier decisión
+  const trackBtn = () => `<button class="btn btn-ghost small-btn track-peek">📊 Ver track record</button>`;
+  function bindTrack() {
+    body().querySelectorAll(".track-peek").forEach((b) => b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const m = document.createElement("div");
+      m.className = "track-modal";
+      m.innerHTML = `<div class="story-card track-card"><h3>Track record</h3>${trackHTML()}<button class="btn btn-primary" id="tm-close">Cerrar</button></div>`;
+      document.body.append(m);
+      const close = () => m.remove();
+      m.querySelector("#tm-close").addEventListener("click", close);
+      m.addEventListener("click", (ev) => ev.target === m && close());
+    }));
+  }
 
   // --------------------------- Relaciones ----------------------------------
   // -3 (enemiga) ... +3 (aliada). Aliada >= 2, enemiga <= -2
@@ -336,7 +412,7 @@ const Story = (() => {
     if (tw === "suerte") chip = S.luck === undefined ? "🍀 Cajitas por abrir" : S.luck === "me" ? "🍀 ¡La tienes tú! (en secreto)" : S.luck ? "🍀 ¿Quién la tendrá?" : "🍀 Ya se ha usado";
     if (tw === "repesca") chip = S.flags.repesca ? "🔁 Repesca hecha" : "🔁 Repesca pendiente";
     if (tw === "allstars") chip = "💄 Decide la ganadora";
-    $("#story-ep").textContent = S.meOut ? "Fuera de la competición" : isFinal() ? "Gran final" : `Episodio ${S.ep}`;
+    $("#story-ep").textContent = S.meOut ? "Fuera de la competición" : isFinal() ? (S.flags.reunion ? "Gran final" : "El reencuentro") : `Episodio ${S.ep}`;
     if (chip) $("#story-season").innerHTML += ` <span class="twist-chip">${esc(chip)}</span>`;
     $("#story-exit").textContent = "💾 Guardar y salir";
     const all = S.meOut ? S.rivals : [S.queen, ...S.rivals];
@@ -389,19 +465,19 @@ const Story = (() => {
   }
 
   // ----------------------------- Track record -----------------------------
-  const EP_SHORT = { pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups" };
+  const EP_SHORT = { pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups", comedia: "Stand-up", roast: "Roast", actuacion: "Película", ball: "Ball", makeover: "Makeover", fotos: "Fotos" };
   function mark(q, lab) {
     const k = keyOf(q);
     (S.track[k] = S.track[k] || {})[S.ep] = lab;
   }
   const TRACK_CLASS = (l) =>
-    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "3ª" ? "t-third" : "t-none";
-  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "FINALISTA", FINAL: "FINAL", "3ª": "3ª" };
+    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : "t-none";
+  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "FINALISTA", FINAL: "FINAL", "3ª": "3ª", MISSC: "MISS S." };
   function trackHTML() {
     const eps = Object.keys(S.epNames).map(Number).sort((a, b) => a - b);
     const everyone = [S.queen, ...S.rivals, ...S.out];
     const count = (k, test) => eps.filter((e) => test((S.track[k] || {})[e] || "")).length;
-    const lastEp = (k) => Math.max(0, ...eps.filter((e) => (S.track[k] || {})[e]));
+    const lastEp = (k) => Math.max(0, ...eps.filter((e) => (S.track[k] || {})[e] && S.track[k][e] !== "MISSC"));
     const isOut = (q) => (q === S.queen ? S.meOut || !!S.finished && !S.wonAll : S.out.includes(q));
     const rows = everyone
       .filter((q, i, a) => a.indexOf(q) === i)
@@ -424,8 +500,8 @@ const Story = (() => {
         <thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(S.epNames[e])}</small></th>`).join("")}<th>PPE</th></tr></thead>
         <tbody>${rows
           .map((r, i) => `<tr class="${r.q === S.queen ? "me" : ""} ${r.out ? "out" : ""}" style="--i:${i}"><td class="rk">${i + 1}º</td>
-            <td class="qn"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${r.q === S.queen ? " <b>(tú)</b>" : ""}</span></td>
-            ${eps.map((e) => { const l = (S.track[r.k] || {})[e]; return `<td class="${l ? TRACK_CLASS(l) : r.last && e > r.last ? "t-gone" : "t-none"}">${l ? LAB_ES[l] || l : ""}</td>`; }).join("")}
+            <td class="qn"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${r.q === S.queen ? " <b>(tú)</b>" : roleKnown(r.q) ? ` <small title="${esc(roleOf(r.q).name)}">${roleOf(r.q).icon}</small>` : ""}</span></td>
+            ${eps.map((e) => { const l = (S.track[r.k] || {})[e]; return `<td class="${l ? TRACK_CLASS(l) : r.last && e > r.last && S.epNames[e] !== "Reencuentro" ? "t-gone" : "t-none"}">${l ? LAB_ES[l] || l : ""}</td>`; }).join("")}
             <td class="ppe">${ppe(r.k)}</td></tr>`)
           .join("")}</tbody>
       </table></div>`;
@@ -455,26 +531,32 @@ const Story = (() => {
       return showTrack(nextEpisode);
     }
     save();
-    Curtain.run(() => episode(), isFinal() ? "GRAN FINAL" : `EPISODIO ${S.ep + 1}`);
+    Curtain.run(() => episode(), isFinal() ? (S.flags.reunion ? "GRAN FINAL" : "EL REENCUENTRO") : `EPISODIO ${S.ep + 1}`);
   }
   function episode() {
     S.ep++;
     S.advice = 0;
     S.helped = false;
     header();
-    if (isFinal()) return finale();
     const tw = twistOf();
     if (tw === "repesca" && !S.flags.repesca && S.out.length >= 2 && S.rivals.length + 1 <= Math.ceil(S.season.cast.length / 2)) {
-      return repesca(() => workroom());
+      return repesca(() => (isFinal() ? episodeFinal() : workroom()));
     }
+    if (isFinal()) return episodeFinal();
     workroom();
+  }
+  // Con 4 reinas: primero el reencuentro (Miss Simpatía) y luego la gran final
+  function episodeFinal() {
+    header();
+    if (!S.flags.reunion) return reunion();
+    finale();
   }
 
   // ------------------------------ Taller -----------------------------------
   function workroom() {
     const ctx = ctxWith(pick1(S.rivals));
     let lines;
-    const go = () => memoryTalk(() => maybeEvent(() => hub(() => announce())));
+    const go = () => memoryTalk(() => rolePassives(() => (Math.random() < 0.55 ? roleScene : maybeEvent)(() => hub(() => announce()))));
     if (S.ep === 1 && twistOf() === "suerte" && S.luck === undefined) {
       return dialog(seasonInfo().intro, ctx, () => pickLuckBox(() => dialog(pickFresh(HISTORIA.tallerPrimerDia), ctxWith(pick1(S.rivals)), go)));
     }
@@ -489,6 +571,46 @@ const Story = (() => {
     const ctx = ctxWith(pick1(S.rivals));
     dialog(ev.lines, ctx, then, ev.choices);
   }
+  // Lo que hacen los roles por su cuenta cada semana
+  function rolePassives(then) {
+    const ciz = withRole("cizanera").find((q) => Math.random() < 0.35);
+    if (ciz) {
+      const target = pick1(S.rivals.filter((q) => q !== ciz));
+      if (target) {
+        Toast.show(`🐍 ${fill(pick1(CIZANA_AVISOS), { r1: ciz.name, r2: target.name })}`, "Algo ha cambiado entre vosotras");
+        changeRel(target, -1);
+        if (Math.random() < 0.5) reveal(ciz);
+      }
+    }
+    const vil = withRole("villana").find((q) => relOf(q) <= 0 && Math.random() < 0.3);
+    if (vil) {
+      S.advice -= 4;
+      Toast.show(`😈 ${pick1(VILLANA_AVISOS)}`, "-4 en el próximo reto. ¿Quién habrá sido?");
+    }
+    then();
+  }
+  // Escena de taller según el rol de una compañera
+  function roleScene(then) {
+    const cands = S.rivals.filter((q) => roleOf(q) && roleOf(q).escenas);
+    if (!cands.length || S.rivals.length < 2) return then();
+    const q = pick1(cands);
+    const role = roleOf(q);
+    const sc = pickFresh(role.escenas);
+    const ctx = ctxWith(q);
+    reveal(q);
+    dialog(sc.lines, { ...ctx, tension: S.roles[q.id] === "villana" }, then, sc.choices);
+  }
+  // Confesionario: una compañera habla de ti a cámara
+  function confesionario(then) {
+    const cands = S.rivals.filter((q) => roleOf(q));
+    if (!cands.length || Math.random() < 0.55) return then();
+    const q = pick1(cands);
+    const role = roleOf(q);
+    const line = pickFresh(relOf(q) >= 1 ? role.confesionario.bien : relOf(q) <= -1 ? role.confesionario.mal : Math.random() < 0.5 ? role.confesionario.bien : role.confesionario.mal);
+    reveal(q);
+    dialog([["r1", "🎥 (Al confesionario) " + line]], { ...ctxWith(q), q: { r1: q }, r1: q.name }, then);
+  }
+
   // Tiempo libre: eliges con quién hablar y cómo
   function hub(then) {
     header();
@@ -498,10 +620,11 @@ const Story = (() => {
         <h3>¿Con quién quieres hablar?</h3>
         <p class="muted">Solo te da tiempo a una conversación antes del reto.</p>
         <div class="hub-grid">${S.rivals
-          .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small></button>`)
+          .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}</button>`)
           .join("")}</div>
-        <button class="btn btn-ghost" id="hub-skip">🎯 Concentrarme en mi reto</button>
+        <div class="row"><button class="btn btn-ghost" id="hub-skip">🎯 Concentrarme en mi reto</button>${trackBtn()}</div>
       </div>`;
+    bindTrack();
     body().querySelectorAll(".hub-q").forEach((b) => b.addEventListener("click", () => approach(qById(b.dataset.id), then)));
     $("#hub-skip").addEventListener("click", () => {
       S.advice += 3;
@@ -516,6 +639,7 @@ const Story = (() => {
         <div>
           <p class="eyebrow">${esc(relLabel(q))}</p>
           <h3>${esc(q.name)}</h3>
+          <p>${roleChip(q)}</p>
           <p>¿Qué quieres hacer?</p>
           <div class="approach-list">${HISTORIA.enfoques
             .map((a) => `<button class="btn btn-ghost role" data-a="${a.id}"><b>${a.icon} ${a.txt}</b><small>${a.desc}</small></button>`)
@@ -530,6 +654,8 @@ const Story = (() => {
     const r = relOf(q);
     const ctx = ctxWith(q);
     const other = ctx.q.r2;
+    const rl = S.roles[q.id];
+    if (Math.random() < 0.6) reveal(q);
     let lines, after = () => {};
     if (kind === "pina") {
       const mood = r >= 1 ? "buena" : r <= -1 ? "mala" : "neutra";
@@ -545,7 +671,7 @@ const Story = (() => {
         if (caught) changeRel(other, -2);
       };
     } else if (kind === "consejo") {
-      const ok = r >= 0 && Math.random() < 0.8;
+      const ok = rl === "madre" || (r >= 0 && Math.random() < 0.8);
       lines = pickFresh(HISTORIA.consejo[ok ? "si" : "no"]);
       after = () => {
         if (ok) {
@@ -558,7 +684,8 @@ const Story = (() => {
       after = () => {
         changeRel(q, -1);
         S.points += 150;
-        S.form[q.id] = (S.form[q.id] || 0) - 3; // la pone nerviosa
+        S.form[q.id] = (S.form[q.id] || 0) - (rl === "sensible" ? 6 : 3); // la pone nerviosa
+        if (rl === "villana") S.advice -= 2; // y ella te la devuelve
       };
     }
     dialog(lines, ctx, () => {
@@ -569,7 +696,8 @@ const Story = (() => {
 
   // ------------------------------- Reto ------------------------------------
   function pickReto() {
-    return ORDEN_RETOS[(S.ep - 1 + (S.season.id.charCodeAt(2) || 0)) % ORDEN_RETOS.length];
+    const ord = S.order && S.order.length ? S.order : ORDEN_RETOS;
+    return ord[(S.ep - 1 + (S.order ? 0 : S.season.id.charCodeAt(2) || 0)) % ord.length];
   }
   function announce() {
     const tipo = pickReto();
@@ -577,7 +705,9 @@ const Story = (() => {
     const titulo = reto.titulo();
     S.epNames[S.ep] = EP_SHORT[tipo] || "Reto";
     S.curTipo = tipo;
-    dialog(pickFresh(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => challengeIntro(reto, titulo, tipo));
+    S.team = null;
+    const go = () => challengeIntro(reto, titulo, tipo);
+    dialog(pickFresh(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => (reto.team && S.rivals.length >= 3 ? captains(go) : go()));
   }
 
   function challengeIntro(reto, titulo, tipo, onScore) {
@@ -585,7 +715,7 @@ const Story = (() => {
       <div class="story-card intro">
         <img class="story-queen" src="${sprite(S.queen)}" alt="">
         <div>
-          <p class="eyebrow">${isFinal() ? "Top 3 · la última prueba" : `Quedan ${S.rivals.length + 1} reinas`}</p>
+          <p class="eyebrow">${S.team ? `Equipo Rosa · ${S.team.length + 1} reinas` : `Quedan ${S.rivals.length + 1} reinas`}</p>
           <h3>${esc(titulo)}</h3>
           <p>${reto.desc}</p>
           <p class="muted">🎮 ${reto.ctrl}</p>
@@ -595,7 +725,6 @@ const Story = (() => {
     $("#story-go").addEventListener("click", () => {
       body().innerHTML = `<div id="story-play"></div>`;
       Music.play("reto");
-      S.team = null;
       reto.run($("#story-play"), (raw) => {
         cleanup = null;
         if (typeof window.__forceScore === "number") raw = window.__forceScore; // solo pruebas
@@ -698,13 +827,13 @@ const Story = (() => {
         </div>`;
       $("#story-next").addEventListener("click", () => {
         const crit = buildCritique(myScore, won ? "win" : bottom ? "bottom" : "safe");
-        dialog(crit, { ...ctxWith(pick1(S.rivals)), tension: bottom }, () =>
+        dialog(crit, { ...ctxWith(pick1(S.rivals)), tension: bottom }, () => confesionario(() =>
           untucked({ winner, bottomRows }, () =>
             (tw === "moneda" && bottomRows.length === 3 ? coinFlip : (x, cb) => cb(x.bottomRows))({ winner, bottomRows }, (pair) =>
               elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2) }),
             ),
           ),
-        );
+        ));
       });
     };
 
@@ -716,6 +845,7 @@ const Story = (() => {
     if (tw === "corazon" && (S.hearts.me || 0) >= 2) {
       const mine = bottomRows.find((r) => r.me);
       if (mine) opts.push({ row: mine, kind: "corazon", label: "❤️ Gastar un corazón para salvarme" });
+      bottomRows.filter((r) => !r.me).forEach((r) => opts.push({ row: r, kind: "corazon", label: `❤️ Entregar un corazón a ${r.q.name} para salvarla` }));
     }
     if (!opts.length) return finish();
     body().innerHTML = `
@@ -725,7 +855,9 @@ const Story = (() => {
         <p>En el bottom están: ${bottomRows.map((r) => `<b>${esc(r.me ? "tú" : r.q.name)}</b>`).join(" y ")}. Si salvas a alguien, la siguiente con peor nota ocupa su sitio. Solo se usa una vez.</p>
         <div class="choice-col">${opts.map((o, i) => `<button class="btn btn-ghost" data-o="${i}">${esc(o.label)}</button>`).join("")}
           <button class="btn btn-primary" id="keep">Guardarlo para más adelante</button></div>
+        ${trackBtn()}
       </div>`;
+    bindTrack();
     body().querySelectorAll("[data-o]").forEach((b) =>
       b.addEventListener("click", () => {
         const o = opts[+b.dataset.o];
@@ -751,6 +883,7 @@ const Story = (() => {
     const cara = Math.random() < 0.5;
     const voters = [S.queen, ...S.rivals].filter((q) => !three.includes(q));
     const meVoter = voters.includes(S.queen);
+    const scoreOf = (q) => (bottomRows.find((r) => r.q === q) || {}).s || 0;
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">🪙 La moneda</p>
@@ -769,7 +902,8 @@ const Story = (() => {
         if (v === S.queen) choice = myVote;
         else {
           // Cada rival vota según cómo le caen (y a ti según vuestra relación)
-          const score = (q) => (q === S.queen ? relOf(v) * 1.5 : rnd(-1.5, 1.5)) + rnd(-1, 1);
+          const bias = (ROLES_HISTORIA[S.roles[v.id]] || {}).voto || 0;
+          const score = (q) => (q === S.queen ? relOf(v) * 1.5 + bias : rnd(-1.5, 1.5)) + rnd(-1, 1);
           const sorted = three.slice().sort((a, b) => score(b) - score(a));
           choice = cara ? sorted[0] : sorted[sorted.length - 1];
         }
@@ -777,7 +911,6 @@ const Story = (() => {
       });
       const ranked = three.slice().sort((a, b) => votes.get(b).length - votes.get(a).length || Math.random() - 0.5);
       const chosen = ranked[0];
-      const scoreOf = (q) => (bottomRows.find((r) => r.q === q) || {}).s || 0;
       let pair;
       if (cara) pair = three.filter((q) => q !== chosen);
       else pair = [chosen, three.filter((q) => q !== chosen).sort((a, b) => scoreOf(a) - scoreOf(b))[0]];
@@ -812,9 +945,11 @@ const Story = (() => {
           <h3>${cara ? "¿A quién SALVAS?" : "¿A quién CONDENAS al lip sync?"}</h3>
           <p class="muted">Todas verán lo que votas.</p>
           <div class="hub-grid">${three
-            .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small></button>`)
+            .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small><small class="score-note">Nota del reto: ${Math.round(scoreOf(q))}</small></button>`)
             .join("")}</div>
+          ${trackBtn()}
         </div>`;
+      bindTrack();
       body().querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => tally(qById(b.dataset.id))));
     });
   }
@@ -885,7 +1020,7 @@ const Story = (() => {
         <p class="eyebrow">Untucked</p>
         <h3>Mientras el jurado delibera...</h3>
         <div class="hub-grid">${opts
-          .map((o, i) => `<button class="hub-q ${o.kind === "enemiga" ? "enemy" : o.kind === "aliada" ? "ally" : ""}" style="--i:${i}" data-i="${i}"><i style="background-image:url('${photo(o.q)}')"></i><span>${esc(o.q.name)}</span><small>${o.label}</small></button>`)
+          .map((o, i) => `<button class="hub-q ${o.kind === "enemiga" ? "enemy" : o.kind === "aliada" ? "ally" : ""}" style="--i:${i}" data-i="${i}"><i style="background-image:url('${photo(o.q)}')"></i><span>${esc(o.q.name)}</span><small>${o.label}</small>${roleChip(o.q)}</button>`)
           .join("")}</div>
         <button class="btn btn-ghost" id="ut-skip">🍸 Tomarme algo sola</button>
       </div>`;
@@ -893,6 +1028,17 @@ const Story = (() => {
       b.addEventListener("click", () => {
         const o = opts[+b.dataset.i];
         const ctx = ctxWith(o.q);
+        const rr = roleOf(o.q);
+        if (rr && Math.random() < 0.5) {
+          reveal(o.q);
+          const base = o.kind === "enemiga" ? HISTORIA.untucked.enemiga[0] : pickFresh(HISTORIA.untucked[o.kind]);
+          const lines = [["r1", pick1(rr.untucked)], ...base];
+          if (o.kind === "enemiga") return dialog(lines, ctx, then, HISTORIA.untucked.enemigaChoices);
+          return dialog(lines, ctx, () => {
+            changeRel(o.q, (o.kind === "bottom" ? 2 : 1) + (S.roles[o.q.id] === "graciosa" ? 1 : 0));
+            then();
+          });
+        }
         if (o.kind === "enemiga") return dialog(HISTORIA.untucked.enemiga[0], ctx, then, HISTORIA.untucked.enemigaChoices);
         dialog(pickFresh(HISTORIA.untucked[o.kind]), ctx, () => {
           changeRel(o.q, o.kind === "bottom" ? 2 : 1);
@@ -1009,7 +1155,9 @@ const Story = (() => {
           <div class="hub-grid two">${pair
             .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small></button>`)
             .join("")}</div>
+          ${trackBtn()}
         </div>`;
+      bindTrack();
       body().querySelectorAll("[data-id]").forEach((b) =>
         b.addEventListener("click", () => {
           const go = qById(b.dataset.id), stay = pair.find((x) => x !== go);
@@ -1113,7 +1261,7 @@ const Story = (() => {
           if (!forCrown && twistOf() === "repesca" && !S.flags.repesca) return goHomeRepesca(rival);
           return theEnd(false, rival, forCrown);
         }
-        if (forCrown) return theEnd(true);
+        if (forCrown) return theEnd(true, rival);
         eliminate(rival);
         header();
         body().innerHTML = `
@@ -1198,35 +1346,288 @@ const Story = (() => {
     );
   }
 
-  // --------------------------------- Final ---------------------------------
-  function finale() {
-    const reto = RETOS.pasarela;
-    const titulo = "La pasarela de coronación";
-    dialog(pickFresh(HISTORIA.final), ctxWith(S.rivals[0]), () =>
-      challengeIntro(reto, titulo, "pasarela", (score) => {
-        if (S.bottoms === 0) Achievements.unlock("sin-bottom");
-        S.points += score * 10;
-        // Top 2: suma del historial de la temporada y la pasarela final
-        const total = (q) => (S.record[keyOf(q)] || 0) * 6 + (q === S.queen ? score : rivalScore(q));
-        const ranked = [S.queen, ...S.rivals].map((q) => ({ q, t: total(q) })).sort((a, b) => b.t - a.t);
-        const third = ranked[2].q;
-        S.epNames[S.ep] = "Final";
-        ranked.forEach((r, k) => mark(r.q, k < 2 ? "FINAL" : "3ª"));
+  // ------------------------- Capitanas y equipos ---------------------------
+  // Minireto previo: las dos mejores son capitanas y eligen equipo por turnos
+  function captains(then) {
+    dialog(pickFresh(CAPITANAS.intro), ctxWith(pick1(S.rivals)), () => {
+      body().innerHTML = `<div id="story-play"></div>`;
+      Music.play("reto");
+      runMiniFlash($("#story-play"), pick1(CAPITANAS.miniTitulos), (raw) => {
+        cleanup = null;
+        if (typeof window.__forceScore === "number") raw = window.__forceScore;
+        Music.stop();
+        const sc = [{ q: S.queen, s: Math.round(raw), me: true }, ...S.rivals.map((q) => ({ q, s: Math.round(clamp(rivalScore(q) + rnd(-12, 8), 0, 99)) }))].sort((a, b) => b.s - a.s);
+        const caps = [sc[0].q, sc[1].q];
+        if (sc[0].me) {
+          S.advice += 3;
+          S.points += 300;
+        }
         header();
         body().innerHTML = `
           <div class="story-card">
-            <p class="eyebrow">Pasarela final · ${score}/100</p>
-            <h3>${third === S.queen ? "Terminas en tercer lugar" : `${esc(third.name)} termina en tercer lugar`}</h3>
-            <ol class="ranking">${ranked.map((r, k) => `<li style="--i:${k}" class="${r.q === S.queen ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}</span>${k < 2 ? `<b class="tag win">Top 2</b>` : `<b class="tag safe">3ª</b>`}<em>${Math.round(r.t)}</em></li>`).join("")}</ol>
-            <button class="btn btn-primary" id="story-next">${third === S.queen ? "Ver resultado" : "Lip sync por la corona"}</button>
+            <p class="eyebrow">Minireto · resultados</p>
+            <h3>${caps.includes(S.queen) ? "¡Eres capitana! 👑" : `Capitanas: ${esc(caps[0].name)} y ${esc(caps[1].name)}`}</h3>
+            ${sc[0].me ? `<p class="gold">Ganas el minireto: +3 en el reto y eliges primero.</p>` : ""}
+            <ol class="ranking">${sc
+              .map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}</span>${k < 2 ? `<b class="tag win">Capitana</b>` : ""}<em>${r.s}</em></li>`)
+              .join("")}</ol>
+            <button class="btn btn-primary" id="story-next">Elegir equipos</button>
           </div>`;
-        $("#story-next").addEventListener("click", () => {
-          if (third === S.queen) return theEnd(false, ranked[0].q, false, "Te has quedado a las puertas del top 2.", 3);
-          eliminate(third);
-          lipSync(S.rivals[0], true);
-        });
-      }),
-    );
+        $("#story-next").addEventListener("click", () => draft(caps[0], caps[1], then));
+      });
+    });
+  }
+  function draft(capA, capB, then) {
+    const teams = new Map([[capA, [capA]], [capB, [capB]]]);
+    let pool = [S.queen, ...S.rivals].filter((q) => q !== capA && q !== capB);
+    let turn = capA, timer = 0, pickN = 0;
+    const sk = [S.queen, ...S.rivals].map(skillOf), lo = Math.min(...sk), hi = Math.max(...sk);
+    const stars = (q) => "★".repeat(1 + Math.round((4 * (skillOf(q) - lo)) / Math.max(1, hi - lo))) + "☆".repeat(4 - Math.round((4 * (skillOf(q) - lo)) / Math.max(1, hi - lo)));
+    const aiPick = (cap) => {
+      const val = (q) => skillOf(q) + (S.form[q.id] || 0) + rnd(-12, 12) + (q === S.queen ? relOf(cap) * 7 + S.wins * 3 : 0);
+      return pool.slice().sort((a, b) => val(b) - val(a))[0];
+    };
+    function take(cap, q) {
+      pickN++;
+      teams.get(cap).push(q);
+      pool = pool.filter((x) => x !== q);
+      if (cap === S.queen) {
+        if (pickN <= 2) changeRel(q, 1);
+      } else if (q === S.queen) Toast.show(`👑 ${cap.name} te elige`, pickN <= 2 ? "¡De las primeras!" : "Más vale tarde que nunca");
+      turn = turn === capA ? capB : capA;
+    }
+    function render() {
+      const myTurn = turn === S.queen && pool.length;
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">Elección de equipos</p>
+          <h3>${!pool.length ? "¡Equipos hechos!" : myTurn ? "Te toca elegir" : `Elige ${esc(turn.name)}...`}</h3>
+          <div class="teams2">${[capA, capB]
+            .map((c) => `<div class="team-col ${teams.get(c).includes(S.queen) ? "mine" : ""}"><b>Equipo de ${esc(c === S.queen ? "ti" : c.name)}</b>${teams
+              .get(c)
+              .map((q) => `<span><i style="background-image:url('${photo(q)}')"></i>${esc(q === S.queen ? "Tú" : q.name)}${q === c ? " 👑" : ""}</span>`)
+              .join("")}</div>`)
+            .join("")}</div>
+          ${myTurn ? `<div class="hub-grid">${pool
+            .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${stars(q)} · ${relLabel(q)}</small>${roleChip(q)}</button>`)
+            .join("")}</div>${trackBtn()}` : !pool.length ? `<button class="btn btn-primary" id="story-next">¡Al reto!</button>` : `<p class="muted">Quedan ${pool.length} por elegir</p>`}
+        </div>`;
+      if (myTurn) {
+        bindTrack();
+        body().querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => {
+          take(S.queen, qById(b.dataset.id));
+          step();
+        }));
+      } else if (!pool.length) {
+        const mine = [...teams.values()].find((t) => t.includes(S.queen));
+        const last = [...teams.values()].map((t) => t[t.length - 1]).find((q) => q !== S.queen);
+        if (capA === S.queen || capB === S.queen) last && pickN > 2 && changeRel(last, -1);
+        S.team = mine.filter((q) => q !== S.queen);
+        $("#story-next").addEventListener("click", then);
+      }
+    }
+    function step() {
+      render();
+      if (!pool.length || turn === S.queen) return;
+      timer = setTimeout(() => {
+        take(turn, aiPick(turn));
+        step();
+      }, 650);
+    }
+    cleanup = () => clearTimeout(timer);
+    step();
+  }
+
+  // ------------------------------ Reencuentro -------------------------------
+  function reunion() {
+    S.epNames[S.ep] = "Reencuentro";
+    header();
+    $("#story-ep").textContent = "El reencuentro";
+    const all = () => [...S.rivals, ...S.out];
+    dialog(pickFresh(REENCUENTRO.intro), ctxWith(S.out[0] || S.rivals[0]), pickTalk);
+    function pickTalk() {
+      if (!S.out.length) return drama();
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💋 El reencuentro</p>
+          <h3>Vuelven las eliminadas. ¿Con quién hablas?</h3>
+          <p class="muted">Se acuerdan de todo lo que pasó dentro.</p>
+          <div class="hub-grid">${S.out
+            .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}</button>`)
+            .join("")}</div>
+        </div>`;
+      body().querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => {
+        const q = qById(b.dataset.id);
+        const r = relOf(q);
+        const lines = [...pickFresh(REENCUENTRO[r >= 1 ? "buena" : r <= -1 ? "mala" : "neutra"])];
+        if (roleOf(q)) lines.push(["r1", roleOf(q).reencuentro]);
+        reveal(q);
+        const ctx = { ...ctxWith(q), q: { r1: q, r2: S.rivals[0], r3: S.rivals[1] }, r1: q.name, tension: r <= -1 };
+        dialog(lines, ctx, () => {
+          if (r >= 0) changeRel(q, 1);
+          drama();
+        }, r <= -1 ? REENCUENTRO.choicesMala : undefined);
+      }));
+    }
+    function drama() {
+      const everyone = all();
+      const a = everyone.find((q) => ["villana", "cizanera", "diva"].includes(S.roles[q.id])) || pick1(everyone);
+      const b = pick1(everyone.filter((q) => q !== a)) || a;
+      reveal(a);
+      dialog(pickFresh(REENCUENTRO.drama), { ...ctxWith(a, { r2: b }), q: { r1: a, r2: b, r3: b }, r1: a.name, r2: b.name, tension: true }, missSimpatia);
+    }
+  }
+  function missSimpatia() {
+    const everyone = [S.queen, ...S.rivals, ...S.out];
+    const BONUS = { madre: 1.6, graciosa: 1.1, sensible: 0.6, novata: 0.5, estratega: -0.3, diva: -1, cizanera: -1.6, villana: -2.2 };
+    const appeal = everyone.reduce((m, q) => m.set(q, (BONUS[S.roles[q.id]] || 0) + rnd(-0.6, 0.6)), new Map());
+    dialog(REENCUENTRO.missIntro, ctxWith(S.rivals[0]), () => {
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💐 Miss Simpatía · tu voto</p>
+          <h3>¿Quién ha sido la compañera más querida?</h3>
+          <p class="muted">No puedes votarte a ti misma. Todas votan a la vez.</p>
+          <div class="hub-grid">${everyone.filter((q) => q !== S.queen)
+            .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}</button>`)
+            .join("")}</div>
+          ${trackBtn()}
+        </div>`;
+      bindTrack();
+      body().querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => tally(qById(b.dataset.id))));
+    });
+    function tally(myVote) {
+      const votes = new Map(everyone.map((q) => [q, []]));
+      everyone.forEach((v) => {
+        let c = myVote;
+        if (v !== S.queen) {
+          const val = (q) => (q === S.queen ? relOf(v) * 1.2 + 0.3 : 0) + appeal.get(q) + rnd(-1.4, 1.4);
+          c = everyone.filter((q) => q !== v).sort((a, b) => val(b) - val(a))[0];
+        }
+        votes.get(c).push(v);
+      });
+      changeRel(myVote, 1);
+      const ranked = everyone.slice().sort((a, b) => votes.get(b).length - votes.get(a).length || appeal.get(b) - appeal.get(a));
+      const win = ranked[0];
+      S.missC = keyOf(win);
+      mark(win, "MISSC");
+      if (win === S.queen) {
+        S.points += 1500;
+        Achievements.unlock("miss-simpatia");
+        Confetti.burst(3000);
+      }
+      header();
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💐 Miss Simpatía de ${esc(S.season.name)}</p>
+          <h3>${win === S.queen ? "¡Eres Miss Simpatía! 💐" : `${esc(win.name)} es Miss Simpatía`}</h3>
+          <div class="votes">${ranked.slice(0, 4)
+            .map((q) => `<div class="vote-col ${q === win ? "top" : ""}"><i style="background-image:url('${photo(q)}')"></i><b>${esc(q === S.queen ? "Tú" : q.name)}</b><span>${votes.get(q).length} voto${votes.get(q).length === 1 ? "" : "s"}</span><div class="voters">${votes.get(q).map((v) => `<img src="${photo(v)}" title="${esc(v === S.queen ? "Tú" : v.name)}">`).join("")}</div></div>`)
+            .join("")}</div>
+          <p>Tu voto fue para <b>${esc(myVote.name)}</b>. Las cuatro finalistas pasan a la gran final.</p>
+          <button class="btn btn-primary" id="story-next">¡A la gran final!</button>
+        </div>`;
+      S.flags.reunion = true;
+      endEpisodeBtn();
+    }
+  }
+
+  // --------------------------------- Final ---------------------------------
+  // Top 4: sorteo, dos lip syncs y las ganadoras se enfrentan por la corona
+  const simLS = (a, b) => {
+    const v = (q) => skillOf(q) + (S.record[keyOf(q)] || 0) * 2 + (S.form[q.id] || 0);
+    return Math.random() < clamp(0.5 + (v(a) - v(b)) / 40, 0.2, 0.8) ? [a, b] : [b, a];
+  };
+  function playLS(rival, o, cb) {
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">${o.eyebrow}</p>
+        <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
+        <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
+        <p>${o.text}</p>
+        <button class="btn btn-primary" id="story-ls">¡A la pasarela!</button>
+      </div>`;
+    Music.play("tension");
+    $("#story-ls").addEventListener("click", () => Curtain.run(() => {
+      Music.stop();
+      UI.show("game");
+      Game.start(Wardrobe.boosted(S.queen), S.season, (res) => {
+        UI.show("story");
+        S.points += Math.round(res.score || 0);
+        if (res.won) {
+          S.lipsyncs++;
+          S.points += 1500;
+          if (S.lipsyncs >= 3) Achievements.unlock("superviviente");
+        }
+        header();
+        cb(res.won);
+      }, { rivals: [rival], story: true });
+    }, o.curtain));
+  }
+  function finale() {
+    if (S.bottoms === 0) Achievements.unlock("sin-bottom");
+    S.epNames[S.ep] = "Final";
+    const four = shuffle([S.queen, ...S.rivals]);
+    const A = four.slice(0, 2), B = four.slice(2, 4);
+    const mine = A.includes(S.queen) ? A : B, other = mine === A ? B : A;
+    const myRival = mine.find((q) => q !== S.queen);
+    dialog([...pickFresh(HISTORIA.final), ...pickFresh(FINAL_SORTEO)], ctxWith(S.rivals[0]), sorteo);
+    function sorteo() {
+      header();
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">🎲 El sorteo</p>
+          <h3>Así quedan los lip syncs</h3>
+          <div class="draw">${[A, B]
+            .map((p, k) => `<div class="draw-pair" style="--i:${k}"><small>Lip sync ${k + 1}</small><div class="vs"><img src="${photo(p[0])}" title="${esc(p[0].name)}"><span>VS</span><img src="${photo(p[1])}" title="${esc(p[1].name)}"></div><b>${esc(p[0] === S.queen ? "Tú" : p[0].name)} · ${esc(p[1] === S.queen ? "Tú" : p[1].name)}</b></div>`)
+            .join("")}</div>
+          <p>Las ganadoras de cada lip sync se enfrentan por la corona.</p>
+          ${trackBtn()}
+          <button class="btn btn-primary" id="story-next">Primer lip sync</button>
+        </div>`;
+      bindTrack();
+      $("#story-next").addEventListener("click", semiOther);
+    }
+    let otherWin;
+    function semiOther() {
+      const [w, l] = simLS(other[0], other[1]);
+      otherWin = w;
+      mark(l, "3ª");
+      eliminate(l);
+      header();
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">Semifinal · lip sync</p>
+          <h3>${esc(w.name)} vs ${esc(l.name)}</h3>
+          <p class="muted">${esc(fill(pickFresh(HISTORIA.lipsyncOtras), { a: w.name, b: l.name }))}</p>
+          <div class="vs"><img src="${photo(w)}"><span>👑</span><img class="gone" src="${photo(l)}"></div>
+          <p><b>${esc(w.name)}</b> pasa a la final. Ahora te toca a ti contra <b>${esc(myRival.name)}</b>.</p>
+          <button class="btn btn-primary" id="story-next">Mi lip sync</button>
+        </div>`;
+      $("#story-next").addEventListener("click", mySemi);
+    }
+    function mySemi() {
+      playLS(myRival, { eyebrow: "Semifinal · lip sync", text: `Si ganas, te enfrentas a ${esc(otherWin.name)} por la corona.`, curtain: "SEMIFINAL" }, (won) => {
+        if (!won) {
+          mark(S.queen, "3ª");
+          const [fw, fl] = simLS(myRival, otherWin);
+          mark(fw, "WINNER");
+          mark(fl, "RUNNER-UP");
+          return theEnd(false, myRival, false, `${myRival.name} te gana en la semifinal. La corona se la lleva ${fw.name}.`, 3);
+        }
+        mark(myRival, "3ª");
+        eliminate(myRival);
+        header();
+        body().innerHTML = `
+          <div class="story-card">
+            <p class="eyebrow">¡Estás en la final!</p>
+            <h3>${esc(S.queen.name)} vs ${esc(otherWin.name)}</h3>
+            <div class="vs"><img src="${photo(S.queen)}"><span>👑</span><img src="${photo(otherWin)}"></div>
+            <p>Un último lip sync. Una corona.</p>
+            <button class="btn btn-primary" id="story-next">Lip sync por la corona</button>
+          </div>`;
+        $("#story-next").addEventListener("click", () => lipSync(otherWin, true));
+      });
+    }
   }
 
   function theEndRebind(q, s) {
@@ -1310,9 +1711,7 @@ const Story = (() => {
   function runEquipos(el, done) {
     // Tu equipo: la mitad del reparto, con preferencia por tus aliadas.
     // La que se va esta semana (rivals[0]) y la otra del bottom van al equipo Oro.
-    const size = Math.max(1, Math.floor((S.rivals.length + 1) / 2) - 1);
-    const pool = S.rivals.slice().sort((a, b) => relOf(b) - relOf(a) || Math.random() - 0.5);
-    S.team = pool.slice(0, size);
+    ensureTeam();
     const ROLES = [
       { id: "solista", name: "🎤 Solista", desc: "Más riesgo, más premio: x1.2 si lo haces bien (60+), -10 si no.", f: (s) => (s >= 60 ? s * 1.2 : s - 10) },
       { id: "coros", name: "🎶 Coros", desc: "Equilibrada: tu nota tal cual.", f: (s) => s },
@@ -1334,12 +1733,18 @@ const Story = (() => {
     );
   }
 
+  // Si no hubo elección de capitanas (p. ej. en pruebas), equipo por afinidad
+  function ensureTeam() {
+    if (S.team) return;
+    const size = Math.max(1, Math.floor((S.rivals.length + 1) / 2) - 1);
+    S.team = S.rivals.slice().sort((a, b) => relOf(b) - relOf(a) || Math.random() - 0.5).slice(0, size);
+  }
+
   // ------------------------- Minijuego: pasarela ---------------------------
-  function runPasarela(el, done) {
-    const POSES = 8;
+  function runPasarela(el, done, POSES = 8, label = "") {
     el.innerHTML = `
       <div class="mg pasarela">
-        <p class="mg-info">Pose <b id="pz-n">1</b>/${POSES} · <span id="pz-msg">¡Prepárate!</span></p>
+        <p class="mg-info">${label ? `${esc(label)} · ` : ""}Pose <b id="pz-n">1</b>/${POSES} · <span id="pz-msg">¡Prepárate!</span></p>
         <img class="mg-queen" id="pz-queen" src="${sprite(S.queen)}" alt="">
         <div class="pz-track"><div class="pz-zone" id="pz-zone"></div><div class="pz-cursor" id="pz-cursor"></div></div>
         <button class="btn btn-primary big" id="pz-btn">¡POSE!</button>
@@ -1882,6 +2287,233 @@ const Story = (() => {
     }
     cleanup = stop;
     play();
+  }
+
+  // ------------------------- Minijuego: el Ball -----------------------------
+  function runBall(el, done) {
+    const cats = shuffle(CATEGORIAS).slice(0, 3), scores = [];
+    let timer = 0;
+    function next() {
+      const k = scores.length;
+      if (k >= 3) return done(scores.reduce((a, b) => a + b, 0) / 3);
+      el.innerHTML = `<div class="mg"><p class="eyebrow">Look ${k + 1} de 3</p><h3 class="ball-cat">«${esc(cats[k])}»</h3></div>`;
+      cleanup = () => clearTimeout(timer);
+      timer = setTimeout(() => runPasarela(el, (sc) => { scores.push(sc); next(); }, 3, `Look ${k + 1}/3 · ${cats[k]}`), 1100);
+    }
+    next();
+  }
+
+  // ------------------------- Minijuego: guion (actuación) -------------------
+  function runGuion(el, done) {
+    ensureTeam();
+    const N = 6, TIME = 7;
+    const lines = shuffle(GUION).slice(0, N);
+    let i = 0, total = 0, t0 = 0, raf = 0, timer = 0, answered = true, opts = [];
+    el.innerHTML = `
+      <div class="mg snatch guion">
+        <p class="mg-info">🎬 Toma <b id="gn-n">1</b>/${N} · <span id="gn-msg">Memoriza tu frase...</span></p>
+        <div class="sg-host"><span>🎞️ Guion</span><p id="gn-line"></p></div>
+        <div class="sg-bar"><div id="sg-time"></div></div>
+        <div class="sg-opts" id="sg-opts"></div>
+      </div>`;
+    function show() {
+      const [txt, word] = lines[i];
+      answered = true;
+      $("#gn-n").textContent = i + 1;
+      $("#gn-msg").textContent = "Memoriza tu frase...";
+      $("#gn-line").innerHTML = esc(txt).replace("___", `<mark>${esc(word)}</mark>`);
+      $("#sg-opts").innerHTML = "";
+      $("#sg-time").style.width = "100%";
+      timer = setTimeout(ask, 2300);
+    }
+    function ask() {
+      const [txt, word, wrong] = lines[i];
+      $("#gn-msg").textContent = "¡Acción! ¿Qué palabra era?";
+      $("#gn-line").innerHTML = esc(txt).replace("___", "<mark>______</mark>");
+      opts = shuffle([{ t: word, ok: true }, ...wrong.map((t) => ({ t, ok: false }))]);
+      $("#sg-opts").innerHTML = opts.map((o, k) => `<button class="btn btn-ghost sg-opt" data-k="${k}"><b>${k + 1}</b> ${esc(o.t)}</button>`).join("");
+      el.querySelectorAll(".sg-opt").forEach((b) => b.addEventListener("click", () => choose(+b.dataset.k)));
+      answered = false;
+      t0 = performance.now();
+    }
+    function choose(k) {
+      if (answered) return;
+      answered = true;
+      const o = opts[k];
+      const left = Math.max(0, 1 - (performance.now() - t0) / 1000 / TIME);
+      const pts = !o ? 0 : o.ok ? 70 + left * 30 : 12;
+      total += pts;
+      $("#gn-msg").textContent = !o ? "¡Corten! Te has quedado en blanco 😶" : o.ok ? "¡Corten! Toma buena 🎬" : "¡Corten! Esa no era tu frase 😬";
+      el.querySelectorAll(".sg-opt").forEach((b, j) => b.classList.add(opts[j].ok ? "best" : "dim"));
+      o && o.ok ? Sound.powerup && Sound.powerup() : Sound.impact();
+      timer = setTimeout(() => {
+        i++;
+        if (i >= N) { stop(); return done(total / N); }
+        show();
+      }, 1200);
+    }
+    function tick(t) {
+      const bar = $("#sg-time");
+      if (!answered) {
+        const left = Math.max(0, 1 - (t - t0) / 1000 / TIME);
+        if (bar) bar.style.width = left * 100 + "%";
+        if (left <= 0) choose(-1);
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    const onKey = (e) => { const k = { Digit1: 0, Digit2: 1, Digit3: 2, Numpad1: 0, Numpad2: 1, Numpad3: 2 }[e.code]; if (k !== undefined) choose(k); };
+    function stop() { cancelAnimationFrame(raf); clearTimeout(timer); document.removeEventListener("keydown", onKey); }
+    document.addEventListener("keydown", onKey);
+    cleanup = stop;
+    show();
+    raf = requestAnimationFrame(tick);
+  }
+
+  // ------------------------- Minijuego: makeover (parejas) ------------------
+  function runMemoria(el, done) {
+    const ICONS = ["👠", "💄", "👛", "💍", "🪭", "🎀"], DUR = 45;
+    const cards = shuffle([...ICONS, ...ICONS]);
+    let open = [], found = 0, misses = 0, t0 = performance.now(), iv = 0, busy = false, over = false;
+    el.innerHTML = `
+      <div class="mg memoria">
+        <p class="mg-info">Tiempo <b id="mm-t">${DUR}</b> s · Parejas <b id="mm-p">0</b>/${ICONS.length} · <span id="mm-msg">Empareja los accesorios</span></p>
+        <div class="mem-grid">${cards.map((c, k) => `<button class="mem-card" data-k="${k}"><span>${c}</span></button>`).join("")}</div>
+      </div>`;
+    const btns = [...el.querySelectorAll(".mem-card")];
+    btns.forEach((b) => b.addEventListener("click", () => flip(+b.dataset.k)));
+    function flip(k) {
+      const b = btns[k];
+      if (busy || over || b.classList.contains("open") || b.classList.contains("done")) return;
+      b.classList.add("open");
+      open.push(k);
+      if (open.length < 2) return;
+      const [a, c] = open;
+      open = [];
+      if (cards[a] === cards[c]) {
+        btns[a].classList.add("done");
+        btns[c].classList.add("done");
+        found++;
+        $("#mm-p").textContent = found;
+        $("#mm-msg").textContent = "¡A juego! 💖";
+        Sound.powerup && Sound.powerup();
+        if (found === ICONS.length) end();
+      } else {
+        misses++;
+        busy = true;
+        $("#mm-msg").textContent = "No pegan...";
+        setTimeout(() => { btns[a].classList.remove("open"); btns[c].classList.remove("open"); busy = false; }, 650);
+      }
+    }
+    function end() {
+      if (over) return;
+      over = true;
+      stop();
+      const left = Math.max(0, 1 - (performance.now() - t0) / 1000 / DUR);
+      done(clamp((found / ICONS.length) * 75 + (found === ICONS.length ? 25 * left + 10 : 0) - Math.max(0, misses - 5) * 2, 0, 100));
+    }
+    iv = setInterval(() => {
+      const left = Math.max(0, DUR - (performance.now() - t0) / 1000);
+      const t = $("#mm-t");
+      if (t) t.textContent = Math.ceil(left);
+      if (left <= 0) end();
+    }, 200);
+    function stop() { clearInterval(iv); }
+    cleanup = stop;
+  }
+
+  // ------------------------- Minijuego: sesión de fotos --------------------
+  function runFotos(el, done) {
+    const DUR = 20;
+    el.innerHTML = `
+      <div class="mg fotos">
+        <p class="mg-info">Tiempo <b id="ft-t">${DUR}</b> s · Fotos <b id="ft-p">0</b> · <span id="ft-msg">¡Atenta al flash!</span></p>
+        <div class="ft-grid">${Array.from({ length: 9 }, (_, k) => `<button class="ft-cell" data-k="${k}"></button>`).join("")}</div>
+      </div>`;
+    const cells = [...el.querySelectorAll(".ft-cell")];
+    let t0 = performance.now(), spawnT = 0, shown = 0, hits = 0, bad = 0, timers = [], over = false;
+    function spawn() {
+      if (over) return;
+      const t = (performance.now() - t0) / 1000;
+      if (t >= DUR) return end();
+      const free = cells.filter((c) => !c.classList.contains("on"));
+      const c = pick1(free);
+      const pap = Math.random() < 0.22;
+      if (!pap) shown++;
+      c.className = `ft-cell on ${pap ? "pap" : "me"}`;
+      c.innerHTML = pap ? "📸" : `<i style="background-image:url('${photo(S.queen)}')"></i>`;
+      const life = Math.max(620, 1050 - t * 20);
+      timers.push(setTimeout(() => { if (c.classList.contains("on")) { c.className = "ft-cell"; c.innerHTML = ""; } }, life));
+      timers.push(setTimeout(spawn, Math.max(420, 820 - t * 16)));
+    }
+    cells.forEach((c) => c.addEventListener("click", () => {
+      if (!c.classList.contains("on")) return;
+      if (c.classList.contains("me")) { hits++; $("#ft-msg").textContent = "¡Click! Preciosa 📷"; Sound.powerup && Sound.powerup(); }
+      else { bad++; $("#ft-msg").textContent = "¡Era el paparazzi! 😱"; Sound.impact(); }
+      c.className = "ft-cell";
+      c.innerHTML = "";
+      $("#ft-p").textContent = hits;
+    }));
+    const iv = setInterval(() => { const t = $("#ft-t"); if (t) t.textContent = Math.max(0, Math.ceil(DUR - (performance.now() - t0) / 1000)); }, 250);
+    function end() {
+      if (over) return;
+      over = true;
+      stop();
+      done(clamp((hits / Math.max(1, shown)) * 105 - bad * 8, 0, 100));
+    }
+    function stop() { timers.forEach(clearTimeout); clearInterval(iv); }
+    cleanup = stop;
+    timers.push(setTimeout(spawn, 700));
+  }
+
+  // ------------------------- Minireto: flash (capitanas) --------------------
+  function runMiniFlash(el, title, done) {
+    const ROUNDS = 3;
+    let round = 0, total = 0, state = "wait", tGo = 0, timer = 0;
+    el.innerHTML = `
+      <div class="mg mini">
+        <p class="eyebrow">Minireto · ${esc(title)}</p>
+        <p class="mg-info">Ronda <b id="mn-n">1</b>/${ROUNDS} · <span id="mn-msg">Pulsa en cuanto salte el flash (no antes)</span></p>
+        <button class="mini-btn" id="mini-btn">Espera...</button>
+      </div>`;
+    const btn = $("#mini-btn");
+    function arm() {
+      state = "wait";
+      btn.className = "mini-btn";
+      btn.textContent = "Espera...";
+      $("#mn-n").textContent = round + 1;
+      timer = setTimeout(() => {
+        state = "go";
+        btn.className = "mini-btn go";
+        btn.textContent = "¡FLASH! 📸";
+        tGo = performance.now();
+      }, 900 + Math.random() * 1500);
+    }
+    function press() {
+      if (state === "done") return;
+      let pts;
+      if (state === "wait") {
+        clearTimeout(timer);
+        pts = 0;
+        $("#mn-msg").textContent = "¡Te has adelantado! 0 puntos";
+        Sound.impact();
+      } else {
+        const ms = performance.now() - tGo;
+        pts = clamp(100 - (ms - 200) / 5, 10, 100);
+        $("#mn-msg").textContent = `${Math.round(ms)} ms · ${pts > 85 ? "¡Rapidísima! ⚡" : pts > 55 ? "¡Bien!" : "Un poco lenta..."}`;
+        Sound.powerup && Sound.powerup();
+      }
+      total += pts;
+      state = "done";
+      btn.className = "mini-btn";
+      round++;
+      timer = setTimeout(() => (round >= ROUNDS ? (stop(), done(total / ROUNDS)) : arm()), 900);
+    }
+    const onKey = (e) => { if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); if (!e.repeat) press(); } };
+    function stop() { clearTimeout(timer); document.removeEventListener("keydown", onKey); }
+    btn.addEventListener("click", press);
+    document.addEventListener("keydown", onKey);
+    cleanup = stop;
+    arm();
   }
 
   // Solo para pruebas automatizadas: lanza un reto concreto
