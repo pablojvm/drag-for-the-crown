@@ -14,6 +14,15 @@ const Story = (() => {
   let S = null; // estado de la partida
   let cleanup = null; // quita listeners/timers del minijuego activo
 
+  // Elige una variante evitando repetir las usadas recientemente en esta partida
+  const recent = [];
+  const pickFresh = (arr) => {
+    const fresh = arr.filter((x) => !recent.includes(x));
+    const v = pick1(fresh.length ? fresh : arr);
+    recent.push(v);
+    if (recent.length > 60) recent.shift();
+    return v;
+  };
   const photo = (q) => lookOf(q, S && S.season.id).portrait || q.portrait;
   const sprite = (q) => lookOf(q, S && S.season.id).sprite || q.sprite;
 
@@ -88,7 +97,7 @@ const Story = (() => {
   function blankState(queen, season, rivals) {
     return {
       queen, season, rivals, out: [], ep: 0, wins: 0, bottoms: 0, points: 0, lipsyncs: 0, rel: {}, streak: 0,
-      record: {}, form: {}, hearts: {}, luck: undefined, flags: {}, advice: 0, helped: false, meOut: false,
+      record: {}, form: {}, hearts: {}, track: {}, epNames: {}, luck: undefined, flags: {}, advice: 0, helped: false, meOut: false,
     };
   }
   function start(queen, season) {
@@ -101,7 +110,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut"];
+  const PLAIN = ["track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -324,7 +333,7 @@ const Story = (() => {
     const tw = twistOf();
     if (tw === "moneda") chip = "🪙 Bottom de 3 y moneda al aire";
     if (tw === "corazon") chip = `❤️ Tienes ${((S.hearts.me || 0) / 2).toString().replace(".", ",")} corazones`;
-    if (tw === "suerte") chip = S.luck === undefined ? "🍀 Cajitas por abrir" : S.luck ? `🍀 Suerte: ${S.luck === "me" ? "¡la tienes tú!" : nameOfKey(S.luck)}` : "🍀 Suerte ya usada";
+    if (tw === "suerte") chip = S.luck === undefined ? "🍀 Cajitas por abrir" : S.luck === "me" ? "🍀 ¡La tienes tú! (en secreto)" : S.luck ? "🍀 ¿Quién la tendrá?" : "🍀 Ya se ha usado";
     if (tw === "repesca") chip = S.flags.repesca ? "🔁 Repesca hecha" : "🔁 Repesca pendiente";
     if (tw === "allstars") chip = "💄 Decide la ganadora";
     $("#story-ep").textContent = S.meOut ? "Fuera de la competición" : isFinal() ? "Gran final" : `Episodio ${S.ep}`;
@@ -341,7 +350,65 @@ const Story = (() => {
       S.out.map((q) => `<i title="${esc(q.name)}" class="out" style="background-image:url('${photo(q)}')"></i>`).join("");
   }
 
+  // ----------------------------- Track record -----------------------------
+  const EP_SHORT = { pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups" };
+  function mark(q, lab) {
+    const k = keyOf(q);
+    (S.track[k] = S.track[k] || {})[S.ep] = lab;
+  }
+  const TRACK_CLASS = (l) =>
+    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "3ª" ? "t-third" : "t-none";
+  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "FINALISTA", FINAL: "FINAL", "3ª": "3ª" };
+  function trackHTML() {
+    const eps = Object.keys(S.epNames).map(Number).sort((a, b) => a - b);
+    const everyone = [S.queen, ...S.rivals, ...S.out];
+    const count = (k, test) => eps.filter((e) => test((S.track[k] || {})[e] || "")).length;
+    const lastEp = (k) => Math.max(0, ...eps.filter((e) => (S.track[k] || {})[e]));
+    const isOut = (q) => (q === S.queen ? S.meOut || !!S.finished && !S.wonAll : S.out.includes(q));
+    const rows = everyone
+      .filter((q, i, a) => a.indexOf(q) === i)
+      .map((q) => {
+        const k = keyOf(q);
+        return {
+          q, k, out: isOut(q), last: lastEp(k),
+          w: count(k, (l) => l === "WIN" || l === "WINNER"), h: count(k, (l) => l === "HIGH" || l === "TOP2"),
+          s: count(k, (l) => l === "SAFE"), lo: count(k, (l) => l === "LOW"), b: count(k, (l) => /^BTM/.test(l)),
+        };
+      })
+      .sort((a, b) => a.out - b.out || (a.out ? b.last - a.last : 0) || b.w - a.w || b.h - a.h || b.s - a.s || a.lo - b.lo || a.b - b.b);
+    const ppe = (k) => {
+      const V = { WIN: 5, WINNER: 5, TOP2: 4.5, HIGH: 4, SAFE: 3, LOW: 2, BTM2: 1, BTM3: 1, ELIM: 0 };
+      const v = eps.map((e) => V[(S.track[k] || {})[e]]).filter((x) => x !== undefined);
+      return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) : "–";
+    };
+    return `
+      <div class="track-wrap"><table class="track">
+        <thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(S.epNames[e])}</small></th>`).join("")}<th>PPE</th></tr></thead>
+        <tbody>${rows
+          .map((r, i) => `<tr class="${r.q === S.queen ? "me" : ""} ${r.out ? "out" : ""}" style="--i:${i}"><td class="rk">${i + 1}º</td>
+            <td class="qn"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${r.q === S.queen ? " <b>(tú)</b>" : ""}</span></td>
+            ${eps.map((e) => { const l = (S.track[r.k] || {})[e]; return `<td class="${l ? TRACK_CLASS(l) : r.last && e > r.last ? "t-gone" : "t-none"}">${l ? LAB_ES[l] || l : ""}</td>`; }).join("")}
+            <td class="ppe">${ppe(r.k)}</td></tr>`)
+          .join("")}</tbody>
+      </table></div>`;
+  }
+  function showTrack(then, label = "Siguiente episodio") {
+    header();
+    body().innerHTML = `
+      <div class="story-card track-card">
+        <p class="eyebrow">Fin del episodio ${S.ep}</p>
+        <h3>Track record</h3>
+        ${trackHTML()}
+        <button class="btn btn-primary" id="track-next">${label}</button>
+      </div>`;
+    $("#track-next").addEventListener("click", then);
+  }
+
   function nextEpisode() {
+    if (S.ep > 0 && S.trackShown !== S.ep && Object.keys(S.epNames).length) {
+      S.trackShown = S.ep;
+      return showTrack(nextEpisode);
+    }
     save();
     Curtain.run(() => episode(), isFinal() ? "GRAN FINAL" : `EPISODIO ${S.ep + 1}`);
   }
@@ -364,16 +431,16 @@ const Story = (() => {
     let lines;
     const go = () => maybeEvent(() => hub(() => announce()));
     if (S.ep === 1 && twistOf() === "suerte" && S.luck === undefined) {
-      return dialog(seasonInfo().intro, ctx, () => pickLuckBox(() => dialog(pick1(HISTORIA.tallerPrimerDia), ctxWith(pick1(S.rivals)), go)));
+      return dialog(seasonInfo().intro, ctx, () => pickLuckBox(() => dialog(pickFresh(HISTORIA.tallerPrimerDia), ctxWith(pick1(S.rivals)), go)));
     }
-    if (S.ep === 1) lines = [...seasonInfo().intro, ...pick1(HISTORIA.tallerPrimerDia)];
-    else lines = [...pick1(HISTORIA.tallerHost), ...(S.out.length ? pick1(HISTORIA.tallerTrasExpulsion) : [])];
+    if (S.ep === 1) lines = [...seasonInfo().intro, ...pickFresh(HISTORIA.tallerPrimerDia)];
+    else lines = [...pickFresh(HISTORIA.tallerHost), ...(S.out.length ? pickFresh(HISTORIA.tallerTrasExpulsion) : [])];
     dialog(lines, ctx, go);
   }
   // Evento aleatorio del taller: varias reinas y tú eliges bando
   function maybeEvent(then) {
     if (S.rivals.length < 3 || Math.random() < 0.35) return then();
-    const ev = pick1(HISTORIA.eventos);
+    const ev = pickFresh(HISTORIA.eventos);
     const ctx = ctxWith(pick1(S.rivals));
     dialog(ev.lines, ctx, then, ev.choices);
   }
@@ -421,11 +488,11 @@ const Story = (() => {
     let lines, after = () => {};
     if (kind === "pina") {
       const mood = r >= 1 ? "buena" : r <= -1 ? "mala" : "neutra";
-      lines = pick1(HISTORIA.pina[mood]);
+      lines = pickFresh(HISTORIA.pina[mood]);
       const ok = Math.random() < (mood === "mala" ? 0.5 : 0.85);
       after = () => changeRel(q, ok ? (mood === "buena" ? 1 : 1) : 0);
     } else if (kind === "cotilleo") {
-      lines = [...pick1(HISTORIA.cotilleo)];
+      lines = [...pickFresh(HISTORIA.cotilleo)];
       const caught = other && other !== q && Math.random() < 0.3;
       if (caught) lines.push(...HISTORIA.cotilleoPillada);
       after = () => {
@@ -434,7 +501,7 @@ const Story = (() => {
       };
     } else if (kind === "consejo") {
       const ok = r >= 0 && Math.random() < 0.8;
-      lines = pick1(HISTORIA.consejo[ok ? "si" : "no"]);
+      lines = pickFresh(HISTORIA.consejo[ok ? "si" : "no"]);
       after = () => {
         if (ok) {
           S.advice += 6;
@@ -442,7 +509,7 @@ const Story = (() => {
         }
       };
     } else {
-      lines = pick1(HISTORIA.pinchar);
+      lines = pickFresh(HISTORIA.pinchar);
       after = () => {
         changeRel(q, -1);
         S.points += 150;
@@ -463,7 +530,8 @@ const Story = (() => {
     const tipo = pickReto();
     const reto = RETOS[tipo];
     const titulo = reto.titulo();
-    dialog(pick1(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => challengeIntro(reto, titulo, tipo));
+    S.epNames[S.ep] = EP_SHORT[tipo] || "Reto";
+    dialog(pickFresh(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => challengeIntro(reto, titulo, tipo));
   }
 
   function challengeIntro(reto, titulo, tipo, onScore) {
@@ -484,6 +552,7 @@ const Story = (() => {
       S.team = null;
       reto.run($("#story-play"), (raw) => {
         cleanup = null;
+        if (typeof window.__forceScore === "number") raw = window.__forceScore; // solo pruebas
         Music.stop();
         if (raw >= 95) Achievements.unlock("perfecta");
         const bonus = relBonus() + S.advice - (S.helped ? 4 : 0);
@@ -531,7 +600,7 @@ const Story = (() => {
     if (tw === "suerte" && S.luck && S.luck !== "me") {
       const holder = qById(S.luck);
       const row = bottomRows.find((r) => r.q === holder);
-      if (row && Math.random() < 0.75 && saveRow(row, "🍀 ¡La reina de la suerte!")) S.luck = null;
+      if (row && Math.random() < 0.75 && saveRow(row, `🍀 ¡Sorpresa! ${esc(holder.name)} tenía la reina de la suerte:`)) S.luck = null;
     }
     if (tw === "corazon") {
       bottomRows.filter((r) => !r.me && (S.hearts[r.q.id] || 0) >= 2).forEach((r) => {
@@ -555,13 +624,25 @@ const Story = (() => {
       if (S.streak >= 3) Achievements.unlock("racha");
       const b = S.lastBonus || 0;
       const bonusLine = b ? `<p class="${b > 0 ? "gold" : "muted"}">${b > 0 ? `💞 Consejos, aliadas y concentración: +${b}` : `🗡️ Tus enemigas te lo han puesto difícil: ${b}`}</p>` : "";
+      const top2 = rows.slice(0, 2);
+      rows.forEach((r, k) => {
+        let lab;
+        if (tw === "allstars" && top2.includes(r)) lab = "TOP2";
+        else if (r === winner) lab = "WIN";
+        else if (bottomRows.includes(r)) lab = `BTM${nb}`;
+        else if (r.protected) lab = "LOW";
+        else if (k <= 2 && k < n - nb - 1) lab = "HIGH";
+        else if (k >= n - nb - 2) lab = "LOW";
+        else lab = "SAFE";
+        mark(r.q, lab);
+      });
       const badge = (r) =>
-        r === winner ? `<b class="tag win">Ganadora del reto</b>` : bottomRows.includes(r) ? `<b class="tag btm">Bottom ${nb}</b>` : r.protected ? `<b class="tag safe">Salvada</b>` : `<b class="tag safe">A salvo</b>`;
+        tw === "allstars" && top2.includes(r) ? `<b class="tag win">Top 2</b>` : r === winner ? `<b class="tag win">Ganadora del reto</b>` : bottomRows.includes(r) ? `<b class="tag btm">Bottom ${nb}</b>` : r.protected ? `<b class="tag safe">Salvada</b>` : `<b class="tag safe">A salvo</b>`;
       header();
       body().innerHTML = `
         <div class="story-card">
           <p class="eyebrow">${esc(titulo)} · resultados</p>
-          <h3>${won ? "¡Has ganado el reto! 👑" : bottom ? `Estás en el bottom ${nb}...` : "Estás a salvo"}</h3>
+          <h3>${tw === "allstars" && top2.some((r) => r.me) ? "¡Estás en el top 2! 💄" : won ? "¡Has ganado el reto! 👑" : bottom ? `Estás en el bottom ${nb}...` : "Estás a salvo"}</h3>
           <p class="muted">Tu puntuación: <b>${myScore}</b>/100</p>
           ${bonusLine}${teamLine}${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
           <ol class="ranking">${rows
@@ -570,11 +651,11 @@ const Story = (() => {
           <button class="btn btn-primary" id="story-next">Continuar</button>
         </div>`;
       $("#story-next").addEventListener("click", () => {
-        const crit = pick1(HISTORIA.critica[won ? "win" : bottom ? "bottom" : "safe"]);
+        const crit = pickFresh(HISTORIA.critica[won ? "win" : bottom ? "bottom" : "safe"]);
         dialog(crit, { ...ctxWith(pick1(S.rivals)), tension: bottom }, () =>
           untucked({ winner, bottomRows }, () =>
             (tw === "moneda" && bottomRows.length === 3 ? coinFlip : (x, cb) => cb(x.bottomRows))({ winner, bottomRows }, (pair) =>
-              elimination({ winner, bottomRows: pair }),
+              elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2) }),
             ),
           ),
         );
@@ -703,18 +784,19 @@ const Story = (() => {
         const owner = all.map((_, i) => (i === mine ? S.queen : others[k++]));
         const lucky = owner[winnerIdx];
         S.luck = keyOf(lucky);
+        // Es secreto: solo ves lo que hay en TU caja
         body().querySelectorAll(".box").forEach((x, i) => {
           x.disabled = true;
-          x.classList.add("open");
-          x.innerHTML = i === winnerIdx ? "🍀" : "✖";
-          if (i === mine) x.classList.add("mine");
+          if (i === mine) {
+            x.classList.add("open", "mine");
+            x.innerHTML = i === winnerIdx ? "🍀" : "✖";
+          } else x.classList.add("closed");
         });
         setTimeout(() => {
           header();
-          Toast.show(lucky === S.queen ? "🍀 ¡Te ha tocado a TI!" : `🍀 La tiene ${lucky.name}`, lucky === S.queen ? "Guárdala para el momento justo" : "Puede usarla cuando quiera");
-          if (lucky !== S.queen) changeRel(lucky, 0);
+          Toast.show(lucky === S.queen ? "🍀 ¡Te ha tocado a TI!" : "✖ Tu caja está vacía", lucky === S.queen ? "Nadie lo sabe. Guárdala para el momento justo" : "Alguna compañera la tiene... pero nadie dice quién");
           then();
-        }, 1400);
+        }, 1600);
       }),
     );
   }
@@ -757,7 +839,7 @@ const Story = (() => {
         const o = opts[+b.dataset.i];
         const ctx = ctxWith(o.q);
         if (o.kind === "enemiga") return dialog(HISTORIA.untucked.enemiga[0], ctx, then, HISTORIA.untucked.enemigaChoices);
-        dialog(pick1(HISTORIA.untucked[o.kind]), ctx, () => {
+        dialog(pickFresh(HISTORIA.untucked[o.kind]), ctx, () => {
           changeRel(o.q, o.kind === "bottom" ? 2 : 1);
           then();
         });
@@ -767,10 +849,10 @@ const Story = (() => {
   }
 
   // Quién se va esta semana
-  function elimination({ winner, bottomRows }) {
+  function elimination({ winner, bottomRows, top2 }) {
     const meBottom = bottomRows.some((r) => r.me);
     const others = bottomRows.filter((r) => !r.me).map((r) => r.q);
-    if (twistOf() === "allstars") return allStarsDecision(winner, bottomRows);
+    if (twistOf() === "allstars") return topLipSync(top2, (dec) => allStarsDecision(dec, bottomRows));
     if (meBottom) return lipSync(others[0], false);
     const [a, b] = others;
     // Doble sashay (muy raro)
@@ -797,7 +879,7 @@ const Story = (() => {
       <div class="story-card">
         <p class="eyebrow">Lip sync for your life</p>
         <h3>${esc(stay.name)} vs ${esc(go.name)}</h3>
-        <p class="muted">${esc(fill(pick1(HISTORIA.lipsyncOtras), { a: stay.name, b: go.name }))}</p>
+        <p class="muted">${esc(fill(pickFresh(HISTORIA.lipsyncOtras), { a: stay.name, b: go.name }))}</p>
         <div class="vs"><img src="${photo(stay)}"><span>VS</span><img class="gone" src="${photo(go)}"></div>
         <p><b>${esc(stay.name)}</b>, shantay you stay. <b>${esc(go.name)}</b>, sashay away.</p>
         <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
@@ -805,7 +887,62 @@ const Story = (() => {
     $("#story-next").addEventListener("click", nextEpisode);
   }
 
-  // All Stars: la ganadora del reto decide quién se va
+  // All Stars: las dos del top hacen lip sync; la ganadora elige a quién mandar a casa
+  function topLipSync(top2, then) {
+    const [a, b] = top2;
+    const meTop = top2.find((r) => r.me);
+    if (meTop) {
+      const rival = top2.find((r) => !r.me).q;
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💄 Lip sync por el poder</p>
+          <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
+          <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
+          <p>La que gane decide quién de las dos del bottom se va a casa.</p>
+          <button class="btn btn-primary" id="story-ls">¡A la pasarela!</button>
+        </div>`;
+      Music.play("tension");
+      $("#story-ls").addEventListener("click", () =>
+        Curtain.run(() => {
+          Music.stop();
+          UI.show("game");
+          Game.start(Wardrobe.boosted(S.queen), S.season, (res) => {
+            UI.show("story");
+            header();
+            S.points += Math.round(res.score || 0);
+            if (res.won) {
+              S.lipsyncs++;
+              S.points += 1000;
+              if (S.lipsyncs >= 3) Achievements.unlock("superviviente");
+              Toast.show("💄 ¡Has ganado el lip sync!", "Tienes el poder de decidir");
+              mark(S.queen, "WIN");
+              return then({ q: S.queen, me: true });
+            }
+            Toast.show(`💄 ${rival.name} gana el lip sync`, "Ella decide");
+            mark(rival, "WIN");
+            then({ q: rival });
+          }, { rivals: [rival], story: true });
+        }, "LIP SYNC POR EL PODER"),
+      );
+      return;
+    }
+    const pa = clamp(0.5 + (skillOf(a.q) + (S.form[a.q.id] || 0) - skillOf(b.q) - (S.form[b.q.id] || 0)) / 40, 0.25, 0.75);
+    const [w, l] = Math.random() < pa ? [a.q, b.q] : [b.q, a.q];
+    header();
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">💄 Lip sync por el poder</p>
+        <h3>${esc(w.name)} vs ${esc(l.name)}</h3>
+        <p class="muted">${esc(fill(pickFresh(HISTORIA.lipsyncOtras), { a: w.name, b: l.name }))}</p>
+        <div class="vs"><img src="${photo(w)}"><span>👑</span><img src="${photo(l)}"></div>
+        <p><b>${esc(w.name)}</b> gana y tiene el pintalabios: decide quién se va.</p>
+        <button class="btn btn-primary" id="story-next">Continuar</button>
+      </div>`;
+    mark(w, "WIN");
+    $("#story-next").addEventListener("click", () => then({ q: w }));
+  }
+
+  // All Stars: la ganadora del lip sync del top decide quién se va
   function allStarsDecision(winner, bottomRows) {
     const pair = bottomRows.map((r) => r.q);
     if (winner.me) {
@@ -868,6 +1005,7 @@ const Story = (() => {
   }
 
   function eliminate(q) {
+    if (S.track[q.id] && S.track[q.id][S.ep] && S.epNames[S.ep] !== "Final") mark(q, "ELIM");
     S.rivals = S.rivals.filter((r) => r !== q);
     S.out.unshift(q);
     legacyHeart(q);
@@ -939,6 +1077,9 @@ const Story = (() => {
     while (S.rivals.length > Math.ceil(S.season.cast.length / 2) - 1 && S.rivals.length > 3) {
       const sorted = S.rivals.slice().sort((a, b) => rivalScore(a) - rivalScore(b));
       const go = sorted[0];
+      S.ep++;
+      S.epNames[S.ep] = "Sin ti";
+      sorted.forEach((q, k) => mark(q, k === sorted.length - 1 ? "WIN" : k <= 1 ? "BTM2" : "SAFE"));
       eliminate(go);
       log.push(go);
     }
@@ -1000,7 +1141,7 @@ const Story = (() => {
   function finale() {
     const reto = RETOS.pasarela;
     const titulo = "La pasarela de coronación";
-    dialog(pick1(HISTORIA.final), ctxWith(S.rivals[0]), () =>
+    dialog(pickFresh(HISTORIA.final), ctxWith(S.rivals[0]), () =>
       challengeIntro(reto, titulo, "pasarela", (score) => {
         if (S.bottoms === 0) Achievements.unlock("sin-bottom");
         S.points += score * 10;
@@ -1008,6 +1149,8 @@ const Story = (() => {
         const total = (q) => (S.record[keyOf(q)] || 0) * 6 + (q === S.queen ? score : rivalScore(q));
         const ranked = [S.queen, ...S.rivals].map((q) => ({ q, t: total(q) })).sort((a, b) => b.t - a.t);
         const third = ranked[2].q;
+        S.epNames[S.ep] = "Final";
+        ranked.forEach((r, k) => mark(r.q, k < 2 ? "FINAL" : "3ª"));
         header();
         body().innerHTML = `
           <div class="story-card">
@@ -1025,8 +1168,20 @@ const Story = (() => {
     );
   }
 
+  function theEndRebind(q, s) {
+    $("#story-menu").addEventListener("click", () => { abandon(); UI.show("menu"); });
+    $("#story-again").addEventListener("click", () => start(q, s));
+    $("#story-scores").addEventListener("click", () => { UI.scoresTab("story"); UI.show("scores"); });
+    $("#story-track").addEventListener("click", () => showTrack(() => { body().innerHTML = S.endHTML; theEndRebind(q, s); }, "Volver"));
+  }
   function theEnd(won, rival, forCrown, reason, forcedPlace) {
     const place = forcedPlace || (won ? 1 : forCrown ? 2 : S.rivals.length + 1);
+    S.finished = true;
+    S.wonAll = won;
+    if (S.epNames[S.ep] === "Final") {
+      if (won) { mark(S.queen, "WINNER"); if (rival) mark(rival, "RUNNER-UP"); }
+      else if (forCrown) { mark(S.queen, "RUNNER-UP"); mark(rival, "WINNER"); }
+    } else if (!won && S.track.me && S.track.me[S.ep]) mark(S.queen, "ELIM");
     const entry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name: store.get("dftc-name", ""),
@@ -1067,6 +1222,7 @@ const Story = (() => {
             <input id="story-name" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="${esc(entry.name)}"></label>` : ""}
           <div class="row">
             <button class="btn btn-ghost" id="story-menu">Menú</button>
+            <button class="btn btn-ghost" id="story-track">📊</button>
             <button class="btn btn-ghost" id="story-scores">🏆</button>
             <button class="btn btn-primary" id="story-again">Otra vez</button>
           </div>
@@ -1084,6 +1240,8 @@ const Story = (() => {
     }
     $("#story-menu").addEventListener("click", () => { abandon(); UI.show("menu"); });
     $("#story-again").addEventListener("click", () => start(q, s));
+    S.endHTML = body().innerHTML;
+    $("#story-track").addEventListener("click", () => showTrack(() => { body().innerHTML = S.endHTML; theEndRebind(q, s); }, "Volver"));
     $("#story-scores").addEventListener("click", () => { UI.scoresTab("story"); UI.show("scores"); });
   }
 

@@ -1459,3 +1459,34 @@ kbd { color: var(--ink) !important; background: #fff !important; border-color: r
 .choice-col { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-top: 14px; }
 .choice-col .btn { font-size: 20px; padding: 14px 28px; }
 #story-season { white-space: normal !important; overflow: visible !important; line-height: 1.9; }
+.box.closed { opacity: .55; filter: grayscale(.4); }
+/* Track record */
+.story-card.track-card { width: 1240px; padding: 26px 24px; }
+.track-wrap { max-height: 560px; overflow: auto; border-radius: 16px; box-shadow: var(--shadow); background: #fff; margin: 10px 0 6px; }
+.track { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; color: var(--ink); }
+.track th { position: sticky; top: 0; z-index: 1; background: #3b0d4f; color: #fff; padding: 8px 6px; font: 800 12px "Poppins", sans-serif; white-space: nowrap; }
+.track th small { display: block; font-weight: 600; font-size: 10px; opacity: .8; }
+.track td { padding: 0; height: 46px; text-align: center; font-weight: 800; font-size: 12px; border-bottom: 1px solid #f1dce9; border-right: 1px solid #f1dce9; min-width: 64px; }
+.track tbody tr { animation: rise .4s var(--ease-out) both; animation-delay: calc(var(--i,0) * 35ms); }
+.track td.rk { min-width: 44px; background: #fff; }
+.track td.qn { text-align: left; min-width: 210px; padding: 0 10px; background: #fff; }
+.track td.qn i { display: inline-block; vertical-align: middle; width: 34px; height: 34px; border-radius: 50%; background: center 20% / cover; margin-right: 8px; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+.track td.qn span { vertical-align: middle; }
+.track tr.me td.qn, .track tr.me td.rk { background: #fff5d6; }
+.track tr.out td.qn span { opacity: .6; }
+.track td.ppe { background: #fff; min-width: 54px; }
+.t-win { background: #2f6fe0; color: #fff; }
+.t-top2 { background: #19b6f0; color: #fff; }
+.t-high { background: #aee0ff; }
+.t-safe { background: #fff; }
+.t-low { background: #ffc4d6; }
+.t-btm { background: #ff6f4f; color: #fff; }
+.t-elim { background: #e8132f; color: #fff; }
+.t-final { background: #bdf5a6; }
+.t-runner { background: #ffb84a; }
+.t-third { background: #ff8a3d; color: #fff; }
+.t-gone { background: #c9c3cc; }
+.t-none { background: #fff; }
+.track td.t-win:first-letter { }
+.track-wrap { display: flex; justify-content: center; }
+.track { width: auto; min-width: 70%; }

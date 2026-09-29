@@ -159,9 +159,18 @@ const UI = (() => {
   const details = $("#queen-details");
 
   // En arcade, la ganadora de cada temporada se desbloquea al coronarte en el modo historia
-  const storyCrowns = () => store.get("dftc-story-wins", []);
-  const lockedArcade = (q) =>
-    mode === "arcade" && currentSeason && !currentSeason.enEmision && q.id === currentSeason.winner && !storyCrowns().includes(currentSeason.id);
+  // Arcade: en cada temporada empiezas con una reina; ganar con ella desbloquea la siguiente
+  const arcadeUnlocked = (sid) => store.get("dftc-arcade-queens", {})[sid] || 1;
+  const lockedArcade = (q) => mode === "arcade" && !!currentSeason && currentSeason.cast.indexOf(q.id) >= arcadeUnlocked(currentSeason.id);
+  function unlockNextQueen(season, queenId) {
+    const all = store.get("dftc-arcade-queens", {});
+    const have = all[season.id] || 1;
+    const idx = season.cast.indexOf(queenId);
+    if (idx < 0 || idx + 1 !== have || have >= season.cast.length) return null;
+    all[season.id] = have + 1;
+    store.set("dftc-arcade-queens", all);
+    return QUEENS.find((x) => x.id === season.cast[have]);
+  }
   function renderGrid() {
     grid.innerHTML = "";
     $("#select-season").textContent = `${currentSeason.franchise.name} · ${currentSeason.name}`;
@@ -221,7 +230,8 @@ const UI = (() => {
     );
     $("#det-power").textContent = q.power.name;
     $("#det-power-desc").textContent = q.power.desc;
-    $("#det-lock").innerHTML = locked ? "🔒 Corónate en el modo historia de esta temporada para jugar con ella en arcade." : "";
+    const prevQ = locked && QUEENS.find((x) => x.id === currentSeason.cast[arcadeUnlocked(currentSeason.id) - 1]);
+    $("#det-lock").innerHTML = locked ? `🔒 Gana esta temporada con <b>${esc(prevQ ? prevQ.name : "la anterior")}</b> para desbloquear a la siguiente reina.` : "";
     details.classList.add("open");
   }
 
@@ -266,6 +276,8 @@ const UI = (() => {
     if (stats.unlockedSeason) msg = `🔓 ¡Desbloqueada ${stats.seasonObj.franchise.name} · ${stats.unlockedSeason.name}!`;
     else if (stats.won && stats.seasonObj.index === stats.seasonObj.franchise.seasons.length - 1)
       msg = `🏆 ¡Has completado ${stats.seasonObj.franchise.name}!`;
+    const newQueen = stats.won ? unlockNextQueen(stats.seasonObj, stats.queen) : null;
+    if (newQueen) msg = (msg ? msg + " · " : "") + `👑 ¡Desbloqueada ${newQueen.name}!`;
     const earned = Wallet.add(stats.score / 80);
     if (earned) msg = (msg ? msg + " · " : "") + `+${earned} lentejuelas ✨`;
     if (stats.won) {
