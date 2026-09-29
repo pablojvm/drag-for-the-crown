@@ -71,11 +71,13 @@ const UI = (() => {
   // Fondo con la foto y, debajo, la silueta por si la foto aún no existe
   const portraitBg = (q, sid) => `url('${lookOf(q, sid).portrait}'), url('${q.portrait}'), url('${placeholderSVG(q.name, true)}')`;
 
+  // Coronas según el modo: arcade y historia llevan su propia cuenta
+  const wonIn = (id) => (mode === "story" ? store.get("dftc-story-wins", []).includes(id) : Progress.hasWon(id));
   function renderFranchises() {
     const grid = $("#franchise-grid");
     grid.innerHTML = "";
     FRANCHISES.forEach((f) => {
-      const won = f.seasons.filter((s) => Progress.hasWon(s.id)).length;
+      const won = f.seasons.filter((s) => wonIn(s.id)).length;
       const faces = [...new Set(f.seasons.flatMap((s) => s.cast.slice(-2)))].slice(0, 6);
       const card = document.createElement("button");
       card.className = "franchise-card" + (f.comingSoon ? " soon" : "");
@@ -88,7 +90,7 @@ const UI = (() => {
             ? `<span class="soon-badge">Próximamente</span>`
             : `<span class="faces">${faces.map((id) => `<i style="background-image:${portraitBg(queenById2(id))}"></i>`).join("")}</span>
         <span class="f-progress"><span class="progress"><span style="width:${(won / f.seasons.length) * 100}%"></span></span>
-        <small>${won}/${f.seasons.length} temporadas ganadas</small></span>`
+        <small>👑 ${won} de ${f.seasons.length} ${f.seasons.length === 1 ? "temporada ganada" : "temporadas ganadas"} ${mode === "story" ? "en historia" : "en arcade"}</small></span>`
         }`;
       card.addEventListener("click", () => {
         if (f.comingSoon) {
@@ -115,7 +117,7 @@ const UI = (() => {
       .filter((s) => s.franchise.id === f.id)
       .forEach((s) => {
         const unlocked = mode === "story" || Progress.isSeasonUnlocked(s);
-        const won = Progress.hasWon(s.id);
+        const won = wonIn(s.id);
         const card = document.createElement("button");
         const cover = typeof PORTADAS !== "undefined" && PORTADAS[s.id];
         card.className = "season-card" + (unlocked ? "" : " locked") + (won ? " won" : "") + (cover ? " has-cover" : "");

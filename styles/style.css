@@ -1550,3 +1550,18 @@ td.t-miss { background: linear-gradient(135deg, #ffd6ec, #ffe9a8); color: var(--
 .track-modal .story-card { background: #fffafd !important; }
 #touch-controls .btn-special.ready { animation: sp-ready .8s ease-in-out infinite; box-shadow: 0 0 0 4px rgba(255,184,0,.6), 0 0 24px #ffb800; }
 @keyframes sp-ready { 50% { transform: scale(1.15); } }
+.group-chip { font-style: normal; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgba(18, 194, 214, 0.14); color: var(--ink); white-space: nowrap; }
+.groups { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin: 14px 0; }
+.group-col { min-width: 200px; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; background: rgba(255, 255, 255, 0.85); box-shadow: var(--shadow); animation: card-in .5s ease both; animation-delay: calc(var(--i) * .15s); }
+.group-col > b { font-size: 16px; }
+.group-col span { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.group-col span i { width: 34px; height: 34px; border-radius: 50%; background: center 20% / cover; border: 2px solid #fff; flex: none; }
+.choice-col small { font-weight: 500; opacity: .75; }
+.heart-chip { font-style: normal; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: #ffe3ea; color: #d6204f; white-space: nowrap; }
+td.hearts { font-weight: 800; color: #d6204f; white-space: nowrap; }
+#story-cast i { position: relative; }
+#story-cast i[data-h]:not([data-h=""])::after { content: "❤" attr(data-h); position: absolute; right: -6px; bottom: -6px; font: 800 10px/1 Poppins, sans-serif; color: #fff; background: #ff3d6e; padding: 2px 4px; border-radius: 8px; font-style: normal; }
+.franchise-card .f-progress { display: flex; flex-direction: column; gap: 6px; }
+.franchise-card .progress { height: 10px !important; margin: 0 !important; border-radius: 999px !important; background: rgba(59, 13, 79, 0.12) !important; box-shadow: inset 0 1px 2px rgba(59, 13, 79, 0.15); }
+.franchise-card .progress span { border-radius: 999px; background: linear-gradient(90deg, var(--pink), var(--gold)) !important; transition: width .6s ease; }
+.franchise-card .f-progress small { font-weight: 600; }

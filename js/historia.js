@@ -136,7 +136,7 @@ const Story = (() => {
     return {
       queen, season, rivals, out: [], ep: 0, wins: 0, bottoms: 0, points: 0, lipsyncs: 0, rel: {}, streak: 0,
       record: {}, form: {}, hearts: {}, memories: [], track: {}, epNames: {}, luck: undefined, flags: {}, advice: 0, helped: false, meOut: false,
-      roles: {}, known: {}, order: null, missC: null,
+      roles: {}, known: {}, order: null, missC: null, groups: null, myGroup: null,
     };
   }
   function start(queen, season) {
@@ -156,7 +156,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -279,6 +279,7 @@ const Story = (() => {
       }
       Object.entries(c.rel || {}).forEach(([key, d]) => changeRel(ctx.q[key], d));
       if (c.effect === "ayuda") S.helped = true;
+      if (c.after && pendingSide) { pendingSide(c.after); pendingSide = null; }
       choices = null;
       lines = [["me", c.txt], ...(c.reply ? [c.reply] : [])];
       i = 0;
@@ -363,6 +364,127 @@ const Story = (() => {
   const withRole = (role) => S.rivals.filter((q) => S.roles[q.id] === role);
   const roleChip = (q) => (roleKnown(q) ? `<em class="role-chip">${roleOf(q).icon} ${esc(roleOf(q).name)}</em>` : `<em class="role-chip unk">❓ Rol por descubrir</em>`);
 
+  // --------------------------- Alianzas ----------------------------------
+  const groupOf = (q) => (S.groups || []).find((g) => (q === S.queen ? S.myGroup === g.id : g.members.includes(q.id))) || null;
+  const sameGroup = (a, b) => { const g = groupOf(a); return !!g && g === groupOf(b); };
+  // Afinidad de a hacia b por los grupos: se apoyan dentro, chocan fuera
+  const groupAff = (a, b) => { const ga = groupOf(a), gb = groupOf(b); return !ga || !gb ? 0 : ga === gb ? 2.5 : -0.8; };
+  // T5: corazones de cada reina (medio corazón = 1)
+  const heartsTxt = (k) => { const h = (S.hearts[k] || 0) / 2; return h ? `❤️ ${String(h).replace(".", ",")}` : "🤍 0"; };
+  const heartChip = (q) => (twistOf() === "corazon" ? `<em class="heart-chip">${heartsTxt(keyOf(q))}</em>` : "");
+  const groupChip = (q) => { const g = groupOf(q); return g ? `<em class="group-chip">${g.icon} ${esc(g.name)}</em>` : ""; };
+  const groupMembers = (g) => g.members.map(qById).filter((q) => q && S.rivals.includes(q));
+  function formGroups(then) {
+    S.flags.groups = true;
+    const pool = shuffle(S.rivals.slice());
+    const n = pool.length >= 9 ? 3 : 2;
+    const names = shuffle(GRUPOS.nombres).slice(0, n);
+    S.groups = names.map((nm, i) => ({ id: "g" + i, name: nm.name, icon: nm.icon, members: [] }));
+    let k = 0;
+    S.groups.forEach((g) => { const size = 3 + (Math.random() < 0.5 ? 1 : 0); g.members = pool.slice(k, k + size).map((q) => q.id); k += size; });
+    S.groups = S.groups.filter((g) => g.members.length >= 2);
+    const [A, B] = S.groups;
+    const a = qById(A.members[0]), b = qById(B.members[0]);
+    const ctx = { ...ctxWith(a, { r2: b }), q: { r1: a, r2: b, r3: b }, r1: a.name, r2: b.name, g1: A.name, g2: B.name, tension: true };
+    dialog(pickFresh(GRUPOS.formacion), ctx, () => {
+      header();
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">🤝 Alianzas en el taller</p>
+          <h3>Se han formado grupos</h3>
+          <div class="groups">${S.groups.map((g, i) => `<div class="group-col" style="--i:${i}"><b>${g.icon} ${esc(g.name)}</b>${groupMembers(g).map((q) => `<span><i style="background-image:url('${photo(q)}')"></i>${esc(q.name)}</span>`).join("")}</div>`).join("")}</div>
+          <p class="muted">Las que no están en ningún grupo van por libre.</p>
+          <button class="btn btn-primary" id="story-next">Continuar</button>
+        </div>`;
+      $("#story-next").addEventListener("click", () => invite(then));
+    });
+  }
+  // Te invitan los grupos que mejor te ven (o todos, si caes bien)
+  function invite(then) {
+    const avg = (g) => groupMembers(g).reduce((t, q) => t + relOf(q), 0) / Math.max(1, groupMembers(g).length);
+    const inv = S.groups.slice().sort((x, y) => avg(y) - avg(x)).slice(0, 2);
+    const g = inv[0], lead = groupMembers(g)[0];
+    const ctx = { ...ctxWith(lead), q: { r1: lead }, r1: lead.name, g1: g.name, g2: (inv[1] || g).name };
+    dialog(pickFresh(GRUPOS.invitacion), ctx, () => {
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">🤝 Te quieren en su grupo</p>
+          <h3>¿Con quién te alías?</h3>
+          <p>Las de tu grupo te apoyarán y votarán a tu favor. Los otros grupos... no tanto.</p>
+          <div class="choice-col">${inv.map((x, i) => `<button class="btn btn-ghost" data-g="${i}">${x.icon} Unirme a ${esc(x.name)} <small>(${groupMembers(x).map((q) => esc(q.name)).join(", ")})</small></button>`).join("")}
+            <button class="btn btn-primary" id="solo">🦋 Ir por libre</button></div>
+        </div>`;
+      body().querySelectorAll("[data-g]").forEach((b) => b.addEventListener("click", () => {
+        const x = inv[+b.dataset.g];
+        S.myGroup = x.id;
+        groupMembers(x).forEach((q) => { S.rel[q.id] = clamp(relOf(q) + 1, -3, 3); });
+        S.groups.filter((o) => o !== x).forEach((o) => groupMembers(o).forEach((q) => (S.rel[q.id] = clamp(relOf(q) - 1, -3, 3))));
+        Toast.show(`${x.icon} Ahora eres de ${x.name}`, "Tu grupo te cubre las espaldas");
+        header();
+        then();
+      }));
+      $("#solo").addEventListener("click", () => {
+        S.advice += 3;
+        Toast.show("🦋 Vas por libre", "+3 en el próximo reto. Nadie te debe nada");
+        then();
+      });
+    });
+  }
+  // Escena de grupos: choque entre bandos, apoyo del tuyo o roce interno
+  function groupEvent(then) {
+    const live = (S.groups || []).filter((g) => groupMembers(g).length >= 1);
+    const mine = live.find((g) => g.id === S.myGroup);
+    const r = Math.random();
+    if (mine && groupMembers(mine).length && r < 0.3) {
+      const [a, b] = shuffle(groupMembers(mine));
+      const other = live.find((g) => g !== mine) || mine;
+      const ctx = { ...ctxWith(a, { r2: b || a }), q: { r1: a, r2: b || a, r3: b || a }, r1: a.name, r2: (b || a).name, g1: mine.name, g2: other.name };
+      return dialog(pickFresh(GRUPOS.apoyo), ctx, () => {
+        S.advice += 3;
+        Toast.show(`${mine.icon} Tu grupo te apoya`, "+3 en el próximo reto");
+        then();
+      });
+    }
+    if (mine && groupMembers(mine).length && r < 0.42) {
+      const a = pick1(groupMembers(mine));
+      const other = live.find((g) => g !== mine) || mine;
+      const ctx = { ...ctxWith(a), q: { r1: a }, r1: a.name, g1: mine.name, g2: other.name, tension: true };
+      return dialog(pickFresh(GRUPOS.roce), ctx, then, [
+        { txt: "Tienes razón. Estoy contigo, no lo dudes.", rel: { r1: 1 }, reply: ["r1", "Eso quería oír."] },
+        { txt: "Yo hablo con quien quiera, {r1}.", rel: { r1: -2 }, bonus: 120, reply: ["r1", "Vale. Pues ya sé a qué atenerme."] },
+      ]);
+    }
+    const pair = shuffle(live.filter((g) => groupMembers(g).length)).slice(0, 2);
+    if (pair.length < 2) return then();
+    // Si eres de uno de los dos, ese va primero
+    if (mine && pair.includes(mine) && pair[0] !== mine) pair.reverse();
+    const [G1, G2] = pair;
+    const a = pick1(groupMembers(G1)), b = pick1(groupMembers(G2));
+    const ctx = { ...ctxWith(a, { r2: b }), q: { r1: a, r2: b, r3: b }, r1: a.name, r2: b.name, g1: G1.name, g2: G2.name, tension: true };
+    const sideWith = (G, d) => groupMembers(G).forEach((q) => (S.rel[q.id] = clamp(relOf(q) + d, -3, 3)));
+    const ev = pickFresh(GRUPOS.choque);
+    const choices = mine === G1
+      ? [
+          { txt: "¡Eso, {r1}! {g1} no se calla.", effect: "g1", bonus: 100, reply: ["r2", "Claro, la otra de {g1}. Qué sorpresa."] },
+          { txt: "Chicas, calma, que así no ganamos nadie.", effect: "calma", reply: ["r1", "Vale... pero que conste que empezaron ellas."] },
+        ]
+      : [
+          { txt: "Estoy con {r1} y {g1}.", effect: "g1", reply: ["r1", "¡Gracias! Por fin alguien con criterio."] },
+          { txt: "Pues yo con {r2}. Tiene razón.", effect: "g2", reply: ["r2", "¿Ves? Hasta {yo} lo ve."] },
+          { txt: "(Seguir a lo tuyo, que esto no va contigo)", effect: "nada", reply: ["r1", "Muy bien, Suiza. Tú sigue cosiendo."] },
+        ];
+    dialog(ev.lines, ctx, then, choices.map((c) => ({ ...c, after: c.effect })));
+    // Consecuencias: el choque cambia cómo te ven los dos grupos
+    pendingSide = (eff) => {
+      if (eff === "g1") { sideWith(G1, 1); sideWith(G2, -1); Toast.show(`${G1.icon} ${G1.name} te lo agradece`, `${G2.icon} ${G2.name} toma nota`); }
+      if (eff === "g2") { sideWith(G2, 1); sideWith(G1, -1); Toast.show(`${G2.icon} ${G2.name} te lo agradece`, `${G1.icon} ${G1.name} toma nota`); }
+      if (eff === "calma") { S.advice += 2; Toast.show("🕊️ Pones paz", "+2 en el próximo reto"); }
+      if (eff === "nada") S.advice += 1;
+      header();
+    };
+  }
+  let pendingSide = null;
+
   // Track record a mano en cualquier decisión
   const trackBtn = () => `<button class="btn btn-ghost small-btn track-peek">📊 Ver track record</button>`;
   function bindTrack() {
@@ -408,7 +530,7 @@ const Story = (() => {
     let chip = "";
     const tw = twistOf();
     if (tw === "moneda") chip = "🪙 Bottom de 3 y moneda al aire";
-    if (tw === "corazon") chip = `❤️ Tienes ${((S.hearts.me || 0) / 2).toString().replace(".", ",")} corazones`;
+    if (tw === "corazon") { const h = (S.hearts.me || 0) / 2; chip = `❤️ Tienes ${String(h).replace(".", ",")} ${h === 1 ? "corazón" : "corazones"}`; }
     if (tw === "suerte") chip = S.luck === undefined ? "🍀 Cajitas por abrir" : S.luck === "me" ? "🍀 ¡La tienes tú! (en secreto)" : S.luck ? "🍀 ¿Quién la tendrá?" : "🍀 Ya se ha usado";
     if (tw === "repesca") chip = S.flags.repesca ? "🔁 Repesca hecha" : "🔁 Repesca pendiente";
     if (tw === "allstars") chip = "💄 Decide la ganadora";
@@ -420,7 +542,8 @@ const Story = (() => {
       all
         .map((q) => {
           const r = q === S.queen ? "me" : relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : "";
-          return `<i title="${esc(q.name)} · ${esc(q === S.queen ? "Tú" : relLabel(q))}" class="${r}" style="background-image:url('${photo(q)}')"></i>`;
+          const ht = twistOf() === "corazon" ? ` · ${heartsTxt(keyOf(q))}` : "";
+          return `<i title="${esc(q.name)} · ${esc(q === S.queen ? "Tú" : relLabel(q))}${ht}" data-h="${twistOf() === "corazon" && S.hearts[keyOf(q)] ? String(S.hearts[keyOf(q)] / 2).replace(".", ",") : ""}" class="${r}" style="background-image:url('${photo(q)}')"></i>`;
         })
         .join("") +
       S.out.map((q) => `<i title="${esc(q.name)}" class="out" style="background-image:url('${photo(q)}')"></i>`).join("");
@@ -477,6 +600,10 @@ const Story = (() => {
     const eps = Object.keys(S.epNames).map(Number).sort((a, b) => a - b);
     const everyone = [S.queen, ...S.rivals, ...S.out];
     const count = (k, test) => eps.filter((e) => test((S.track[k] || {})[e] || "")).length;
+    // Orden de las que siguen: cómo quedaron en el último episodio con resultados
+    const ORDER = { WINNER: 0, WIN: 1, "RUNNER-UP": 2, TOP2: 3, FINAL: 3, HIGH: 4, "3ª": 5, SAFE: 6, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9 };
+    const lastScored = [...eps].reverse().find((e) => everyone.some((q) => ORDER[(S.track[keyOf(q)] || {})[e]] !== undefined));
+    const lastRank = (k) => { const l = lastScored && (S.track[k] || {})[lastScored]; return ORDER[l] !== undefined ? ORDER[l] : 7.5; };
     const lastEp = (k) => Math.max(0, ...eps.filter((e) => (S.track[k] || {})[e] && S.track[k][e] !== "MISSC"));
     const isOut = (q) => (q === S.queen ? S.meOut || !!S.finished && !S.wonAll : S.out.includes(q));
     const rows = everyone
@@ -489,7 +616,7 @@ const Story = (() => {
           s: count(k, (l) => l === "SAFE"), lo: count(k, (l) => l === "LOW"), b: count(k, (l) => /^BTM/.test(l)),
         };
       })
-      .sort((a, b) => a.out - b.out || (a.out ? b.last - a.last : 0) || b.w - a.w || b.h - a.h || b.s - a.s || a.lo - b.lo || a.b - b.b);
+      .sort((a, b) => a.out - b.out || (a.out ? b.last - a.last : 0) || lastRank(a.k) - lastRank(b.k) || b.w - a.w || b.h - a.h || b.s - a.s || a.lo - b.lo || a.b - b.b);
     const ppe = (k) => {
       const V = { WIN: 5, WINNER: 5, TOP2: 4.5, HIGH: 4, SAFE: 3, LOW: 2, BTM2: 1, BTM3: 1, ELIM: 0 };
       const v = eps.map((e) => V[(S.track[k] || {})[e]]).filter((x) => x !== undefined);
@@ -497,12 +624,12 @@ const Story = (() => {
     };
     return `
       <div class="track-wrap"><table class="track">
-        <thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(S.epNames[e])}</small></th>`).join("")}<th>PPE</th></tr></thead>
+        <thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(S.epNames[e])}</small></th>`).join("")}${twistOf() === "corazon" ? "<th>❤️</th>" : ""}<th>PPE</th></tr></thead>
         <tbody>${rows
           .map((r, i) => `<tr class="${r.q === S.queen ? "me" : ""} ${r.out ? "out" : ""}" style="--i:${i}"><td class="rk">${i + 1}º</td>
             <td class="qn"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${r.q === S.queen ? " <b>(tú)</b>" : roleKnown(r.q) ? ` <small title="${esc(roleOf(r.q).name)}">${roleOf(r.q).icon}</small>` : ""}</span></td>
             ${eps.map((e) => { const l = (S.track[r.k] || {})[e]; return `<td class="${l ? TRACK_CLASS(l) : r.last && e > r.last && S.epNames[e] !== "Reencuentro" ? "t-gone" : "t-none"}">${l ? LAB_ES[l] || l : ""}</td>`; }).join("")}
-            <td class="ppe">${ppe(r.k)}</td></tr>`)
+            ${twistOf() === "corazon" ? `<td class="hearts">${r.out ? "–" : heartsTxt(r.k)}</td>` : ""}<td class="ppe">${ppe(r.k)}</td></tr>`)
           .join("")}</tbody>
       </table></div>`;
   }
@@ -556,7 +683,12 @@ const Story = (() => {
   function workroom() {
     const ctx = ctxWith(pick1(S.rivals));
     let lines;
-    const go = () => memoryTalk(() => rolePassives(() => (Math.random() < 0.55 ? roleScene : maybeEvent)(() => hub(() => announce()))));
+    const scene = (then) => {
+      const r = Math.random();
+      if (S.groups && r < 0.4) return groupEvent(then);
+      return (r < 0.72 ? roleScene : maybeEvent)(then);
+    };
+    const go = () => memoryTalk(() => rolePassives(() => (S.ep >= 2 && !S.flags.groups && S.rivals.length >= 5 ? formGroups : scene)(() => hub(() => announce()))));
     if (S.ep === 1 && twistOf() === "suerte" && S.luck === undefined) {
       return dialog(seasonInfo().intro, ctx, () => pickLuckBox(() => dialog(pickFresh(HISTORIA.tallerPrimerDia), ctxWith(pick1(S.rivals)), go)));
     }
@@ -620,7 +752,7 @@ const Story = (() => {
         <h3>¿Con quién quieres hablar?</h3>
         <p class="muted">Solo te da tiempo a una conversación antes del reto.</p>
         <div class="hub-grid">${S.rivals
-          .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}</button>`)
+          .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}${groupChip(q)}${heartChip(q)}</button>`)
           .join("")}</div>
         <div class="row"><button class="btn btn-ghost" id="hub-skip">🎯 Concentrarme en mi reto</button>${trackBtn()}</div>
       </div>`;
@@ -639,7 +771,7 @@ const Story = (() => {
         <div>
           <p class="eyebrow">${esc(relLabel(q))}</p>
           <h3>${esc(q.name)}</h3>
-          <p>${roleChip(q)}</p>
+          <p>${roleChip(q)} ${groupChip(q)} ${heartChip(q)}</p>
           <p>¿Qué quieres hacer?</p>
           <div class="approach-list">${HISTORIA.enfoques
             .map((a) => `<button class="btn btn-ghost role" data-a="${a.id}"><b>${a.icon} ${a.txt}</b><small>${a.desc}</small></button>`)
@@ -771,12 +903,7 @@ const Story = (() => {
       notes.push(`${how} <b>${esc(row.q.name)}</b> se salva y <b>${esc(next.q.name)}</b> entra en el bottom.`);
       return true;
     };
-    // Las rivales usan sus comodines solas
-    if (tw === "suerte" && S.luck && S.luck !== "me") {
-      const holder = qById(S.luck);
-      const row = bottomRows.find((r) => r.q === holder);
-      if (row && Math.random() < 0.75 && saveRow(row, `🍀 ¡Sorpresa! ${esc(holder.name)} tenía la reina de la suerte:`)) S.luck = null;
-    }
+    // (La reina de la suerte se saca justo antes del lip sync: ver luckMoment)
     if (tw === "corazon") {
       bottomRows.filter((r) => !r.me && (S.hearts[r.q.id] || 0) >= 2).forEach((r) => {
         if (Math.random() < 0.7 && saveRow(r, "❤️ Gasta un corazón:")) S.hearts[r.q.id] -= 2;
@@ -829,19 +956,95 @@ const Story = (() => {
         const crit = buildCritique(myScore, won ? "win" : bottom ? "bottom" : "safe");
         dialog(crit, { ...ctxWith(pick1(S.rivals)), tension: bottom }, () => confesionario(() =>
           untucked({ winner, bottomRows }, () =>
-            (tw === "moneda" && bottomRows.length === 3 ? coinFlip : (x, cb) => cb(x.bottomRows))({ winner, bottomRows }, (pair) =>
-              elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2) }),
+            luckMoment(() =>
+              (tw === "moneda" && bottomRows.length === 3 ? coinFlip : (x, cb) => cb(x.bottomRows))({ winner, bottomRows }, (pair) =>
+                elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2) }),
+              ),
             ),
           ),
         ));
       });
     };
 
+    // T4: antes del lip sync Supreme pregunta por la reina de la suerte
+    function luckMoment(then) {
+      if (tw !== "suerte" || !S.luck || S.rivals.length < 3) return then();
+      const useOn = (row, holderName) => {
+        const prev = bottomRows.slice();
+        if (!saveRow(row, "🍀")) return null;
+        const next = bottomRows.find((r) => !prev.includes(r));
+        mark(row.q, "LOW");
+        mark(next.q, `BTM${nb}`);
+        S.record[keyOf(row.q)] = (S.record[keyOf(row.q)] || 0) + 1;
+        S.luck = null;
+        header();
+        return next;
+      };
+      const reveal2 = (holder, row, next) => {
+        Confetti.burst(1800);
+        body().innerHTML = `
+          <div class="story-card">
+            <p class="eyebrow">🍀 La reina de la suerte</p>
+            <h3>¡${esc(holder === S.queen ? "Tú" : holder.name)} ${holder === S.queen ? "sacas" : "saca"} la reina de la suerte!</h3>
+            <div class="vs"><img src="${photo(row.q)}"><span>🍀</span><img class="gone" src="${photo(next.q)}"></div>
+            <p><b>${esc(row.q === S.queen ? "Tú" : row.q.name)}</b> ${row.q === S.queen ? "te salvas" : "se salva"} del lip sync y <b>${esc(next.q === S.queen ? "tú" : next.q.name)}</b> ${next.q === S.queen ? "entras" : "entra"} en su lugar.</p>
+            <button class="btn btn-primary" id="story-next">Al lip sync</button>
+          </div>`;
+        $("#story-next").addEventListener("click", then);
+      };
+      const ask = [["host", pick1([
+        "Reinas, antes de que empiece el lip sync... Si alguna tiene la reina de la suerte y quiere usarla, que la saque AHORA.",
+        "Un momento. Esta es la temporada de la suerte. ¿Alguien quiere sacar a su reina de la suerte? Es ahora o nunca... esta semana.",
+        "Antes de la música, la pregunta de siempre: ¿tiene alguien la reina de la suerte y quiere usarla?",
+      ])]];
+      const ctx = { ...ctxWith(pick1(S.rivals)), tension: true };
+      if (S.luck === "me") {
+        return dialog(ask, ctx, () => {
+          body().innerHTML = `
+            <div class="story-card">
+              <p class="eyebrow">🍀 Solo tú sabes que la tienes</p>
+              <h3>¿Sacas la reina de la suerte?</h3>
+              <p>En el bottom están: ${bottomRows.map((r) => `<b>${esc(r.me ? "tú" : r.q.name)}</b>`).join(" y ")}. Si salvas a alguien, la siguiente con peor nota ocupa su sitio. Solo se usa una vez.</p>
+              <div class="choice-col">${bottomRows.map((r, i) => `<button class="btn btn-ghost" data-o="${i}">${esc(r.me ? "🍀 Usarla para salvarme" : `🍀 Usarla para salvar a ${r.q.name}`)}</button>`).join("")}
+                <button class="btn btn-primary" id="keep">Me la guardo (silencio...)</button></div>
+              ${trackBtn()}
+            </div>`;
+          bindTrack();
+          body().querySelectorAll("[data-o]").forEach((b) => b.addEventListener("click", () => {
+            const row = bottomRows[+b.dataset.o];
+            const next = useOn(row, S.queen.name);
+            if (!next) { Toast.show("No se puede usar ahora", "No hay nadie que pueda ocupar ese sitio"); return then(); }
+            if (!row.me) {
+              changeRel(row.q, 3);
+              remember(row.q, "salvada", row !== bottomRows.concat([row]).sort((a, c) => a.s - c.s)[0]);
+            }
+            if (!next.me) changeRel(next.q, -1);
+            reveal2(S.queen, row, next);
+          }));
+          $("#keep").addEventListener("click", () => dialog([["host", "Nadie... Muy bien. Que empiece el lip sync."]], ctx, then));
+        });
+      }
+      const holder = S.rivals.find((q) => q.id === S.luck);
+      if (!holder) return then();
+      // ¿La usa? Para salvarse seguro; para salvar a su grupo o a una amiga, a veces
+      const late = S.rivals.length <= 6;
+      const selfRow = bottomRows.find((r) => r.q === holder);
+      const mateRow = bottomRows.find((r) => r.q !== holder && (sameGroup(holder, r.q) || (r.me && relOf(holder) >= 2)));
+      let row = null;
+      if (selfRow) row = selfRow;
+      else if (mateRow && Math.random() < (late ? 0.75 : 0.45)) row = mateRow;
+      else if (late && S.rivals.length <= 5 && Math.random() < 0.35) row = pick1(bottomRows.filter((r) => r.q !== holder));
+      if (!row) return dialog([...ask, ["host", "Silencio... Nadie. Vale, seguimos."], ["me", "(¿Quién la tendrá?)"]], ctx, then);
+      const next = useOn(row, holder.name);
+      if (!next) return then();
+      if (row.me) { changeRel(holder, 2); Toast.show(`🍀 ${holder.name} te ha salvado`, "Te debe haber cogido cariño"); }
+      if (next.me) changeRel(holder, -1);
+      dialog([...ask, ["r1", row.q === holder ? "¡Yo! Yo la tengo. Y la uso para salvarme a mí." : `Yo la tengo. Y la uso para salvar a ${row.me ? "{yo}" : row.q.name}.`], ["host", "¡Sorpresa, sorpresa! La reina de la suerte ha hablado."]],
+        { ...ctxWith(holder), q: { r1: holder }, r1: holder.name, tension: true }, () => reveal2(holder, row, next));
+    }
+
     // Tus comodines: decides tú
     const opts = [];
-    if (tw === "suerte" && S.luck === "me") {
-      bottomRows.forEach((r) => opts.push({ row: r, kind: "suerte", label: r.me ? "🍀 Usar la reina de la suerte para salvarme" : `🍀 Usarla para salvar a ${r.q.name}` }));
-    }
     if (tw === "corazon" && (S.hearts.me || 0) >= 2) {
       const mine = bottomRows.find((r) => r.me);
       if (mine) opts.push({ row: mine, kind: "corazon", label: "❤️ Gastar un corazón para salvarme" });
@@ -903,7 +1106,7 @@ const Story = (() => {
         else {
           // Cada rival vota según cómo le caen (y a ti según vuestra relación)
           const bias = (ROLES_HISTORIA[S.roles[v.id]] || {}).voto || 0;
-          const score = (q) => (q === S.queen ? relOf(v) * 1.5 + bias : rnd(-1.5, 1.5)) + rnd(-1, 1);
+          const score = (q) => (q === S.queen ? relOf(v) * 1.5 + bias : rnd(-1.5, 1.5)) + groupAff(v, q) + rnd(-1, 1);
           const sorted = three.slice().sort((a, b) => score(b) - score(a));
           choice = cara ? sorted[0] : sorted[sorted.length - 1];
         }
@@ -1000,7 +1203,7 @@ const Story = (() => {
     const k = keyOf(to);
     S.hearts[k] = (S.hearts[k] || 0) + 1;
     header();
-    Toast.show(`💔 ${gone.name} deja medio corazón`, to === S.queen ? `¡Para ti! Llevas ${(S.hearts.me || 0) / 2} corazones` : `Para ${to.name}`);
+    Toast.show(`💔 ${gone.name} deja medio corazón`, to === S.queen ? `¡Para ti! Llevas ${String((S.hearts.me || 0) / 2).replace(".", ",")} ${(S.hearts.me || 0) === 2 ? "corazón" : "corazones"}` : `Para ${to.name}`);
     if (then) then();
   }
 
@@ -1189,9 +1392,9 @@ const Story = (() => {
     let go;
     if (meIn) {
       const other = pair.find((x) => x !== S.queen);
-      const likeMe = relOf(dec) + rnd(-1, 1), likeOther = rnd(-1.5, 1.5);
+      const likeMe = relOf(dec) + groupAff(dec, S.queen) + rnd(-1, 1), likeOther = groupAff(dec, other) + rnd(-1.5, 1.5);
       go = likeMe >= likeOther ? other : S.queen;
-    } else go = skillOf(pair[0]) + rnd(-10, 10) < skillOf(pair[1]) + rnd(-10, 10) ? pair[0] : pair[1];
+    } else go = skillOf(pair[0]) + groupAff(dec, pair[0]) * 6 + rnd(-10, 10) < skillOf(pair[1]) + groupAff(dec, pair[1]) * 6 + rnd(-10, 10) ? pair[0] : pair[1];
     const stay = pair.find((x) => x !== go);
     const lines = [["r1", meIn ? (go === S.queen ? "Lo siento, {yo}... Es una decisión muy difícil, pero he elegido a la otra." : "{yo}, esta semana me quedo contigo. No me falles.") : "He tomado mi decisión. No es nada personal."]];
     dialog(lines, { ...ctxWith(dec), tension: true }, () => {
@@ -1214,6 +1417,11 @@ const Story = (() => {
   }
 
   function eliminate(q) {
+    if (S.luck && S.luck === q.id) {
+      S.luck = null;
+      Toast.show(`🍀 ${q.name} tenía la reina de la suerte`, "¡Y se va a casa sin usarla!");
+    }
+    if (S.groups) S.groups.forEach((g) => (g.members = g.members.filter((id) => id !== q.id)));
     if (S.track[q.id] && S.track[q.id][S.ep] && S.epNames[S.ep] !== "Final") mark(q, "ELIM");
     S.rivals = S.rivals.filter((r) => r !== q);
     S.out.unshift(q);
@@ -1500,7 +1708,7 @@ const Story = (() => {
       everyone.forEach((v) => {
         let c = myVote;
         if (v !== S.queen) {
-          const val = (q) => (q === S.queen ? relOf(v) * 1.2 + 0.3 : 0) + appeal.get(q) + rnd(-1.4, 1.4);
+          const val = (q) => (q === S.queen ? relOf(v) * 1.2 + 0.3 : 0) + appeal.get(q) + groupAff(v, q) * 0.4 + rnd(-1.4, 1.4);
           c = everyone.filter((q) => q !== v).sort((a, b) => val(b) - val(a))[0];
         }
         votes.get(c).push(v);

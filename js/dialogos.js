@@ -935,3 +935,38 @@ JURADO.reto.fotos = {
   low: ["En la mitad de las fotos sales parpadeando.", "Llegabas tarde a cada flash.", "No he podido elegir ninguna foto buena. Ninguna."],
 };
 JURADO.reto.equipos = JURADO.reto.equipos || JURADO.reto.rusical;
+
+// ===========================================================================
+// ALIANZAS: las concursantes forman grupos de 3 o 4 que se apoyan entre ellas
+// y chocan con los demás. r1 = de un grupo, r2 = del otro (o compañera).
+// {g1} = nombre de su grupo, {g2} = el del otro grupo
+// ===========================================================================
+const GRUPOS = {
+  nombres: [
+    { name: "Las del Fondo", icon: "🖤" }, { name: "El Clan del Glitter", icon: "✨" }, { name: "Las Divinas", icon: "💜" },
+    { name: "La Cofradía del Tacón", icon: "👠" }, { name: "Las Folclóricas", icon: "🌹" }, { name: "Team Purpurina", icon: "🌸" },
+  ],
+  formacion: [
+    [["host", "Una semana juntas y ya se han formado bandos en el taller. Lo veo todo, reinas."], ["r1", "Esto no son bandos, Supreme. Son... afinidades."], ["r2", "Afinidades con nombre y todo, sí."]],
+    [["r1", "Bueno, que quede claro: nosotras somos {g1} y nos cubrimos las espaldas."], ["r2", "Pues nosotras somos {g2}. Y no necesitamos a nadie."], ["host", "Ay, qué ilusión. Esto se pone interesante."]],
+  ],
+  invitacion: [
+    [["r1", "{yo}, te lo digo claro: te queremos en {g1}. Juntas llegamos más lejos."]],
+    [["r1", "Oye, {yo}... Hemos hablado entre nosotras y queremos que estés con {g1}. ¿Te vienes?"]],
+  ],
+  choque: [
+    { lines: [["r1", "¿Otra vez {g2} ocupando todos los espejos? Qué casualidad."], ["r2", "Llegamos antes. Si {g1} no madruga, no es culpa nuestra."], ["r1", "Madrugar para copiar looks, eso sí sabéis."]] },
+    { lines: [["r2", "He oído a {g1} criticar mi look del otro día. Que lo digan a la cara."], ["r1", "Te lo digo a la cara: parecía un mantel de boda."], ["host", "Uy, uy. Esto no me lo pierdo."]] },
+    { lines: [["r1", "Ayer en el Untucked {g2} votaba en bloque. Eso es jugar sucio."], ["r2", "Eso es tener amigas, cariño. Búscate unas."]] },
+    { lines: [["r2", "Mira, {g1} se cree que manda en el taller."], ["r1", "No lo creemos. Lo sabemos."], ["r2", "Pues a ver cuánto os dura cuando os toque el lip sync."]] },
+  ],
+  apoyo: [
+    [["r1", "{yo}, que no se te olvide: {g1} está contigo. Hoy vas a brillar."], ["r2", "Te he dejado mi pegamento de pestañas en tu puesto. Del bueno."]],
+    [["r1", "Grupo, reunión rápida. {yo}, ¿qué necesitas esta semana?"], ["me", "Un milagro y unas pinzas."], ["r1", "Las pinzas te las dejo yo. El milagro lo pones tú."]],
+    [["r2", "Hemos hablado y esta semana te ayudamos con el acabado del look, {yo}."], ["r1", "Para eso estamos. {g1} no deja a nadie atrás."]],
+  ],
+  roce: [
+    [["r1", "{yo}, una cosa... ¿por qué no me defendiste ayer? Somos del mismo grupo."]],
+    [["r1", "Me han dicho que hablabas mucho con {g2}. ¿Te estás cambiando de bando?"]],
+  ],
+};
