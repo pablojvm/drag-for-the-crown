@@ -1404,3 +1404,5 @@ kbd { color: var(--ink) !important; background: #fff !important; border-color: r
 .season-card.locked .s-state { background: rgba(255,255,255,.9) !important; color: var(--ink) !important; }
 #curtain::before { box-shadow: none; }
 #curtain.closed::before { box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+/* Logo del menú con su proporción real (sin achatar) */
+#screen-menu .menu-logo { width: auto !important; height: 240px !important; max-height: none !important; max-width: 560px; object-fit: contain; margin-top: -20px; }
