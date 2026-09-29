@@ -46,9 +46,9 @@ const Story = (() => {
     },
     snatch: {
       titulo: () => "Snatch Game",
-      desc: "Estás en el plató en personaje. Elige la respuesta más graciosa antes de que se acabe el tiempo.",
+      desc: "Elige un personaje e interprétalo en el plató. Cada respuesta tiene que sonar a TU personaje, y rápido: el público premia el ritmo.",
       ctrl: "Clic o teclas 1, 2 y 3",
-      run: runSnatch,
+      run: runSnatchGame,
     },
   };
   RETOS.diseno = {
@@ -97,7 +97,7 @@ const Story = (() => {
   function blankState(queen, season, rivals) {
     return {
       queen, season, rivals, out: [], ep: 0, wins: 0, bottoms: 0, points: 0, lipsyncs: 0, rel: {}, streak: 0,
-      record: {}, form: {}, hearts: {}, track: {}, epNames: {}, luck: undefined, flags: {}, advice: 0, helped: false, meOut: false,
+      record: {}, form: {}, hearts: {}, memories: [], track: {}, epNames: {}, luck: undefined, flags: {}, advice: 0, helped: false, meOut: false,
     };
   }
   function start(queen, season) {
@@ -110,7 +110,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -350,6 +350,44 @@ const Story = (() => {
       S.out.map((q) => `<i title="${esc(q.name)}" class="out" style="background-image:url('${photo(q)}')"></i>`).join("");
   }
 
+  // --------------------------- Críticas del jurado --------------------------
+  function buildCritique(score, verdict) {
+    const nivel = score >= 75 ? "top" : score >= 50 ? "mid" : "low";
+    const bank = (JURADO.reto[S.curTipo] || JURADO.reto.pasarela)[nivel];
+    // El look de pasarela no siempre va a la par que el reto
+    const lookN = Math.random() < 0.65 ? nivel : pick1(["top", "mid", "low"]);
+    const judgeFirst = Math.random() < 0.5;
+    const lines = [];
+    lines.push(["host", pickFresh(JURADO.aperturaSupreme)]);
+    const a = ["judge", `${pickFresh(JURADO.aperturaAna)} ${pickFresh(bank)}`];
+    const b = [judgeFirst ? "host" : "judge", pickFresh(JURADO.pasarela[lookN])];
+    lines.push(a, b);
+    if (score >= 90 && verdict === "win") lines.push(["judge", "Hoy has puesto el listón altísimo para las demás."]);
+    if (score < 30) lines.push(["host", "Tienes que despertar, {yo}. Esto se acaba."]);
+    lines.push(["host", pickFresh(JURADO.veredicto[verdict])]);
+    return lines;
+  }
+
+  // ------------------------------ Memoria -----------------------------------
+  // Las compañeras recuerdan si las salvaste o las condenaste (y si era justo)
+  function remember(q, kind, fair) {
+    if (!q || q === S.queen) return;
+    S.memories.push({ id: q.id, kind, fair, ep: S.ep });
+  }
+  function memoryTalk(then) {
+    const pend = S.memories.filter((m) => m.ep < S.ep);
+    S.memories = S.memories.filter((m) => m.ep >= S.ep);
+    const m = pend.reverse().find((x) => S.rivals.some((r) => r.id === x.id));
+    if (!m) return then();
+    const q = qById(m.id);
+    const bank = m.kind === "salvada" ? (m.fair ? MEMORIA.gracias.justa : MEMORIA.gracias.peor) : m.fair ? MEMORIA.rencor.justo : MEMORIA.rencor.injusto;
+    const v = pickFresh(bank);
+    dialog(v.lines, { ...ctxWith(q), q: { r1: q }, r1: q.name, tension: m.kind !== "salvada" }, () => {
+      if (v.after) changeRel(q, v.after);
+      then();
+    }, v.choices);
+  }
+
   // ----------------------------- Track record -----------------------------
   const EP_SHORT = { pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups" };
   function mark(q, lab) {
@@ -404,7 +442,14 @@ const Story = (() => {
     $("#track-next").addEventListener("click", then);
   }
 
+  // El episodio ha terminado: se guarda YA (antes de ver el track record o salir)
+  function endEpisodeBtn() {
+    save();
+    const b = $("#story-next");
+    if (b) b.addEventListener("click", nextEpisode);
+  }
   function nextEpisode() {
+    save();
     if (S.ep > 0 && S.trackShown !== S.ep && Object.keys(S.epNames).length) {
       S.trackShown = S.ep;
       return showTrack(nextEpisode);
@@ -429,7 +474,7 @@ const Story = (() => {
   function workroom() {
     const ctx = ctxWith(pick1(S.rivals));
     let lines;
-    const go = () => maybeEvent(() => hub(() => announce()));
+    const go = () => memoryTalk(() => maybeEvent(() => hub(() => announce())));
     if (S.ep === 1 && twistOf() === "suerte" && S.luck === undefined) {
       return dialog(seasonInfo().intro, ctx, () => pickLuckBox(() => dialog(pickFresh(HISTORIA.tallerPrimerDia), ctxWith(pick1(S.rivals)), go)));
     }
@@ -531,6 +576,7 @@ const Story = (() => {
     const reto = RETOS[tipo];
     const titulo = reto.titulo();
     S.epNames[S.ep] = EP_SHORT[tipo] || "Reto";
+    S.curTipo = tipo;
     dialog(pickFresh(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => challengeIntro(reto, titulo, tipo));
   }
 
@@ -651,7 +697,7 @@ const Story = (() => {
           <button class="btn btn-primary" id="story-next">Continuar</button>
         </div>`;
       $("#story-next").addEventListener("click", () => {
-        const crit = pickFresh(HISTORIA.critica[won ? "win" : bottom ? "bottom" : "safe"]);
+        const crit = buildCritique(myScore, won ? "win" : bottom ? "bottom" : "safe");
         dialog(crit, { ...ctxWith(pick1(S.rivals)), tension: bottom }, () =>
           untucked({ winner, bottomRows }, () =>
             (tw === "moneda" && bottomRows.length === 3 ? coinFlip : (x, cb) => cb(x.bottomRows))({ winner, bottomRows }, (pair) =>
@@ -686,7 +732,11 @@ const Story = (() => {
         if (saveRow(o.row, o.kind === "suerte" ? "🍀 ¡Sacas la reina de la suerte!" : "❤️ ¡Gastas un corazón!")) {
           if (o.kind === "suerte") S.luck = null;
           else S.hearts.me -= 2;
-          if (!o.row.me) changeRel(o.row.q, 3);
+          if (!o.row.me) {
+            changeRel(o.row.q, 3);
+            const worstRow = bottomRows.concat([o.row]).sort((a, b) => a.s - b.s)[0];
+            remember(o.row.q, "salvada", o.row !== worstRow);
+          }
           Confetti.burst(1500);
         } else Toast.show("No se puede usar ahora", "No hay nadie que pueda ocupar ese sitio");
         finish();
@@ -732,7 +782,12 @@ const Story = (() => {
       if (cara) pair = three.filter((q) => q !== chosen);
       else pair = [chosen, three.filter((q) => q !== chosen).sort((a, b) => scoreOf(a) - scoreOf(b))[0]];
       // Votar a la cara tiene consecuencias
-      if (meVoter && myVote !== S.queen) changeRel(myVote, cara ? 2 : -2);
+      if (meVoter && myVote !== S.queen) {
+        changeRel(myVote, cara ? 2 : -2);
+        // ¿Era la peor de las tres? Se acordará
+        const worst = three.slice().sort((a, b) => scoreOf(a) - scoreOf(b))[0];
+        remember(myVote, cara ? "salvada" : "condenada", cara ? myVote !== worst : myVote === worst);
+      }
       if (three.includes(S.queen)) voters.forEach((v) => votes.get(S.queen).includes(v) && v !== S.queen && (cara ? changeRel(v, 1) : changeRel(v, -1)));
       body().innerHTML = `
         <div class="story-card">
@@ -869,7 +924,7 @@ const Story = (() => {
           <p>Ninguna ha convencido. <b>${esc(a.name)}</b> y <b>${esc(b.name)}</b> se van las dos a casa.</p>
           <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
         </div>`;
-      return $("#story-next").addEventListener("click", nextEpisode);
+      return endEpisodeBtn();
     }
     const pa = clamp(0.5 + (skillOf(a) + (S.form[a.id] || 0) - skillOf(b) - (S.form[b.id] || 0)) / 40, 0.2, 0.8);
     const [stay, go] = Math.random() < pa ? [a, b] : [b, a];
@@ -884,7 +939,7 @@ const Story = (() => {
         <p><b>${esc(stay.name)}</b>, shantay you stay. <b>${esc(go.name)}</b>, sashay away.</p>
         <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
       </div>`;
-    $("#story-next").addEventListener("click", nextEpisode);
+    endEpisodeBtn();
   }
 
   // All Stars: las dos del top hacen lip sync; la ganadora elige a quién mandar a casa
@@ -960,7 +1015,15 @@ const Story = (() => {
           const go = qById(b.dataset.id), stay = pair.find((x) => x !== go);
           changeRel(stay, 2);
           S.rivals.filter((r) => relOf(r) >= 1 && Math.random() < 0.4 && r !== stay).slice(0, 1).forEach((r) => changeRel(r, -1));
+          const sOf = (q) => (bottomRows.find((r) => r.q === q) || {}).s || 0;
+          const goWasWorst = sOf(go) <= sOf(stay);
+          remember(stay, "salvada", !goWasWorst);
           eliminate(go);
+          return dialog(pickFresh(goWasWorst ? MEMORIA.despedida.justa : MEMORIA.despedida.injusta), { ...ctxWith(go), q: { r1: go }, r1: go.name, tension: true }, () => showASResult(go, stay));
+        }),
+      );
+      return;
+      function showASResult(go, stay) {
           header();
           body().innerHTML = `
             <div class="story-card">
@@ -970,10 +1033,8 @@ const Story = (() => {
               <p>Has salvado a <b>${esc(stay.name)}</b>.</p>
               <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
             </div>`;
-          $("#story-next").addEventListener("click", nextEpisode);
-        }),
-      );
-      return;
+          endEpisodeBtn();
+      }
     }
     const dec = winner.q;
     const meIn = pair.includes(S.queen);
@@ -1000,7 +1061,7 @@ const Story = (() => {
           <div class="vs"><img src="${photo(stay)}"><span>💄</span><img class="gone" src="${photo(go)}"></div>
           <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
         </div>`;
-      $("#story-next").addEventListener("click", nextEpisode);
+      endEpisodeBtn();
     });
   }
 
@@ -1046,7 +1107,7 @@ const Story = (() => {
             <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
           </div>`;
           Confetti.burst(2500);
-          return $("#story-next").addEventListener("click", nextEpisode);
+          return endEpisodeBtn();
         }
         if (!res.won) {
           if (!forCrown && twistOf() === "repesca" && !S.flags.repesca) return goHomeRepesca(rival);
@@ -1063,7 +1124,7 @@ const Story = (() => {
             <p><b>${esc(rival.name)}</b>, sashay away.</p>
             <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
           </div>`;
-        $("#story-next").addEventListener("click", nextEpisode);
+        endEpisodeBtn();
       }, { rivals: [rival], story: true });
     }, forCrown ? "LIP SYNC POR LA CORONA" : onWin ? "LA REPESCA" : "LIP SYNC FOR YOUR LIFE"));
   }
@@ -1118,7 +1179,7 @@ const Story = (() => {
                 <p>Las demás no se lo esperaban. Ahora vas con todo.</p>
                 <button class="btn btn-primary" id="story-next">Volver al taller</button>
               </div>`;
-            $("#story-next").addEventListener("click", nextEpisode);
+            endEpisodeBtn();
           }),
       );
     }
@@ -1433,6 +1494,86 @@ const Story = (() => {
     document.addEventListener("keydown", onKey);
     cleanup = stop;
     play();
+  }
+
+  // ------------------ Minijuego: Snatch Game (con personaje) ----------------
+  function runSnatchGame(el, done) {
+    const N = 6;
+    el.innerHTML = `
+      <div class="mg snatch">
+        <p class="mg-info">🎭 Elige tu personaje para el Snatch Game</p>
+        <div class="sg-chars">${shuffle(SNATCH_PERSONAJES).slice(0, 4)
+          .map((c) => `<button class="btn btn-ghost role sg-char" data-id="${c.id}"><b>${c.icon} ${esc(c.name)}</b><small>Tono ${esc(c.tono)}</small></button>`)
+          .join("")}</div>
+      </div>`;
+    el.querySelectorAll(".sg-char").forEach((b) => b.addEventListener("click", () => play(SNATCH_PERSONAJES.find((c) => c.id === b.dataset.id))));
+    function play(me) {
+      const others = SNATCH_PERSONAJES.filter((c) => c !== me);
+      const mine = shuffle(me.frases);
+      const qs = shuffle(SNATCH_PREGUNTAS).slice(0, N);
+      let i = 0, total = 0, streak = 0, t0 = 0, raf = 0, answered = false, opts = [], laugh = 0;
+      const TIME = 8;
+      el.innerHTML = `
+        <div class="mg snatch">
+          <p class="mg-info">${me.icon} Eres <b>${esc(me.name)}</b> · Pregunta <b id="sg-n">1</b>/${N} · Racha <b id="sg-st">0</b></p>
+          <div class="sg-host"><span>🎤 Supreme pregunta</span><p id="sg-q"></p></div>
+          <div class="sg-bar"><div id="sg-time"></div></div>
+          <div class="sg-opts" id="sg-opts"></div>
+          <div class="sg-laugh"><span>😂 Risas del público</span><div><i id="sg-lg"></i></div></div>
+          <p class="mg-info" id="sg-msg">Responde como ${esc(me.name)}: ¡que se note el personaje!</p>
+        </div>`;
+      function ask() {
+        answered = false;
+        const other = pick1(others);
+        opts = shuffle([
+          { t: mine[i % mine.length], v: "in", },
+          { t: pick1(other.frases), v: "out", from: other },
+          { t: pick1(SNATCH_PLANAS), v: "flat" },
+        ]);
+        $("#sg-n").textContent = i + 1;
+        $("#sg-q").textContent = qs[i];
+        $("#sg-opts").innerHTML = opts.map((o, k) => `<button class="btn btn-ghost sg-opt" data-k="${k}"><b>${k + 1}</b> ${esc(o.t)}</button>`).join("");
+        el.querySelectorAll(".sg-opt").forEach((b) => b.addEventListener("click", () => choose(+b.dataset.k)));
+        t0 = performance.now();
+      }
+      function choose(k) {
+        if (answered) return;
+        answered = true;
+        const o = opts[k];
+        const left = Math.max(0, 1 - (performance.now() - t0) / 1000 / TIME);
+        let pts = 0, msg;
+        if (!o) { msg = "Te has quedado en blanco. Silencio incómodo... 😶"; streak = 0; }
+        else if (o.v === "in") { streak++; pts = 70 + left * 30 + Math.min(20, (streak - 1) * 7); msg = streak >= 3 ? `¡Estás on fire! El plató se cae de risa 🔥 (racha x${streak})` : "¡Carcajada! Eso es puro personaje 😂"; }
+        else if (o.v === "out") { streak = 0; pts = 35; msg = `Tiene gracia... pero eso lo diría ${o.from.name}, no tú. 😬`; }
+        else { streak = 0; pts = 8; msg = "Uf. Se te ha ido el personaje. Grillos. 🦗"; }
+        pts = Math.min(100, pts);
+        total += pts;
+        laugh = Math.min(100, laugh * 0.5 + pts * 0.7);
+        $("#sg-lg").style.width = laugh + "%";
+        $("#sg-st").textContent = streak;
+        $("#sg-msg").textContent = msg;
+        el.querySelectorAll(".sg-opt").forEach((b, j) => b.classList.add(opts[j].v === "in" ? "best" : "dim"));
+        pts >= 70 ? Sound.powerup && Sound.powerup() : Sound.impact();
+        setTimeout(() => {
+          i++;
+          if (i >= N) { stop(); return done(Math.min(100, total / N)); }
+          ask();
+        }, 1400);
+      }
+      function tick(t) {
+        const left = Math.max(0, 1 - (t - t0) / 1000 / TIME);
+        const bar = $("#sg-time");
+        if (bar && !answered) bar.style.width = left * 100 + "%";
+        if (left <= 0 && !answered) choose(-1);
+        raf = requestAnimationFrame(tick);
+      }
+      const onKey = (e) => { const k = { Digit1: 0, Digit2: 1, Digit3: 2, Numpad1: 0, Numpad2: 1, Numpad3: 2 }[e.code]; if (k !== undefined) choose(k); };
+      function stop() { cancelAnimationFrame(raf); document.removeEventListener("keydown", onKey); }
+      document.addEventListener("keydown", onKey);
+      cleanup = stop;
+      ask();
+      raf = requestAnimationFrame(tick);
+    }
   }
 
   // ------------------------- Minijuego: Snatch Game ------------------------
