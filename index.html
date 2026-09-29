@@ -4,24 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Drag for the Crown: minijuego arcade de navegador hecho con JavaScript y Canvas.">
-  <meta name="theme-color" content="#14031f">
+  <meta name="theme-color" content="#ffe0ef">
   <title>Drag for the Crown</title>
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/style.css?v=25">
+  <link rel="preload" href="fonts/bungee.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/poppins-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles/style.css?v=31">
 </head>
 <body>
+  <div id="bg" aria-hidden="true"><i class="beam b1"></i><i class="beam b2"></i><i class="beam b3"></i><i class="floor"></i><i class="grain"></i></div>
   <div id="stage">
 
     <!-- ============ INICIO ============ -->
     <section id="screen-menu" class="screen">
       <img class="menu-logo" src="./images/logo2.png" alt="Drag for the Crown">
-      <p class="tagline">5 queens. 5 rondas. Solo una se lleva la corona.</p>
+      <p class="tagline">Drag Race España · Solo una se lleva la corona</p>
       <div class="row">
         <button class="mode-card" id="btn-story" style="background-image:url('./images/modo-historia.png')">
           <span class="mode-name">📖 Modo historia</span>
@@ -193,15 +193,15 @@
     </div>
   </div>
 
-  <script src="./js/reinas.js?v=25"></script>
-  <script src="./js/config.js?v=25"></script>
-  <script src="./js/audio.js?v=25"></script>
-  <script src="./js/extras.js?v=25"></script>
-  <script src="./js/effects.js?v=25"></script>
-  <script src="./js/entities.js?v=25"></script>
-  <script src="./js/game.js?v=25"></script>
-  <script src="./js/ui.js?v=25"></script>
-  <script src="./js/dialogos.js?v=25"></script>
-  <script src="./js/historia.js?v=25"></script>
+  <script src="./js/reinas.js?v=31"></script>
+  <script src="./js/config.js?v=31"></script>
+  <script src="./js/audio.js?v=31"></script>
+  <script src="./js/extras.js?v=31"></script>
+  <script src="./js/effects.js?v=31"></script>
+  <script src="./js/entities.js?v=31"></script>
+  <script src="./js/game.js?v=31"></script>
+  <script src="./js/ui.js?v=31"></script>
+  <script src="./js/dialogos.js?v=31"></script>
+  <script src="./js/historia.js?v=31"></script>
 </body>
 </html>

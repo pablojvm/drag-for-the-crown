@@ -31,7 +31,19 @@ const UI = (() => {
   let lastEntryId = null;
   let nextSeason = null;
 
+  // Numera los hijos de las rejillas para la entrada en cascada
+  function stagger(root) {
+    root.querySelectorAll("#franchise-grid, #season-grid, #queen-grid, #scores-table tbody, #ach-grid, .stats, #unlock-list, .career").forEach((g) => {
+      g.classList.add("stagger");
+      [...g.children].forEach((c, i) => c.style.setProperty("--i", i));
+    });
+  }
   function show(name) {
+    const prev = screens[current];
+    if (prev && current !== name && prev.classList.contains("active")) {
+      prev.classList.add("leaving");
+      setTimeout(() => prev.classList.remove("leaving"), 300);
+    }
     current = name;
     if (name !== "story") Music.stop();
     Wallet.refresh();
@@ -47,6 +59,7 @@ const UI = (() => {
     if (name === "season") renderSeasons();
     if (name === "select") renderGrid();
     if (name === "scores") renderScores();
+    stagger(screens[name]);
   }
 
   function showPause(on) {
@@ -279,6 +292,13 @@ const UI = (() => {
 
     screens.end.classList.toggle("won", stats.won);
     show("end");
+    // Los números suben desde cero
+    const el = $("#stat-score"), target = stats.score, t0 = performance.now();
+    (function up(t) {
+      const k = Math.min(1, (t - t0) / 1100), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(target * e);
+      if (k < 1) requestAnimationFrame(up);
+    })(t0);
   }
 
   function saveName() {
@@ -360,6 +380,7 @@ const UI = (() => {
     t.addEventListener("click", () => {
       scoresTab = t.dataset.tab;
       renderScores();
+      stagger(screens.scores);
     })
   );
 

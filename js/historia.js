@@ -181,10 +181,11 @@ const Story = (() => {
         <img class="dlg-char ${w.side}" src="${w.img}" alt="">
         <div class="dlg-box">
           <p class="dlg-name">${esc(w.name)} <small>${esc(w.role)}</small></p>
-          <p class="dlg-text">${esc(fill(t, ctx))}</p>
+          <p class="dlg-text"></p>
           <p class="dlg-hint">Clic, Espacio o Enter para continuar ▸</p>
         </div>
         <button class="btn btn-ghost dlg-skip" id="dlg-skip">Saltar</button>`;
+      typeText(scene.querySelector(".dlg-text"), fill(t, ctx));
       scene.querySelector("#dlg-skip").addEventListener("click", (e) => {
         e.stopPropagation();
         i = lines.length;
@@ -217,7 +218,31 @@ const Story = (() => {
       stop();
       then();
     }
+    let typing = null;
+    function typeText(el, full) {
+      clearInterval(typing);
+      let n = 0;
+      el.innerHTML = `<span></span><i class="caret"></i>`;
+      const span = el.firstChild;
+      typing = setInterval(() => {
+        n += 2;
+        span.textContent = full.slice(0, n);
+        if (n >= full.length) {
+          clearInterval(typing);
+          typing = null;
+        }
+      }, 22);
+      el.dataset.full = full;
+    }
     const next = () => {
+      const tx = scene.querySelector(".dlg-text");
+      if (typing && tx) {
+        // Primer toque: termina la frase de golpe
+        clearInterval(typing);
+        typing = null;
+        tx.firstChild.textContent = tx.dataset.full;
+        return;
+      }
       if (!scene.querySelector(".dlg-choices")) {
         i++;
         showLine();
@@ -235,6 +260,7 @@ const Story = (() => {
       }
     };
     function stop() {
+      clearInterval(typing);
       document.removeEventListener("keydown", onKey);
     }
     Music.play(lines === DIALOGOS.critica.bottom ? "tension" : "taller");
@@ -396,7 +422,7 @@ const Story = (() => {
         <p class="muted">Tu puntuación: <b>${myScore}</b>/100</p>
         ${bonusLine}${teamLine}
         <ol class="ranking">${rows
-          .map((r, k) => `<li class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${teamOf[r.q.id] ? ` <small class="team ${teamOf[r.q.id]}">${teamOf[r.q.id] === "rosa" ? "Rosa" : "Oro"}</small>` : ""}</span>${badge(k)}<em>${Math.round(r.s)}</em></li>`)
+          .map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${teamOf[r.q.id] ? ` <small class="team ${teamOf[r.q.id]}">${teamOf[r.q.id] === "rosa" ? "Rosa" : "Oro"}</small>` : ""}</span>${badge(k)}<em>${Math.round(r.s)}</em></li>`)
           .join("")}</ol>
         <button class="btn btn-primary" id="story-next">${bottom ? "Lip sync for your life" : "Continuar"}</button>
       </div>`;
