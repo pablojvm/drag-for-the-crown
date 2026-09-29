@@ -66,7 +66,13 @@ const Story = (() => {
     ctrl: "Clic o teclas 1, 2 y 3",
     run: (el, done) => runSnatch(el, done, LECTURAS, "📚 La biblioteca", "Lectura"),
   };
-  const ORDEN_RETOS = ["pasarela", "snatch", "baile", "diseno", "lectura", "rusical", "maquillaje"];
+  RETOS.equipos = {
+    titulo: () => "Reto por equipos: girl groups",
+    desc: "Formáis dos equipos. Elige tu papel en el grupo y dalo todo en la actuación: si tu equipo gana, sumas un extra.",
+    ctrl: "Eliges papel y luego pulsas las notas (D F J K o toca los carriles)",
+    run: runEquipos,
+  };
+  const ORDEN_RETOS = ["pasarela", "snatch", "equipos", "diseno", "lectura", "rusical", "baile", "maquillaje"];
 
   // --------------------------- Flujo principal -----------------------------
   const SAVE_KEY = "dftc-story-save";
@@ -74,7 +80,8 @@ const Story = (() => {
 
   function start(queen, season) {
     const rivals = season.cast.filter((id) => id !== queen.id).map(qById).filter(Boolean);
-    S = { queen, season, rivals, out: [], ep: 0, wins: 0, bottoms: 0, points: 0, lipsyncs: 0 };
+    S = { queen, season, rivals, out: [], ep: 0, wins: 0, bottoms: 0, points: 0, lipsyncs: 0, rel: {}, streak: 0, returned: false, dshantay: false, dsashay: false };
+    Achievements.unlock("debut");
     UI.show("story");
     Sound.stopAll();
     nextEpisode();
@@ -84,7 +91,8 @@ const Story = (() => {
   function save() {
     store.set(SAVE_KEY, {
       queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id),
-      ep: S.ep, wins: S.wins, bottoms: S.bottoms, points: S.points, lipsyncs: S.lipsyncs, date: new Date().toISOString(),
+      ep: S.ep, wins: S.wins, bottoms: S.bottoms, points: S.points, lipsyncs: S.lipsyncs, rel: S.rel, streak: S.streak,
+      returned: S.returned, dshantay: S.dshantay, dsashay: S.dsashay, date: new Date().toISOString(),
     });
   }
   const saved = () => {
@@ -97,6 +105,7 @@ const Story = (() => {
     S = {
       queen: qById(d.queen), season: seasonById(d.season), rivals: d.rivals.map(qById).filter(Boolean), out: d.out.map(qById).filter(Boolean),
       ep: d.ep, wins: d.wins, bottoms: d.bottoms, points: d.points, lipsyncs: d.lipsyncs,
+      rel: d.rel || {}, streak: d.streak || 0, returned: !!d.returned, dshantay: !!d.dshantay, dsashay: !!d.dsashay,
     };
     UI.show("story");
     Sound.stopAll();
@@ -198,6 +207,7 @@ const Story = (() => {
       const c = choices[k];
       if (!c) return;
       S.points += c.bonus || 0;
+      Object.entries(c.rel || {}).forEach(([key, d]) => changeRel(ctx.q[key], d));
       choices = null;
       lines = [["me", c.txt], c.reply];
       i = 0;
@@ -227,6 +237,7 @@ const Story = (() => {
     function stop() {
       document.removeEventListener("keydown", onKey);
     }
+    Music.play(lines === DIALOGOS.critica.bottom ? "tension" : "taller");
     scene.addEventListener("click", next);
     document.addEventListener("keydown", onKey);
     cleanup = stop;
@@ -243,18 +254,45 @@ const Story = (() => {
 
   const isFinal = () => S.rivals.length <= 2;
 
+  // --------------------------- Relaciones ----------------------------------
+  // -3 (enemiga) ... +3 (aliada). Aliada >= 2, rival <= -2
+  const relOf = (q) => (q && S.rel[q.id]) || 0;
+  const allies = () => S.rivals.filter((q) => relOf(q) >= 2);
+  const enemies = () => S.rivals.filter((q) => relOf(q) <= -2);
+  function changeRel(q, d) {
+    if (!q || !d) return;
+    const before = relOf(q);
+    const after = Math.max(-3, Math.min(3, before + d));
+    S.rel[q.id] = after;
+    if (after >= 2 && before < 2) Toast.show(`💞 ${q.name} es tu aliada`, "Te echará un cable en los retos");
+    if (after <= -2 && before > -2) Toast.show(`🗡️ ${q.name} va a por ti`, "Cuidado con ella en los retos");
+    if (allies().length >= 3) Achievements.unlock("aliadas");
+    if (after <= -2) Achievements.unlock("enemiga");
+  }
+  function relBonus() {
+    return Math.max(-10, Math.min(12, allies().length * 4 - enemies().length * 4));
+  }
+
   function header() {
     $("#story-season").textContent = `Modo historia · ${S.season.franchise.name} · ${S.season.name}`;
     $("#story-ep").textContent = isFinal() ? "Gran final" : `Episodio ${S.ep}`;
     $("#story-exit").textContent = "💾 Guardar y salir";
     const all = [S.queen, ...S.rivals];
     $("#story-cast").innerHTML =
-      all.map((q) => `<i title="${esc(q.name)}" class="${q === S.queen ? "me" : ""}" style="background-image:url('${photo(q)}')"></i>`).join("") +
+      all
+        .map((q) => {
+          const r = q === S.queen ? "me" : relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : "";
+          return `<i title="${esc(q.name)}" class="${r}" style="background-image:url('${photo(q)}')"></i>`;
+        })
+        .join("") +
       S.out.map((q) => `<i title="${esc(q.name)}" class="out" style="background-image:url('${photo(q)}')"></i>`).join("");
   }
 
   function nextEpisode() {
     save();
+    Curtain.run(() => episode(), isFinal() ? "GRAN FINAL" : `EPISODIO ${S.ep + 1}`);
+  }
+  function episode() {
     S.ep++;
     const tipo = isFinal() ? "pasarela" : ORDEN_RETOS[(S.ep - 1) % ORDEN_RETOS.length];
     const reto = RETOS[tipo];
@@ -266,13 +304,24 @@ const Story = (() => {
     else if (S.ep === 1) lines = [...DIALOGOS.bienvenida, ...DIALOGOS.tallerPrimerDia];
     else lines = DIALOGOS.tallerTrasExpulsion;
     const choices = !isFinal() && ctx.q.r1 ? DIALOGOS.respuestas : null;
-    dialog(lines, ctx, () => {
-      if (isFinal()) return challengeIntro(reto, titulo);
-      dialog(DIALOGOS.anuncio, ctx, () => challengeIntro(reto, titulo));
-    }, choices);
+    const go = () =>
+      dialog(lines, ctx, () => {
+        if (isFinal()) return challengeIntro(reto, titulo, tipo);
+        dialog(DIALOGOS.anuncio, ctx, () => challengeIntro(reto, titulo, tipo));
+      }, choices);
+    // Momento especial: vuelve una reina eliminada (una vez por temporada)
+    if (!isFinal() && !S.returned && S.out.length >= 2 && S.rivals.length >= 4 && Math.random() < 0.3) {
+      S.returned = true;
+      const back = S.out[Math.floor(Math.random() * S.out.length)];
+      S.out = S.out.filter((q) => q !== back);
+      S.rivals.splice(Math.min(1, S.rivals.length), 0, back);
+      header();
+      return dialog(DIALOGOS.regreso, { ...ctx, r1: back.name, q: { ...ctx.q, r1: back } }, go);
+    }
+    go();
   }
 
-  function challengeIntro(reto, titulo) {
+  function challengeIntro(reto, titulo, tipo) {
     body().innerHTML = `
       <div class="story-card intro">
         <img class="story-queen" src="${sprite(S.queen)}" alt="">
@@ -287,8 +336,15 @@ const Story = (() => {
       </div>`;
     $("#story-go").addEventListener("click", () => {
       body().innerHTML = `<div id="story-play"></div>`;
-      reto.run($("#story-play"), (score) => {
+      Music.play("reto");
+      S.team = null;
+      reto.run($("#story-play"), (raw) => {
         cleanup = null;
+        Music.stop();
+        if (raw >= 95) Achievements.unlock("perfecta");
+        const bonus = relBonus();
+        const score = Math.max(0, Math.min(100, raw + bonus));
+        S.lastBonus = bonus;
         if (isFinal()) S.points += Math.round(score) * 10;
         isFinal() ? finalLipSync(score) : results(Math.round(score), titulo);
       });
@@ -307,6 +363,19 @@ const Story = (() => {
 
   function results(myScore, titulo) {
     const scores = rivalScores();
+    let teamLine = "";
+    const teamOf = {};
+    if (S.team) {
+      // Reto por equipos: el equipo ganador suma un extra a su nota individual
+      const A = [S.queen, ...S.team], B = S.rivals.filter((q) => !S.team.includes(q));
+      const sc = (q) => (q === S.queen ? myScore : scores[S.rivals.indexOf(q)]);
+      const avg = (T) => T.reduce((a, q) => a + sc(q), 0) / Math.max(1, T.length);
+      const aWins = avg(A) >= avg(B);
+      A.forEach((q) => (teamOf[q.id] = "rosa"));
+      B.forEach((q) => (teamOf[q.id] = "oro"));
+      if (aWins) myScore = Math.min(100, myScore + 8);
+      teamLine = `<p class="gold">${aWins ? "🏆 ¡Tu equipo (Rosa) gana el reto por equipos! +8" : "El equipo Oro gana el reto por equipos."}</p>`;
+    }
     const rows = [{ q: S.queen, s: myScore, me: true }, ...S.rivals.map((q, i) => ({ q, s: scores[i], i }))].sort((a, b) => b.s - a.s);
     const n = rows.length;
     const myPos = rows.findIndex((r) => r.me);
@@ -314,6 +383,10 @@ const Story = (() => {
     S.points += myScore * 10 + (myPos === 0 ? 500 : 0);
     if (myPos === 0) S.wins++;
     if (bottom) S.bottoms++;
+    S.streak = myPos === 0 ? S.streak + 1 : 0;
+    if (S.streak >= 3) Achievements.unlock("racha");
+    const b = S.lastBonus || 0;
+    const bonusLine = b ? `<p class="${b > 0 ? "gold" : "muted"}">${b > 0 ? `💞 Tus aliadas te han echado un cable: +${b}` : `🗡️ Tus enemigas te lo han puesto difícil: ${b}`}</p>` : "";
     const badge = (k) =>
       k === 0 ? `<b class="tag win">Ganadora del reto</b>` : k >= n - 2 ? `<b class="tag btm">Bottom 2</b>` : `<b class="tag safe">A salvo</b>`;
     body().innerHTML = `
@@ -321,20 +394,37 @@ const Story = (() => {
         <p class="eyebrow">${esc(titulo)} · resultados</p>
         <h3>${myPos === 0 ? "¡Has ganado el reto! 👑" : bottom ? "Estás en el bottom 2..." : "Estás a salvo"}</h3>
         <p class="muted">Tu puntuación: <b>${myScore}</b>/100</p>
+        ${bonusLine}${teamLine}
         <ol class="ranking">${rows
-          .map((r, k) => `<li class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}</span>${badge(k)}<em>${Math.round(r.s)}</em></li>`)
+          .map((r, k) => `<li class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${teamOf[r.q.id] ? ` <small class="team ${teamOf[r.q.id]}">${teamOf[r.q.id] === "rosa" ? "Rosa" : "Oro"}</small>` : ""}</span>${badge(k)}<em>${Math.round(r.s)}</em></li>`)
           .join("")}</ol>
         <button class="btn btn-primary" id="story-next">${bottom ? "Lip sync for your life" : "Continuar"}</button>
       </div>`;
     const loser = S.rivals[0];
     $("#story-next").addEventListener("click", () => {
       const crit = DIALOGOS.critica[myPos === 0 ? "win" : bottom ? "bottom" : "safe"];
-      dialog(crit, ctxFor(titulo), () => afterCritique());
+      dialog(crit, ctxFor(titulo), () => untucked(afterCritique));
     });
     const afterCritique = () => {
       if (bottom) return lipSync(loser, false);
       // Tú a salvo: se van las otras dos al lip sync y cae la que toca
       const other = S.rivals[1];
+      // Momento especial: doble sashay (se van las dos)
+      if (!S.dsashay && S.rivals.length >= 7 && Math.random() < 0.12) {
+        S.dsashay = true;
+        body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">¡Momento histórico!</p>
+          <h3>Doble sashay away</h3>
+          <div class="vs"><img class="gone" src="${photo(other)}"><span>✖</span><img class="gone" src="${photo(loser)}"></div>
+          <p>Ninguna ha convencido. <b>${esc(other.name)}</b> y <b>${esc(loser.name)}</b> se van las dos a casa.</p>
+          <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
+        </div>`;
+        eliminate(loser);
+        eliminate(other);
+        header();
+        return $("#story-next").addEventListener("click", nextEpisode);
+      }
       body().innerHTML = `
         <div class="story-card">
           <p class="eyebrow">Lip sync</p>
@@ -347,6 +437,18 @@ const Story = (() => {
       header();
       $("#story-next").addEventListener("click", nextEpisode);
     };
+  }
+
+  // Untucked: tras la crítica, una compañera viene a hablar contigo
+  function untucked(then) {
+    if (isFinal() || S.rivals.length < 3) return then();
+    const pool = S.rivals.slice(1);
+    const withRel = pool.filter((q) => relOf(q) !== 0);
+    const src = withRel.length && Math.random() < 0.6 ? withRel : pool;
+    const q = src[Math.floor(Math.random() * src.length)];
+    const mood = relOf(q) <= -1 ? "tenso" : relOf(q) >= 1 ? "amiga" : "neutral";
+    const U = DIALOGOS.untucked[mood];
+    dialog(U.lines, { yo: S.queen.name, r1: q.name, q: { r1: q } }, then, U.choices);
   }
 
   function eliminate(q) {
@@ -363,15 +465,33 @@ const Story = (() => {
         <p>${forCrown ? "Una ronda, una corona." : "Gana el duelo de tacones o te vas a casa."}</p>
         <button class="btn btn-primary" id="story-ls">¡A la pasarela!</button>
       </div>`;
-    $("#story-ls").addEventListener("click", () => {
+    Music.play("tension");
+    $("#story-ls").addEventListener("click", () => Curtain.run(() => {
+      Music.stop();
       UI.show("game");
-      Game.start(S.queen, S.season, (res) => {
+      Game.start(Wardrobe.boosted(S.queen), S.season, (res) => {
         UI.show("story");
         header();
         S.points += Math.round(res.score || 0);
         if (res.won) {
           S.lipsyncs++;
           S.points += forCrown ? 5000 : 1000;
+          if (S.lipsyncs >= 3) Achievements.unlock("superviviente");
+        }
+        if (!res.won && !forCrown && !S.dshantay && Math.random() < 0.2) {
+          // Momento especial: doble shantay, os quedáis las dos
+          S.dshantay = true;
+          Achievements.unlock("doble-shantay");
+          body().innerHTML = `
+          <div class="story-card">
+            <p class="eyebrow">¡Momento histórico!</p>
+            <h3>¡Doble shantay!</h3>
+            <div class="vs"><img src="${photo(S.queen)}"><span>💖</span><img src="${photo(rival)}"></div>
+            <p>Las dos lo habéis dado todo. <b>${esc(S.queen.name)}</b> y <b>${esc(rival.name)}</b>, shantay, you both stay.</p>
+            <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
+          </div>`;
+          Confetti.burst(2500);
+          return $("#story-next").addEventListener("click", nextEpisode);
         }
         if (!res.won) return theEnd(false, rival, forCrown);
         if (forCrown) return theEnd(true);
@@ -387,10 +507,11 @@ const Story = (() => {
           </div>`;
         $("#story-next").addEventListener("click", nextEpisode);
       }, { rivals: [rival], story: true });
-    });
+    }, forCrown ? "LIP SYNC POR LA CORONA" : "LIP SYNC FOR YOUR LIFE"));
   }
 
   function finalLipSync(score) {
+    if (S.bottoms === 0) Achievements.unlock("sin-bottom");
     const third = S.rivals[0];
     const rival = S.rivals[S.rivals.length - 1];
     body().innerHTML = `
@@ -428,7 +549,13 @@ const Story = (() => {
       const w = store.get("dftc-story-wins", []);
       if (!w.includes(S.season.id)) store.set("dftc-story-wins", [...w, S.season.id]);
       Sound.win();
-    }
+      Confetti.burst(5000);
+      Music.play("corona");
+      Achievements.unlock("corona-historia");
+      const crowns = store.get("dftc-story-wins", []);
+      if (FRANCHISES.find((f) => f.id === "es").seasons.filter((x) => !x.enEmision).every((x) => crowns.includes(x.id))) Achievements.unlock("espana");
+    } else Music.stop();
+    const earned = Wallet.add(S.points / 40);
     body().innerHTML = `
       <div class="story-card end ${won ? "won" : ""}">
         <img class="story-queen" src="${sprite(S.queen)}" alt="">
@@ -436,7 +563,7 @@ const Story = (() => {
           <p class="eyebrow">${esc(S.season.name)} · resultado final</p>
           <h3>${won ? `¡${esc(S.queen.name)}, eres la ganadora! 👑` : `Sashay away... puesto ${place}º`}</h3>
           <p>${won ? "La corona es tuya. Condragulations." : `${esc(rival.name)} te ha ganado el lip sync.`}</p>
-          <p class="story-pts">${entry.score.toLocaleString("es-ES")} puntos</p>
+          <p class="story-pts">${entry.score.toLocaleString("es-ES")} puntos · +${earned} ✨</p>
           <p class="muted">Retos ganados: ${S.wins} · Veces en el bottom: ${S.bottoms} · Lip syncs ganados: ${S.lipsyncs}</p>
           ${pos >= 0 ? `<label class="name-entry active story-name">Puesto ${pos + 1} del Top 10 de historia. Tu nombre:
             <input id="story-name" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="${esc(entry.name)}"></label>` : ""}
@@ -460,6 +587,34 @@ const Story = (() => {
     $("#story-menu").addEventListener("click", () => { abandon(); UI.show("menu"); });
     $("#story-again").addEventListener("click", () => start(q, s));
     $("#story-scores").addEventListener("click", () => { UI.scoresTab("story"); UI.show("scores"); });
+  }
+
+  // ------------------------- Reto por equipos ------------------------------
+  function runEquipos(el, done) {
+    // Tu equipo: la mitad del reparto, con preferencia por tus aliadas.
+    // La que se va esta semana (rivals[0]) y la otra del bottom van al equipo Oro.
+    const size = Math.max(1, Math.floor((S.rivals.length + 1) / 2) - 1);
+    const pool = S.rivals.slice(2).sort((a, b) => relOf(b) - relOf(a) || Math.random() - 0.5);
+    S.team = pool.slice(0, size);
+    const ROLES = [
+      { id: "solista", name: "🎤 Solista", desc: "Más riesgo, más premio: x1.2 si lo haces bien (60+), -10 si no.", f: (s) => (s >= 60 ? s * 1.2 : s - 10) },
+      { id: "coros", name: "🎶 Coros", desc: "Equilibrada: tu nota tal cual.", f: (s) => s },
+      { id: "fondo", name: "💃 Bailarina de fondo", desc: "Segura pero discreta: x0.9 con un mínimo de 45.", f: (s) => Math.max(45, s * 0.9) },
+    ];
+    el.innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">Equipo Rosa (el tuyo)</p>
+        <div class="team-row">${[S.queen, ...S.team].map((q) => `<span><i style="background-image:url('${photo(q)}')"></i>${esc(q.name)}</span>`).join("")}</div>
+        <h3>¿Qué papel quieres en el grupo?</h3>
+        <div class="role-list">${ROLES.map((r, k) => `<button class="btn btn-ghost role" data-k="${k}"><b>${r.name}</b><small>${r.desc}</small></button>`).join("")}</div>
+      </div>`;
+    el.querySelectorAll(".role").forEach((b) =>
+      b.addEventListener("click", () => {
+        const role = ROLES[+b.dataset.k];
+        el.innerHTML = "";
+        runRusical(el, (s) => done(Math.max(0, Math.min(100, role.f(s)))));
+      }),
+    );
   }
 
   // ------------------------- Minijuego: pasarela ---------------------------

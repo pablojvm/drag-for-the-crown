@@ -730,6 +730,6 @@ const Game = (() => {
       return state;
     },
     // Solo para pruebas automatizadas
-    _debug: () => ({ state, lives, score, roundIndex, combo, shots, hits, heels: heels.length, rival, player, special, setSpecial: (v) => (special = v) }),
+    _debug: () => ({ win: () => state === "playing" && finish(true), state, lives, score, roundIndex, combo, shots, hits, heels: heels.length, rival, player, special, setSpecial: (v) => (special = v) }),
   };
 })();

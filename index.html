@@ -9,10 +9,11 @@
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/style.css?v=23">
+  <link rel="stylesheet" href="styles/style.css?v=25">
 </head>
 <body>
   <div id="stage">
@@ -41,7 +42,7 @@
         <div class="ctrl"><span class="keys"><kbd>P</kbd></span><span>Pausa</span></div>
         <div class="ctrl"><span class="keys"><kbd>M</kbd></span><span>Sonido</span></div>
       </div>
-      <p class="best">Récord: <strong id="menu-best">0</strong> · Puntos acumulados: <strong id="menu-total">0</strong></p>
+      <p class="best">✨ <strong class="sequins">0</strong> lentejuelas · Récord: <strong id="menu-best">0</strong> · Puntos acumulados: <strong id="menu-total">0</strong></p>
     </section>
 
     <!-- ============ FRANQUICIA ============ -->
@@ -124,7 +125,9 @@
       <div class="tabs" id="scores-tabs">
         <button class="tab active" data-tab="arcade">👠 Arcade</button>
         <button class="tab" data-tab="story">📖 Modo historia</button>
+        <button class="tab" data-tab="logros">🏅 Logros</button>
       </div>
+      <div id="ach-grid" style="display:none"></div>
       <div class="scores-layout">
         <div class="panel-card">
           <h3>Top 10</h3>
@@ -190,14 +193,15 @@
     </div>
   </div>
 
-  <script src="./js/reinas.js?v=23"></script>
-  <script src="./js/config.js?v=23"></script>
-  <script src="./js/audio.js?v=23"></script>
-  <script src="./js/effects.js?v=23"></script>
-  <script src="./js/entities.js?v=23"></script>
-  <script src="./js/game.js?v=23"></script>
-  <script src="./js/ui.js?v=23"></script>
-  <script src="./js/dialogos.js?v=23"></script>
-  <script src="./js/historia.js?v=23"></script>
+  <script src="./js/reinas.js?v=25"></script>
+  <script src="./js/config.js?v=25"></script>
+  <script src="./js/audio.js?v=25"></script>
+  <script src="./js/extras.js?v=25"></script>
+  <script src="./js/effects.js?v=25"></script>
+  <script src="./js/entities.js?v=25"></script>
+  <script src="./js/game.js?v=25"></script>
+  <script src="./js/ui.js?v=25"></script>
+  <script src="./js/dialogos.js?v=25"></script>
+  <script src="./js/historia.js?v=25"></script>
 </body>
 </html>

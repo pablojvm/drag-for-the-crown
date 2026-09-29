@@ -33,6 +33,8 @@ const UI = (() => {
 
   function show(name) {
     current = name;
+    if (name !== "story") Music.stop();
+    Wallet.refresh();
     Object.entries(screens).forEach(([k, el]) => el.classList.toggle("active", k === name));
     btnPause.style.visibility = name === "game" ? "visible" : "hidden";
     touch.classList.toggle("active", name === "game");
@@ -143,6 +145,10 @@ const UI = (() => {
   const grid = $("#queen-grid");
   const details = $("#queen-details");
 
+  // En arcade, la ganadora de cada temporada se desbloquea al coronarte en el modo historia
+  const storyCrowns = () => store.get("dftc-story-wins", []);
+  const lockedArcade = (q) =>
+    mode === "arcade" && currentSeason && !currentSeason.enEmision && q.id === currentSeason.winner && !storyCrowns().includes(currentSeason.id);
   function renderGrid() {
     grid.innerHTML = "";
     $("#select-season").textContent = `${currentSeason.franchise.name} · ${currentSeason.name}`;
@@ -151,7 +157,7 @@ const UI = (() => {
     grid.style.width = `${cols * (cast.length > 8 ? 150 : 200) + (cols - 1) * (cast.length > 8 ? 12 : 16)}px`;
     grid.classList.toggle("compact", cast.length > 8);
     cast.forEach((q) => {
-      const locked = false;
+      const locked = lockedArcade(q);
       const card = document.createElement("button");
       card.className = "queen-card" + (locked ? " locked" : "") + (selected && selected.id === q.id ? " selected" : "");
       card.dataset.id = q.id;
@@ -170,7 +176,7 @@ const UI = (() => {
   }
 
   function openDetails(q) {
-    const locked = false;
+    const locked = lockedArcade(q);
     $("#det-portrait").style.backgroundImage = portraitBg(q, currentSeason && currentSeason.id);
     $("#det-portrait").classList.toggle("locked", locked);
     $("#det-name").textContent = q.name;
@@ -179,18 +185,30 @@ const UI = (() => {
     $("#det-place").textContent =
       pos < 0 ? "" : currentSeason.enEmision ? "📺 Temporada en emisión" : pos === n - 1 ? "👑 Ganadora de la temporada" : `Puesto ${n - pos}º de ${n}`;
     $("#det-quote").textContent = q.quote ? `“${q.quote}”` : "";
-    $("#det-stats").innerHTML = Object.entries(STAT_LABELS)
-      .map(
-        ([k, label]) => `
+    const st = Wardrobe.statsOf(q);
+    $("#det-stats").innerHTML =
+      Object.entries(STAT_LABELS)
+        .map(
+          ([k, label]) => `
         <div class="stat-row">
           <span>${label}</span>
-          <span class="pips">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= q.stats[k] ? "on" : ""}"></i>`).join("")}</span>
+          <span class="pips">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= q.stats[k] ? "on" : i <= st[k] ? "on up" : ""}"></i>`).join("")}</span>
+          ${Wardrobe.canUpgrade(q, k) ? `<button class="up-btn" data-k="${k}" title="Mejorar en el armario">+ ${Wardrobe.cost(q, k)} ✨</button>` : `<span class="up-max">MAX</span>`}
         </div>`,
-      )
-      .join("");
+        )
+        .join("") + `<p class="wallet-line">🧵 Armario · tienes <b class="sequins">${Wallet.balance}</b> lentejuelas ✨</p>`;
+    $("#det-stats").querySelectorAll(".up-btn").forEach((b) =>
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (Wardrobe.upgrade(q, b.dataset.k)) {
+          Music.sfx("coin");
+          openDetails(q);
+        } else Toast.show("Te faltan lentejuelas", "Gánalas jugando partidas y retos");
+      }),
+    );
     $("#det-power").textContent = q.power.name;
     $("#det-power-desc").textContent = q.power.desc;
-    $("#det-lock").innerHTML = "";
+    $("#det-lock").innerHTML = locked ? "🔒 Corónate en el modo historia de esta temporada para jugar con ella en arcade." : "";
     details.classList.add("open");
   }
 
@@ -199,7 +217,7 @@ const UI = (() => {
     openDetails(q);
     selected = q;
     grid.querySelectorAll(".queen-card").forEach((c) => c.classList.toggle("selected", c.dataset.id === q.id));
-    btnStart.disabled = false;
+    btnStart.disabled = lockedArcade(q);
     Sound.stopAll();
     if (q.voice) Sound.voice(q.id);
   }
@@ -208,8 +226,10 @@ const UI = (() => {
   function startGame() {
     if (!selected || !currentSeason) return;
     if (mode === "story") return Story.start(selected, currentSeason);
+    if (lockedArcade(selected)) return;
+    Achievements.unlock("debut");
     show("game");
-    Game.start(selected, currentSeason, showEnd);
+    Game.start(Wardrobe.boosted(selected), currentSeason, showEnd);
   }
 
   function formatTime(s) {
@@ -233,6 +253,13 @@ const UI = (() => {
     if (stats.unlockedSeason) msg = `🔓 ¡Desbloqueada ${stats.seasonObj.franchise.name} · ${stats.unlockedSeason.name}!`;
     else if (stats.won && stats.seasonObj.index === stats.seasonObj.franchise.seasons.length - 1)
       msg = `🏆 ¡Has completado ${stats.seasonObj.franchise.name}!`;
+    const earned = Wallet.add(stats.score / 80);
+    if (earned) msg = (msg ? msg + " · " : "") + `+${earned} lentejuelas ✨`;
+    if (stats.won) {
+      Achievements.unlock("corona-arcade");
+      Confetti.burst();
+    }
+    if (stats.maxCombo >= 20) Achievements.unlock("combo");
     unlockedMsg.textContent = msg;
     unlockedMsg.classList.toggle("active", !!msg);
     $("#btn-change").textContent = stats.unlockedSeason ? "Siguiente temporada" : "Temporadas";
@@ -272,7 +299,18 @@ const UI = (() => {
     const s = id && seasonById(id);
     return s ? `<small class="muted">${esc(s.franchise.tag)} ${esc(s.name.replace("Temporada ", "T").replace("All Stars ", ""))}</small> ` : "";
   };
+  function renderAchievements() {
+    const done = Achievements.done;
+    $("#ach-grid").innerHTML =
+      `<p class="ach-sum">${Object.keys(done).length}/${LOGROS.length} logros · <b class="sequins">${Wallet.balance}</b> lentejuelas ✨</p>` +
+      LOGROS.map((l) => `<div class="ach ${done[l.id] ? "done" : ""}"><i>${done[l.id] ? l.icon : "🔒"}</i><div><strong>${esc(l.name)}</strong><small>${esc(l.desc)}</small></div><em>+${l.reward} ✨</em></div>`).join("");
+  }
   function renderScores() {
+    const logros = scoresTab === "logros";
+    $(".scores-layout").style.display = logros ? "none" : "";
+    $("#ach-grid").style.display = logros ? "" : "none";
+    document.querySelectorAll("#scores-tabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === scoresTab));
+    if (logros) return renderAchievements();
     const story = scoresTab === "story";
     document.querySelectorAll("#scores-tabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === scoresTab));
     $("#th-res").textContent = story ? "Resultado" : "Rondas";
@@ -381,7 +419,7 @@ const UI = (() => {
     btnMute.setAttribute("aria-label", Sound.muted ? "Activar sonido" : "Silenciar");
   }
   btnMute.addEventListener("click", () => {
-    Sound.toggleMute();
+    if (Sound.toggleMute()) Music.stop();
     refreshMuteIcon();
   });
 
@@ -434,6 +472,7 @@ const UI = (() => {
     $("#btn-play-label").textContent = "👠 Arcade";
   });
   show("menu");
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("./sw.js").catch(() => {});
 
   return { showPause, show, scoresTab: (t) => (scoresTab = t), get mode() { return mode; } };
 })();

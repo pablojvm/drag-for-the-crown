@@ -23,11 +23,43 @@ const DIALOGOS = {
     ["r1", "Madre mía, cuánta reina junta. ¿Tú de dónde vienes, {yo}?"],
     ["r2", "Da igual de dónde venga: aquí todas empezamos de cero."],
   ],
+  // rel: cómo cambia tu relación con cada compañera (+ aliada, - rival)
   respuestas: [
-    { txt: "He venido a por la corona, cariño.", reply: ["r2", "Uy, qué segura se la ve. Ya veremos en la pasarela."], bonus: 150 },
-    { txt: "Estoy nerviosa, pero con muchas ganas.", reply: ["r1", "Normal, reina. Los nervios se quitan con la primera pose."], bonus: 100 },
-    { txt: "Yo he venido a pasármelo bien.", reply: ["r2", "Eso es lo más importante... aunque ganar tampoco está mal."], bonus: 80 },
+    { txt: "He venido a por la corona, cariño.", reply: ["r2", "Uy, qué segura se la ve. Ya veremos en la pasarela."], bonus: 150, rel: { r2: -1 } },
+    { txt: "Estoy nerviosa, pero con muchas ganas.", reply: ["r1", "Normal, reina. Los nervios se quitan con la primera pose."], bonus: 100, rel: { r1: 1 } },
+    { txt: "Yo he venido a pasármelo bien.", reply: ["r2", "Eso es lo más importante... aunque ganar tampoco está mal."], bonus: 80, rel: { r1: 1, r2: 1 } },
   ],
+  regreso: [
+    ["host", "Reinas, antes de empezar... tengo una sorpresa."],
+    ["host", "¡Os presento a una vieja conocida que vuelve a la competición!"],
+    ["r1", "¡He vuelto, y esta vez vengo con todo! Preparaos, chicas."],
+  ],
+  // Untucked: charla tras la crítica. El tono depende de vuestra relación
+  untucked: {
+    tenso: {
+      lines: [["r1", "{yo}, no me ha gustado nada lo que has dicho hoy en el taller."], ["r1", "Aquí todas nos jugamos lo mismo, ¿sabes?"]],
+      choices: [
+        { txt: "Tienes razón, lo siento. No iba a malas.", reply: ["r1", "Vale... te lo acepto. Pero que no se repita."], rel: { r1: 2 } },
+        { txt: "Pues lo digo y lo mantengo, reina.", reply: ["r1", "Muy bien. Nos vemos en la pasarela."], rel: { r1: -1 }, bonus: 120 },
+        { txt: "No voy a entrar en dramas hoy.", reply: ["r1", "Como quieras. Tú misma."], rel: {} },
+      ],
+    },
+    amiga: {
+      lines: [["r1", "¡{yo}! Qué bien has estado hoy, de verdad."], ["r1", "Si seguimos así, nos vemos las dos en la final."]],
+      choices: [
+        { txt: "¡Tú también! Somos un equipazo.", reply: ["r1", "Pues pacto de hermanas: nos cuidamos hasta el final."], rel: { r1: 1 } },
+        { txt: "Gracias... pero aquí solo gana una.", reply: ["r1", "Ya... bueno, también es verdad."], rel: { r1: -1 }, bonus: 80 },
+      ],
+    },
+    neutral: {
+      lines: [["r1", "Oye, {yo}, ¿qué te han parecido las críticas de hoy?"]],
+      choices: [
+        { txt: "Justas. Hay que escuchar al jurado.", reply: ["r1", "Qué madura. Me caes bien."], rel: { r1: 1 } },
+        { txt: "Algunas se han librado de milagro...", reply: ["r1", "¿Lo dices por mí? Ya hablaremos."], rel: { r1: -1 }, bonus: 60 },
+        { txt: "Estoy agotada, mañana hablamos.", reply: ["r1", "Descansa, reina."], rel: {} },
+      ],
+    },
+  },
   anuncio: [
     ["host", "Reinas, atención: el reto de esta semana es... ¡{reto}!"],
     ["judge", "Quiero ver ideas claras y buena ejecución. Sorprendedme."],
