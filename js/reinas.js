@@ -242,5 +242,6 @@ const PROXIMAS_TEMPORADAS = [{ franchise: "esas", id: "esas2", name: "All Stars 
 
 // Looks propios de una temporada (p. ej. All Stars): images/queens/<temporada>/<id>.png y <id>_retrato.jpg
 const LOOKS = {
+  es3: ["the-macarena"],
   esas1: ["drag-sethlas", "hornella-gongora", "juriji-der-klee", "onyx", "pakita", "pink-chadora", "pupi-poisson", "sagittaria", "samantha-ballentines"],
 };

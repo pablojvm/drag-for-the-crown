@@ -196,7 +196,7 @@ const UI = (() => {
     const pos = currentSeason ? currentSeason.cast.indexOf(q.id) : -1;
     const n = currentSeason ? currentSeason.cast.length : 0;
     $("#det-place").textContent =
-      pos < 0 ? "" : currentSeason.enEmision ? "📺 Temporada en emisión" : pos === n - 1 ? "👑 Ganadora de la temporada" : `Puesto ${n - pos}º de ${n}`;
+      pos < 0 ? "" : mode === "story" ? "📖 En la historia, todo depende de ti" : currentSeason.enEmision ? "📺 Temporada en emisión" : pos === n - 1 ? "👑 Ganadora de la temporada" : `Puesto ${n - pos}º de ${n}`;
     $("#det-quote").textContent = q.quote ? `“${q.quote}”` : "";
     const st = Wardrobe.statsOf(q);
     $("#det-stats").innerHTML =
