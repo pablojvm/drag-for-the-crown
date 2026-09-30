@@ -297,6 +297,7 @@ const Story = (() => {
     if (!d) return onNew();
     const q = qById(d.queen), se = seasonById(d.season);
     UI.show("story");
+    setSet("werkroom");
     $("#story-season").textContent = "Modo historia";
     $("#story-ep").textContent = "Partida guardada";
     $("#story-exit").textContent = "← Volver";
@@ -599,6 +600,18 @@ const Story = (() => {
   }
   let pendingSide = null;
 
+  // Fondo de la escena (taller, plató, jurado...)
+  const SETS = { werkroom: ["werkroom.jpg", "werkroom3.jpg"], lounge: ["werkroom2.jpg"], stage: ["stage.jpg"], panel: ["panel.jpg"] };
+  function setSet(name) {
+    const el = $("#story-set");
+    if (!el) return;
+    if (!name) { el.style.backgroundImage = ""; el.dataset.set = ""; return; }
+    if (el.dataset.set === name) return;
+    el.dataset.set = name;
+    const list = SETS[name] || SETS.werkroom;
+    el.style.backgroundImage = `url('./images/sets/${list[(S ? S.ep : 0) % list.length]}')`;
+  }
+
   // Track record a mano en cualquier decisión
   const trackBtn = () => `<button class="btn btn-ghost small-btn track-peek">📊 Ver track record</button>`;
   function bindTrack() {
@@ -807,6 +820,7 @@ const Story = (() => {
     Curtain.run(() => episode(), isFinal() ? (S.flags.reunion ? "GRAN FINAL" : "EL REENCUENTRO") : `EPISODIO ${S.ep + 1}`);
   }
   function episode() {
+    setSet("werkroom");
     S.ep++;
     S.advice = 0;
     S.helped = false;
@@ -891,17 +905,44 @@ const Story = (() => {
   }
 
   // Tiempo libre: eliges con quién hablar y cómo
+  // Mesas del taller: por grupos (o repartidas antes de que se formen)
+  function werkroomTables() {
+    const tables = [];
+    if (S.groups && S.groups.length) {
+      S.groups.forEach((g) => {
+        const m = groupMembers(g);
+        if (S.myGroup === g.id) m.unshift(S.queen);
+        if (m.length) tables.push({ name: `${g.icon} ${g.name}`, mine: S.myGroup === g.id, qs: m });
+      });
+      const loose = [...(S.myGroup ? [] : [S.queen]), ...S.rivals.filter((q) => !groupOf(q))];
+      for (let i = 0; i < loose.length; i += 4) tables.push({ name: i ? "🦋 Por libre (2)" : "🦋 Por libre", mine: loose.slice(i, i + 4).includes(S.queen), qs: loose.slice(i, i + 4) });
+    } else {
+      const all = [S.queen, ...S.rivals];
+      const per = all.length > 9 ? 4 : 3;
+      for (let i = 0; i < all.length; i += per) tables.push({ name: `Mesa ${tables.length + 1}`, mine: i === 0, qs: all.slice(i, i + per) });
+    }
+    return tables;
+  }
+  const seatHTML = (q) => {
+    const me = q === S.queen;
+    const cls = me ? "me" : relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : "";
+    return `<button class="wr-seat ${me ? "" : "hub-q"} ${cls}" ${me ? "disabled" : `data-id="${q.id}"`} title="${esc(q.name)}">
+      <span class="wr-body"><img src="${sprite(q)}" alt=""></span>
+      <span class="wr-tag"><b>${esc(me ? "Tú" : q.name)}</b>${me ? "" : `<small>${relLabel(q)}</small>`}${me ? "" : roleKnown(q) ? `<em>${roleOf(q).icon}</em>` : ""}${twistOf() === "corazon" && S.hearts[keyOf(q)] ? `<em>❤️${String(S.hearts[keyOf(q)] / 2).replace(".", ",")}</em>` : ""}</span>
+    </button>`;
+  };
   function hub(then) {
     header();
+    setSet("werkroom");
     body().innerHTML = `
-      <div class="story-card">
+      <div class="story-card werkroom">
         <p class="eyebrow">Taller · tiempo libre</p>
         <h3>¿Con quién quieres hablar?</h3>
-        <p class="muted">Solo te da tiempo a una conversación antes del reto.</p>
-        <p class="attr-row">Tus atributos: ${attrChips(Object.keys(ATTR_NAMES))}</p>
-        <div class="hub-grid">${S.rivals
-          .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}${groupChip(q)}${heartChip(q)}</button>`)
+        <p class="muted">Solo te da tiempo a una conversación antes del reto. Pincha en una compañera.</p>
+        <div class="wr-room">${werkroomTables()
+          .map((t, i) => `<div class="wr-table ${t.mine ? "mine" : ""}" style="--i:${i}"><div class="wr-seats">${t.qs.map(seatHTML).join("")}</div><div class="wr-desk"><span>${esc(t.name)}</span></div></div>`)
           .join("")}</div>
+        <p class="attr-row">Tus atributos: ${attrChips(Object.keys(ATTR_NAMES))}</p>
         <div class="row"><button class="btn btn-ghost" id="hub-skip">🎯 Concentrarme en mi reto</button>${trackBtn()}</div>
       </div>`;
     bindTrack();
@@ -990,6 +1031,7 @@ const Story = (() => {
     { id: "eleccion", txt: "eliges primero en el reto: +4 y los mejores materiales", apply: () => (S.advice += 4) },
   ];
   function miniChallenge(then) {
+    setSet("werkroom");
     S.runwayBonus = 0;
     S.captains = null;
     const maxi = pickReto();
@@ -1097,6 +1139,7 @@ const Story = (() => {
   }
   // La pasarela de cada semana, con su categoría
   function runway(then) {
+    setSet("stage");
     const cat = pick1(CATEGORIAS);
     S.runwayCat = cat;
     body().innerHTML = `
@@ -1124,6 +1167,7 @@ const Story = (() => {
 
   // Resultado de la semana: todo sale de las notas del día (nada predefinido)
   function results(myScore, titulo) {
+    setSet("panel");
     const sc = {};
     S.rivals.forEach((q) => (sc[q.id] = rivalScore(q)));
     let teamLine = "";
@@ -1221,6 +1265,7 @@ const Story = (() => {
       };
       // Resultados en orden: ganadora, altas, bajas y bottom
       const verdict = (then) => {
+        setSet("panel");
         const byLab = (f) => rows.filter((r) => f(labOf.get(r)));
         const wins = byLab((l) => l === "WIN" || l === "TOP2");
         const highs = byLab((l) => l === "HIGH");
@@ -1471,6 +1516,7 @@ const Story = (() => {
 
   // T6: la moneda. Cara: las salvadas votan a quién salvar. Cruz: a quién condenar.
   function coinFlip({ winner, bottomRows }, then) {
+    setSet("panel");
     const three = bottomRows.map((r) => r.q);
     const cara = Math.random() < 0.5;
     const voters = [S.queen, ...S.rivals].filter((q) => !three.includes(q));
@@ -1629,6 +1675,7 @@ const Story = (() => {
 
   // Untucked: eliges a quién te acercas
   function untucked(res, then) {
+    setSet("lounge");
     if (S.rivals.length < 2) return then();
     const opts = [];
     const add = (q, kind, label) => q && q !== S.queen && S.rivals.includes(q) && !opts.some((o) => o.q === q) && opts.push({ q, kind, label });
@@ -1681,6 +1728,7 @@ const Story = (() => {
 
   // Quién se va esta semana
   function elimination({ winner, bottomRows, top2 }) {
+    setSet("stage");
     const meBottom = bottomRows.some((r) => r.me);
     const others = bottomRows.filter((r) => !r.me).map((r) => r.q);
     if (twistOf() === "allstars") return topLipSync(top2, (dec) => allStarsDecision(dec, bottomRows));
@@ -2074,6 +2122,7 @@ const Story = (() => {
 
   // ------------------------------ Reencuentro -------------------------------
   function reunion() {
+    setSet("stage");
     S.epNames[S.ep] = "Reencuentro";
     header();
     $("#story-ep").textContent = "El reencuentro";
@@ -2197,6 +2246,7 @@ const Story = (() => {
     }, o.curtain));
   }
   function finale() {
+    setSet("stage");
     if (S.bottoms === 0) Achievements.unlock("sin-bottom");
     S.epNames[S.ep] = "Final";
     const four = shuffle([S.queen, ...S.rivals]);
@@ -3568,6 +3618,7 @@ const Story = (() => {
   // Sustituye al juego de arcade en el modo historia: misma forma de respuesta
   function lsGame(rival, cb) {
     UI.show("story");
+    setSet("stage");
     header();
     body().innerHTML = `<div id="story-play"></div>`;
     Music.play("reto");

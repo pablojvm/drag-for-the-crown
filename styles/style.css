@@ -1651,3 +1651,57 @@ td.hearts { font-weight: 800; color: #d6204f; white-space: nowrap; }
 .dc-scene { text-align: center; }
 .pa-grid, .dc-meters { width: 100%; }
 .dc-opt em { position: static; align-self: flex-start; margin-top: 2px; }
+/* ---------------- Escenarios de fondo ---------------- */
+#story-set { position: absolute; inset: -140px -420px; z-index: 0; background: center / cover no-repeat; transition: background-image .6s ease; pointer-events: none; }
+#story-set::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 238, 248, .8) 0%, rgba(255, 238, 248, .45) 25%, rgba(255, 238, 248, .35) 70%, rgba(255, 238, 248, .75) 100%); }
+#story-set:not([style*="url"])::after { display: none; }
+#screen-story > *:not(#story-set) { position: relative; z-index: 1; }
+#screen-story .story-card { background: rgba(255, 255, 255, .86); backdrop-filter: blur(10px); }
+/* ---------------- El taller con mesas ---------------- */
+.story-card.werkroom { width: 1200px; max-width: 100%; }
+.wr-room { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 26px 34px; margin: 6px 0 10px; }
+.wr-table { display: flex; flex-direction: column; align-items: center; animation: card-in .5s ease both; animation-delay: calc(var(--i) * .12s); }
+.wr-seats { display: flex; gap: 2px; padding: 0 12px; margin-bottom: -46px; position: relative; z-index: 1; }
+.wr-seat { position: relative; width: 92px; height: 176px; border: 0; padding: 0; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; font: inherit; color: var(--ink); }
+.wr-seat[disabled] { cursor: default; }
+.wr-body { width: 92px; height: 150px; overflow: hidden; display: flex; justify-content: center; transition: transform .25s var(--ease-spring); }
+.wr-body img { height: 290px; width: auto; max-width: none; object-fit: contain; object-position: top; filter: drop-shadow(0 6px 10px rgba(59, 13, 79, .35)); }
+.wr-seat:not([disabled]):hover .wr-body { transform: translateY(-10px) scale(1.06); }
+.wr-seat.me .wr-body img { filter: drop-shadow(0 0 10px rgba(255, 184, 0, .9)); }
+.wr-seat.ally .wr-body img { filter: drop-shadow(0 0 8px rgba(34, 196, 122, .8)); }
+.wr-seat.enemy .wr-body img { filter: drop-shadow(0 0 8px rgba(255, 77, 109, .85)); }
+.wr-tag { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; padding: 3px 8px; border-radius: 12px; background: rgba(255, 255, 255, .92); box-shadow: 0 4px 10px -4px rgba(59, 13, 79, .4); white-space: nowrap; opacity: 0; transition: opacity .2s, top .2s; pointer-events: none; z-index: 3; }
+.wr-tag b { font-size: 12px; }
+.wr-tag small { font-size: 10px; color: var(--ink-soft); }
+.wr-tag em { font-style: normal; font-size: 11px; }
+.wr-seat:hover .wr-tag, .wr-seat.me .wr-tag { opacity: 1; top: -22px; }
+.wr-desk { position: relative; z-index: 2; min-width: 100%; height: 64px; padding: 0 18px; border-radius: 12px 12px 6px 6px; background: linear-gradient(180deg, #ff5fae 0%, #ff3d9a 45%, #e02c86 100%); border-top: 5px solid #ffcf4d; box-shadow: 0 16px 24px -12px rgba(59, 13, 79, .55); display: flex; align-items: center; justify-content: center; }
+.wr-desk span { font-weight: 800; font-size: 13px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.3); padding: 3px 12px; border-radius: 999px; background: rgba(59, 13, 79, .25); }
+.wr-table.mine .wr-desk { border-top-color: #fff; box-shadow: 0 0 0 3px #ffcf4d, 0 16px 24px -12px rgba(59, 13, 79, .55); }
+.wr-seat.hub-q, .wr-seat.hub-q:hover, .wr-seat.hub-q.ally, .wr-seat.hub-q.enemy { background: none !important; border: 0 !important; padding: 0 !important; box-shadow: none !important; border-radius: 0 !important; width: 92px; min-height: 0; gap: 0; transform: none !important; animation: none; }
+.story-card.werkroom { padding-top: 18px; padding-bottom: 18px; }
+.story-card.werkroom h3 { margin: 2px 0 4px; }
+.story-card.werkroom .muted { margin: 0 0 20px; }
+.wr-room { gap: 30px 30px; }
+.wr-seat { height: 150px; }
+.wr-body { height: 128px; }
+.wr-body img { height: 250px; }
+.wr-desk { height: 54px; }
+.wr-seats { margin-bottom: -40px; }
+#screen-story .story-card.werkroom { background: transparent; backdrop-filter: none; box-shadow: none; border-color: transparent; }
+.story-card.werkroom > .eyebrow, .story-card.werkroom > h3, .story-card.werkroom > .muted, .story-card.werkroom > .attr-row { display: table; margin-left: auto; margin-right: auto; padding: 4px 16px; border-radius: 999px; background: rgba(255, 255, 255, .85); }
+.story-card.werkroom > h3 { padding: 6px 22px; }
+.wr-room { margin-top: 40px; }
+.wr-seat, .wr-seat.hub-q { width: 104px !important; height: 176px; }
+.wr-body { width: 104px; height: 150px; }
+.wr-body img { height: 300px; }
+.wr-seats { margin-bottom: -48px; }
+.wr-desk { height: 60px; }
+#screen-story .story-card.werkroom { background: transparent !important; backdrop-filter: none !important; box-shadow: none !important; border: 0 !important; overflow: visible; max-height: none; }
+.wr-room { margin-top: 30px; gap: 18px 22px; }
+.wr-seat, .wr-seat.hub-q { width: 86px !important; height: 158px; }
+.wr-body { width: 86px; height: 132px; }
+.wr-body img { height: 262px; }
+.wr-seats { margin-bottom: -42px; padding: 0 8px; }
+.wr-desk { height: 52px; }
+.story-card.werkroom > .muted { font-size: 13px; }
