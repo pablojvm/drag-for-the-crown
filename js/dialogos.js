@@ -970,3 +970,23 @@ const GRUPOS = {
     [["r1", "Me han dicho que hablabas mucho con {g2}. ¿Te estás cambiando de bando?"]],
   ],
 };
+
+// T5: grabación de la eliminada destapando a quién deja su medio corazón
+// r1 = la eliminada, {dest} = quien lo recibe
+const CORAZON_VIDEO = {
+  intro: [
+    [["host", "Reinas, antes de seguir... La semana pasada una compañera nos dejó algo grabado."], ["host", "Dale al play."]],
+    [["host", "Tenemos una grabación de la semana pasada. Atentas, que aquí se decide medio corazón."]],
+    [["host", "Antes de las críticas, un mensaje de alguien que ya no está entre nosotras..."]],
+  ],
+  "cariño": [
+    [["r1", "📼 Hola, chicas. Si estáis viendo esto es que me he ido a casa..."], ["r1", "📼 Mi medio corazón se lo dejo a alguien que me ha cuidado desde el primer día: ¡{dest}!"]],
+    [["r1", "📼 No os pongáis a llorar, que se os corre el rímel."], ["r1", "📼 Mi medio corazón es para {dest}. Porque te lo mereces y porque te quiero, pesada."]],
+    [["r1", "📼 Me voy con pena, pero con la cabeza alta."], ["r1", "📼 Y dejo mi medio corazón a {dest}. Gana esto por las dos."]],
+  ],
+  estrategia: [
+    [["r1", "📼 Bueno, reinas. Aquí va mi última jugada."], ["r1", "📼 Mi medio corazón se lo dejo a... {dest}. Úsalo bien, que no te lo regalo por guapa."]],
+    [["r1", "📼 Lo he pensado mucho. Mucho, mucho."], ["r1", "📼 {dest}, el medio corazón es tuyo. Y las demás, que se aguanten."]],
+    [["r1", "📼 Sé que esto va a levantar ampollas..."], ["r1", "📼 Mi medio corazón es para {dest}. Sorpresa."]],
+  ],
+};

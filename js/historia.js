@@ -156,7 +156,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -904,11 +904,7 @@ const Story = (() => {
       return true;
     };
     // (La reina de la suerte se saca justo antes del lip sync: ver luckMoment)
-    if (tw === "corazon") {
-      bottomRows.filter((r) => !r.me && (S.hearts[r.q.id] || 0) >= 2).forEach((r) => {
-        if (Math.random() < 0.7 && saveRow(r, "❤️ Gasta un corazón:")) S.hearts[r.q.id] -= 2;
-      });
-    }
+    // (Los corazones de T5 se destapan después del reparto: ver heartReveal)
 
     const finish = () => {
       const myPos = rows.findIndex((r) => r.me);
@@ -952,7 +948,8 @@ const Story = (() => {
             .join("")}</ol>
           <button class="btn btn-primary" id="story-next">Continuar</button>
         </div>`;
-      $("#story-next").addEventListener("click", () => {
+      $("#story-next").addEventListener("click", () => heartReveal(() => {
+        const bottom = bottomRows.some((r) => r.me);
         const crit = buildCritique(myScore, won ? "win" : bottom ? "bottom" : "safe");
         dialog(crit, { ...ctxWith(pick1(S.rivals)), tension: bottom }, () => confesionario(() =>
           untucked({ winner, bottomRows }, () =>
@@ -963,8 +960,105 @@ const Story = (() => {
             ),
           ),
         ));
-      });
+      }));
     };
+
+    // Salvar a una del bottom después del reparto: entra la siguiente peor
+    const rescue = (row) => {
+      const prev = bottomRows.slice();
+      if (!saveRow(row, "")) return null;
+      const next = bottomRows.find((r) => !prev.includes(r));
+      mark(row.q, "LOW");
+      mark(next.q, `BTM${nb}`);
+      S.record[keyOf(row.q)] = (S.record[keyOf(row.q)] || 0) + 1;
+      header();
+      return next;
+    };
+    const rescueCard = (eyebrow, title, icon, row, next, then, btn = "Continuar") => {
+      Confetti.burst(1800);
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">${eyebrow}</p>
+          <h3>${title}</h3>
+          <div class="vs"><img src="${photo(row.q)}"><span>${icon}</span><img class="gone" src="${photo(next.q)}"></div>
+          <p><b>${esc(row.q === S.queen ? "Tú" : row.q.name)}</b> ${row.q === S.queen ? "te salvas" : "se salva"} del bottom y <b>${esc(next.q === S.queen ? "tú" : next.q.name)}</b> ${next.q === S.queen ? "entras" : "entra"} en su lugar.</p>
+          <button class="btn btn-primary" id="story-next">${btn}</button>
+        </div>`;
+      $("#story-next").addEventListener("click", then);
+    };
+
+    // T5: tras el reparto, la grabación de la eliminada destapa a quién dejó su medio corazón.
+    // Si con eso completa un corazón entero, puede usarlo ahora. Si no lo usa, se pierde.
+    function heartReveal(then) {
+      if (tw !== "corazon" || !(S.pendingHearts || []).length) return then();
+      const list = S.pendingHearts.slice();
+      S.pendingHearts = [];
+      const step = () => {
+        const p = list.shift();
+        if (!p) return then();
+        const from = qById(p.from);
+        const to = p.to === "me" ? S.queen : qById(p.to);
+        if (!from || !to || (to !== S.queen && !S.rivals.includes(to))) return step();
+        const k = keyOf(to);
+        const fav = to === S.queen ? relOf(from) >= 1 : Math.random() < 0.5;
+        const ctx = { ...ctxWith(from), q: { r1: from }, r1: from.name, dest: to === S.queen ? S.queen.name : to.name, tension: true };
+        dialog([...pickFresh(CORAZON_VIDEO.intro), ...pickFresh(CORAZON_VIDEO[fav ? "cariño" : "estrategia"])], ctx, () => {
+          S.hearts[k] = (S.hearts[k] || 0) + 1;
+          header();
+          const full = S.hearts[k] >= 2;
+          Toast.show(`💔 Medio corazón para ${to === S.queen ? "ti" : to.name}`, full ? (to === S.queen ? "¡Ya tienes un corazón entero!" : "¡Ya tiene un corazón entero!") : to === S.queen ? "Te falta la otra mitad" : "Le falta la otra mitad");
+          if (!full) return step();
+          if (to === S.queen) return myFullHeart(step);
+          rivalFullHeart(to, step);
+        });
+      };
+      step();
+    }
+    function myFullHeart(next) {
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">❤️ ¡Tienes un corazón entero!</p>
+          <h3>¿Lo usas ahora?</h3>
+          <p>Solo puedes usarlo en este momento: si no lo usas, <b>se pierde</b>. En el bottom están: ${bottomRows.map((r) => `<b>${esc(r.me ? "tú" : r.q.name)}</b>`).join(" y ")}.</p>
+          <div class="choice-col">${bottomRows.map((r, i) => `<button class="btn btn-ghost" data-o="${i}">${esc(r.me ? "❤️ Usarlo para salvarme" : `❤️ Dárselo a ${r.q.name} para salvarla`)}</button>`).join("")}
+            <button class="btn btn-primary" id="keep">No usarlo (se pierde)</button></div>
+          ${trackBtn()}
+        </div>`;
+      bindTrack();
+      body().querySelectorAll("[data-o]").forEach((b) => b.addEventListener("click", () => {
+        const row = bottomRows[+b.dataset.o];
+        S.hearts.me = 0;
+        const nx = rescue(row);
+        if (!nx) { header(); Toast.show("No se puede usar ahora", "No hay nadie que pueda ocupar ese sitio"); return next(); }
+        if (!row.me) {
+          changeRel(row.q, 3);
+          remember(row.q, "salvada", row !== bottomRows.concat([row]).sort((a, c) => a.s - c.s)[0]);
+        }
+        if (!nx.me) changeRel(nx.q, -1);
+        rescueCard("❤️ El corazón", row.me ? "¡Usas tu corazón y te salvas!" : `¡Le das tu corazón a ${esc(row.q.name)}!`, "❤️", row, nx, next);
+      }));
+      $("#keep").addEventListener("click", () => {
+        S.hearts.me = 0;
+        header();
+        Toast.show("💔 Corazón perdido", "No lo has usado a tiempo");
+        next();
+      });
+    }
+    function rivalFullHeart(q, next) {
+      const self = bottomRows.find((r) => r.q === q);
+      const mate = bottomRows.find((r) => r.q !== q && (sameGroup(q, r.q) || (r.me && relOf(q) >= 2)));
+      const row = self || (mate && Math.random() < 0.6 ? mate : null);
+      S.hearts[q.id] = 0;
+      header();
+      const ctx = { ...ctxWith(q), q: { r1: q }, r1: q.name, tension: true };
+      if (!row) return dialog([["r1", pick1(["No estoy en el bottom... así que me quedo sin usarlo. Qué rabia.", "Pues nada, un corazón entero y no me hace falta. Se pierde."])], ["host", "Ese corazón se pierde. Así son las reglas."]], ctx, next);
+      const nx = rescue(row);
+      if (!nx) return next();
+      if (row.me) { changeRel(q, 2); Toast.show(`❤️ ${q.name} te ha salvado`, "Te ha dado su corazón"); }
+      if (nx.me) changeRel(q, -1);
+      dialog([["r1", row.q === q ? "¡Tengo un corazón entero y lo uso para salvarme!" : `Tengo un corazón entero... y se lo doy a ${row.me ? "{yo}" : row.q.name}.`]], ctx, () =>
+        rescueCard("❤️ El corazón", row.q === q ? `¡${esc(q.name)} se salva con su corazón!` : `¡${esc(q.name)} regala su corazón!`, "❤️", row, nx, next));
+    }
 
     // T4: antes del lip sync Supreme pregunta por la reina de la suerte
     function luckMoment(then) {
@@ -1045,11 +1139,6 @@ const Story = (() => {
 
     // Tus comodines: decides tú
     const opts = [];
-    if (tw === "corazon" && (S.hearts.me || 0) >= 2) {
-      const mine = bottomRows.find((r) => r.me);
-      if (mine) opts.push({ row: mine, kind: "corazon", label: "❤️ Gastar un corazón para salvarme" });
-      bottomRows.filter((r) => !r.me).forEach((r) => opts.push({ row: r, kind: "corazon", label: `❤️ Entregar un corazón a ${r.q.name} para salvarla` }));
-    }
     if (!opts.length) return finish();
     body().innerHTML = `
       <div class="story-card">
@@ -1200,10 +1289,8 @@ const Story = (() => {
     const cands = S.meOut ? S.rivals : [S.queen, ...S.rivals];
     const toMe = !S.meOut && Math.random() < 0.15 + 0.25 * Math.max(0, relOf(gone) + 1);
     const to = toMe ? S.queen : pick1(S.rivals);
-    const k = keyOf(to);
-    S.hearts[k] = (S.hearts[k] || 0) + 1;
-    header();
-    Toast.show(`💔 ${gone.name} deja medio corazón`, to === S.queen ? `¡Para ti! Llevas ${String((S.hearts.me || 0) / 2).replace(".", ",")} ${(S.hearts.me || 0) === 2 ? "corazón" : "corazones"}` : `Para ${to.name}`);
+    (S.pendingHearts = S.pendingHearts || []).push({ from: gone.id, to: keyOf(to) });
+    Toast.show(`💔 ${gone.name} deja su medio corazón a alguien`, "Lo sabréis la semana que viene...");
     if (then) then();
   }
 
