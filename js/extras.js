@@ -67,7 +67,7 @@ const Wardrobe = {
 const LOGROS = [
   { id: "debut", icon: "🎬", name: "Debut", desc: "Juega tu primera partida", reward: 50 },
   { id: "corona-arcade", icon: "👠", name: "Reina del arcade", desc: "Gana una temporada en arcade", reward: 200 },
-  { id: "corona-historia", icon: "👑", name: "Condragulations", desc: "Corónate en el modo historia", reward: 400 },
+  { id: "corona-historia", icon: "👑", name: "Felicidrages", desc: "Corónate en el modo historia", reward: 400 },
   { id: "racha", icon: "🔥", name: "Imparable", desc: "Gana 3 retos seguidos en una temporada", reward: 250 },
   { id: "sin-bottom", icon: "🛡️", name: "Intocable", desc: "Llega a la final sin pisar el bottom", reward: 300 },
   { id: "superviviente", icon: "💃", name: "Asesina del lip sync", desc: "Gana 3 lip syncs en una misma temporada", reward: 300 },

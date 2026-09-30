@@ -1579,3 +1579,15 @@ td.hearts { font-weight: 800; color: #d6204f; white-space: nowrap; }
 .v-row.low { background: #ffe8f0; }
 .v-row.btm { background: linear-gradient(135deg, #ffd9cc, #ffc7d3); }
 .v-row .call-faces { margin: 8px 0 10px; }
+/* Nada puede quedarse fuera del escenario: las tarjetas largas hacen scroll */
+#story-body > .story-card { max-height: 720px; overflow-y: auto; overscroll-behavior: contain; }
+.story-card.call { padding-top: 22px; padding-bottom: 22px; }
+.story-card.call h3 { margin: 4px 0 8px; }
+.story-card.call .call-faces { margin: 6px 0 10px; gap: 8px; }
+.story-card.call .call-faces span { width: 78px; font-size: 12px; }
+.story-card.call .call-faces span i { width: 54px; height: 54px; }
+.verdict { gap: 8px; margin: 8px 0 12px; }
+.v-row { display: flex; align-items: center; gap: 14px; padding: 8px 14px; text-align: left; }
+.v-row > b { flex: 0 0 210px; font-size: 14px; }
+.v-row .call-faces { margin: 0 !important; justify-content: flex-start; }
+@media (max-width: 700px) { .v-row { flex-direction: column; align-items: stretch; } .v-row > b { flex: none; } }

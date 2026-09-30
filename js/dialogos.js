@@ -435,7 +435,7 @@ HISTORIA.anuncio.push(
   [["judge", "Esta semana subo el listón: {reto}."], ["host", "Ya la habéis oído. Y sí, lo dice en serio."]],
 );
 HISTORIA.critica.win.push(
-  [["judge", "{yo}, has entendido el reto mejor que nadie."], ["host", "{yo}, condragulations: ganas esta semana."]],
+  [["judge", "{yo}, has entendido el reto mejor que nadie."], ["host", "{yo}, felicidrages: ganas esta semana."]],
   [["host", "{yo}, has venido a por todas y se nota."], ["judge", "Me has emocionado. Y eso no es fácil."], ["host", "¡Eres la ganadora!"]],
   [["judge", "Esto es drag de verdad, {yo}. Enhorabuena."]],
 );
@@ -590,7 +590,7 @@ const JURADO = {
   aperturaAna: ["Voy a ser directa, {yo}.", "{yo}, empecemos por el reto.", "A ver, {yo}...", "{yo}, te he estado observando toda la semana.", "Mira, {yo}, te lo digo con cariño."],
   aperturaSupreme: ["{yo}, te toca.", "Vamos contigo, {yo}.", "{yo}, cariño, da un paso al frente.", "Turno de {yo}. Nervios, ¿eh?"],
   veredicto: {
-    win: ["¡{yo}, condragulations! Eres la ganadora del reto.", "{yo}, has ganado esta semana. ¡Enhorabuena!", "La ganadora de la semana es... ¡{yo}!"],
+    win: ["¡{yo}, felicidrages! Eres la ganadora del reto.", "{yo}, has ganado esta semana. ¡Enhorabuena!", "La ganadora de la semana es... ¡{yo}!"],
     safe: ["{yo}, estás a salvo. Puedes volver al taller.", "{yo}, esta semana te salvas.", "Estás a salvo, {yo}. Pero no te relajes."],
     bottom: ["{yo}, lo siento, pero estás entre las peores de la semana.", "{yo}... estás en peligro.", "{yo}, esta semana te toca defenderte."],
   },

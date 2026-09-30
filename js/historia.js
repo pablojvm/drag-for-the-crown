@@ -228,7 +228,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -246,6 +246,8 @@ const Story = (() => {
     PLAIN.forEach((k) => d[k] !== undefined && (S[k] = d[k]));
     UI.show("story");
     Sound.stopAll();
+    if (S.phase && S.phase.ep === S.ep && S.ep > 0) return resumeMid();
+    S.phase = null;
     nextEpisode();
   }
 
@@ -265,7 +267,7 @@ const Story = (() => {
         <div>
           <p class="eyebrow">${esc(se.franchise.name)} · ${esc(se.name)}</p>
           <h3>${esc(q.name)}</h3>
-          <p>Vas por el episodio ${d.ep + 1}. Quedan ${d.rivals.length + (d.meOut ? 0 : 1)} reinas en la competición.</p>
+          <p>Vas por el episodio ${d.phase && d.phase.ep === d.ep ? `${d.ep} (${d.phase.stage === "mini" ? "después del minireto" : "en los resultados"})` : d.ep + 1}. Quedan ${d.rivals.length + (d.meOut ? 0 : 1)} reinas en la competición.</p>
           <p class="muted">${Math.round(d.points).toLocaleString("es-ES")} puntos · ${d.wins} retos ganados</p>
           <div class="row">
             <button class="btn btn-ghost" id="story-new">Nueva historia</button>
@@ -722,8 +724,32 @@ const Story = (() => {
     $("#track-next").addEventListener("click", then);
   }
 
+  // Puntos de control dentro del episodio: tras el minireto y tras reto + pasarela
+  function checkpoint(stage, extra = {}) {
+    S.phase = { ep: S.ep, stage, advice: S.advice, runwayBonus: S.runwayBonus || 0, captains: S.captains ? S.captains.map((q) => keyOf(q)) : null, ...extra };
+    save();
+  }
+  function resumeMid() {
+    const ph = S.phase;
+    const byKey = (k) => (k === "me" ? S.queen : qById(k));
+    S.advice = ph.advice || 0;
+    S.runwayBonus = ph.runwayBonus || 0;
+    S.captains = ph.captains ? ph.captains.map(byKey).filter(Boolean) : null;
+    header();
+    if (ph.stage === "mini") {
+      return Curtain.run(() => hub(() => announce()), `EPISODIO ${S.ep}`);
+    }
+    // Reto y pasarela ya hechos: seguimos en los resultados
+    S.curTipo = ph.tipo;
+    S.lastParts = ph.parts;
+    S.lastBonus = ph.bonus;
+    S.team = ph.team ? ph.team.map(byKey).filter(Boolean) : null;
+    Curtain.run(() => results(ph.score, ph.titulo), `EPISODIO ${S.ep}`);
+  }
+
   // El episodio ha terminado: se guarda YA (antes de ver el track record o salir)
   function endEpisodeBtn() {
+    S.phase = null;
     save();
     const b = $("#story-next");
     if (b) b.addEventListener("click", nextEpisode);
@@ -967,6 +993,7 @@ const Story = (() => {
               ${sc.slice(0, 5).some((r) => r.me) ? "" : `<p class="muted">Tú: ${sc.find((r) => r.me).s} puntos · puesto ${sc.findIndex((r) => r.me) + 1}º</p>`}
               <button class="btn btn-primary" id="story-next">Continuar</button>
             </div>`;
+          checkpoint("mini");
           $("#story-next").addEventListener("click", then);
         });
       });
@@ -1012,7 +1039,9 @@ const Story = (() => {
         const close = (walk) => {
           S.lastParts = { reto: Math.round(raw), pasarela: walk === null ? null : Math.round(walk) };
           const total = walk === null ? raw : raw * 0.65 + walk * 0.35;
-          (onScore || results)(Math.round(clamp(total + bonus, 0, 100)), titulo);
+          const final = Math.round(clamp(total + bonus, 0, 100));
+          if (!onScore) checkpoint("scored", { score: final, titulo, tipo: S.curTipo, parts: S.lastParts, bonus, team: S.team ? S.team.map((q) => q.id) : null });
+          (onScore || results)(final, titulo);
         };
         if (reto.noRunway || onScore) return close(null);
         runway(close);
@@ -1157,7 +1186,7 @@ const Story = (() => {
             <p class="eyebrow">Las decisiones del jurado</p>
             <h3>${myLab === "TOP2" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? "¡Has ganado el reto! 👑" : /^BTM/.test(myLab) ? "Vas al lip sync..." : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
             <div class="verdict">
-              <div class="v-row win" style="--i:0"><b>${tw === "allstars" ? "💄 Top 2: os jugáis el poder" : "👑 Condragulations, ganadora del reto"}</b>${faces(wins)}</div>
+              <div class="v-row win" style="--i:0"><b>${tw === "allstars" ? "💄 Top 2: os jugáis el poder" : "👑 Felicidrages, ganadora del reto"}</b>${faces(wins)}</div>
               ${highs.length ? `<div class="v-row high" style="--i:1"><b>✨ Buen trabajo, estáis a salvo</b>${faces(highs)}</div>` : ""}
               ${lows.length ? `<div class="v-row low" style="--i:2"><b>😬 A salvo... por los pelos</b>${faces(lows)}</div>` : ""}
               <div class="v-row btm" style="--i:3"><b>💔 Lo siento: sois el bottom ${btms.length}</b>${faces(btms)}</div>
@@ -1828,6 +1857,7 @@ const Story = (() => {
         <button class="btn btn-primary" id="story-next">¡Llega la repesca!</button>
       </div>`;
     $("#story-next").addEventListener("click", () => {
+      S.phase = null;
       save();
       repesca(() => nextEpisode());
     });
@@ -2203,7 +2233,7 @@ const Story = (() => {
         <div>
           <p class="eyebrow">${esc(S.season.name)} · resultado final</p>
           <h3>${won ? `¡${esc(S.queen.name)}, eres la ganadora! 👑` : `Sashay away... puesto ${place}º`}</h3>
-          <p>${won ? "La corona es tuya. Condragulations." : reason || `${esc(rival.name)} te ha ganado el lip sync.`}</p>
+          <p>${won ? "La corona es tuya. Felicidrages." : reason || `${esc(rival.name)} te ha ganado el lip sync.`}</p>
           <p class="story-pts">${entry.score.toLocaleString("es-ES")} puntos · +${earned} ✨</p>
           <p class="muted">Retos ganados: ${S.wins} · Veces en el bottom: ${S.bottoms} · Lip syncs ganados: ${S.lipsyncs} · Aliadas: ${allies().length}</p>
           ${pos >= 0 ? `<label class="name-entry active story-name">Puesto ${pos + 1} del Top 10 de historia. Tu nombre:
