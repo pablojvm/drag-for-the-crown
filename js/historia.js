@@ -168,7 +168,36 @@ const Story = (() => {
     ctrl: "Clic o teclas 1, 2 y 3",
     run: (el, done) => runSnatch(el, done, IMPRO, "📺 En directo", "Momento", 6),
   };
-  const ORDEN_RETOS = ["snatch", "roast", "ball", "diseno", "rusical", "actuacion", "equipos", "makeover", "impro"];
+  const DC = "Clic o teclas 1, 2, 3 y 4";
+  Object.assign(RETOS.snatch, { run: (el, d) => mxSnatch(el, d), attrs: ["comedia", "carisma"], ctrl: DC,
+    desc: "Imita a un personaje en el plató de Supreme. Controla la barra de Foco: si pasa de 80 interrumpes, si baja de 30 no existes. Elige entre comedia absurda, réplica a una rival o respuesta segura, y roba la atención cuando otra falle." });
+  Object.assign(RETOS.ball, { run: (el, d) => mxBall(el, d), attrs: ["estilo"], ctrl: DC,
+    desc: "Tres looks. Los dos de casa se montan por sinergia de etiquetas (outfit, peluca y accesorio). El tercero lo coses en el taller repartiendo 10 puntos de acción. Esta semana el Ball ES la pasarela." });
+  Object.assign(RETOS.diseno, { run: (el, d) => mxMateriales(el, d), attrs: ["estilo"], ctrl: DC, noRunway: true,
+    desc: "Reclama un lote de materiales (flexible, rígido o absurdo). Cuanto más raro, más Audacia... pero más difícil coserlo. Si fallas, el vestido se rompe en plena pasarela." });
+  Object.assign(RETOS.rusical, { run: (el, d) => mxRusical(el, d), attrs: ["performance", "comedia"], ctrl: DC,
+    desc: "Elige papel (principal, cómico o secundario) y decide en directo: paso limpio o truco arriesgado, y la intención de cada estrofa." });
+  Object.assign(RETOS.equipos, { run: (el, d) => mxGirlGroups(el, d), attrs: ["performance", "carisma"], ctrl: DC,
+    desc: "Escribe tu estrofa, graba en el estudio y decide tu sitio en la coreografía: el centro roba miradas, pero exige Performance." });
+  Object.assign(RETOS.actuacion, { run: (el, d) => mxActing(el, d), attrs: ["carisma", "comedia"], ctrl: DC,
+    desc: "Ajusta la intención de cada frase al género (sobreactuado, dramático o absurdo). Si tu compañera olvida el texto, ¿improvisas o sigues el guion?" });
+  Object.assign(RETOS.roast, { run: (el, d) => mxRoast(el, d), attrs: ["comedia"], ctrl: DC,
+    desc: "Elige la diana (jurado, compañeras o tú misma) y la agresividad de cada remate. Demasiado suave no hace gracia; demasiado salvaje sin gracia congela al público." });
+  Object.assign(RETOS.makeover, { run: (el, d) => mxMakeover(el, d), attrs: ["maquillaje", "carisma"], ctrl: DC,
+    desc: "Analiza a tu modelo (comodidad y cuerpo), adapta maquillaje y ropa para lograr el parecido de familia sin opacarle, y presentaos en pareja." });
+  Object.assign(RETOS.impro, { run: (el, d) => mxImpro(el, d), attrs: ["comedia", "carisma"], ctrl: DC,
+    desc: "Conduces una sección en directo. Ante cada imprevisto: aceptar el caos y hacer broma, o recomponerte con elegancia." });
+  RETOS.publicidad = {
+    titulo: () => pick1(["Publicidad: el anuncio falso", "Branding: vende lo invendible"]),
+    desc: "Diseña un producto absurdo, elige el eslogan más camp y graba el anuncio sin trabarte.",
+    ctrl: DC, attrs: ["carisma", "comedia"], run: (el, d) => mxPublicidad(el, d),
+  };
+  RETOS.lalaparuza = {
+    titulo: () => "Lalaparuza: el torneo de lip syncs",
+    desc: "Sin taller: eliminatorias directas de lip sync. Elige canción según tu perfil y el de tu rival, y gestiona la energía en cada duelo.",
+    ctrl: DC, attrs: ["performance", "carisma"], noRunway: true, run: (el, d) => mxLalaparuza(el, d),
+  };
+  const ORDEN_RETOS = ["snatch", "roast", "ball", "diseno", "rusical", "actuacion", "equipos", "makeover", "impro", "publicidad", "lalaparuza"];
 
   // Miniretos: dan ventaja para el reto de la semana
   const MINIRETOS = {
@@ -191,7 +220,18 @@ const Story = (() => {
       run: (el, done) => runMemoria(el, done, ["💪", "🕶️", "🧢", "🩳", "🏋️", "🥤"], 35, "Encuentra las parejas del Pit Crew"),
     },
   };
-  const ORDEN_MINI = ["fotocall", "lectura", "pitcrew"];
+  Object.assign(MINIRETOS, {
+    posado: { titulo: () => "Minireto: posado exprés", desc: "Clava cada pose cuando el foco pase por la zona dorada.", ctrl: "Espacio, clic o ¡POSE!", run: (el, d) => runPasarela(el, d, 5, "Posado exprés") },
+    coreo: { titulo: () => "Minireto: coreografía relámpago", desc: "Repite los pasos de la coreógrafa en el mismo orden.", ctrl: "Flechas o toca las flechas", run: runBaile },
+    caza: { titulo: () => "Minireto: caza de materiales", desc: "Recoge lo bueno y esquiva las tijeras.", ctrl: "Flechas ← → o arrastra", run: (el, d) => runDiseno(el, d, null, 15) },
+    karaoke: { titulo: () => "Minireto: karaoke a ritmo", desc: "Pulsa cada nota justo cuando llegue a la línea.", ctrl: "D F J K o toca los carriles", run: runRusical },
+    carta: { titulo: () => "Minireto: copia la carta de maquillaje", desc: "Memoriza la carta y reprodúcela zona por zona.", ctrl: "Clic en los colores", run: runMaquillaje },
+    guion: { titulo: () => "Minireto: memoriza el guion", desc: "Recuerda la palabra que falta en cada frase.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => { const t = S.team; runGuion(el, (sc) => { S.team = t; d(sc); }); } },
+    flash: { titulo: () => "Minireto: ¡flash!", desc: "Pulsa en cuanto salte el flash (ni antes ni tarde).", ctrl: "Espacio o clic", run: (el, d) => runMiniFlash(el, "¡Flash!", d) },
+    preguntas: { titulo: () => "Minireto: preguntas rápidas", desc: "La respuesta más graciosa, y rápido.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => runSnatch(el, d, PREGUNTAS, "🎤 Supreme", "Pregunta", 4) },
+    estilismo: { titulo: () => "Minireto: estilismo exprés", desc: "Monta un look con peluca, look, zapatos y accesorio en 30 segundos... y desfílalo.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => runEstilismo(el, pick1(CATEGORIAS), d, 2) },
+  });
+  const ORDEN_MINI = Object.keys(MINIRETOS);
 
   // --------------------------- Flujo principal -----------------------------
   // La historia NO sigue el orden real de expulsión: cada partida se decide
@@ -228,7 +268,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -635,7 +675,8 @@ const Story = (() => {
     const lines = [];
     lines.push(["host", pickFresh(JURADO.aperturaSupreme)]);
     const a = ["judge", `${pickFresh(JURADO.aperturaAna)} ${pickFresh(bank)}`];
-    const b = [judgeFirst ? "host" : "judge", pickFresh(JURADO.pasarela[lookN])];
+    const lk = S.lastLook;
+    const b = [judgeFirst ? "host" : "judge", lk && Math.random() < 0.7 ? pickFresh(ESTILO_CRITICA[lookN]).replace("{pieza}", (lookN === "top" ? lk.best : lk.worst).toLowerCase()).replace("{cat}", lk.cat) : pickFresh(JURADO.pasarela[lookN])];
     lines.push(a, b);
     if (Math.random() < 0.55) lines.push(...pickFresh(JAVIS.critica[nivel]));
     if (score >= 90 && (verdict === "win" || verdict === "none")) lines.push(["judge", "Hoy has puesto el listón altísimo para las demás."]);
@@ -667,6 +708,8 @@ const Story = (() => {
   // ----------------------------- Track record -----------------------------
   const EP_SHORT = { pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups", comedia: "Stand-up", roast: "Roast", actuacion: "Interpretación", ball: "Ball", makeover: "Makeover", fotos: "Fotos", impro: "Improvisación" };
   EP_SHORT.diseno = "Materiales";
+  EP_SHORT.publicidad = "Publicidad";
+  EP_SHORT.lalaparuza = "Lalaparuza";
   EP_SHORT.equipos = "Girl Groups";
   function mark(q, lab) {
     const k = keyOf(q);
@@ -855,6 +898,7 @@ const Story = (() => {
         <p class="eyebrow">Taller · tiempo libre</p>
         <h3>¿Con quién quieres hablar?</h3>
         <p class="muted">Solo te da tiempo a una conversación antes del reto.</p>
+        <p class="attr-row">Tus atributos: ${attrChips(Object.keys(ATTR_NAMES))}</p>
         <div class="hub-grid">${S.rivals
           .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}${groupChip(q)}${heartChip(q)}</button>`)
           .join("")}</div>
@@ -950,7 +994,8 @@ const Story = (() => {
     S.captains = null;
     const maxi = pickReto();
     const team = RETOS[maxi].team && S.rivals.length >= 3;
-    const tipo = ORDEN_MINI[(S.ep - 1) % ORDEN_MINI.length];
+    if (!S.miniOrder || S.miniOrder.some((k) => !MINIRETOS[k])) S.miniOrder = shuffle(ORDEN_MINI);
+    const tipo = S.miniOrder[(S.ep - 1) % S.miniOrder.length];
     const mini = MINIRETOS[tipo];
     const titulo = mini.titulo();
     const premio = team ? { id: "capitana", txt: "ser capitana y elegir equipo para el reto de esta semana" } : VENTAJAS[(S.ep + S.season.cast.length) % VENTAJAS.length];
@@ -975,6 +1020,7 @@ const Story = (() => {
           cleanup = null;
           if (typeof window.__forceScore === "number") raw = window.__forceScore;
           Music.stop();
+          if (!team) S.team = null;
           const sc = [{ q: S.queen, s: Math.round(clamp(raw, 0, 100)), me: true }, ...S.rivals.map((q) => ({ q, s: Math.round(clamp(rivalScore(q) + rnd(-12, 8), 0, 99)) }))].sort((a, b) => b.s - a.s);
           const win = sc[0];
           if (team) S.captains = [sc[0].q, sc[1].q];
@@ -1023,6 +1069,7 @@ const Story = (() => {
           <h3>${esc(titulo)}</h3>
           <p>${reto.desc}</p>
           <p class="muted">🎮 ${reto.ctrl}</p>
+          ${reto.attrs ? `<p class="attr-row">Cuentan: ${attrChips(reto.attrs)}</p>` : ""}
           <button class="btn btn-primary" id="story-go">¡Empezar!</button>
         </div>
       </div>`;
@@ -1058,20 +1105,20 @@ const Story = (() => {
         <div>
           <p class="eyebrow">👠 Pasarela de la semana</p>
           <h3>Categoría: «${esc(cat)}»</h3>
-          <p>El reto ya está hecho. Ahora toca desfilar: clava cada pose cuando el foco pase por la zona dorada.${S.runwayBonus ? ` <b class="gold">Ventaja del minireto: +${S.runwayBonus}</b>` : ""}</p>
-          <p class="muted">🎮 Espacio, clic o toca el botón ¡POSE!</p>
+          <p>Primero prepara el look: outfit, peluca y accesorios/maquillaje. Cada pieza tiene una etiqueta oculta (Glamour, Camp, Edgy, Folclórico, Futurista): si las tres coinciden, x1,5. Después, el desfile: paso, final y frase de cierre.${S.runwayBonus ? ` <b class="gold">Ventaja del minireto: +${S.runwayBonus}</b>` : ""}</p>
+          <p class="muted">🎮 Clic o teclas 1, 2, 3 y 4 · ${attrChips(["estilo", "performance", "carisma"])}</p>
           <button class="btn btn-primary" id="story-go">¡A la pasarela!</button>
         </div>
       </div>`;
     Music.play("reto");
     $("#story-go").addEventListener("click", () => {
       body().innerHTML = `<div id="story-play"></div>`;
-      runPasarela($("#story-play"), (walk) => {
+      runRunwayNew($("#story-play"), cat, (walk) => {
         cleanup = null;
         if (typeof window.__forceScore === "number") walk = window.__forceScore;
         Music.stop();
         then(clamp(walk + (S.runwayBonus || 0), 0, 100));
-      }, 5, `«${cat}»`);
+      });
     });
   }
 
@@ -1121,7 +1168,7 @@ const Story = (() => {
         if (!r.me) S.form[r.q.id] = clamp((S.form[r.q.id] || 0) + (r === winner ? 2 : bottomRows.includes(r) ? 3 : 0) + rnd(-2, 2), -10, 10);
       });
       S.points += myScore * 10 + (won ? 500 : 0);
-      if (won) S.wins++;
+      if (won) { S.wins++; growAttr(((RETOS[S.curTipo] || {}).attrs || [])[0]); }
       if (bottom) S.bottoms++;
       S.streak = won ? S.streak + 1 : 0;
       if (S.streak >= 3) Achievements.unlock("racha");
@@ -1454,8 +1501,39 @@ const Story = (() => {
         }
         votes.get(choice).push(v);
       });
-      const ranked = three.slice().sort((a, b) => votes.get(b).length - votes.get(a).length || Math.random() - 0.5);
-      const chosen = ranked[0];
+      // ¿Empate? Desempata la ganadora de la semana
+      const maxV = Math.max(...three.map((q) => votes.get(q).length));
+      const tied = three.filter((q) => votes.get(q).length === maxV);
+      if (tied.length === 1) return resolve(tied[0], "");
+      const dec = winner.q;
+      const tieNote = (c) => `<p class="twist-note">⚖️ Empate a ${maxV} voto${maxV === 1 ? "" : "s"} entre ${tied.map((q) => `<b>${esc(q === S.queen ? "ti" : q.name)}</b>`).join(" y ")}. ${winner.me ? "Como ganadora de la semana, has desempatado tú" : `Desempata la ganadora de la semana, <b>${esc(dec.name)}</b>`}: ${cara ? "salva a" : "condena a"} <b>${esc(c === S.queen ? "ti" : c.name)}</b>.</p>`;
+      if (winner.me) {
+        body().innerHTML = `
+          <div class="story-card">
+            <p class="eyebrow">⚖️ ¡Empate a ${maxV} voto${maxV === 1 ? "" : "s"}!</p>
+            <h3>Eres la ganadora de la semana: desempatas tú</h3>
+            <p>${cara ? "¿A quién <b>SALVAS</b>?" : "¿A quién <b>CONDENAS</b> al lip sync?"} Tu decisión es pública.</p>
+            <div class="hub-grid">${tied
+              .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small><small class="score-note">${votes.get(q).length} votos</small></button>`)
+              .join("")}</div>
+            ${trackBtn()}
+          </div>`;
+        bindTrack();
+        body().querySelectorAll("[data-id]").forEach((bt) => bt.addEventListener("click", () => {
+          const c = qById(bt.dataset.id);
+          changeRel(c, cara ? 2 : -2);
+          const worst = three.slice().sort((x, y) => scoreOf(x) - scoreOf(y))[0];
+          remember(c, cara ? "salvada" : "condenada", cara ? c !== worst : c === worst);
+          resolve(c, tieNote(c));
+        }));
+        return;
+      }
+      const pref = (q) => (q === S.queen ? relOf(dec) * 1.5 : rnd(-1.5, 1.5)) + groupAff(dec, q) + rnd(-0.8, 0.8);
+      const sortedT = tied.slice().sort((x, y) => pref(y) - pref(x));
+      const c = cara ? sortedT[0] : sortedT[sortedT.length - 1];
+      if (c === S.queen) changeRel(dec, cara ? 1 : -1);
+      resolve(c, tieNote(c));
+      function resolve(chosen, tieNote) {
       let pair;
       if (cara) pair = three.filter((q) => q !== chosen);
       else pair = [chosen, three.filter((q) => q !== chosen).sort((a, b) => scoreOf(a) - scoreOf(b))[0]];
@@ -1471,6 +1549,7 @@ const Story = (() => {
         <div class="story-card">
           <p class="eyebrow">🪙 ${cara ? "Cara: votos para salvar" : "Cruz: votos para condenar"}</p>
           <h3>${cara ? `${esc(chosen === S.queen ? "¡Te salvan a ti!" : chosen.name + " se salva")}` : `${esc(chosen === S.queen ? "Te condenan a ti al lip sync" : chosen.name + " va directa al lip sync")}`}</h3>
+          ${tieNote}
           <div class="votes">${three
             .map((q) => `<div class="vote-col ${q === chosen ? "top" : ""}"><i style="background-image:url('${photo(q)}')"></i><b>${esc(q === S.queen ? "Tú" : q.name)}</b><span>${votes.get(q).length} voto${votes.get(q).length === 1 ? "" : "s"}</span><div class="voters">${votes
               .get(q)
@@ -1481,6 +1560,7 @@ const Story = (() => {
           <button class="btn btn-primary" id="story-next">Continuar</button>
         </div>`;
       $("#story-next").addEventListener("click", () => then(pair.map((q) => bottomRows.find((r) => r.q === q))));
+      }
     };
     $("#story-next").addEventListener("click", () => {
       if (!meVoter) return tally(null);
@@ -1656,8 +1736,7 @@ const Story = (() => {
       $("#story-ls").addEventListener("click", () =>
         Curtain.run(() => {
           Music.stop();
-          UI.show("game");
-          Game.start(Wardrobe.boosted(S.queen), S.season, (res) => {
+          lsGame(rival, (res) => {
             UI.show("story");
             header();
             S.points += Math.round(res.score || 0);
@@ -1672,7 +1751,7 @@ const Story = (() => {
             Toast.show(`💄 ${rival.name} gana el lip sync`, "Ella decide");
             mark(rival, "WIN");
             then({ q: rival });
-          }, { rivals: [rival], story: true });
+          });
         }, "LIP SYNC POR EL PODER"),
       );
       return;
@@ -1787,8 +1866,7 @@ const Story = (() => {
     Music.play("tension");
     $("#story-ls").addEventListener("click", () => Curtain.run(() => {
       Music.stop();
-      UI.show("game");
-      Game.start(Wardrobe.boosted(S.queen), S.season, (res) => {
+      lsGame(rival, (res) => {
         UI.show("story");
         S.points += Math.round(res.score || 0);
         if (res.won) {
@@ -1828,7 +1906,7 @@ const Story = (() => {
             <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
           </div>`;
         endEpisodeBtn();
-      }, { rivals: [rival], story: true });
+      });
     }, forCrown ? "LIP SYNC POR LA CORONA" : onWin ? "LA REPESCA" : "LIP SYNC FOR YOUR LIFE"));
   }
 
@@ -2105,8 +2183,7 @@ const Story = (() => {
     Music.play("tension");
     $("#story-ls").addEventListener("click", () => Curtain.run(() => {
       Music.stop();
-      UI.show("game");
-      Game.start(Wardrobe.boosted(S.queen), S.season, (res) => {
+      lsGame(rival, (res) => {
         UI.show("story");
         S.points += Math.round(res.score || 0);
         if (res.won) {
@@ -2116,7 +2193,7 @@ const Story = (() => {
         }
         header();
         cb(res.won);
-      }, { rivals: [rival], story: true });
+      });
     }, o.curtain));
   }
   function finale() {
@@ -2845,6 +2922,93 @@ const Story = (() => {
     play();
   }
 
+  // ------------------------- Pasarela: estilismo + desfile --------------------
+  function runEstilismo(el, cat, done, poses = 3, prefix = "") {
+    const SLOTS = ["peluca", "look", "zapatos", "accesorio"], TIME = 30;
+    const good = ESTILO_CATS[cat] || ["glam"];
+    const fitOf = (it) => (it.t.includes(cat) ? 25 : good.includes(it.s) ? 12 : 2);
+    // Tres opciones por pieza: una que encaja, una a medias y otra que no pega
+    const opts = SLOTS.map((k) => {
+      const all = ESTILO_PIEZAS[k].items;
+      const full = shuffle(all.filter((i) => i.t.includes(cat)));
+      const half = shuffle(all.filter((i) => !i.t.includes(cat) && good.includes(i.s)));
+      const off = shuffle(all.filter((i) => !i.t.includes(cat) && !good.includes(i.s)));
+      const pickSet = [full[0] || half[1], half[0] || off[1], off[0]].filter(Boolean);
+      while (pickSet.length < 3) pickSet.push(pick1(all.filter((i) => !pickSet.includes(i))));
+      return shuffle(pickSet);
+    });
+    const chosen = [];
+    let slot = 0, t0 = performance.now(), iv = 0, over = false;
+    el.innerHTML = `
+      <div class="mg estilo">
+        <p class="mg-info">${esc(prefix)}👠 Estilismo · «${esc(cat)}» · <b id="es-t">${TIME}</b> s</p>
+        <div class="es-look" id="es-look">${SLOTS.map((k) => `<span class="es-slot" data-k="${k}"><em>${ESTILO_PIEZAS[k].icon}</em><small>${ESTILO_PIEZAS[k].name}</small></span>`).join("")}</div>
+        <h4 id="es-q"></h4>
+        <div class="es-opts" id="es-opts"></div>
+      </div>`;
+    function show() {
+      const k = SLOTS[slot];
+      $("#es-q").textContent = `Elige ${ESTILO_PIEZAS[k].name.toLowerCase()} (${slot + 1}/4)`;
+      $("#es-opts").innerHTML = opts[slot]
+        .map((it, i) => `<button class="es-opt" data-i="${i}" style="--c:${it.c}"><i>${ESTILO_PIEZAS[k].icon}</i><b>${i + 1}</b><span>${esc(it.n)}</span><small>${ESTILO_NOMBRES[it.s]}</small></button>`)
+        .join("");
+      el.querySelectorAll(".es-opt").forEach((b) => b.addEventListener("click", () => choose(+b.dataset.i)));
+    }
+    function choose(i) {
+      if (over) return;
+      const it = opts[slot][i];
+      if (!it) return;
+      chosen.push(it);
+      const sl = el.querySelector(`.es-slot[data-k="${SLOTS[slot]}"]`);
+      sl.classList.add("on");
+      sl.style.setProperty("--c", it.c);
+      sl.querySelector("small").textContent = it.n;
+      Sound.countdown(false);
+      slot++;
+      if (slot >= SLOTS.length) return finishLook();
+      show();
+    }
+    function finishLook() {
+      over = true;
+      clearInterval(iv);
+      document.removeEventListener("keydown", onKey);
+      const left = Math.max(0, 1 - (performance.now() - t0) / 1000 / TIME);
+      const fit = chosen.reduce((a, it) => a + fitOf(it), 0); // 0..100
+      const counts = {};
+      chosen.forEach((it) => (counts[it.s] = (counts[it.s] || 0) + 1));
+      const same = Math.max(...Object.values(counts));
+      const combo = same >= 4 ? 15 : same === 3 ? 10 : same === 2 ? 4 : 0;
+      const styling = clamp(fit * 0.8 + combo + left * 10, 0, 100);
+      const sorted = chosen.slice().sort((a, b) => fitOf(b) - fitOf(a));
+      S.lastLook = { cat, best: sorted[0].n, worst: sorted[sorted.length - 1].n, pieces: chosen.map((x) => x.n) };
+      const stars = (v, max) => "★".repeat(Math.round((v / max) * 4)) + "☆".repeat(4 - Math.round((v / max) * 4));
+      el.querySelector("#es-q").textContent = "¡Look listo!";
+      el.querySelector("#es-opts").innerHTML = `
+        <div class="es-score">
+          <span>Categoría <b>${stars(fit, 100)}</b></span>
+          <span>Combinación <b>${stars(combo, 15)}</b></span>
+          <span>Rapidez <b>${stars(left, 1)}</b></span>
+        </div>`;
+      styling >= 70 ? Sound.powerup && Sound.powerup() : Sound.impact();
+      const tm = setTimeout(() => {
+        el.innerHTML = "";
+        runPasarela(el, (walk) => done(styling * 0.6 + walk * 0.4), poses, `${prefix}«${cat}»: ${chosen.map((x) => x.n).join(" · ")}`);
+      }, 1800);
+      cleanup = () => clearTimeout(tm);
+    }
+    const onKey = (e) => { const k = { Digit1: 0, Digit2: 1, Digit3: 2, Numpad1: 0, Numpad2: 1, Numpad3: 2 }[e.code]; if (k !== undefined) choose(k); };
+    document.addEventListener("keydown", onKey);
+    iv = setInterval(() => {
+      const left = Math.max(0, TIME - (performance.now() - t0) / 1000);
+      const tEl = $("#es-t");
+      if (tEl) tEl.textContent = Math.ceil(left);
+      // Se acaba el tiempo: lo que falte se elige al azar
+      if (left <= 0 && !over) while (!over) choose(Math.floor(Math.random() * 3));
+    }, 200);
+    cleanup = () => { clearInterval(iv); document.removeEventListener("keydown", onKey); };
+    show();
+  }
+
   // ------------------------- Minijuego: el Ball -----------------------------
   function runBall(el, done) {
     const cats = shuffle(CATEGORIAS).slice(0, 3), scores = [];
@@ -2856,7 +3020,7 @@ const Story = (() => {
       el.innerHTML = `<div class="mg"><p class="eyebrow">Look ${k + 1} de 3 · ${made ? "hecho en el taller" : "traído de casa"}</p><h3 class="ball-cat">«${esc(cats[k])}»</h3>${made ? `<p class="muted">Primero cóselo con lo que caiga del cielo... y luego a desfilarlo.</p>` : ""}</div>`;
       cleanup = () => clearTimeout(timer);
       timer = setTimeout(() => {
-        if (!made) return runPasarela(el, (sc) => { scores.push(sc); next(); }, 3, `Look ${k + 1}/3 · ${cats[k]}`);
+        if (!made) return runEstilismo(el, cats[k], (sc) => { scores.push(sc); next(); }, 2, `Look ${k + 1}/3 · `);
         runDiseno(el, (build) => {
           el.innerHTML = "";
           runPasarela(el, (walk) => { scores.push(build * 0.6 + walk * 0.4); next(); }, 3, `Look 3/3 · ${cats[k]} (hecho aquí)`);
@@ -3075,6 +3239,701 @@ const Story = (() => {
     document.addEventListener("keydown", onKey);
     cleanup = stop;
     arm();
+  }
+
+  // ===========================================================================
+  //  ATRIBUTOS, MOTOR DE DECISIONES, MAXI RETOS, PASARELA Y LIP SYNC
+  // ===========================================================================
+  const ATTR_NAMES = { comedia: "Comedia", carisma: "Carisma", estilo: "Estilo", performance: "Performance", maquillaje: "Maquillaje" };
+  const hashN = (str, k) => {
+    let h = 7;
+    for (const c of str + k) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return h % 4;
+  };
+  // Atributos (1-10): salen de las estadísticas de la reina, con su toque propio
+  function attrsOf(q) {
+    const st = q === S.queen ? Wardrobe.statsOf(q) : q.stats;
+    const f = (v, k) => clamp(Math.round(v * 1.5 + hashN(q.id, k) - 0.5), 2, 10);
+    const a = { comedia: f(st.rate, "c"), carisma: f(st.lives, "k"), estilo: f(st.power, "e"), performance: f(st.speed, "p"), maquillaje: f((st.power + st.rate) / 2, "m") };
+    if (q === S.queen) Object.entries(S.attrGrowth || {}).forEach(([k, v]) => (a[k] = clamp(a[k] + v, 1, 10)));
+    return a;
+  }
+  const A = (k) => attrsOf(S.queen)[k];
+  function check(keys, diff) {
+    const v = (keys.reduce((a, k) => a + A(k), 0) / keys.length) * 10;
+    const p = clamp(0.5 + (v - diff) / 70, 0.08, 0.95);
+    const ok = Math.random() < p;
+    return { ok, txt: `🎲 ${keys.map((k) => `${ATTR_NAMES[k]} ${A(k)}`).join(" + ")} · ${Math.round(p * 100)}% → ${ok ? "✅ superado" : "❌ fallado"}` };
+  }
+  const attrChips = (keys) => keys.map((k) => `<span class="attr-chip">${ATTR_NAMES[k]} <b>${A(k)}</b></span>`).join("");
+  function growAttr(k) {
+    if (!k) return;
+    S.attrGrowth = S.attrGrowth || {};
+    if (A(k) >= 10) return;
+    S.attrGrowth[k] = (S.attrGrowth[k] || 0) + 1;
+    Toast.show(`📈 +1 en ${ATTR_NAMES[k]}`, `Ahora tienes ${A(k)}`);
+  }
+
+  // Motor genérico: una secuencia de decisiones con medidores y chequeos
+  // cfg: { title, icon, meters: ["focus"|"energy"], init, steps: [(st) => step|null], finish(st, base) }
+  // step: { q (html), sub, opts: [{ t, d, tag, go(st) => { pts, w, msg } }] }
+  function runSteps(el, cfg, done) {
+    const st = { total: 0, wsum: 0, focus: 50, energy: 100, log: [], ...(cfg.init || {}) };
+    let i = 0, busy = false, timer = 0, cur = null;
+    el.innerHTML = `
+      <div class="mg dc">
+        <p class="mg-info">${cfg.icon || "🎬"} ${esc(cfg.title)}</p>
+        <div class="dc-meters" id="dc-m"></div>
+        <div class="dc-scene" id="dc-s"></div>
+        <div class="dc-opts" id="dc-o"></div>
+        <p class="dc-msg" id="dc-msg"></p>
+      </div>`;
+    const meterHTML = () =>
+      (cfg.meters || [])
+        .map((m) => {
+          const v = clamp(Math.round(st[m]), 0, 100);
+          const lab = m === "focus" ? "🔦 Foco" : m === "energy" ? "⚡ Energía" : m;
+          const warn = m === "focus" ? (v > 80 ? "hot" : v < 30 ? "cold" : "") : v < 25 ? "cold" : "";
+          return `<div class="dc-meter ${warn}"><span>${lab}</span><div><i style="width:${v}%"></i>${m === "focus" ? `<em style="left:30%"></em><em style="left:80%"></em>` : ""}</div><b>${v}</b></div>`;
+        })
+        .join("");
+    function next() {
+      busy = false;
+      if (i >= cfg.steps.length) return end();
+      const s = cfg.steps[i++](st);
+      if (!s) return next();
+      cur = s;
+      $("#dc-m").innerHTML = meterHTML();
+      $("#dc-s").innerHTML = `${s.q ? `<h4>${s.q}</h4>` : ""}${s.sub ? `<p>${s.sub}</p>` : ""}`;
+      $("#dc-msg").textContent = "";
+      $("#dc-o").innerHTML = s.opts
+        .map((o, k) => `<button class="dc-opt" data-k="${k}" style="--i:${k}"><b>${k + 1}</b><span>${o.t}</span>${o.d ? `<small>${o.d}</small>` : ""}${o.tag ? `<em>${o.tag}</em>` : ""}</button>`)
+        .join("");
+      el.querySelectorAll(".dc-opt").forEach((b) => b.addEventListener("click", () => pick(+b.dataset.k)));
+    }
+    function pick(k) {
+      if (busy || !cur || !cur.opts[k]) return;
+      busy = true;
+      const r = cur.opts[k].go(st) || {};
+      if (typeof r.pts === "number") {
+        const w = r.w === undefined ? 1 : r.w;
+        st.total += clamp(r.pts, 0, 100) * w;
+        st.wsum += w;
+      }
+      el.querySelectorAll(".dc-opt").forEach((b, j) => b.classList.add(j === k ? "picked" : "dim"));
+      $("#dc-m").innerHTML = meterHTML();
+      $("#dc-msg").innerHTML = r.msg || "";
+      if (r.pts !== undefined) (r.pts >= 70 ? Sound.powerup && Sound.powerup() : r.pts < 40 ? Sound.impact() : Sound.countdown(false));
+      timer = setTimeout(next, r.msg ? 1500 : 450);
+    }
+    const onKey = (e) => {
+      const k = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Numpad1: 0, Numpad2: 1, Numpad3: 2, Numpad4: 3 }[e.code];
+      if (k !== undefined) pick(k);
+    };
+    function stop() {
+      clearTimeout(timer);
+      document.removeEventListener("keydown", onKey);
+    }
+    function end() {
+      stop();
+      const base = st.wsum ? st.total / st.wsum : 50;
+      done(clamp(cfg.finish ? cfg.finish(st, base) : base, 0, 100), st);
+    }
+    document.addEventListener("keydown", onKey);
+    cleanup = stop;
+    next();
+  }
+  // Resultado de un chequeo como paso con puntos
+  const res = (c, okPts, koPts, okMsg, koMsg) => ({ pts: c.ok ? okPts : koPts, msg: `${c.txt}<br>${c.ok ? okMsg : koMsg}` });
+
+  // ------------------------------ Etiquetas de moda ------------------------------
+  const TAGS = ["Glamour", "Camp", "Edgy", "Folclórico", "Futurista"];
+  const TAG_OF_STYLE = { glam: "Glamour", clasico: "Glamour", retro: "Camp", street: "Edgy", futur: "Futurista", folk: "Folclórico", natural: "Folclórico" };
+  const CAT_TAG = {
+    "Rojo pasión": "Glamour", "Brilla, brilla": "Glamour", "Realeza": "Glamour", "Animal print": "Edgy", "Años 80": "Camp",
+    "Futurista": "Futurista", "Flores y más flores": "Folclórico", "Blanco y negro": "Edgy", "Look de gala": "Glamour", "Folclore reinventado": "Folclórico",
+    "Camp absoluto": "Camp", "Comida basura de lujo": "Camp", "Cuero y tachuelas": "Edgy", "Galaxia lejana": "Futurista", "Verbena de pueblo": "Folclórico",
+  };
+  CATEGORIAS.push("Camp absoluto", "Comida basura de lujo", "Cuero y tachuelas", "Galaxia lejana", "Verbena de pueblo");
+  const WALK_OF_TAG = { Glamour: "flotado", Camp: "comico", Edgy: "fuerte", Futurista: "fuerte", Folclórico: "provocador" };
+  const MAQUILLAJES = [
+    { n: "Maquillaje dorado de gala", c: "#d4a93a", s: "glam", t: ["Look de gala", "Brilla, brilla"] },
+    { n: "Ojo gráfico en blanco y negro", c: "#222", s: "street", t: ["Blanco y negro"] },
+    { n: "Cara de payaso glam", c: "#ff5fa2", s: "retro", t: ["Camp absoluto"] },
+    { n: "Pestañas de neón y cromo", c: "#6ee7ff", s: "futur", t: ["Futurista", "Galaxia lejana"] },
+    { n: "Lunar y labio rojo racial", c: "#b3122a", s: "folk", t: ["Folclore reinventado", "Verbena de pueblo"] },
+    { n: "Piercings falsos y ojo ahumado", c: "#333", s: "street", t: ["Cuero y tachuelas", "Animal print"] },
+  ];
+  const VOICEOVERS = {
+    Glamour: ["«Nací brillando y pienso morir brillando»", "«No es un vestido, es una declaración de intenciones»"],
+    Camp: ["«Si no te ríes, es que no lo has entendido»", "«Más es más, y hoy es muchísimo más»"],
+    Edgy: ["«Que me teman un poquito, que así me respetan»", "«Las normas me las como con el desayuno»"],
+    Futurista: ["«Vengo de dentro de trescientos años a salvar la moda»", "«Aterrizaje confirmado: la diva ha llegado»"],
+    Folclórico: ["«De mi pueblo al mundo, con volantes y a mucha honra»", "«La tradición también sabe hacer drag»"],
+  };
+  const VOICE_OFF = ["«Hola, soy yo y esto es un vestido»", "«Pues nada, aquí estamos»", "«Me lo he puesto porque estaba limpio»", "«¿Esto ya está grabando?»"];
+
+  // Fase 1 (de casa): sinergia de etiquetas con 3 piezas
+  function prepHome(cat) {
+    const main = CAT_TAG[cat] || "Glamour";
+    const slots = [
+      { k: "look", n: "Outfit", icon: "👗", items: ESTILO_PIEZAS.look.items },
+      { k: "peluca", n: "Peluca / pelo", icon: "💇", items: ESTILO_PIEZAS.peluca.items },
+      { k: "acc", n: "Accesorios / maquillaje", icon: "💄", items: [...ESTILO_PIEZAS.accesorio.items, ...MAQUILLAJES] },
+    ];
+    const tagOf = (it) => TAG_OF_STYLE[it.s];
+    const fit = (it) => (tagOf(it) === main || it.t.includes(cat) ? 22 : 9);
+    return slots.map((sl) => (st) => {
+      const all = sl.items;
+      const a = shuffle(all.filter((x) => tagOf(x) === main || x.t.includes(cat)));
+      const b = shuffle(all.filter((x) => !(tagOf(x) === main || x.t.includes(cat))));
+      const opts = shuffle([a[0] || b[2], b[0], b[1]].filter(Boolean));
+      return {
+        q: `${sl.icon} Elige ${sl.n.toLowerCase()}`,
+        sub: `Categoría: <b>«${esc(cat)}»</b>. Las etiquetas de cada pieza están ocultas: lee bien el nombre.`,
+        opts: opts.map((it) => ({
+          t: `<i class="dc-sw" style="--c:${it.c}"></i>${esc(it.n)}`,
+          go: (s) => {
+            (s.pieces = s.pieces || []).push(it);
+            s.prepRaw = (s.prepRaw || 0) + fit(it);
+            return {};
+          },
+        })),
+      };
+    });
+  }
+  // Cierra la preparación de casa: multiplicador por cohesión
+  function closeHome(st) {
+    const tags = (st.pieces || []).map((it) => TAG_OF_STYLE[it.s]);
+    const cnt = {};
+    tags.forEach((t) => (cnt[t] = (cnt[t] || 0) + 1));
+    const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0] || ["Glamour", 0];
+    const mult = top[1] >= 3 ? 1.5 : top[1] === 2 ? 1.2 : 1;
+    st.lookTag = top[0];
+    st.prep = clamp((st.prepRaw || 0) * mult, 0, 100);
+    st.cohesion = mult;
+    return `${mult === 1.5 ? "✨ ¡Cohesión perfecta! x1,5" : mult === 1.2 ? "👍 Dos piezas comparten estilo: x1,2" : "😬 Ninguna pieza combina: x1,0"} · Estilo dominante: <b>${top[0]}</b>`;
+  }
+  // Fase 1 (taller): 10 PA entre materiales, patronaje y acabados
+  function prepSew(el, title, diffExtra, then) {
+    const pa = { mat: 3, pat: 4, fin: 3 };
+    const draw = () => {
+      const left = 10 - pa.mat - pa.pat - pa.fin;
+      el.innerHTML = `
+        <div class="mg dc">
+          <p class="mg-info">🧵 ${esc(title)}</p>
+          <div class="dc-scene"><h4>Reparte 10 puntos de acción</h4><p>Quedan <b>${left}</b> PA · Tu Estilo: <b>${A("estilo")}</b>${diffExtra ? ` · Material difícil: +${diffExtra} de dificultad` : ""}</p></div>
+          <div class="pa-grid">${[
+            ["mat", "🔎 Búsqueda de materiales", "Sube la Originalidad"],
+            ["pat", "✂️ Patronaje y costura", "Chequeo de Estilo: Pulidez o «Traje descosido» (-20%)"],
+            ["fin", "✨ Acabados y detalle", "Sube el valor global del look"],
+          ]
+            .map(([k, n, d]) => `<div class="pa-row"><div><b>${n}</b><small>${d}</small></div><button class="btn btn-ghost pa-b" data-k="${k}" data-d="-1">−</button><em>${pa[k]}</em><button class="btn btn-ghost pa-b" data-k="${k}" data-d="1">+</button></div>`)
+            .join("")}</div>
+          <button class="btn btn-primary" id="pa-go" ${left ? "disabled" : ""}>¡A coser!</button>
+        </div>`;
+      el.querySelectorAll(".pa-b").forEach((b) => b.addEventListener("click", () => {
+        const k = b.dataset.k, d = +b.dataset.d;
+        const left2 = 10 - pa.mat - pa.pat - pa.fin;
+        if (d > 0 && left2 <= 0) return;
+        if (d < 0 && pa[k] <= 0) return;
+        pa[k] += d;
+        draw();
+      }));
+      $("#pa-go").addEventListener("click", sew);
+    };
+    function sew() {
+      const c = check(["estilo"], 72 - pa.pat * 6 + diffExtra);
+      let score = 18 + pa.mat * 4 + (c.ok ? pa.pat * 6 : 0) + pa.fin * 5;
+      if (!c.ok) score *= 0.8;
+      el.innerHTML = `
+        <div class="mg dc">
+          <p class="mg-info">🧵 ${esc(title)}</p>
+          <div class="dc-scene"><h4>${c.ok ? "¡Costuras perfectas!" : "Uy... el traje está descosido"}</h4><p>${c.txt}</p>
+          <p>Originalidad ${"★".repeat(Math.min(5, Math.ceil(pa.mat / 2)))} · Pulidez ${c.ok ? "★".repeat(Math.min(5, Math.ceil(pa.pat / 2))) : "✖"} · Acabados ${"★".repeat(Math.min(5, Math.ceil(pa.fin / 2)))}</p></div>
+        </div>`;
+      c.ok ? Sound.powerup && Sound.powerup() : Sound.impact();
+      setTimeout(() => then(clamp(score, 0, 100), { descosido: !c.ok, pa }), 1700);
+    }
+    draw();
+  }
+  // Fase 2: el desfile en 3 decisiones
+  function walkSteps(cat, getLookTag) {
+    return [
+      (st) => {
+        const tag = getLookTag(st);
+        const best = WALK_OF_TAG[tag] || "fuerte";
+        const W = [["fuerte", "💥 Paso fuerte", "Editorial, con autoridad"], ["flotado", "🕊️ Flotado", "Elegante, como sin tocar el suelo"], ["comico", "🤪 Cómico", "Con gracia y exageración"], ["provocador", "🔥 Provocador", "Cadera y mirada"]];
+        return {
+          q: "👠 ¿Cómo caminas?",
+          sub: `Tu look es <b>${esc(tag)}</b>. El paso tiene que ir con la ropa.`,
+          opts: W.map(([k, t, d]) => ({ t, d, go: () => (k === best ? { pts: 92, msg: "¡El paso y el look van de la mano!" } : { pts: 52, msg: "Bien caminado, pero no pega mucho con lo que llevas." }) })),
+        };
+      },
+      (st) => ({
+        q: "📸 Final de pasarela: ¿qué haces?",
+        opts: [
+          { t: "🖼️ Pose editorial", d: "Segura y elegante", go: () => ({ pts: ["Glamour", "Edgy"].includes(getLookTag(st)) ? 82 : 68, msg: "Pose limpia. El fotógrafo, contento." }) },
+          { t: "🤡 Gesto de comedia", d: "Arriesgado si el look no es Camp", go: () => (getLookTag(st) === "Camp" ? { pts: 94, msg: "¡Carcajada en el jurado!" } : { pts: 48, msg: "El gesto no casaba con el look." }) },
+          {
+            t: "🎁 Revelación (reveal)",
+            d: "Performance + Carisma. Si sale, puntuación máxima",
+            go: () => {
+              const c = check(["performance", "carisma"], 60);
+              if (!c.ok) st.atascado = true;
+              return res(c, 100, 15, "¡REVEAL! El público se viene arriba.", "¡Traje atascado! El reveal no se abre...");
+            },
+          },
+        ],
+      }),
+      (st) => {
+        const tag = getLookTag(st);
+        const good = pick1(VOICEOVERS[CAT_TAG[cat] || tag] || VOICEOVERS.Glamour);
+        const other = pick1(VOICEOVERS[pick1(TAGS.filter((t) => t !== (CAT_TAG[cat] || tag)))]);
+        return {
+          q: "🎙️ Frase de cierre (voz en off)",
+          sub: `Categoría: «${esc(cat)}»`,
+          opts: shuffle([
+            { t: good, go: () => { st.voiceGood = true; return { pts: 96, msg: "El jurado asiente: esa frase lo resume todo." }; } },
+            { t: other, go: () => ({ pts: 55, msg: "Bonita frase... para otra categoría." }) },
+            { t: pick1(VOICE_OFF), go: () => ({ pts: 25, msg: "Silencio en la mesa del jurado." }) },
+          ]),
+        };
+      },
+    ];
+  }
+  // Pasarela completa (de casa): preparación + desfile
+  function runRunwayNew(el, cat, done, prefix = "") {
+    const steps = [...prepHome(cat), (st) => ({ q: "👗 Tu look", sub: closeHome(st), opts: [{ t: "¡A la pasarela!", go: () => ({}) }] }), ...walkSteps(cat, (st) => st.lookTag || "Glamour")];
+    runSteps(el, {
+      title: `${prefix}Pasarela · «${cat}»`, icon: "👠", steps,
+      finish: (st, base) => {
+        S.lastLook = { cat, best: (st.pieces || [])[0] ? st.pieces[0].n : "look", worst: (st.pieces || []).slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: st.atascado, voiceGood: st.voiceGood };
+        return st.prep * 0.5 + base * 0.5;
+      },
+    }, (score) => done(score));
+  }
+
+  // ------------------------------ Lip sync (energía) ------------------------------
+  const EMOTES = [["revelacion", "🎁 Revelación"], ["caida", "💥 La caída (death drop)"], ["split", "🤸 Split"]];
+  function runLipsync(el, rival, done, songPick, bonus = 0) {
+    const ra = attrsOf(rival);
+    const song = songPick || null;
+    let rival_ = clamp((ra.performance + ra.carisma) * 5 + (S.form[rival.id] || 0) * 2 + rnd(-10, 10), 30, 110) * 1.7;
+    const PH = ["Inicio", "Puente", "Clímax"];
+    const steps = [];
+    PH.forEach((ph, pi) => {
+      [0, 1].forEach((j) => steps.push((st) => {
+        const clim = pi === 2;
+        const opts = [
+          ...EMOTES.map(([k, t]) => ({
+            t: `${t}`, d: `Energía −45${clim ? " · ¡Momento perfecto!" : " · Mejor en el clímax"}`, tag: "Emote",
+            go: (s) => {
+              if (s.energy < 45) { s.energy = Math.max(0, s.energy - 10); s.mine += 4; return { pts: 20, msg: "Sin fuelle: el truco se queda a medias." }; }
+              s.energy -= 45;
+              const c = check(["performance"], clim ? 50 : 58);
+              const imp = c.ok ? (clim ? 48 : 22) : 6;
+              s.mine += imp;
+              return { pts: c.ok ? (clim ? 100 : 70) : 20, msg: `${c.txt}<br>${c.ok ? (clim ? "¡El público se levanta!" : "Impresiona... aunque era pronto.") : "¡Uf! Se te va el truco."}` };
+            },
+          })),
+          { t: "💗 Conexión emocional", d: `Energía −10 · Carisma ${A("carisma")}`, tag: "Cara", go: (s) => { if (s.energy < 10) { s.mine += 2; return { pts: 20, msg: "Estás agotada: ni la cara te responde." }; } s.energy -= 10; const imp = 8 + A("carisma") * 1.6; s.mine += imp; return { pts: 55 + A("carisma") * 4, msg: "Cada palabra la sientes. Se te ve en los ojos." }; } },
+          { t: "🌀 Uso del espacio", d: `Energía −20 · Performance ${A("performance")}`, tag: "Escenario", go: (s) => { if (s.energy < 20) { s.mine += 2; return { pts: 20, msg: "Sin energía para moverte." }; } s.energy -= 20; const imp = 10 + A("performance") * 1.8; s.mine += imp; return { pts: 55 + A("performance") * 4, msg: "Te comes el escenario de punta a punta." }; } },
+        ];
+        // Solo un emote al azar por turno para que haya que pensar
+        const em = pick1(opts.slice(0, 3));
+        return {
+          q: `🎵 ${ph} de la canción · ${j + 1}/2`,
+          sub: `${song ? `Canción: <b>${esc(song)}</b> · ` : ""}${rivalMove(rival, pi, j)}`,
+          opts: [em, opts[3], opts[4]],
+        };
+      }));
+    });
+    runSteps(el, {
+      title: `Lip sync: ${S.queen.name} vs ${rival.name}`, icon: "💋", meters: ["energy"], init: { mine: 0, songBonus: bonus },
+      steps,
+      finish: (st, base) => {
+        st.mine += st.songBonus || 0;
+        st.won = st.mine >= rival_;
+        return base;
+      },
+    }, (score, st) => done(st.won, score));
+  }
+  const RIVAL_MOVES = [
+    ["{r} arranca muy segura, mirando a cámara.", "{r} empieza con calma, guardándose algo."],
+    ["{r} se marca unas vueltas por todo el escenario.", "{r} baja al suelo y el público grita."],
+    ["¡{r} se tira un death drop!", "{r} se quita la peluca y la lanza al aire."],
+  ];
+  const rivalMove = (r, pi, j) => (j === 0 ? pick1(RIVAL_MOVES[pi]).replace("{r}", esc(r.name)) : "¿Cuál es tu siguiente movimiento?");
+  // Sustituye al juego de arcade en el modo historia: misma forma de respuesta
+  function lsGame(rival, cb) {
+    UI.show("story");
+    header();
+    body().innerHTML = `<div id="story-play"></div>`;
+    Music.play("reto");
+    runLipsync($("#story-play"), rival, (won, score) => {
+      cleanup = null;
+      Music.stop();
+      if (typeof window.__forceScore === "number") won = window.__forceScore >= 50;
+      cb({ won, score: Math.round(score * 10) });
+    });
+  }
+
+  // ------------------------------ Maxi retos ------------------------------
+  function mxSnatch(el, done) {
+    const chars = shuffle(SNATCH_PERSONAJES).slice(0, 3);
+    const qs = shuffle(SNATCH_PREGUNTAS).slice(0, 5);
+    const steps = [
+      () => ({
+        q: "🎭 ¿A quién imitas?",
+        sub: "Elige tu personaje para el plató de Supreme.",
+        opts: chars.map((c) => ({ t: `${c.icon} ${esc(c.name)}`, d: `Tono ${esc(c.tono)}`, go: (st) => { st.char = c; return {}; } })),
+      }),
+    ];
+    qs.forEach((qq, n) => {
+      if (n > 0 && Math.random() < 0.45)
+        steps.push((st) => {
+          const r = pick1(S.rivals);
+          return {
+            q: `😶 ${esc(r.name)} se queda en blanco...`,
+            sub: "Hay un silencio incómodo en el plató. ¿Aprovechas?",
+            opts: [
+              { t: "🎯 Robar la atención y rematar el chiste", d: "Comedia + Carisma", go: (s) => { s.focus += 18; const c = check(["comedia", "carisma"], 58); if (c.ok) changeRel(r, -1); return res(c, 100, 22, "¡Remate perfecto! Te llevas la risa.", "Intentas rematar... y la pisas. Nadie se ríe."); } },
+              { t: "🤫 Dejarla respirar", d: "Sin riesgo", go: (s) => { s.focus -= 6; return { pts: 55, msg: "Discreta. Nadie se fija en ti." }; } },
+            ],
+          };
+        });
+      steps.push((st) => {
+        const r = pick1(S.rivals);
+        const ch = st.char || chars[0];
+        return {
+          q: `🎤 Supreme: «${esc(qq)}»`,
+          sub: `Eres <b>${esc(ch.name)}</b>. Pregunta ${n + 1}/5.`,
+          opts: [
+            { t: `😂 «${esc(pick1(ch.frases))}»`, d: "Comedia absurda", tag: "Comedia", go: (s) => { s.focus += 14; return res(check(["comedia"], 52), 90, 30, "¡Carcajada general!", "Nadie lo pilla. Grillos."); } },
+            { t: `⚡ Replicar a ${esc(r.name)}`, d: "Carisma · sube mucho el foco y crea drama", tag: "Carisma", go: (s) => { s.focus += 24; s.drama = (s.drama || 0) + 1; changeRel(r, -1); return res(check(["carisma"], 55), 94, 34, `¡Le has dado un zasca a ${esc(r.name)} y el plató explota!`, "La réplica suena a ataque. Tensión, no risas."); } },
+            { t: `🛡️ «${esc(pick1(SNATCH_PLANAS))}»`, d: "Respuesta segura", tag: "Segura", go: (s) => { s.focus -= 12; return { pts: 48, msg: "Correcta. Poco memorable." }; } },
+          ],
+        };
+      });
+      // El foco se gestiona tras cada pregunta
+      steps.push((st) => {
+        st.focus -= 6;
+        if (st.focus > 80) { st.total += 25 * 0.5; st.wsum += 0.5; Toast.show("🔦 ¡Estás interrumpiendo!", "Demasiado foco: el jurado lo penaliza"); }
+        else if (st.focus < 30) { st.total += 25 * 0.5; st.wsum += 0.5; Toast.show("🔦 Pasas desapercibida", "Nadie se acuerda de ti"); }
+        st.focus = clamp(st.focus, 0, 100);
+        return null;
+      });
+    });
+    runSteps(el, { title: "Snatch Game", icon: "🎭", meters: ["focus"], steps }, (sc) => done(sc));
+  }
+
+  function mxBall(el, done) {
+    const cats = shuffle(CATEGORIAS).slice(0, 3);
+    const scores = [];
+    const home = (k) => {
+      el.innerHTML = "";
+      runSteps(el, {
+        title: `El Ball · Look ${k + 1}/3 (de casa) · «${cats[k]}»`, icon: "👑",
+        steps: [...prepHome(cats[k]), (st) => ({ q: "👗 Look listo", sub: closeHome(st), opts: [{ t: "Siguiente look", go: () => ({}) }] })],
+        finish: (st) => st.prep,
+      }, (sc) => { scores.push(sc); k === 0 ? home(1) : sewn(); });
+    };
+    const sewn = () => {
+      el.innerHTML = "";
+      prepSew(el, `El Ball · Look 3/3 (hecho en el taller) · «${cats[2]}»`, 0, (sc, info) => {
+        el.innerHTML = "";
+        runSteps(el, { title: `El Ball · Desfile final · «${cats[2]}»`, icon: "👑", steps: walkSteps(cats[2], () => CAT_TAG[cats[2]] || "Glamour") }, (walk) => {
+          S.lastLook = { cat: cats[2], best: "look hecho en el taller", worst: info.descosido ? "traje descosido" : "look hecho en el taller" };
+          done(scores[0] * 0.25 + scores[1] * 0.25 + (sc * 0.6 + walk * 0.4) * 0.5);
+        });
+      });
+    };
+    home(0);
+  }
+
+  function mxMateriales(el, done) {
+    const LOTS = [
+      { k: "flex", t: "🛍️ Lote flexible", d: "Bolsas de patatas, cortinas, globos. Fácil de coser.", diff: 0, aud: 0 },
+      { k: "rig", t: "🪣 Lote rígido", d: "Tapones, tornillos, macetas. +Audacia, más difícil.", diff: 12, aud: 10 },
+      { k: "abs", t: "🍝 Lote absurdo", d: "Espaguetis, peluches, esponjas. ¡Máxima Audacia!", diff: 24, aud: 22 },
+    ];
+    runSteps(el, {
+      title: "Reto de materiales imposibles", icon: "🧰",
+      steps: [() => ({ q: "📦 Reclama tu lote de materiales", sub: "Cuanto más raro, más te lo premian... si consigues que no se rompa.", opts: LOTS.map((l) => ({ t: l.t, d: l.d, go: (s) => { s.lot = l; return {}; } })) })],
+      finish: () => 0,
+    }, (_, st) => {
+      const lot = st.lot || LOTS[0];
+      prepSew(el, `Materiales imposibles · ${lot.t}`, lot.diff, (sc, info) => {
+        el.innerHTML = "";
+        runSteps(el, {
+          title: "Desfile del look imposible", icon: "🧰",
+          steps: [
+            ...(lot.aud && info.descosido ? [() => ({ q: "💥 ¡El vestido se rompe a mitad de pasarela!", sub: "El material era demasiado difícil y las costuras no aguantan.", opts: [{ t: "Seguir como si nada", go: () => ({ pts: 20, w: 2, msg: "Lo das todo... con medio vestido." }) }, { t: "Convertirlo en parte del show", d: "Carisma", go: () => ({ ...res(check(["carisma"], 60), 70, 15, "¡Parece que era a propósito!", "No cuela."), w: 2 }) }] })] : []),
+            ...walkSteps("Materiales imposibles", () => "Camp"),
+          ],
+        }, (walk) => {
+          S.lastLook = { cat: "materiales imposibles", best: lot.t.slice(3).toLowerCase(), worst: info.descosido ? "traje descosido" : lot.t.slice(3).toLowerCase() };
+          done(clamp(sc * 0.6 + walk * 0.4 + lot.aud * (info.descosido ? 0 : 1), 0, 100));
+        });
+      });
+    });
+  }
+
+  function mxRusical(el, done) {
+    const tema = pick1(["la revista de los 70", "la movida madrileña", "una diva de la copla", "el destape", "las verbenas de agosto"]);
+    const MOODS = [["dramatica", "🎭 Dramática"], ["alegre", "🌈 Alegre"], ["agresiva", "🔥 Agresiva"]];
+    const STANZAS = [
+      ["«Me dejaste en la estación con la maleta y el corazón…»", "dramatica"],
+      ["«¡Que suenen las castañuelas, que hoy me caso con la verbena!»", "alegre"],
+      ["«A mí nadie me pisa el escenario, cariño, ni aunque lleves tacones de diario»", "agresiva"],
+      ["«Bajo la luna de Cádiz lloré por un marinero…»", "dramatica"],
+      ["«Brilla, brilla, lentejuela, que la noche es pa' la abuela»", "alegre"],
+    ];
+    const st2 = shuffle(STANZAS).slice(0, 2);
+    const steps = [
+      () => ({
+        q: `🎬 Reparto de papeles: Rusical sobre ${tema}`,
+        opts: [
+          { t: "👑 Papel principal", d: "Alto riesgo, alta recompensa", go: (s) => { s.role = "main"; return { msg: "Toda la presión es tuya." }; } },
+          { t: "🤡 Papel cómico", d: "Tira de Comedia", go: (s) => { s.role = "comic"; return { msg: "A hacer reír." }; } },
+          { t: "🙂 Papel secundario", d: "Poco riesgo, pero con techo", go: (s) => { s.role = "sec"; return { msg: "Discreta, pero segura." }; } },
+        ],
+      }),
+    ];
+    [0, 1].forEach((n) => {
+      steps.push((st) => ({
+        q: `🕺 Número ${n + 1}: llega tu momento de baile`,
+        opts: [
+          { t: "✅ Paso limpio", d: "Seguro", go: () => ({ pts: st.role === "sec" ? 65 : 60, msg: "Limpio y a tiempo." }) },
+          { t: "🌀 Truco arriesgado (split / pirueta)", d: "Performance", go: () => { const dif = st.role === "main" ? 55 : 60; const c = check([st.role === "comic" ? "comedia" : "performance"], dif); return res(c, st.role === "main" ? 100 : 88, st.role === "main" ? 10 : 25, "¡El público enloquece!", "¡Te caes de culo! (y no era parte del número)"); } },
+        ],
+      }));
+      steps.push((st) => {
+        const [line, mood] = st2[n];
+        return {
+          q: `🎶 Estrofa: ${line}`,
+          sub: "¿Con qué intención haces el playback?",
+          opts: MOODS.map(([k, t]) => ({ t, go: () => (k === mood ? { pts: st.role === "comic" ? 85 + A("comedia") : 92, msg: "Intención perfecta: se te cree cada palabra." } : { pts: 40, msg: "La cara dice una cosa y la letra otra." }) })),
+        };
+      });
+    });
+    runSteps(el, { title: `El Rusical: ${tema}`, icon: "🎭", steps, finish: (st, base) => (st.role === "sec" ? Math.min(base, 72) : st.role === "main" ? base * 1.08 : base) }, (sc) => done(sc));
+  }
+
+  function mxGirlGroups(el, done) {
+    ensureTeam();
+    const mate = pick1(S.team) || pick1(S.rivals);
+    const steps = [
+      () => ({
+        q: "✍️ Escribe tu estrofa del himno",
+        sub: "¿Qué tono le das?",
+        opts: [
+          { t: "💪 Empoderada", d: "Carisma", go: () => res(check(["carisma"], 52), 90, 35, "«¡Nadie me apaga la luz!» Suena a himno.", "Suena a frase de taza.") },
+          { t: "🤪 Cómica / absurda", d: "Comedia", go: () => res(check(["comedia"], 52), 92, 30, "El estudio entero se ríe.", "Nadie pilla la rima.") },
+          { t: "😎 Chula (chulapa)", d: "Carisma + Comedia", go: () => res(check(["carisma", "comedia"], 58), 96, 28, "¡Con dos ovarios! Estrofa redonda.", "Se queda en chulería sin gracia.") },
+        ],
+      }),
+      () => ({
+        q: "🎧 Grabación en el estudio",
+        opts: [
+          { t: "🎤 Hacer voces y armonías", d: "Performance", go: () => res(check(["performance"], 55), 85, 40, "La productora aplaude.", "Desafinas un poco...") },
+          { t: "🗣️ Recitado con actitud", d: "Carisma", go: () => res(check(["carisma"], 50), 80, 45, "Actitud de sobra.", "Monótono.") },
+        ],
+      }),
+      () => ({
+        q: "📍 Coreografía en directo: ¿dónde te colocas?",
+        opts: [
+          { t: "⭐ En el centro", d: "Robas miradas · exige Performance alta", go: () => res(check(["performance"], 64), 98, 25, "Todas las cámaras son para ti.", "En el centro... y fuera de ritmo.") },
+          { t: "↔️ A los lados", d: "Más seguro", go: () => ({ pts: 64, msg: "Cumples sin riesgos." }) },
+        ],
+      }),
+      () => ({
+        q: `😱 ¡${esc(mate.name)} se equivoca de paso!`,
+        opts: [
+          { t: "🤝 Corregir la formación", d: "Ayudas al grupo", go: () => { changeRel(mate, 1); return { pts: 74, msg: "Lo disimuláis entre las dos. Equipo." }; } },
+          { t: "💃 Aprovechar para destacar", d: "Carisma · a costa de ella", go: () => { changeRel(mate, -1); return res(check(["carisma"], 55), 95, 35, "Todo el mundo te mira a ti.", "Se nota que la has dejado tirada."); } },
+        ],
+      }),
+    ];
+    runSteps(el, { title: "Girl Groups: el himno de la temporada", icon: "🎤", steps }, (sc) => done(sc));
+  }
+
+  function mxActing(el, done) {
+    ensureTeam();
+    const genero = pick1([["telenovela", "sobre"], ["drama de época", "drama"], ["parodia de serie juvenil", "absurdo"], ["anuncio de teletienda", "sobre"]]);
+    const partner = pick1(S.team) || pick1(S.rivals);
+    const INT = [["sobre", "🎭 Sobreactuado"], ["drama", "😢 Dramático"], ["absurdo", "🤪 Absurdo"]];
+    const beats = [
+      "«¡Tú no eres mi madre! ¡Mi madre es la de la peluca rubia!»",
+      "«Esta herencia es mía, y el cortijo también.»",
+      "«No me mires así, que me derrito como un helado en agosto.»",
+    ];
+    const steps = beats.map((b, n) => () => ({
+      q: `🎬 Escena ${n + 1}: ${b}`,
+      sub: `Es un ${genero[0]}. ¿Con qué intención lo dices?`,
+      opts: INT.map(([k, t]) => ({ t, go: () => (k === genero[1] || (n === 2 && k === "absurdo") ? { pts: 90 + A("carisma"), msg: "¡Corten! Toma buena." } : { pts: 48, msg: "La directora frunce el ceño." }) })),
+    }));
+    steps.splice(2, 0, () => ({
+      q: `😶 ${esc(partner.name)} olvida su frase en mitad de la toma`,
+      opts: [
+        { t: "💡 Salvar la escena improvisando", d: "Carisma + Comedia (bonus si sale)", go: () => { const c = check(["carisma", "comedia"], 55); if (c.ok) changeRel(partner, 1); return { ...res(c, 100, 28, "¡Lo que has improvisado es mejor que el guion!", "Te lías tú también. Escena perdida."), w: 1.5 }; } },
+        { t: "📜 Mantener el guion", d: "Neutro", go: () => ({ pts: 58, msg: "Esperas... y seguís. Correcto." }) },
+      ],
+    }));
+    runSteps(el, { title: `Reto de interpretación: ${genero[0]}`, icon: "🎬", steps }, (sc) => done(sc));
+  }
+
+  function mxRoast(el, done) {
+    const T = { jurado: { t: "⚖️ Al jurado", d: "Alto riesgo, alta recompensa", diff: 62, cap: 100 }, comp: { t: "👯 A las compañeras", d: "Crea drama", diff: 55, cap: 96 }, auto: { t: "🪞 A ti misma", d: "Autohumor: seguro, con techo", diff: 42, cap: 82 } };
+    const bank = shuffle([...ROAST, ...COMEDIA]).slice(0, 4);
+    const steps = [
+      () => ({ q: "🎯 ¿Quién es la diana de tus chistes?", opts: Object.entries(T).map(([k, v]) => ({ t: v.t, d: v.d, go: (s) => { s.target = k; return {}; } })) }),
+      ...bank.map(([setup, [best, mid, flat]], n) => (st) => {
+        const tg = T[st.target || "comp"];
+        return {
+          q: `🎙️ Chiste ${n + 1}/4: ${esc(setup)}`,
+          sub: "¿Cuánta caña le das al remate?",
+          opts: [
+            { t: `🍬 Suave: «${esc(flat)}»`, d: "No falla, pero no da risa", go: () => ({ pts: 38, msg: "Risas educadas." }) },
+            { t: `🌶️ Picante: «${esc(mid)}»`, d: "Comedia", go: () => res(check(["comedia"], tg.diff - 8), Math.min(tg.cap, 86), 50, "¡Buena risa!", "Tibio.") },
+            { t: `💣 Salvaje: «${esc(best)}»`, d: "Comedia · si falla, silencio incómodo", go: (s) => { const c = check(["comedia"], tg.diff + 10); if (st.target === "comp" && c.ok) changeRel(pick1(S.rivals), -1); return res(c, tg.cap, 5, "¡El público llora de risa!", "🥶 Silencio incómodo. Se oye una tos al fondo."); } },
+          ],
+        };
+      }),
+    ];
+    runSteps(el, { title: "El Roast (rapapolvos)", icon: "🔥", steps }, (sc) => done(sc));
+  }
+
+  function mxMakeover(el, done) {
+    const MODELS = [
+      { n: "Tu padre", d: "Muy poco cómodo, cuerpo grande", comfort: "baja", body: "grande" },
+      { n: "Un futbolista de tercera", d: "Comodidad media, espalda ancha", comfort: "media", body: "grande" },
+      { n: "La técnica de sonido", d: "Encantada de la vida, cuerpo menudo", comfort: "alta", body: "menudo" },
+      { n: "Tu abuela", d: "Comodidad alta, muy bajita", comfort: "alta", body: "menudo" },
+    ];
+    const model = pick1(MODELS);
+    const steps = [
+      () => ({
+        q: `👥 Tu modelo: ${model.n}`,
+        sub: `${model.d}. Tu Maquillaje: <b>${A("maquillaje")}</b>. ¿Cómo adaptas tu maquillaje?`,
+        opts: [
+          { t: "🪞 Copia exacta de mi cara", d: "Máximo parecido si se deja", go: () => (model.comfort === "alta" ? { pts: 94, msg: "¡Sois dos gotas de agua!" } : { pts: 42, msg: "Se siente disfrazado y se nota." }) },
+          { t: "🎨 Mi paleta, adaptada a su cara", d: "Equilibrado", go: () => ({ pts: 78, msg: "Se ve el parecido sin forzar." }) },
+          { t: "🌸 Suavizado: que brille él o ella", d: "Para modelos tímidos", go: () => (model.comfort === "baja" ? { pts: 92, msg: "Se siente cómodo y le brillan los ojos." } : { pts: 55, msg: "Queda mono, pero no parecéis familia." }) },
+        ],
+      }),
+      () => ({
+        q: "👗 La ropa",
+        opts: [
+          { t: "👯 Looks gemelos", d: "Mismo vestido para las dos", go: () => (model.body === "menudo" ? { pts: 90, msg: "Parecéis muñecas rusas. ¡Precioso!" } : { pts: 45, msg: "El vestido le queda... raro." }) },
+          { t: "🎨 Misma paleta, distinto corte", d: "Adaptado a su cuerpo", go: () => ({ pts: model.body === "grande" ? 92 : 76, msg: "Familia, pero cada una con su silueta." }) },
+          { t: "🙈 Que lleve algo discreto", d: "No le opacas... ni se os parece", go: () => ({ pts: 40, msg: "¿Seguro que sois familia?" }) },
+        ],
+      }),
+      () => ({
+        q: "🎤 Presentación en pareja en la pasarela",
+        opts: [
+          { t: "💃 Coreografía juntas", d: "Maquillaje + Carisma", go: () => res(check(["maquillaje", "carisma"], 55), 96, 35, "¡Family resemblance total!", "Os descoordináis.") },
+          { t: "🫶 Dejar que se luzca", d: "Carisma", go: () => res(check(["carisma"], 48), 85, 45, "El jurado se enamora de tu modelo.", "Se queda paralizado.") },
+        ],
+      }),
+    ];
+    runSteps(el, { title: `Makeover: ${model.n}`, icon: "💄", steps }, (sc) => done(sc));
+  }
+
+  function mxImpro(el, done) {
+    const EVENTS = [
+      "El teleprompter se apaga en mitad de la noticia.",
+      "Se cae un decorado detrás de ti.",
+      "El invitado solo contesta con monosílabos.",
+      "La regidora te hace señas de que te quedan 10 segundos.",
+      "Un producto de la teletienda se rompe en directo.",
+    ];
+    const steps = [
+      () => ({
+        q: "📺 ¿Qué sección conduces?",
+        opts: [
+          { t: "🗞️ Noticias", d: "Seriedad con retranca", go: (s) => { s.sec = "noticias"; return {}; } },
+          { t: "🎙️ Entrevista", d: "Todo depende del invitado", go: (s) => { s.sec = "entrevista"; return {}; } },
+          { t: "🛒 Teletienda", d: "¡Vende, vende!", go: (s) => { s.sec = "teletienda"; return {}; } },
+        ],
+      }),
+      ...shuffle(EVENTS).slice(0, 4).map((ev, n) => () => ({
+        q: `🔴 En directo · imprevisto ${n + 1}/4`,
+        sub: ev,
+        opts: [
+          { t: "😂 Aceptar el caos y hacer broma", d: "Comedia", go: () => { const c = check(["comedia"], 52); return res(c, 90, 35, "¡Lo conviertes en el mejor momento del programa!", "La broma no llega."); } },
+          { t: "💎 Recomponerse con elegancia", d: "Carisma", go: () => { const c = check(["carisma"], 50); return res(c, 86, 40, "Profesional como una presentadora de toda la vida.", "Se te nota el apuro."); } },
+        ],
+      })),
+    ];
+    runSteps(el, { title: "Improvisación: en directo", icon: "📺", steps }, (sc, st) => { if (sc >= 80) growAttr(sc > 90 ? "comedia" : "carisma"); done(sc); });
+  }
+
+  function mxPublicidad(el, done) {
+    const P = {
+      perfume: { t: "💎 Perfume absurdamente caro", slogans: ["«Huele a dinero que no tienes»", "«Un perfume muy bueno»", "«Fragancia con notas de... cosas»"] },
+      aparato: { t: "🔌 Aparato inútil", slogans: ["«Para lo que nunca te hizo falta»", "«Es un aparato que hace cosas»", "«Cómpralo, está bien»"] },
+      bebida: { t: "🍹 Bebida extravagante", slogans: ["«Burbujas, purpurina y cero arrepentimiento»", "«Una bebida con sabor»", "«Se puede beber»"] },
+    };
+    const steps = [
+      () => ({ q: "💡 Diseña tu producto", opts: Object.entries(P).map(([k, v]) => ({ t: v.t, go: (s) => { s.prod = k; return {}; } })) }),
+      (st) => {
+        const p = P[st.prod || "perfume"];
+        return { q: "📣 Elige el eslogan", sub: "Se valora lo camp.", opts: shuffle([{ t: p.slogans[0], go: () => ({ pts: 95, msg: "¡Eso es camp puro!" }) }, { t: p.slogans[1], go: () => ({ pts: 45, msg: "Correcto. Aburrido." }) }, { t: p.slogans[2], go: () => ({ pts: 25, msg: "El director de marketing llora." }) }]) };
+      },
+      () => ({
+        q: "🎬 Grabación del anuncio: toma 1",
+        opts: [
+          { t: "🧠 Decirlo de memoria", d: "Carisma", go: () => res(check(["carisma"], 55), 92, 30, "Ni una trabada. ¡Toma buena!", "Te trabas tres veces...") },
+          { t: "📋 Leer el cartón", d: "Seguro", go: () => ({ pts: 60, msg: "Se nota que lees, pero sale." }) },
+        ],
+      }),
+      () => ({
+        q: "🎬 Toma 2: el remate",
+        opts: [
+          { t: "🌟 Guiño a cámara exagerado", d: "Camp · Carisma", go: () => res(check(["carisma"], 50), 94, 40, "¡Campísimo!", "Parece un tic.") },
+          { t: "🤪 Improvisar un chiste final", d: "Comedia", go: () => res(check(["comedia"], 55), 96, 30, "¡El equipo técnico se ríe!", "Nadie lo entiende.") },
+          { t: "🙂 Sonrisa y fuera", d: "Seguro", go: () => ({ pts: 55, msg: "Correcto." }) },
+        ],
+      }),
+    ];
+    runSteps(el, { title: "Publicidad: el anuncio falso", icon: "📺", steps }, (sc) => done(sc));
+  }
+
+  // Lalaparuza: torneo de lip syncs (sin taller)
+  function mxLalaparuza(el, done) {
+    const SONGS = [["balada", "🎹 Balada emocional", "carisma"], ["pop", "🎵 Pop up-tempo", "performance"], ["dance", "🔊 Dance / urbano", "performance"]];
+    const pool = shuffle(S.rivals.slice());
+    const rounds = Math.min(3, Math.max(1, Math.ceil(Math.log2(S.rivals.length + 1))));
+    let r = 0;
+    const profile = (q) => { const a = attrsOf(q); return a.carisma > a.performance ? "balada" : a.performance > a.carisma + 1 ? "dance" : "pop"; };
+    const round = () => {
+      const rival = pool[r % pool.length];
+      el.innerHTML = "";
+      runSteps(el, {
+        title: `Lalaparuza · Ronda ${r + 1}/${rounds}`, icon: "🏆",
+        steps: [() => ({
+          q: `🥊 Te enfrentas a ${esc(rival.name)}`,
+          sub: `Su punto fuerte parece: <b>${SONGS.find((s) => s[0] === profile(rival))[1]}</b>. Tus atributos: ${attrChips(["carisma", "performance"])}`,
+          opts: SONGS.map(([k, t, at]) => ({ t, d: `Tira de ${ATTR_NAMES[at]}`, go: (s) => { s.song = t; s.bonus = (A(at) - 5) * 3 + (k === profile(rival) ? -8 : 6); return { msg: k === profile(rival) ? "Es justo su terreno... valiente." : "Buena elección: le sacas de su zona." }; } })),
+        })],
+        finish: () => 0,
+      }, (_, st) => {
+        el.innerHTML = "";
+        runLipsync(el, rival, (won) => {
+          if (won) {
+            r++;
+            Toast.show(`🏆 ¡Pasas de ronda!`, `${rival.name}, fuera del torneo`);
+            if (r >= rounds) return done(100);
+            return round();
+          }
+          done([25, 55, 78][r] || 25);
+        }, st.song, st.bonus || 0);
+      });
+    };
+    round();
   }
 
   // Solo para pruebas automatizadas: lanza un reto concreto

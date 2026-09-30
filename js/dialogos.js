@@ -1078,3 +1078,84 @@ const GRACIAS_CORAZON = [
   [["me", "Ven aquí, que te tengo que dar un abrazo."], ["r1", "Cuidado con la peluca, que es prestada."], ["me", "Gracias de verdad, {r1}."]],
   [["r1", "Bueno, bueno... ¿no tienes nada que decirme?"], ["me", "¡Gracias! Me has salvado la vida. Literalmente."], ["r1", "Eso quería oír."]],
 ];
+
+// ===========================================================================
+// ESTILISMO DE PASARELA: piezas para montar el look de cada categoría.
+// style = estética de la pieza; tags = categorías en las que encaja de lleno.
+// ===========================================================================
+const ESTILO_CATS = {
+  "Rojo pasión": ["glam", "clasico"], "Brilla, brilla": ["glam", "futur"], "Realeza": ["clasico", "glam"],
+  "Animal print": ["street", "glam"], "Años 80": ["retro", "street"], "Futurista": ["futur"],
+  "Flores y más flores": ["natural", "folk"], "Blanco y negro": ["clasico", "futur"], "Look de gala": ["clasico", "glam"],
+  "Folclore reinventado": ["folk", "retro"],
+};
+const ESTILO_NOMBRES = { glam: "Glam", retro: "Retro", street: "Callejero", clasico: "Clásico", futur: "Futurista", folk: "Folclórico", natural: "Natural" };
+const ESTILO_PIEZAS = {
+  peluca: { icon: "💇", name: "Peluca", items: [
+    { n: "Melena roja de fuego", c: "#e0242f", s: "glam", t: ["Rojo pasión"] },
+    { n: "Cardado XXL", c: "#f2b33d", s: "retro", t: ["Años 80"] },
+    { n: "Moño con peineta", c: "#2b1a14", s: "folk", t: ["Folclore reinventado"] },
+    { n: "Bob plateado", c: "#c9d3e0", s: "futur", t: ["Futurista", "Brilla, brilla"] },
+    { n: "Rizos rubios de reina", c: "#f5d97a", s: "clasico", t: ["Realeza", "Look de gala"] },
+    { n: "Coleta de leopardo", c: "#c98b3a", s: "street", t: ["Animal print"] },
+    { n: "Corona de flores", c: "#f28fb4", s: "natural", t: ["Flores y más flores"] },
+    { n: "Pixie bicolor", c: "#222222", s: "clasico", t: ["Blanco y negro"] },
+    { n: "Ondas al agua", c: "#8a4b2a", s: "glam", t: ["Look de gala"] },
+    { n: "Tupé ochentero", c: "#ff5fa2", s: "retro", t: ["Años 80"] },
+    { n: "Rastas de colores", c: "#6ad06a", s: "street", t: [] },
+  ] },
+  look: { icon: "👗", name: "Look", items: [
+    { n: "Vestido de lentejuela roja", c: "#d8182b", s: "glam", t: ["Rojo pasión", "Brilla, brilla"] },
+    { n: "Chaqueta de hombreras neón", c: "#ff3dcf", s: "retro", t: ["Años 80"] },
+    { n: "Mono de látex plateado", c: "#b8c4d4", s: "futur", t: ["Futurista"] },
+    { n: "Capa de terciopelo y armiño", c: "#5a1a6e", s: "clasico", t: ["Realeza"] },
+    { n: "Body de leopardo", c: "#c98b3a", s: "street", t: ["Animal print"] },
+    { n: "Traje de flamenca", c: "#e03a3a", s: "folk", t: ["Folclore reinventado", "Rojo pasión"] },
+    { n: "Vestido de flores bordadas", c: "#ff9ec7", s: "natural", t: ["Flores y más flores"] },
+    { n: "Esmoquin bicolor", c: "#111111", s: "clasico", t: ["Blanco y negro"] },
+    { n: "Vestido de gala con cola", c: "#1d2b6b", s: "clasico", t: ["Look de gala"] },
+    { n: "Traje de cristales", c: "#e8f4ff", s: "glam", t: ["Brilla, brilla"] },
+    { n: "Chándal de pedrería", c: "#7a7a7a", s: "street", t: [] },
+  ] },
+  zapatos: { icon: "👠", name: "Zapatos", items: [
+    { n: "Stilettos rojos", c: "#d8182b", s: "glam", t: ["Rojo pasión"] },
+    { n: "Plataformas de colores", c: "#ffb800", s: "retro", t: ["Años 80"] },
+    { n: "Botas de espejo", c: "#cfd8e3", s: "futur", t: ["Futurista", "Brilla, brilla"] },
+    { n: "Salones de raso", c: "#f3e6d0", s: "clasico", t: ["Look de gala", "Realeza"] },
+    { n: "Botas de leopardo", c: "#c98b3a", s: "street", t: ["Animal print"] },
+    { n: "Zapato de flamenca", c: "#8b1a1a", s: "folk", t: ["Folclore reinventado"] },
+    { n: "Sandalias con flores", c: "#ffc2d9", s: "natural", t: ["Flores y más flores"] },
+    { n: "Botines blanco y negro", c: "#444444", s: "clasico", t: ["Blanco y negro"] },
+    { n: "Zapatillas de deporte", c: "#ffffff", s: "street", t: [] },
+  ] },
+  accesorio: { icon: "💍", name: "Accesorio", items: [
+    { n: "Abanico rojo", c: "#d8182b", s: "folk", t: ["Rojo pasión", "Folclore reinventado"] },
+    { n: "Corona de pedrería", c: "#ffd34d", s: "clasico", t: ["Realeza"] },
+    { n: "Gafas de visera láser", c: "#6ee7ff", s: "futur", t: ["Futurista"] },
+    { n: "Pendientes de aro XXL", c: "#ffb800", s: "retro", t: ["Años 80"] },
+    { n: "Guantes de leopardo", c: "#c98b3a", s: "street", t: ["Animal print"] },
+    { n: "Ramo de flores", c: "#ff7aa8", s: "natural", t: ["Flores y más flores"] },
+    { n: "Collar de perlas", c: "#f5f0e6", s: "clasico", t: ["Blanco y negro", "Look de gala"] },
+    { n: "Bolso de purpurina", c: "#ff4fd8", s: "glam", t: ["Brilla, brilla"] },
+    { n: "Mantón de Manila", c: "#ff6f4f", s: "folk", t: ["Folclore reinventado", "Flores y más flores"] },
+    { n: "Riñonera fluorescente", c: "#b6ff3d", s: "street", t: [] },
+  ] },
+};
+// Comentarios del jurado sobre el look ({pieza} y {cat} se rellenan)
+const ESTILO_CRITICA = {
+  top: ["Ese {pieza}... es exactamente «{cat}». Ni una pieza fuera de sitio.", "El estilismo es impecable: se nota que lo has pensado de arriba abajo.", "Con ese {pieza} me has ganado antes de llegar al final de la pasarela."],
+  mid: ["La idea de «{cat}» está, pero el {pieza} no termina de encajar.", "Hay piezas muy buenas y otras que parecen de otro armario.", "Bonito, aunque le falta coherencia al conjunto."],
+  low: ["¿{pieza} para «{cat}»? No lo entiendo, y mira que lo intento.", "Cada pieza iba por su lado. Parecía un mercadillo.", "La categoría era «{cat}». Creo que no te llegó el mensaje."],
+};
+if (typeof JURADO !== "undefined") {
+  JURADO.reto.publicidad = {
+    top: ["Me has vendido algo que no sirve para nada y lo quiero ya.", "Eslogan camp, texto clavado. Contratada por la agencia.", "Ese anuncio lo pondría en prime time."],
+    mid: ["La idea es buena, pero te has trabado en lo importante.", "El producto hace gracia; el anuncio, a ratos.", "Te ha faltado un poco más de locura."],
+    low: ["No sé qué vendías, y creo que tú tampoco.", "Eso no era un anuncio, era una lectura de prospecto.", "Cero camp. Y aquí el camp es obligatorio."],
+  };
+  JURADO.reto.lalaparuza = {
+    top: ["Has arrasado en el torneo. Eres una asesina del lip sync.", "Ronda tras ronda, sin bajar el nivel. Brutal.", "Nadie ha podido contigo en ese escenario."],
+    mid: ["Buen torneo, aunque te quedaste a las puertas.", "Elegiste bien las canciones, pero te faltó fuelle al final.", "Una ronda más y hablábamos de otra cosa."],
+    low: ["Te has ido a la primera. Eso duele.", "Elegiste mal la canción y lo pagaste.", "Te faltó energía desde el primer segundo."],
+  };
+}
