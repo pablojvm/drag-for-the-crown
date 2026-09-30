@@ -3333,6 +3333,7 @@ const Story = (() => {
     el.innerHTML = `
       <div class="mg dc">
         <p class="mg-info">${cfg.icon || "🎬"} ${esc(cfg.title)}</p>
+        <div class="dc-top" id="dc-top"></div>
         <div class="dc-meters" id="dc-m"></div>
         <div class="dc-scene" id="dc-s"></div>
         <div class="dc-opts" id="dc-o"></div>
@@ -3356,8 +3357,15 @@ const Story = (() => {
       $("#dc-m").innerHTML = meterHTML();
       $("#dc-s").innerHTML = `${s.q ? `<h4>${s.q}</h4>` : ""}${s.sub ? `<p>${s.sub}</p>` : ""}`;
       $("#dc-msg").textContent = "";
+      if (cfg.top) $("#dc-top").innerHTML = cfg.top(st);
+      const EMO = /^((?:\p{Extended_Pictographic}|\uFE0F|\u200D)+)\s*/u;
       $("#dc-o").innerHTML = s.opts
-        .map((o, k) => `<button class="dc-opt" data-k="${k}" style="--i:${k}"><b>${k + 1}</b><span>${o.t}</span>${o.d ? `<small>${o.d}</small>` : ""}${o.tag ? `<em>${o.tag}</em>` : ""}</button>`)
+        .map((o, k) => {
+          const m = typeof o.t === "string" && o.t.match(EMO);
+          const icon = m ? m[1] : "";
+          const txt = m ? o.t.slice(m[0].length) : o.t;
+          return `<button class="dc-opt ${icon ? "has-ico" : ""}" data-k="${k}" style="--i:${k}"><b>${k + 1}</b>${icon ? `<i class="dc-ico">${icon}</i>` : ""}<span>${txt}</span>${o.d ? `<small>${o.d}</small>` : ""}${o.tag ? `<em>${o.tag}</em>` : ""}</button>`;
+        })
         .join("");
       el.querySelectorAll(".dc-opt").forEach((b) => b.addEventListener("click", () => pick(+b.dataset.k)));
     }
@@ -3365,6 +3373,7 @@ const Story = (() => {
       if (busy || !cur || !cur.opts[k]) return;
       busy = true;
       const r = cur.opts[k].go(st) || {};
+      if (cfg.onPick) cfg.onPick(st, cur.opts[k], r);
       if (typeof r.pts === "number") {
         const w = r.w === undefined ? 1 : r.w;
         st.total += clamp(r.pts, 0, 100) * w;
@@ -3552,16 +3561,204 @@ const Story = (() => {
       },
     ];
   }
-  // Pasarela completa (de casa): preparación + desfile
+  // Pasarela completa (de casa): probador + desfile
   function runRunwayNew(el, cat, done, prefix = "") {
-    const steps = [...prepHome(cat), (st) => ({ q: "👗 Tu look", sub: closeHome(st), opts: [{ t: "¡A la pasarela!", go: () => ({}) }] }), ...walkSteps(cat, (st) => st.lookTag || "Glamour")];
-    runSteps(el, {
-      title: `${prefix}Pasarela · «${cat}»`, icon: "👠", steps,
-      finish: (st, base) => {
-        S.lastLook = { cat, best: (st.pieces || [])[0] ? st.pieces[0].n : "look", worst: (st.pieces || []).slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: st.atascado, voiceGood: st.voiceGood };
-        return st.prep * 0.5 + base * 0.5;
-      },
-    }, (score) => done(score));
+    dressingRoom(el, cat, (st, spec) => {
+      runwayWalk(el, cat, spec, st.lookTag || "Glamour", (walk, flags, finalSpec) => {
+        S.lastOutfit = finalSpec;
+        S.lastLook = { cat, best: st.pieces[0] ? st.pieces[0].n : "look", worst: st.pieces.slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: flags.atascado, voiceGood: flags.voiceGood };
+        done(st.prep * 0.5 + walk * 0.5);
+      });
+    }, prefix);
+  }
+
+
+  // ------------------------------ Probador visual ------------------------------
+  const skinMe = () => Doll.skinOf(S.queen.id);
+  function dressingRoom(el, cat, done, prefix = "") {
+    const main = CAT_TAG[cat] || "Glamour";
+    const tagOf = (it) => TAG_OF_STYLE[it.s];
+    const fits = (it) => tagOf(it) === main || it.t.includes(cat);
+    const fit = (it) => (fits(it) ? 22 : 9);
+    const IMG = (id) => `./images/armario/${id}.webp`;
+    const SL = [
+      { k: "look", n: "El look", icon: "👗", items: ARMARIO.look, base: "base-maniqui" },
+      { k: "peluca", n: "La peluca", icon: "💇", items: ARMARIO.peluca, base: "base-cabeza" },
+      { k: "acc", n: "El toque final", icon: "💄", items: ARMARIO.acc, base: "base-bandeja" },
+    ];
+    // Tres opciones: una que encaja con la categoría y dos que no tanto
+    const opts = SL.map((sl) => {
+      const good = shuffle(sl.items.filter(fits));
+      const bad = shuffle(sl.items.filter((x) => !fits(x)));
+      return shuffle([good[0] || bad[2], bad[0], bad[1]].filter(Boolean));
+    });
+    const chosen = {}, st = { pieces: [], prepRaw: 0 };
+    let slot = 0, over = false;
+    const station = (k, tryIt) => {
+      const sl = SL.find((x) => x.k === k);
+      const it = tryIt || chosen[k];
+      return IMG(it ? it.id : sl.base);
+    };
+    function setStation(k, it) {
+      const img = el.querySelector(`.at-${k} img`);
+      if (img) img.src = station(k, it);
+    }
+    const atelier = () => `
+      <div class="at-room">
+        <div class="at-queen"><img src="${sprite(S.queen)}" alt=""><b>${esc(S.queen.name)}</b></div>
+        <div class="at-look ${slot === 0 && !over ? "on" : ""}"><img src="${station("look")}" alt=""></div>
+        <div class="at-side">
+          <div class="at-peluca ${slot === 1 && !over ? "on" : ""}"><img src="${station("peluca")}" alt=""></div>
+          <div class="at-acc ${slot === 2 && !over ? "on" : ""}"><img src="${station("acc")}" alt=""></div>
+        </div>
+        <div class="at-cat">${esc(prefix)}«${esc(cat)}»</div>
+      </div>`;
+    function render() {
+      const sl = SL[slot];
+      el.innerHTML = `
+        <div class="at">
+          ${atelier()}
+          <div class="at-rack">
+            <div class="dr-steps">${SL.map((s2, i) => `<span class="${i < slot ? "done" : i === slot ? "on" : ""}">${s2.icon}</span>`).join("")}</div>
+            <h4>${sl.icon} ${sl.n}</h4>
+            <div class="at-opts">${opts[slot].map((it, i) => `<button class="dr-opt at-opt" data-i="${i}" style="--i:${i}"><img src="${IMG(it.id)}" alt=""><span>${esc(it.n)}</span></button>`).join("")}</div>
+          </div>
+        </div>`;
+      el.querySelectorAll(".at-opt").forEach((b) => {
+        const it = opts[slot][+b.dataset.i];
+        b.addEventListener("mouseenter", () => setStation(sl.k, it));
+        b.addEventListener("mouseleave", () => setStation(sl.k));
+        b.addEventListener("click", () => choose(+b.dataset.i));
+      });
+    }
+    function choose(i) {
+      if (over) return;
+      const it = opts[slot][i];
+      if (!it) return;
+      chosen[SL[slot].k] = it;
+      st.pieces.push(it);
+      st.prepRaw += fit(it);
+      Sound.countdown(false);
+      slot++;
+      if (slot < SL.length) return render();
+      finish();
+    }
+    function finish() {
+      over = true;
+      document.removeEventListener("keydown", onKey);
+      const msg = closeHome(st);
+      const stars = Math.round((st.prep / 100) * 5);
+      el.innerHTML = `
+        <div class="at done">
+          ${atelier()}
+          <div class="at-rack">
+            <h4>¡Look listo!</h4>
+            <p class="dr-stars">${"★".repeat(stars)}${"☆".repeat(5 - stars)}</p>
+            <p class="dr-msg">${msg}</p>
+            <button class="btn btn-primary" id="dr-go">👠 ¡A la pasarela!</button>
+          </div>
+        </div>`;
+      Confetti.burst(900);
+      $("#dr-go").addEventListener("click", () => done(st, { pieces: { ...chosen } }));
+    }
+    const onKey = (e) => { const k = { Digit1: 0, Digit2: 1, Digit3: 2 }[e.code]; if (k !== undefined) choose(k); };
+    document.addEventListener("keydown", onKey);
+    cleanup = () => document.removeEventListener("keydown", onKey);
+    render();
+  }
+  // Look para retos de costura (sin probador): sale de la categoría
+  function sewnSpec(cat, tint) {
+    const main = CAT_TAG[cat] || "Camp";
+    const pick = (items) => items.find((x) => TAG_OF_STYLE[x.s] === main) || items[0];
+    const sp = { skin: skinMe(), look: Doll.visualOf(pick(ESTILO_PIEZAS.look.items), "look"), wig: Doll.visualOf(pick(ESTILO_PIEZAS.peluca.items), "peluca"), extra: Doll.visualOf(pick(ESTILO_PIEZAS.accesorio.items), "acc") };
+    if (tint) sp.look = { ...sp.look, color: tint.color || sp.look.color, pat: tint.pat || sp.look.pat, shape: tint.shape || sp.look.shape };
+    return sp;
+  }
+
+  // ------------------------------ Pasarela visual ------------------------------
+  function runwayWalk(el, cat, lookSpec, lookTag, done) {
+    const flags = {};
+    const timers = [];
+    const later = (f, ms) => timers.push(setTimeout(f, ms));
+    cleanup = () => timers.forEach(clearTimeout);
+    let phase = 0, tot = 0, n = 0, busy = false, spec = lookSpec;
+    const WALKS = [["fuerte", "💥", "Fuerte"], ["flotado", "🕊️", "Flotado"], ["comico", "🤪", "Cómico"], ["provocador", "🔥", "Provocador"]];
+    el.innerHTML = `
+      <div class="rw">
+        <div class="rw-floor"></div>
+        <div class="rw-lights">${"<i></i>".repeat(7)}</div>
+        <div class="rw-doll rw-queen pos0" id="rw-doll"><img class="doll-fig" src="${sprite(S.queen)}" alt=""></div>
+        <div class="rw-cat">«${esc(cat)}»</div>
+        <div class="rw-sub" id="rw-sub"></div>
+        <div class="rw-choices" id="rw-ch"></div>
+      </div>`;
+    const doll = $("#rw-doll"), sub = $("#rw-sub"), ch = $("#rw-ch");
+    const add = (p) => { tot += p; n++; };
+    const say = (t, cls = "") => { sub.className = `rw-sub show ${cls}`; sub.innerHTML = t; };
+    const ask = (q, list) => {
+      busy = false;
+      say(q, "q");
+      ch.innerHTML = list.map((o, i) => `<button class="rw-opt ${o.wide ? "wide" : ""}" data-i="${i}" style="--i:${i}">${o.ico ? `<i>${o.ico}</i>` : ""}<span>${o.t}</span></button>`).join("");
+      ch.querySelectorAll(".rw-opt").forEach((b) => b.addEventListener("click", () => { if (busy) return; busy = true; ch.innerHTML = ""; list[+b.dataset.i].go(); }));
+    };
+    function step0() {
+      const best = WALK_OF_TAG[lookTag] || "fuerte";
+      ask("¿Cómo sales a la pasarela?", WALKS.map(([k, ico, t]) => ({ ico, t, go: () => {
+        doll.className = `rw-doll pos1 walk-${k}`;
+        const ok = k === best;
+        add(ok ? 92 : 52);
+        later(() => say(ok ? "✨ El paso y el look van de la mano" : "Bien caminado... pero no pega con lo que llevas", ok ? "good" : "meh"), 900);
+        later(step1, 2600);
+      } })));
+    }
+    function step1() {
+      ask("Final de pasarela. ¡Es tu momento!", [
+        { ico: "🖼️", t: "Pose", go: () => { flash(); doll.classList.add("pose"); add(["Glamour", "Edgy"].includes(lookTag) ? 82 : 68); say("📸 Pose limpia. El fotógrafo, contento.", "good"); later(step2, 2200); } },
+        { ico: "🤡", t: "Comedia", go: () => { doll.classList.add("funny"); const ok = lookTag === "Camp"; add(ok ? 94 : 48); say(ok ? "😂 ¡Carcajada en el jurado!" : "El gesto no casaba con el look...", ok ? "good" : "meh"); later(step2, 2200); } },
+        { ico: "🎁", t: "Reveal", go: () => {
+          const c = check(["performance", "carisma"], 60);
+          if (c.ok) {
+            doll.classList.add("spin");
+            later(() => {
+              doll.classList.add("revealed");
+              Confetti.burst(1600);
+              Sound.powerup && Sound.powerup();
+            }, 600);
+            add(100);
+            say(`🎁 ¡REVEAL! El público se viene arriba<br><small>${c.txt}</small>`, "good");
+          } else {
+            flags.atascado = true;
+            doll.classList.add("stuck");
+            Sound.impact();
+            add(15);
+            say(`😱 ¡Traje atascado! El reveal no se abre...<br><small>${c.txt}</small>`, "bad");
+          }
+          later(step2, 2800);
+        } },
+      ]);
+    }
+    function step2() {
+      doll.className = "rw-doll pos2";
+      const key = CAT_TAG[cat] || lookTag;
+      const good = pick1(VOICEOVERS[key] || VOICEOVERS.Glamour);
+      const other = pick1(VOICEOVERS[pick1(TAGS.filter((t) => t !== key))]);
+      ask("🎙️ Tu voz en off...", shuffle([
+        { wide: true, t: good, go: () => { flags.voiceGood = true; add(96); caption(good, "El jurado asiente: esa frase lo resume todo", "good"); } },
+        { wide: true, t: other, go: () => { add(55); caption(other, "Bonita frase... para otra categoría", "meh"); } },
+        { wide: true, t: pick1(VOICE_OFF), go: () => { add(25); caption("…", "Silencio en la mesa del jurado", "bad"); } },
+      ]));
+    }
+    function caption(t, verdict, cls) {
+      say(`<span class="rw-quote">${t}</span><br><small>${verdict}</small>`, cls);
+      later(() => done(tot / Math.max(1, n), flags, spec), 2600);
+    }
+    function flash() {
+      const f = document.createElement("div");
+      f.className = "rw-flash";
+      el.querySelector(".rw").append(f);
+      later(() => f.remove(), 500);
+    }
+    later(step0, 700);
   }
 
   // ------------------------------ Lip sync (energía) ------------------------------
@@ -3571,6 +3768,7 @@ const Story = (() => {
     const song = songPick || null;
     let rival_ = clamp((ra.performance + ra.carisma) * 5 + (S.form[rival.id] || 0) * 2 + rnd(-10, 10), 30, 110) * 1.7;
     const PH = ["Inicio", "Puente", "Clímax"];
+    let cfgTop = null;
     const steps = [];
     PH.forEach((ph, pi) => {
       [0, 1].forEach((j) => steps.push((st) => {
@@ -3600,7 +3798,24 @@ const Story = (() => {
       }));
     });
     runSteps(el, {
-      title: `Lip sync: ${S.queen.name} vs ${rival.name}`, icon: "💋", meters: ["energy"], init: { mine: 0, songBonus: bonus },
+      title: `Lip sync: ${S.queen.name} vs ${rival.name}`, icon: "💋", meters: ["energy"], init: { mine: 0, songBonus: bonus, step: 0 },
+      top: (cfgTop = (st) => {
+        const mx = Math.max(rival_, st.mine, 120);
+        const rv = rival_ * (st.step / 6);
+        return `<div class="ls-stage">
+          <div class="ls-q me ${st.anim || ""}"><img src="${sprite(S.queen)}" alt=""><b>Tú</b></div>
+          <div class="ls-vs">VS</div>
+          <div class="ls-q rival ${st.ranim || ""}"><img src="${sprite(rival)}" alt=""><b>${esc(rival.name)}</b></div>
+        </div>
+        <div class="ls-crowd"><span>👏 Público</span><div class="ls-bar"><i class="me" style="width:${(st.mine / mx) * 100}%"></i></div><div class="ls-bar"><i class="rv" style="width:${(rv / mx) * 100}%"></i></div></div>`;
+      }),
+      onPick: (st, o) => {
+        st.step++;
+        st.anim = o.tag === "Emote" ? "emote" : o.tag === "Cara" ? "feel" : "move";
+        st.ranim = pick1(["emote", "feel", "move"]);
+        const t = $("#dc-top");
+        if (t) t.innerHTML = cfgTop(st);
+      },
       steps,
       finish: (st, base) => {
         st.mine += st.songBonus || 0;
@@ -3684,17 +3899,13 @@ const Story = (() => {
     const scores = [];
     const home = (k) => {
       el.innerHTML = "";
-      runSteps(el, {
-        title: `El Ball · Look ${k + 1}/3 (de casa) · «${cats[k]}»`, icon: "👑",
-        steps: [...prepHome(cats[k]), (st) => ({ q: "👗 Look listo", sub: closeHome(st), opts: [{ t: "Siguiente look", go: () => ({}) }] })],
-        finish: (st) => st.prep,
-      }, (sc) => { scores.push(sc); k === 0 ? home(1) : sewn(); });
+      dressingRoom(el, cats[k], (st) => { scores.push(st.prep); k === 0 ? home(1) : sewn(); }, `Ball ${k + 1}/3 · `);
     };
     const sewn = () => {
       el.innerHTML = "";
       prepSew(el, `El Ball · Look 3/3 (hecho en el taller) · «${cats[2]}»`, 0, (sc, info) => {
         el.innerHTML = "";
-        runSteps(el, { title: `El Ball · Desfile final · «${cats[2]}»`, icon: "👑", steps: walkSteps(cats[2], () => CAT_TAG[cats[2]] || "Glamour") }, (walk) => {
+        runwayWalk(el, cats[2], sewnSpec(cats[2], info.descosido ? { pat: "solid" } : { pat: "sequins" }), CAT_TAG[cats[2]] || "Glamour", (walk) => {
           S.lastLook = { cat: cats[2], best: "look hecho en el taller", worst: info.descosido ? "traje descosido" : "look hecho en el taller" };
           done(scores[0] * 0.25 + scores[1] * 0.25 + (sc * 0.6 + walk * 0.4) * 0.5);
         });
@@ -3721,12 +3932,12 @@ const Story = (() => {
           title: "Desfile del look imposible", icon: "🧰",
           steps: [
             ...(lot.aud && info.descosido ? [() => ({ q: "💥 ¡El vestido se rompe a mitad de pasarela!", sub: "El material era demasiado difícil y las costuras no aguantan.", opts: [{ t: "Seguir como si nada", go: () => ({ pts: 20, w: 2, msg: "Lo das todo... con medio vestido." }) }, { t: "Convertirlo en parte del show", d: "Carisma", go: () => ({ ...res(check(["carisma"], 60), 70, 15, "¡Parece que era a propósito!", "No cuela."), w: 2 }) }] })] : []),
-            ...walkSteps("Materiales imposibles", () => "Camp"),
           ],
-        }, (walk) => {
+          finish: (st2, base) => base,
+        }, (brk) => runwayWalk(el, "Materiales imposibles", sewnSpec("Camp absoluto", { color: pick1(["#ffb800", "#6ad06a", "#ff5fa2", "#6ee7ff"]), pat: lot.k === "abs" ? "flowers" : lot.k === "rig" ? "metal" : "sequins" }), "Camp", (walk0) => { const walk = info.descosido && lot.aud ? (walk0 + brk) / 2 : walk0;
           S.lastLook = { cat: "materiales imposibles", best: lot.t.slice(3).toLowerCase(), worst: info.descosido ? "traje descosido" : lot.t.slice(3).toLowerCase() };
           done(clamp(sc * 0.6 + walk * 0.4 + lot.aud * (info.descosido ? 0 : 1), 0, 100));
-        });
+        }));
       });
     });
   }
