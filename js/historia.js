@@ -636,9 +636,9 @@ const Story = (() => {
     const b = [judgeFirst ? "host" : "judge", pickFresh(JURADO.pasarela[lookN])];
     lines.push(a, b);
     if (Math.random() < 0.55) lines.push(...pickFresh(JAVIS.critica[nivel]));
-    if (score >= 90 && verdict === "win") lines.push(["judge", "Hoy has puesto el listón altísimo para las demás."]);
+    if (score >= 90 && (verdict === "win" || verdict === "none")) lines.push(["judge", "Hoy has puesto el listón altísimo para las demás."]);
     if (score < 30) lines.push(["host", "Tienes que despertar, {yo}. Esto se acaba."]);
-    lines.push(["host", pickFresh(JURADO.veredicto[verdict])]);
+    if (JURADO.veredicto[verdict]) lines.push(["host", pickFresh(JURADO.veredicto[verdict])]);
     return lines;
   }
 
@@ -1104,49 +1104,92 @@ const Story = (() => {
         if (tw === "allstars" && top2.includes(r)) lab = "TOP2";
         else if (r === winner) lab = "WIN";
         else if (bottomRows.includes(r)) lab = `BTM${nb}`;
-        else if (r.protected) lab = "LOW";
+        else if (r.protected) lab = `BTM${nb}`;
         else if (k <= 2 && k < n - nb - 1) lab = "HIGH";
         else if (k >= n - nb - 2) lab = "LOW";
         else lab = "SAFE";
         mark(r.q, lab);
       });
-      const badge = (r) =>
-        tw === "allstars" && top2.includes(r) ? `<b class="tag win">Top 2</b>` : r === winner ? `<b class="tag win">Ganadora del reto</b>` : bottomRows.includes(r) ? `<b class="tag btm">Bottom ${nb}</b>` : r.protected ? `<b class="tag safe">Salvada</b>` : `<b class="tag safe">A salvo</b>`;
+      const labOf = new Map(rows.map((r) => [r, (S.track[keyOf(r.q)] || {})[S.ep]]));
+      const nm = (r) => esc(r.me ? "Tú" : r.q.name);
+      const faces = (list, cls = "") => `<div class="call-faces ${cls}">${list.map((r, k) => `<span class="${r.me ? "me" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}</span>`).join("")}</div>`;
+      const safe = rows.filter((r) => labOf.get(r) === "SAFE");
+      const judged = rows.filter((r) => labOf.get(r) !== "SAFE");
+      const meRow = rows.find((r) => r.me);
+      const meSafe = labOf.get(meRow) === "SAFE";
+      const safeFirst = Math.random() < 0.5;
+      const safeTxt = `<p>${safe.length ? `${safe.map(nm).join(", ")}: <b>estáis salvadas</b>. Podéis volver al backstage.` : "Esta semana no se salva nadie de antemano."}</p>${safe.length ? faces(safe, "safe") : ""}`;
+      const judgedTxt = `<p>${safeFirst ? "El resto..." : `${judged.map(nm).join(", ")}...`} <b>sois las mejores y las peores del programa de hoy</b>.</p>${faces(judged)}`;
       header();
+      Music.play("tension");
       body().innerHTML = `
-        <div class="story-card">
-          <p class="eyebrow">${esc(titulo)} · resultados</p>
-          <h3>${tw === "allstars" && top2.some((r) => r.me) ? "¡Estás en el top 2! 💄" : won ? "¡Has ganado el reto! 👑" : bottom ? `Estás en el bottom ${nb}...` : "Estás a salvo"}</h3>
-          <p class="muted">Tu puntuación: <b>${myScore}</b>/100${S.lastParts ? ` · Reto ${S.lastParts.reto}${S.lastParts.pasarela !== null ? ` · Pasarela ${S.lastParts.pasarela}` : ""}` : ""}</p>
-          ${bonusLine}${teamLine}${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
-          <ol class="ranking">${rows
-            .map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${teamOf[r.q.id] ? ` <small class="team ${teamOf[r.q.id]}">${teamOf[r.q.id] === "rosa" ? "Rosa" : "Oro"}</small>` : ""}</span>${badge(r)}<em>${Math.round(r.s)}</em></li>`)
-            .join("")}</ol>
+        <div class="story-card call">
+          <p class="eyebrow">${esc(titulo)} · la pasarela ha terminado</p>
+          <h3>Supreme tiene algo que deciros...</h3>
+          ${teamLine}${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
+          ${safeFirst ? safeTxt + judgedTxt : judgedTxt + (safe.length ? `<p>Las demás, <b>estáis a salvo</b>.</p>${faces(safe, "safe")}` : "")}
+          <p class="call-me">${meSafe ? "✨ Estás a salvo esta semana." : "👀 Te toca escuchar al jurado."}</p>
           <button class="btn btn-primary" id="story-next">Continuar</button>
         </div>`;
-      $("#story-next").addEventListener("click", () => heartReveal(() => {
-        const bottom = bottomRows.some((r) => r.me);
-        const crit = buildCritique(myScore, won ? "win" : bottom ? "bottom" : "safe");
-        dialog(crit, { ...ctxWith(pick1(S.rivals)), tension: bottom }, () => confesionario(() =>
-          untucked({ winner, bottomRows }, () =>
-            luckMoment(() =>
-              (tw === "moneda" && bottomRows.length === 3 ? coinFlip : (x, cb) => cb(x.bottomRows))({ winner, bottomRows }, (pair) =>
-                elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2) }),
-              ),
-            ),
+      // Valoraciones solo a las mejores y peores
+      const RIVAL_TOP = ["{n}, hoy has estado a otro nivel.", "{n}, me ha encantado. Así, sí.", "{n}, eso es lo que quiero ver cada semana."];
+      const RIVAL_LOW = ["{n}, hoy no te he reconocido.", "{n}, te ha faltado de todo esta semana.", "{n}, esperaba muchísimo más de ti."];
+      const othersCrit = () => {
+        const others = shuffle(judged.filter((r) => !r.me)).slice(0, 3);
+        return others.map((r) => [pick1(["judge", "host", "ambrossi", "calvo"]), pick1(["WIN", "HIGH", "TOP2"].includes(labOf.get(r)) ? RIVAL_TOP : RIVAL_LOW).replace("{n}", r.q.name)]);
+      };
+      const critStep = (then) => {
+        const ctx = { ...ctxWith(pick1(S.rivals)), tension: !meSafe && bottomRows.some((r) => r.me) };
+        if (meSafe) return dialog([["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."], ...othersCrit()], ctx, then);
+        dialog([...buildCritique(myScore, "none"), ...othersCrit().slice(0, 2)], ctx, then);
+      };
+      // Resultados en orden: ganadora, altas, bajas y bottom
+      const verdict = (then) => {
+        const byLab = (f) => rows.filter((r) => f(labOf.get(r)));
+        const wins = byLab((l) => l === "WIN" || l === "TOP2");
+        const highs = byLab((l) => l === "HIGH");
+        const lows = byLab((l) => l === "LOW");
+        const btms = rows.filter((r) => bottomRows.includes(r) || /^BTM/.test(labOf.get(r) || ""));
+        const myLab = labOf.get(meRow);
+        header();
+        body().innerHTML = `
+          <div class="story-card call">
+            <p class="eyebrow">Las decisiones del jurado</p>
+            <h3>${myLab === "TOP2" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? "¡Has ganado el reto! 👑" : /^BTM/.test(myLab) ? "Vas al lip sync..." : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
+            <div class="verdict">
+              <div class="v-row win" style="--i:0"><b>${tw === "allstars" ? "💄 Top 2: os jugáis el poder" : "👑 Condragulations, ganadora del reto"}</b>${faces(wins)}</div>
+              ${highs.length ? `<div class="v-row high" style="--i:1"><b>✨ Buen trabajo, estáis a salvo</b>${faces(highs)}</div>` : ""}
+              ${lows.length ? `<div class="v-row low" style="--i:2"><b>😬 A salvo... por los pelos</b>${faces(lows)}</div>` : ""}
+              <div class="v-row btm" style="--i:3"><b>💔 Lo siento: sois el bottom ${btms.length}</b>${faces(btms)}</div>
+            </div>
+            <button class="btn btn-primary" id="story-next">Continuar</button>
+          </div>`;
+        $("#story-next").addEventListener("click", then);
+      };
+      const toLipSync = () =>
+        luckMoment(() =>
+          (tw === "moneda" && bottomRows.length === 3 ? coinFlip : (x, cb) => cb(x.bottomRows))({ winner, bottomRows }, (pair) =>
+            elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2) }),
           ),
-        ));
-      }));
+        );
+      const ut = (then, pre) => untucked({ winner, bottomRows, savedBy: S.savedBy, pre }, then);
+      // T5: veredicto → grabación del corazón → Untucked (para dar las gracias). Resto: Untucked → veredicto
+      $("#story-next").addEventListener("click", () =>
+        critStep(() => confesionario(() =>
+          tw === "corazon" ? verdict(() => heartReveal(() => ut(toLipSync))) : ut(() => verdict(toLipSync), true),
+        )),
+      );
     };
 
+    // Quién entraría en el bottom si se salva a alguien
+    const nextIn = () => rows.slice(0, n - 1).reverse().find((r) => !bottomRows.includes(r) && r !== winner && !r.protected) || null;
     // Salvar a una del bottom después del reparto: entra la siguiente peor
     const rescue = (row) => {
       const prev = bottomRows.slice();
       if (!saveRow(row, "")) return null;
       const next = bottomRows.find((r) => !prev.includes(r));
-      mark(row.q, "LOW");
+      // La salvada mantiene su resultado (BTM): solo se libra del lip sync
       mark(next.q, `BTM${nb}`);
-      S.record[keyOf(row.q)] = (S.record[keyOf(row.q)] || 0) + 1;
       header();
       return next;
     };
@@ -1166,9 +1209,12 @@ const Story = (() => {
     // T5: tras el reparto, la grabación de la eliminada destapa a quién dejó su medio corazón.
     // Si con eso completa un corazón entero, puede usarlo ahora. Si no lo usa, se pierde.
     function heartReveal(then) {
+      S.savedBy = null;
       if (tw !== "corazon" || !(S.pendingHearts || []).length) return then();
       const list = S.pendingHearts.slice();
       S.pendingHearts = [];
+      const btmNames = bottomRows.map((r) => (r.me ? "{yo}" : r.q.name)).join(" y ");
+      let first = true;
       const step = () => {
         const p = list.shift();
         if (!p) return then();
@@ -1178,7 +1224,9 @@ const Story = (() => {
         const k = keyOf(to);
         const fav = to === S.queen ? relOf(from) >= 1 : Math.random() < 0.5;
         const ctx = { ...ctxWith(from), q: { r1: from }, r1: from.name, dest: to === S.queen ? S.queen.name : to.name, tension: true };
-        dialog([...pickFresh(CORAZON_VIDEO.intro), ...pickFresh(CORAZON_VIDEO[fav ? "cariño" : "estrategia"])], ctx, () => {
+        const pre = first ? [["host", `Las valoraciones están hechas. ${btmNames}: vais al lip sync.`], ["host", "Pero antes... esta es la temporada del corazón."]] : [];
+        first = false;
+        dialog([...pre, ...pickFresh(CORAZON_VIDEO.intro), ...pickFresh(CORAZON_VIDEO[fav ? "cariño" : "estrategia"])], ctx, () => {
           S.hearts[k] = (S.hearts[k] || 0) + 1;
           header();
           const full = S.hearts[k] >= 2;
@@ -1196,6 +1244,7 @@ const Story = (() => {
           <p class="eyebrow">❤️ ¡Tienes un corazón entero!</p>
           <h3>¿Lo usas ahora?</h3>
           <p>Solo puedes usarlo en este momento: si no lo usas, <b>se pierde</b>. En el bottom están: ${bottomRows.map((r) => `<b>${esc(r.me ? "tú" : r.q.name)}</b>`).join(" y ")}.</p>
+          ${nextIn() ? `<p class="twist-note">⚠️ Si salvas a alguien, entra en el bottom <b>${esc(nextIn().me ? "tú" : nextIn().q.name)}</b> (la siguiente peor nota: ${Math.round(nextIn().s)}).</p>` : ""}
           <div class="choice-col">${bottomRows.map((r, i) => `<button class="btn btn-ghost" data-o="${i}">${esc(r.me ? "❤️ Usarlo para salvarme" : `❤️ Dárselo a ${r.q.name} para salvarla`)}</button>`).join("")}
             <button class="btn btn-primary" id="keep">No usarlo (se pierde)</button></div>
           ${trackBtn()}
@@ -1230,7 +1279,7 @@ const Story = (() => {
       if (!row) return dialog([["r1", pick1(["No estoy en el bottom... así que me quedo sin usarlo. Qué rabia.", "Pues nada, un corazón entero y no me hace falta. Se pierde."])], ["host", "Ese corazón se pierde. Así son las reglas."]], ctx, next);
       const nx = rescue(row);
       if (!nx) return next();
-      if (row.me) { changeRel(q, 2); Toast.show(`❤️ ${q.name} te ha salvado`, "Te ha dado su corazón"); }
+      if (row.me) { changeRel(q, 2); S.savedBy = q; Toast.show(`❤️ ${q.name} te ha salvado`, "Te ha dado su corazón"); }
       if (nx.me) changeRel(q, -1);
       dialog([["r1", row.q === q ? "¡Tengo un corazón entero y lo uso para salvarme!" : `Tengo un corazón entero... y se lo doy a ${row.me ? "{yo}" : row.q.name}.`]], ctx, () =>
         rescueCard("❤️ El corazón", row.q === q ? `¡${esc(q.name)} se salva con su corazón!` : `¡${esc(q.name)} regala su corazón!`, "❤️", row, nx, next));
@@ -1243,9 +1292,8 @@ const Story = (() => {
         const prev = bottomRows.slice();
         if (!saveRow(row, "🍀")) return null;
         const next = bottomRows.find((r) => !prev.includes(r));
-        mark(row.q, "LOW");
+        // La salvada mantiene su resultado (BTM): solo se libra del lip sync
         mark(next.q, `BTM${nb}`);
-        S.record[keyOf(row.q)] = (S.record[keyOf(row.q)] || 0) + 1;
         S.luck = null;
         header();
         return next;
@@ -1475,8 +1523,9 @@ const Story = (() => {
     if (S.rivals.length < 2) return then();
     const opts = [];
     const add = (q, kind, label) => q && q !== S.queen && S.rivals.includes(q) && !opts.some((o) => o.q === q) && opts.push({ q, kind, label });
-    if (!res.winner.me) add(res.winner.q, "ganadora", "👑 Felicitar a la ganadora");
-    res.bottomRows.filter((r) => !r.me).forEach((r) => add(r.q, "bottom", "🫂 Animar a una del bottom"));
+    if (res.savedBy) add(res.savedBy, "gracias", "🙏 Darle las gracias por salvarte");
+    if (!res.winner.me) add(res.winner.q, "ganadora", res.pre ? "✨ Hablar con una de las favoritas" : "👑 Felicitar a la ganadora");
+    res.bottomRows.filter((r) => !r.me).forEach((r) => add(r.q, "bottom", res.pre ? "🫂 Animar a una que lo ha pasado mal" : "🫂 Animar a una del bottom"));
     const ally = allies()[0];
     if (ally) add(ally, "aliada", "💞 Hablar con tu aliada");
     const enemy = enemies()[0];
@@ -1494,6 +1543,12 @@ const Story = (() => {
       b.addEventListener("click", () => {
         const o = opts[+b.dataset.i];
         const ctx = ctxWith(o.q);
+        if (o.kind === "gracias") {
+          return dialog(pickFresh(GRACIAS_CORAZON), { ...ctx, q: { r1: o.q }, r1: o.q.name }, then, [
+            { txt: "Te debo una muy grande. Cuenta conmigo para lo que sea.", rel: { r1: 1 }, reply: ["r1", "Pues lo apunto, eh. Que tengo buena memoria."] },
+            { txt: "¿Por qué yo? No lo entiendo...", reply: ["r1", "Porque creo en ti. Y porque quería ver tu cara. Ha merecido la pena."] },
+          ]);
+        }
         const rr = roleOf(o.q);
         if (rr && Math.random() < 0.5) {
           reveal(o.q);

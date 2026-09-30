@@ -1071,3 +1071,10 @@ const JAVIS = {
 };
 // Los Javis también pasan por el taller algunas semanas
 HISTORIA.tallerHost.push(...JAVIS.taller);
+
+// Untucked: das las gracias a quien te salvó con su corazón
+const GRACIAS_CORAZON = [
+  [["me", "{r1}... no sé ni qué decirte. Me has salvado."], ["r1", "No digas nada. Tú habrías hecho lo mismo. ¿Verdad? ¿VERDAD?"]],
+  [["me", "Ven aquí, que te tengo que dar un abrazo."], ["r1", "Cuidado con la peluca, que es prestada."], ["me", "Gracias de verdad, {r1}."]],
+  [["r1", "Bueno, bueno... ¿no tienes nada que decirme?"], ["me", "¡Gracias! Me has salvado la vida. Literalmente."], ["r1", "Eso quería oír."]],
+];

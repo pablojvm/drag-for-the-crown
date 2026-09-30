@@ -1565,3 +1565,17 @@ td.hearts { font-weight: 800; color: #d6204f; white-space: nowrap; }
 .franchise-card .progress { height: 10px !important; margin: 0 !important; border-radius: 999px !important; background: rgba(59, 13, 79, 0.12) !important; box-shadow: inset 0 1px 2px rgba(59, 13, 79, 0.15); }
 .franchise-card .progress span { border-radius: 999px; background: linear-gradient(90deg, var(--pink), var(--gold)) !important; transition: width .6s ease; }
 .franchise-card .f-progress small { font-weight: 600; }
+.call-faces { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 10px 0 18px; }
+.call-faces span { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 92px; font-size: 13px; font-weight: 700; text-align: center; animation: card-in .45s ease both; animation-delay: calc(var(--i) * .08s); }
+.call-faces span i { width: 68px; height: 68px; border-radius: 50%; background: center 20% / cover; border: 3px solid #fff; box-shadow: 0 6px 16px -6px rgba(59, 13, 79, .5); }
+.call-faces span.me i { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255, 184, 0, .45); }
+.call-faces.safe span i { filter: saturate(.6); opacity: .85; }
+.call-me { font-weight: 800; color: var(--pink); }
+.verdict { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 16px; }
+.v-row { padding: 10px 14px 2px; border-radius: 18px; background: rgba(255, 255, 255, .8); animation: card-in .55s ease both; animation-delay: calc(var(--i) * .6s + .2s); }
+.v-row > b { display: block; font-size: 15px; }
+.v-row.win { background: linear-gradient(135deg, #e3ecff, #fff3d1); }
+.v-row.high { background: #e4f6ff; }
+.v-row.low { background: #ffe8f0; }
+.v-row.btm { background: linear-gradient(135deg, #ffd9cc, #ffc7d3); }
+.v-row .call-faces { margin: 8px 0 10px; }
