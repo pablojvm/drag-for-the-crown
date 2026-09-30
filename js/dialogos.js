@@ -7,6 +7,8 @@
 const PRESENTADORAS = {
   host: { name: "Supreme Deluxe", role: "Presentadora", img: "./images/hosts/supreme.png" },
   judge: { name: "Ana Locking", role: "Jueza", img: "./images/hosts/ana-locking.png" },
+  ambrossi: { name: "Javier Ambrossi", role: "Jurado · Los Javis", img: "./images/hosts/javier-ambrossi.png" },
+  calvo: { name: "Javier Calvo", role: "Jurado · Los Javis", img: "./images/hosts/javier-calvo.png", side: "right" },
 };
 
 const DIALOGOS = {
@@ -990,3 +992,82 @@ const CORAZON_VIDEO = {
     [["r1", "📼 Sé que esto va a levantar ampollas..."], ["r1", "📼 Mi medio corazón es para {dest}. Sorpresa."]],
   ],
 };
+
+// Improvisación: presentar un programa en directo sin cortar el ritmo
+const IMPRO = [
+  ["Tu compañera se queda en blanco en directo", ["¡Y aquí vemos a mi compañera haciendo un minuto de silencio por su guion!", "Eh... ¿seguimos?", "(Quedarte callada tú también)"]],
+  ["Se cae un foco en mitad del plató", ["¡Señoras y señores, eso es lo que llamamos un momento estelar!", "Uy, qué susto", "¿Paramos la grabación?"]],
+  ["Entra una llamada de una espectadora enfadada", ["Cariño, si llamas para quejarte de mi peluca, ponte a la cola", "Hola, ¿qué tal?", "No sé qué decirle, señora"]],
+  ["Toca la sección de cocina y no hay ingredientes", ["Hoy cocinamos aire con sal. Plato de temporada", "Pues no hay nada", "Nos saltamos la sección"]],
+  ["La invitada no habla español", ["Traduzco yo: dice que soy la más guapa del plató", "¿Alguien traduce?", "Sorry, no English"]],
+  ["Hay que dar paso a publicidad sin avisar", ["Y ahora, publicidad... que las pelucas no se pagan solas", "Vamos a publicidad", "¿Ya?"]],
+  ["El horóscopo en directo", ["Aries: hoy el universo te dice que te compres unos tacones. Todos los signos, en realidad", "Aries tendrá un buen día", "No creo en el horóscopo"]],
+  ["Tu compañera te pisa una frase", ["Qué bien, un dúo. Cantadlo conmigo en casa", "Perdona, hablaba yo", "(Mirarla mal)"]],
+];
+if (typeof JURADO !== "undefined") {
+  JURADO.reto.impro = {
+    top: ["Qué cintura en directo. Pasara lo que pasara, tú seguías.", "Eres una presentadora nata. Contrátenla ya.", "Has salvado cada silencio con una salida brillante."],
+    mid: ["Algunos momentos muy buenos, otros te quedaste en blanco.", "Buen ritmo al principio, luego se te fue el programa.", "Correcta, pero muy de guion."],
+    low: ["El directo te ha comido viva.", "Cada imprevisto era un silencio. Y el silencio en la tele es muerte.", "Parecías una espectadora de tu propio programa."],
+  };
+}
+
+// ===========================================================================
+// LOS JAVIS: visitan el taller, anuncian miniretos y opinan en el jurado.
+// Hablan como jurado del juego (frases inventadas, no citas reales).
+// ===========================================================================
+const JAVIS = {
+  taller: [
+    [["host", "Reinas, hoy tenemos visita en el taller..."], ["ambrossi", "¡Hola, hola! ¿Se puede? Venimos a cotillear."], ["calvo", "A cotillear y a ayudar. Sobre todo a cotillear."]],
+    [["calvo", "¡Pero qué taller más bonito! Esto huele a laca y a nervios."], ["ambrossi", "Y a pegamento de pestañas. Mucho pegamento."], ["r1", "¡Los Javis! Me tiemblan las piernas."]],
+    [["ambrossi", "Venimos a ver cómo lo lleváis. {yo}, cuéntame qué estás preparando."], ["me", "Algo que os va a encantar... espero."], ["calvo", "Con ese 'espero' ya me has conquistado."]],
+    [["calvo", "¿Sabéis qué nos gusta más de esta temporada? Que no os parecéis a nadie."], ["ambrossi", "Así que no empecéis a copiaros ahora, ¿eh?"]],
+    [["ambrossi", "{r1}, ¿eso es lo que vas a llevar?"], ["r1", "Eh... ¿sí?"], ["calvo", "No es una crítica, es curiosidad. Mucha curiosidad."], ["r2", "(Eso era una crítica)"]],
+    [["calvo", "Hoy no venimos como jurado, venimos como fans."], ["ambrossi", "Bueno, un poco como jurado también. Vamos tomando nota."], ["host", "Ya lo habéis oído, reinas. Cuidadito."]],
+  ],
+  consejo: [
+    { lines: [["ambrossi", "{yo}, te voy a dar un consejo que nadie te ha pedido."], ["calvo", "Él es así, lo hace con todas."], ["ambrossi", "No escondas lo que te hace diferente. Justo eso es lo que queremos ver."]],
+      choices: [
+        { txt: "Gracias, Javi. Voy a arriesgar.", adv: 4, reply: ["calvo", "¡Eso! Arriesga, que para ir a lo seguro ya hay otros programas."] },
+        { txt: "Me da miedo que no se entienda.", adv: 1, reply: ["ambrossi", "Si lo haces con verdad, se entiende. Siempre."] },
+      ] },
+    { lines: [["calvo", "{yo}, una pregunta: ¿qué quieres que piense la gente cuando te vea salir?"], ["me", "Pues... que soy una estrella."], ["calvo", "Vale. Pues ahora hazlo, no lo digas."]],
+      choices: [
+        { txt: "Anotado. Menos hablar, más brillar.", adv: 3, reply: ["ambrossi", "Nos vamos a acordar de esta frase."] },
+        { txt: "¿Y si no me sale?", reply: ["calvo", "Pues que te salga otra cosa, pero que sea tuya."] },
+      ] },
+  ],
+  mini: [
+    [["calvo", "Hoy el minireto lo presentamos nosotros. ¡Qué ilusión!"], ["ambrossi", "Y el premio también lo damos nosotros, así que portaos bien."]],
+    [["ambrossi", "¿Preparadas para el minireto? Nosotros no, pero vosotras sí."]],
+  ],
+  critica: {
+    top: [
+      [["calvo", "Yo me he emocionado. Y no me emociono con cualquier cosa."], ["ambrossi", "Yo sí, pero hoy con razón."]],
+      [["ambrossi", "Esto es lo que venimos a ver a este programa. Gracias, {yo}."]],
+      [["calvo", "Tienes una verdad que traspasa la pantalla, {yo}."]],
+    ],
+    mid: [
+      [["ambrossi", "Hay algo muy bonito ahí, pero todavía no lo has sacado del todo."], ["calvo", "Estás a un paso. Y ese paso es el que da miedo."]],
+      [["calvo", "A mí me ha gustado, pero me he quedado con ganas de más."]],
+      [["ambrossi", "Te hemos visto dudar. Y cuando dudas, se nota desde aquí."]],
+    ],
+    low: [
+      [["ambrossi", "{yo}, te queremos mucho, pero hoy no te hemos reconocido."], ["calvo", "Y eso es lo que más nos duele."]],
+      [["calvo", "No sé qué ha pasado esta semana, pero no eras tú."]],
+      [["ambrossi", "Creo que te has puesto un techo tú sola. Rómpelo."]],
+    ],
+  },
+  final: [
+    [["ambrossi", "Pase lo que pase hoy, ya sois parte de la historia de este programa."], ["calvo", "Y nosotros somos muy fans. Que lo sepáis."]],
+    [["calvo", "Estoy nerviosísimo. Más que vosotras, creo."], ["ambrossi", "Eso es imposible, mírales las piernas."]],
+  ],
+  reencuentro: [
+    [["ambrossi", "¡Qué ganas teníamos de veros a todas juntas otra vez!"], ["calvo", "Y de ver los reencuentros incómodos. Esos también."]],
+  ],
+  untucked: [
+    [["calvo", "(Entrando en el Untucked) Solo venimos a por hielo, seguid a lo vuestro."], ["ambrossi", "Pero hablad alto, que no oímos bien."]],
+  ],
+};
+// Los Javis también pasan por el taller algunas semanas
+HISTORIA.tallerHost.push(...JAVIS.taller);

@@ -119,7 +119,79 @@ const Story = (() => {
     run: (el, done) => runFotos(el, done),
   };
   RETOS.equipos.team = true;
-  const ORDEN_RETOS = ["pasarela", "snatch", "equipos", "diseno", "lectura", "rusical", "baile", "maquillaje", "comedia", "ball", "actuacion", "fotos", "roast", "makeover"];
+  const MATERIALES_RAROS = {
+    good: [["🥔", 12], ["🧸", 10], ["🪴", 10], ["🔩", 14], ["🎈", 10], ["📰", 8], ["🧽", 10]],
+    bad: [["✂️", -15], ["🩹", -10], ["💧", -8]],
+  };
+  // Catálogo del reto semanal (como en el programa)
+  RETOS.snatch.titulo = () => "Snatch Game";
+  RETOS.snatch.desc = "La prueba reina de la temporada. Imita a un personaje de la cultura popular y responde con humor e improvisación a las preguntas de Supreme. Cada respuesta tiene que sonar a TU personaje.";
+  RETOS.roast = {
+    titulo: () => pick1(["El Roast: el rapapolvos a Supreme", "El Roast: rapapolvos al jurado", "El Roast: homenaje con cuchillo"]),
+    desc: "Monólogo de comedia afilado. Elige el remate más punzante (sin pasarte de la raya) para Supreme, el jurado y tus compañeras.",
+    ctrl: "Clic o teclas 1, 2 y 3",
+    run: (el, done) => runSnatch(el, done, [...ROAST, ...COMEDIA], "🔥 El rapapolvos", "Remate", 6),
+  };
+  RETOS.ball = {
+    titulo: () => "El Ball: el baile de trajes",
+    desc: "Tres conceptos, tres looks. Dos los traes de casa y los desfilas; el tercero lo coses desde cero en el taller con materiales imposibles. Esta semana el Ball ES la pasarela.",
+    ctrl: "Pasarela: Espacio o ¡POSE! · Taller: flechas o arrastra",
+    noRunway: true,
+    run: (el, done) => runBall(el, done),
+  };
+  RETOS.diseno = {
+    titulo: () => pick1(["Reto de materiales poco convencionales", "Reto de reciclaje: alta costura con lo que hay", "Reto de diseño: la caja sorpresa"]),
+    desc: "Nada de tela: bolsas de patatas, juguetes, macetas, tornillos... Recoge lo que te sirva para un look de alta costura y esquiva las tijeras rotas y las goteras.",
+    ctrl: "Flechas ← → o A/D, arrastra el ratón o toca los lados",
+    run: (el, done) => runDiseno(el, done, MATERIALES_RAROS, 25),
+  };
+  RETOS.rusical.titulo = () => pick1(["El Rusical: homenaje a la revista", "El Rusical: la movida", "El Rusical: una diva de la copla"]);
+  RETOS.rusical.desc = "Un musical paródico completo. Canta (o haz playback) y baila a ritmo: pulsa cada nota justo cuando llegue a la línea.";
+  RETOS.actuacion = {
+    titulo: () => pick1(["Reto de interpretación: la telenovela", "Reto de interpretación: teletienda", "Reto de interpretación: parodia de serie"]),
+    desc: "Grabáis una parodia por equipos. Memoriza el guion, clava tu frase en cada toma y exagera: aquí se premia lo camp.",
+    ctrl: "Clic o teclas 1, 2 y 3",
+    team: true,
+    run: (el, done) => runGuion(el, done),
+  };
+  RETOS.equipos.titulo = () => "Girl Groups: el himno de la temporada";
+  RETOS.equipos.desc = "Por bandas: escribís vuestra estrofa, grabáis en el estudio, aprendéis la coreografía y lo presentáis en directo. Elige tu papel y dalo todo.";
+  RETOS.makeover = {
+    titulo: () => pick1(["Makeover: tu madre drag", "Makeover: el equipo técnico", "Makeover: tu hermana drag"]),
+    desc: "Transforma a alguien que nunca ha hecho drag en tu hermana drag. Copia tu propia carta de maquillaje en su cara: el jurado busca el parecido de familia.",
+    ctrl: "Clic o toca los colores",
+    run: (el, done) => runMaquillaje(el, done),
+  };
+  RETOS.impro = {
+    titulo: () => pick1(["Improvisación: el magazine matinal", "Improvisación: el pódcast en directo", "Improvisación: el programa del corazón"]),
+    desc: "Presentas un programa en directo con tus compañeras. Pasa de todo: mantén el ritmo y elige la salida más graciosa sin cortar el directo.",
+    ctrl: "Clic o teclas 1, 2 y 3",
+    run: (el, done) => runSnatch(el, done, IMPRO, "📺 En directo", "Momento", 6),
+  };
+  const ORDEN_RETOS = ["snatch", "roast", "ball", "diseno", "rusical", "actuacion", "equipos", "makeover", "impro"];
+
+  // Miniretos: dan ventaja para el reto de la semana
+  const MINIRETOS = {
+    lectura: {
+      titulo: () => "Minireto: Reading is Fundamental",
+      desc: "Gafas de lectura puestas. La biblioteca está abierta: suelta el chascarrillo más afilado (y con cariño) a cada compañera.",
+      ctrl: "Clic o teclas 1, 2 y 3",
+      run: (el, done) => runSnatch(el, done, LECTURAS, "📚 La biblioteca", "Lectura", 4),
+    },
+    fotocall: {
+      titulo: () => pick1(["Minireto: fotocall extremo (con viento)", "Minireto: fotocall extremo (bajo el agua)", "Minireto: fotocall extremo (en el barro)"]),
+      desc: "Ventiladores, cubos de agua y barro. Toca tu foto cuando dispare el fotógrafo... y esquiva los chorros sin perder el tipo.",
+      ctrl: "Clic o toca las casillas",
+      run: (el, done) => runFotos(el, done, pick1(["💦", "🌪️", "🟤"]), 16, "¡Chorro en toda la cara! 💦"),
+    },
+    pitcrew: {
+      titulo: () => "Minireto: el Pit Crew",
+      desc: "Los chicos del Pit Crew esconden los accesorios. Encuentra las parejas antes de que acabe el tiempo (y sin distraerte).",
+      ctrl: "Clic o toca las cartas",
+      run: (el, done) => runMemoria(el, done, ["💪", "🕶️", "🧢", "🩳", "🏋️", "🥤"], 35, "Encuentra las parejas del Pit Crew"),
+    },
+  };
+  const ORDEN_MINI = ["fotocall", "lectura", "pitcrew"];
 
   // --------------------------- Flujo principal -----------------------------
   // La historia NO sigue el orden real de expulsión: cada partida se decide
@@ -148,7 +220,7 @@ const Story = (() => {
     // Orden de retos de esta temporada: empieza en pasarela y el Snatch Game llega pronto
     const rest = shuffle(ORDEN_RETOS.filter((t) => t !== "pasarela" && t !== "snatch"));
     rest.splice(1 + Math.floor(Math.random() * 3), 0, "snatch");
-    S.order = ["pasarela", ...rest];
+    S.order = rest;
     Achievements.unlock("debut");
     UI.show("story");
     Sound.stopAll();
@@ -156,7 +228,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -223,7 +295,7 @@ const Story = (() => {
     return txt.replace(/\{(\w+)\}/g, (m, k) => (ctx[k] !== undefined ? ctx[k] : m));
   }
   function who(key, ctx) {
-    if (PRESENTADORAS[key]) return { ...PRESENTADORAS[key], side: "left" };
+    if (PRESENTADORAS[key]) return { ...PRESENTADORAS[key], side: PRESENTADORAS[key].side || "left" };
     if (key === "me") return { name: S.queen.name, role: "Tú", img: sprite(S.queen), side: "right" };
     const q = ctx.q[key] || S.rivals[0];
     return { name: q.name, role: (roleKnown(q) ? `${roleOf(q).icon} ${roleOf(q).name} · ` : "") + relLabel(q), img: sprite(q), side: key === "r2" || key === "r3" ? "left" : "right" };
@@ -551,16 +623,19 @@ const Story = (() => {
 
   // --------------------------- Críticas del jurado --------------------------
   function buildCritique(score, verdict) {
-    const nivel = score >= 75 ? "top" : score >= 50 ? "mid" : "low";
+    const rs = S.lastParts ? S.lastParts.reto : score;
+    const nivel = rs >= 75 ? "top" : rs >= 50 ? "mid" : "low";
     const bank = (JURADO.reto[S.curTipo] || JURADO.reto.pasarela)[nivel];
     // El look de pasarela no siempre va a la par que el reto
-    const lookN = Math.random() < 0.65 ? nivel : pick1(["top", "mid", "low"]);
+    const w = S.lastParts && S.lastParts.pasarela;
+    const lookN = typeof w === "number" ? (w >= 75 ? "top" : w >= 50 ? "mid" : "low") : Math.random() < 0.65 ? nivel : pick1(["top", "mid", "low"]);
     const judgeFirst = Math.random() < 0.5;
     const lines = [];
     lines.push(["host", pickFresh(JURADO.aperturaSupreme)]);
     const a = ["judge", `${pickFresh(JURADO.aperturaAna)} ${pickFresh(bank)}`];
     const b = [judgeFirst ? "host" : "judge", pickFresh(JURADO.pasarela[lookN])];
     lines.push(a, b);
+    if (Math.random() < 0.55) lines.push(...pickFresh(JAVIS.critica[nivel]));
     if (score >= 90 && verdict === "win") lines.push(["judge", "Hoy has puesto el listón altísimo para las demás."]);
     if (score < 30) lines.push(["host", "Tienes que despertar, {yo}. Esto se acaba."]);
     lines.push(["host", pickFresh(JURADO.veredicto[verdict])]);
@@ -588,7 +663,9 @@ const Story = (() => {
   }
 
   // ----------------------------- Track record -----------------------------
-  const EP_SHORT = { pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups", comedia: "Stand-up", roast: "Roast", actuacion: "Película", ball: "Ball", makeover: "Makeover", fotos: "Fotos" };
+  const EP_SHORT = { pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups", comedia: "Stand-up", roast: "Roast", actuacion: "Interpretación", ball: "Ball", makeover: "Makeover", fotos: "Fotos", impro: "Improvisación" };
+  EP_SHORT.diseno = "Materiales";
+  EP_SHORT.equipos = "Girl Groups";
   function mark(q, lab) {
     const k = keyOf(q);
     (S.track[k] = S.track[k] || {})[S.ep] = lab;
@@ -685,10 +762,11 @@ const Story = (() => {
     let lines;
     const scene = (then) => {
       const r = Math.random();
+      if (r < 0.12) { const c = pickFresh(JAVIS.consejo); return dialog(c.lines, ctxWith(pick1(S.rivals)), then, c.choices); }
       if (S.groups && r < 0.4) return groupEvent(then);
       return (r < 0.72 ? roleScene : maybeEvent)(then);
     };
-    const go = () => memoryTalk(() => rolePassives(() => (S.ep >= 2 && !S.flags.groups && S.rivals.length >= 5 ? formGroups : scene)(() => hub(() => announce()))));
+    const go = () => memoryTalk(() => rolePassives(() => (S.ep >= 2 && !S.flags.groups && S.rivals.length >= 5 ? formGroups : scene)(() => miniChallenge(() => hub(() => announce())))));
     if (S.ep === 1 && twistOf() === "suerte" && S.luck === undefined) {
       return dialog(seasonInfo().intro, ctx, () => pickLuckBox(() => dialog(pickFresh(HISTORIA.tallerPrimerDia), ctxWith(pick1(S.rivals)), go)));
     }
@@ -828,8 +906,71 @@ const Story = (() => {
 
   // ------------------------------- Reto ------------------------------------
   function pickReto() {
-    const ord = S.order && S.order.length ? S.order : ORDEN_RETOS;
-    return ord[(S.ep - 1 + (S.order ? 0 : S.season.id.charCodeAt(2) || 0)) % ord.length];
+    let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
+    if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS; // partidas guardadas con el formato antiguo
+    return ord[(S.ep - 1) % ord.length];
+  }
+
+  // ------------------------------ Minireto ----------------------------------
+  // Cada episodio empieza con un minireto que da ventaja para el reto de la semana
+  const VENTAJAS = [
+    { id: "ventaja", txt: "+6 en el reto de la semana", apply: () => (S.advice += 6) },
+    { id: "puntos", txt: "+600 puntos", apply: () => (S.points += 600) },
+    { id: "pasarela", txt: "+8 en la pasarela (te quedas con el mejor burro de ropa)", apply: () => (S.runwayBonus = 8) },
+    { id: "eleccion", txt: "eliges primero en el reto: +4 y los mejores materiales", apply: () => (S.advice += 4) },
+  ];
+  function miniChallenge(then) {
+    S.runwayBonus = 0;
+    S.captains = null;
+    const maxi = pickReto();
+    const team = RETOS[maxi].team && S.rivals.length >= 3;
+    const tipo = ORDEN_MINI[(S.ep - 1) % ORDEN_MINI.length];
+    const mini = MINIRETOS[tipo];
+    const titulo = mini.titulo();
+    const premio = team ? { id: "capitana", txt: "ser capitana y elegir equipo para el reto de esta semana" } : VENTAJAS[(S.ep + S.season.cast.length) % VENTAJAS.length];
+    const javis = Math.random() < 0.35;
+    const intro = javis ? [...pickFresh(JAVIS.mini), ["calvo", `Hoy: ${titulo.replace("Minireto: ", "")}. La ganadora se lleva ${premio.txt}.`]] : [["host", pick1(["¡Reinas, empezamos con un minireto!", "Antes del gran reto... ¡minireto!", "Quitaos las batas, que hay minireto."])], ["host", `Hoy: ${titulo.replace("Minireto: ", "")}. La ganadora se lleva ${premio.txt}.`]];
+    dialog(intro, ctxWith(pick1(S.rivals)), () => {
+      body().innerHTML = `
+        <div class="story-card intro">
+          <img class="story-queen" src="${sprite(S.queen)}" alt="">
+          <div>
+            <p class="eyebrow">⚡ Minireto · premio: ${esc(premio.txt)}</p>
+            <h3>${esc(titulo)}</h3>
+            <p>${mini.desc}</p>
+            <p class="muted">🎮 ${mini.ctrl}</p>
+            <button class="btn btn-primary" id="story-go">¡Empezar!</button>
+          </div>
+        </div>`;
+      $("#story-go").addEventListener("click", () => {
+        body().innerHTML = `<div id="story-play"></div>`;
+        Music.play("reto");
+        mini.run($("#story-play"), (raw) => {
+          cleanup = null;
+          if (typeof window.__forceScore === "number") raw = window.__forceScore;
+          Music.stop();
+          const sc = [{ q: S.queen, s: Math.round(clamp(raw, 0, 100)), me: true }, ...S.rivals.map((q) => ({ q, s: Math.round(clamp(rivalScore(q) + rnd(-12, 8), 0, 99)) }))].sort((a, b) => b.s - a.s);
+          const win = sc[0];
+          if (team) S.captains = [sc[0].q, sc[1].q];
+          else if (win.me) premio.apply();
+          else S.form[win.q.id] = clamp((S.form[win.q.id] || 0) + 3, -10, 10);
+          if (win.me) Confetti.burst(1500);
+          header();
+          body().innerHTML = `
+            <div class="story-card">
+              <p class="eyebrow">⚡ ${esc(titulo)} · resultados</p>
+              <h3>${win.me ? "¡Ganas el minireto! ⚡" : `${esc(win.q.name)} gana el minireto`}</h3>
+              <p class="${win.me ? "gold" : "muted"}">${team ? `Capitanas: <b>${esc(sc[0].me ? "tú" : sc[0].q.name)}</b> y <b>${esc(sc[1].me ? "tú" : sc[1].q.name)}</b>.` : win.me ? `Premio: ${esc(premio.txt)}.` : `Se lleva ${esc(premio.txt)}.`}</p>
+              <ol class="ranking">${sc.slice(0, 5)
+                .map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}</span>${k === 0 ? `<b class="tag win">Ganadora</b>` : team && k === 1 ? `<b class="tag win">Capitana</b>` : ""}<em>${r.s}</em></li>`)
+                .join("")}</ol>
+              ${sc.slice(0, 5).some((r) => r.me) ? "" : `<p class="muted">Tú: ${sc.find((r) => r.me).s} puntos · puesto ${sc.findIndex((r) => r.me) + 1}º</p>`}
+              <button class="btn btn-primary" id="story-next">Continuar</button>
+            </div>`;
+          $("#story-next").addEventListener("click", then);
+        });
+      });
+    });
   }
   function announce() {
     const tipo = pickReto();
@@ -839,7 +980,11 @@ const Story = (() => {
     S.curTipo = tipo;
     S.team = null;
     const go = () => challengeIntro(reto, titulo, tipo);
-    dialog(pickFresh(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => (reto.team && S.rivals.length >= 3 ? captains(go) : go()));
+    const caps = () => {
+      const c = S.captains || [S.queen, ...S.rivals].sort((a, b) => (b === S.queen ? 70 : skillOf(b)) - (a === S.queen ? 70 : skillOf(a))).slice(0, 2);
+      draft(c[0], c[1], go);
+    };
+    dialog(pickFresh(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => (reto.team && S.rivals.length >= 3 ? caps() : go()));
   }
 
   function challengeIntro(reto, titulo, tipo, onScore) {
@@ -863,10 +1008,41 @@ const Story = (() => {
         Music.stop();
         if (raw >= 95) Achievements.unlock("perfecta");
         const bonus = relBonus() + S.advice - (S.helped ? 4 : 0);
-        const score = Math.round(clamp(raw + bonus, 0, 100));
         S.lastBonus = bonus;
-        (onScore || results)(score, titulo);
+        const close = (walk) => {
+          S.lastParts = { reto: Math.round(raw), pasarela: walk === null ? null : Math.round(walk) };
+          const total = walk === null ? raw : raw * 0.65 + walk * 0.35;
+          (onScore || results)(Math.round(clamp(total + bonus, 0, 100)), titulo);
+        };
+        if (reto.noRunway || onScore) return close(null);
+        runway(close);
       });
+    });
+  }
+  // La pasarela de cada semana, con su categoría
+  function runway(then) {
+    const cat = pick1(CATEGORIAS);
+    S.runwayCat = cat;
+    body().innerHTML = `
+      <div class="story-card intro">
+        <img class="story-queen" src="${sprite(S.queen)}" alt="">
+        <div>
+          <p class="eyebrow">👠 Pasarela de la semana</p>
+          <h3>Categoría: «${esc(cat)}»</h3>
+          <p>El reto ya está hecho. Ahora toca desfilar: clava cada pose cuando el foco pase por la zona dorada.${S.runwayBonus ? ` <b class="gold">Ventaja del minireto: +${S.runwayBonus}</b>` : ""}</p>
+          <p class="muted">🎮 Espacio, clic o toca el botón ¡POSE!</p>
+          <button class="btn btn-primary" id="story-go">¡A la pasarela!</button>
+        </div>
+      </div>`;
+    Music.play("reto");
+    $("#story-go").addEventListener("click", () => {
+      body().innerHTML = `<div id="story-play"></div>`;
+      runPasarela($("#story-play"), (walk) => {
+        cleanup = null;
+        if (typeof window.__forceScore === "number") walk = window.__forceScore;
+        Music.stop();
+        then(clamp(walk + (S.runwayBonus || 0), 0, 100));
+      }, 5, `«${cat}»`);
     });
   }
 
@@ -941,7 +1117,7 @@ const Story = (() => {
         <div class="story-card">
           <p class="eyebrow">${esc(titulo)} · resultados</p>
           <h3>${tw === "allstars" && top2.some((r) => r.me) ? "¡Estás en el top 2! 💄" : won ? "¡Has ganado el reto! 👑" : bottom ? `Estás en el bottom ${nb}...` : "Estás a salvo"}</h3>
-          <p class="muted">Tu puntuación: <b>${myScore}</b>/100</p>
+          <p class="muted">Tu puntuación: <b>${myScore}</b>/100${S.lastParts ? ` · Reto ${S.lastParts.reto}${S.lastParts.pasarela !== null ? ` · Pasarela ${S.lastParts.pasarela}` : ""}` : ""}</p>
           ${bonusLine}${teamLine}${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
           <ol class="ranking">${rows
             .map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${teamOf[r.q.id] ? ` <small class="team ${teamOf[r.q.id]}">${teamOf[r.q.id] === "rosa" ? "Rosa" : "Oro"}</small>` : ""}</span>${badge(r)}<em>${Math.round(r.s)}</em></li>`)
@@ -1739,7 +1915,7 @@ const Story = (() => {
     header();
     $("#story-ep").textContent = "El reencuentro";
     const all = () => [...S.rivals, ...S.out];
-    dialog(pickFresh(REENCUENTRO.intro), ctxWith(S.out[0] || S.rivals[0]), pickTalk);
+    dialog([...pickFresh(REENCUENTRO.intro), ...pickFresh(JAVIS.reencuentro)], ctxWith(S.out[0] || S.rivals[0]), pickTalk);
     function pickTalk() {
       if (!S.out.length) return drama();
       body().innerHTML = `
@@ -1865,7 +2041,7 @@ const Story = (() => {
     const A = four.slice(0, 2), B = four.slice(2, 4);
     const mine = A.includes(S.queen) ? A : B, other = mine === A ? B : A;
     const myRival = mine.find((q) => q !== S.queen);
-    dialog([...pickFresh(HISTORIA.final), ...pickFresh(FINAL_SORTEO)], ctxWith(S.rivals[0]), sorteo);
+    dialog([...pickFresh(HISTORIA.final), ...pickFresh(JAVIS.final), ...pickFresh(FINAL_SORTEO)], ctxWith(S.rivals[0]), sorteo);
     function sorteo() {
       header();
       body().innerHTML = `
@@ -2289,8 +2465,8 @@ const Story = (() => {
     ["¿Cuál es tu plato favorito?", ["El de las joyas, cariño, el de la cena ya si eso", "La tortilla de patatas", "No tengo"]],
     ["¿Qué opinas del gimnasio?", ["Lo visito cada año, para ver si sigue ahí", "Voy tres veces por semana", "Está bien"]],
   ];
-  function runSnatch(el, done, bank = PREGUNTAS, host = "🎤 La presentadora", label = "Pregunta") {
-    const N = 5, TIME = 9;
+  function runSnatch(el, done, bank = PREGUNTAS, host = "🎤 La presentadora", label = "Pregunta", N = 5) {
+    const TIME = 9;
     const qs = shuffle(bank).slice(0, N);
     let i = 0, total = 0, t0 = 0, raf = 0, answered = false, opts = [];
     el.innerHTML = `
@@ -2364,8 +2540,8 @@ const Story = (() => {
   ];
 
   // ------------------------- Minijuego: diseño -----------------------------
-  function runDiseno(el, done) {
-    const W = 1000, H = 560, DUR = 25;
+  function runDiseno(el, done, theme = null, DUR = 25) {
+    const W = 1000, H = 560;
     el.innerHTML = `
       <div class="mg diseno">
         <p class="mg-info">Tiempo <b id="ds-t">${DUR}</b> s · Materiales <b id="ds-p">0</b></p>
@@ -2375,8 +2551,8 @@ const Story = (() => {
     const cv = $("#ds-c"), ctx = cv.getContext("2d");
     const img = new Image();
     img.src = sprite(S.queen);
-    const GOOD = [["✨", 10], ["🧵", 10], ["🪶", 12], ["💎", 18], ["🎀", 10]];
-    const BAD = [["✂️", -15], ["🩹", -10]];
+    const GOOD = (theme && theme.good) || [["✨", 10], ["🧵", 10], ["🪶", 12], ["💎", 18], ["🎀", 10]];
+    const BAD = (theme && theme.bad) || [["✂️", -15], ["🩹", -10]];
     let x = W / 2, vx = 0, keys = { l: false, r: false }, items = [], t = 0, spawn = 0, pts = 0, raf = 0, last = performance.now(), mouseX = null;
     function tick(now) {
       const dt = Math.min(0.05, (now - last) / 1000);
@@ -2412,7 +2588,7 @@ const Story = (() => {
       $("#ds-p").textContent = pts;
       if (t >= DUR) {
         stop();
-        return done(Math.min(100, (pts / 300) * 100));
+        return done(Math.min(100, (pts / ((300 * DUR) / 25)) * 100));
       }
       raf = requestAnimationFrame(tick);
     }
@@ -2590,10 +2766,17 @@ const Story = (() => {
     let timer = 0;
     function next() {
       const k = scores.length;
-      if (k >= 3) return done(scores.reduce((a, b) => a + b, 0) / 3);
-      el.innerHTML = `<div class="mg"><p class="eyebrow">Look ${k + 1} de 3</p><h3 class="ball-cat">«${esc(cats[k])}»</h3></div>`;
+      if (k >= 3) return done(scores[0] * 0.3 + scores[1] * 0.3 + scores[2] * 0.4);
+      const made = k === 2;
+      el.innerHTML = `<div class="mg"><p class="eyebrow">Look ${k + 1} de 3 · ${made ? "hecho en el taller" : "traído de casa"}</p><h3 class="ball-cat">«${esc(cats[k])}»</h3>${made ? `<p class="muted">Primero cóselo con lo que caiga del cielo... y luego a desfilarlo.</p>` : ""}</div>`;
       cleanup = () => clearTimeout(timer);
-      timer = setTimeout(() => runPasarela(el, (sc) => { scores.push(sc); next(); }, 3, `Look ${k + 1}/3 · ${cats[k]}`), 1100);
+      timer = setTimeout(() => {
+        if (!made) return runPasarela(el, (sc) => { scores.push(sc); next(); }, 3, `Look ${k + 1}/3 · ${cats[k]}`);
+        runDiseno(el, (build) => {
+          el.innerHTML = "";
+          runPasarela(el, (walk) => { scores.push(build * 0.6 + walk * 0.4); next(); }, 3, `Look 3/3 · ${cats[k]} (hecho aquí)`);
+        }, MATERIALES_RAROS, 15);
+      }, 1300);
     }
     next();
   }
@@ -2665,13 +2848,12 @@ const Story = (() => {
   }
 
   // ------------------------- Minijuego: makeover (parejas) ------------------
-  function runMemoria(el, done) {
-    const ICONS = ["👠", "💄", "👛", "💍", "🪭", "🎀"], DUR = 45;
+  function runMemoria(el, done, ICONS = ["👠", "💄", "👛", "💍", "🪭", "🎀"], DUR = 45, hint = "Empareja los accesorios") {
     const cards = shuffle([...ICONS, ...ICONS]);
     let open = [], found = 0, misses = 0, t0 = performance.now(), iv = 0, busy = false, over = false;
     el.innerHTML = `
       <div class="mg memoria">
-        <p class="mg-info">Tiempo <b id="mm-t">${DUR}</b> s · Parejas <b id="mm-p">0</b>/${ICONS.length} · <span id="mm-msg">Empareja los accesorios</span></p>
+        <p class="mg-info">Tiempo <b id="mm-t">${DUR}</b> s · Parejas <b id="mm-p">0</b>/${ICONS.length} · <span id="mm-msg">${esc(hint)}</span></p>
         <div class="mem-grid">${cards.map((c, k) => `<button class="mem-card" data-k="${k}"><span>${c}</span></button>`).join("")}</div>
       </div>`;
     const btns = [...el.querySelectorAll(".mem-card")];
@@ -2717,8 +2899,7 @@ const Story = (() => {
   }
 
   // ------------------------- Minijuego: sesión de fotos --------------------
-  function runFotos(el, done) {
-    const DUR = 20;
+  function runFotos(el, done, BADICON = "📸", DUR = 20, BADMSG = "¡Era el paparazzi! 😱") {
     el.innerHTML = `
       <div class="mg fotos">
         <p class="mg-info">Tiempo <b id="ft-t">${DUR}</b> s · Fotos <b id="ft-p">0</b> · <span id="ft-msg">¡Atenta al flash!</span></p>
@@ -2735,7 +2916,7 @@ const Story = (() => {
       const pap = Math.random() < 0.22;
       if (!pap) shown++;
       c.className = `ft-cell on ${pap ? "pap" : "me"}`;
-      c.innerHTML = pap ? "📸" : `<i style="background-image:url('${photo(S.queen)}')"></i>`;
+      c.innerHTML = pap ? BADICON : `<i style="background-image:url('${photo(S.queen)}')"></i>`;
       const life = Math.max(620, 1050 - t * 20);
       timers.push(setTimeout(() => { if (c.classList.contains("on")) { c.className = "ft-cell"; c.innerHTML = ""; } }, life));
       timers.push(setTimeout(spawn, Math.max(420, 820 - t * 16)));
@@ -2743,7 +2924,7 @@ const Story = (() => {
     cells.forEach((c) => c.addEventListener("click", () => {
       if (!c.classList.contains("on")) return;
       if (c.classList.contains("me")) { hits++; $("#ft-msg").textContent = "¡Click! Preciosa 📷"; Sound.powerup && Sound.powerup(); }
-      else { bad++; $("#ft-msg").textContent = "¡Era el paparazzi! 😱"; Sound.impact(); }
+      else { bad++; $("#ft-msg").textContent = BADMSG; Sound.impact(); }
       c.className = "ft-cell";
       c.innerHTML = "";
       $("#ft-p").textContent = hits;
