@@ -1829,6 +1829,8 @@ td.hearts { font-weight: 800; color: #d6204f; white-space: nowrap; }
 .at-opt { width: auto !important; min-width: 0 !important; padding: 10px 6px 12px; }
 .at-opt img { height: 200px; width: 100%; object-fit: contain; }
 .at-opt span { font-size: 12.5px; }
+.at-opts.four { grid-template-columns: repeat(2, 1fr); } .at-opts.four .at-opt img { height: 150px; }
+.at-opts.many { grid-template-columns: repeat(4, 1fr); gap: 8px; } .at-opts.many .at-opt { padding: 6px 4px 8px; } .at-opts.many .at-opt img { height: 140px; } .at-opts.many .at-opt span { font-size: 11px; line-height: 1.15; }
 .at.done .at-look img { animation: doll-pop .7s var(--ease-spring) both; }
 @media (max-width: 900px) { .at { grid-template-columns: 1fr; } .at-room { height: 440px; } .at-queen img { height: 330px; } .at-look img { height: 300px; } .at-peluca img { height: 130px; } .at-acc img { height: 80px; } }
 /* Pasarela con la foto de la reina */
@@ -1836,3 +1838,14 @@ td.hearts { font-weight: 800; color: #d6204f; white-space: nowrap; }
 .rw-doll.rw-queen .doll-fig { transform-origin: bottom center !important; }
 .rw-doll.revealed img { animation: reveal-flash 1.2s ease; filter: drop-shadow(0 0 30px #ffd34d) drop-shadow(0 20px 18px rgba(0,0,0,.45)) saturate(1.5); }
 @keyframes reveal-flash { 0% { filter: brightness(3) saturate(0); } 60% { filter: brightness(1.4) saturate(1.8) hue-rotate(40deg); } }
+
+/* Reveals */
+.at-opt.has-rv { position: relative; }
+.at-opt .at-rv { position: absolute; right: 4px; top: 6px; width: 44% !important; height: 46% !important; object-fit: contain; background: rgba(255,255,255,.92); border-radius: 10px; box-shadow: 0 4px 10px rgba(59,13,79,.3); }
+.at-opt.has-rv::after { content: "REVEAL"; position: absolute; left: 6px; top: 6px; font: 800 9px Poppins, sans-serif; color: #fff; background: #ff3d9a; padding: 2px 6px; border-radius: 999px; }
+.rv-flip { animation: rvflip .7s ease; }
+@keyframes rvflip { 0% { transform: rotateY(0) scale(1); filter: brightness(1); } 50% { transform: rotateY(90deg) scale(1.08); filter: brightness(2.2); } 100% { transform: rotateY(0) scale(1); filter: brightness(1); } }
+.rw-rvcard { position: absolute; right: 6%; top: 12%; width: 230px; padding: 10px; background: rgba(255,255,255,.95); border-radius: 22px; box-shadow: 0 0 0 5px #ffcf4d, 0 20px 50px rgba(59,13,79,.5); text-align: center; animation: rvcard .8s cubic-bezier(.2,1.4,.4,1) both; z-index: 5; }
+.rw-rvcard img { width: 100%; height: 300px; object-fit: contain; }
+.rw-rvcard b { display: block; font: 900 26px Poppins, sans-serif; color: #ff3d9a; }
+@keyframes rvcard { from { transform: scale(.2) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }

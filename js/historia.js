@@ -1140,15 +1140,26 @@ const Story = (() => {
   // La pasarela de cada semana, con su categoría
   function runway(then) {
     setSet("stage");
-    const cat = pick1(CATEGORIAS);
+    // Pasarela temática (si hay fotos para ella)
+    const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).filter((t) => ARMARIO.look.filter((x) => x.th === t.id).length >= 6);
+    S.usedThemes = S.usedThemes || [];
+    let tema = null;
+    if (temas.length) {
+      const fresh = temas.filter((t) => !S.usedThemes.includes(t.id));
+      tema = (window.__forceTheme && temas.find((t) => t.id === window.__forceTheme)) || pick1(fresh.length ? fresh : temas);
+      S.usedThemes.push(tema.id);
+      CAT_TAG[tema.n] = tema.tag;
+    }
+    const cat = tema ? tema.n : pick1(CATEGORIAS);
     S.runwayCat = cat;
     body().innerHTML = `
       <div class="story-card intro">
         <img class="story-queen" src="${sprite(S.queen)}" alt="">
         <div>
           <p class="eyebrow">👠 Pasarela de la semana</p>
-          <h3>Categoría: «${esc(cat)}»</h3>
-          <p>Primero prepara el look: outfit, peluca y accesorios/maquillaje. Cada pieza tiene una etiqueta oculta (Glamour, Camp, Edgy, Folclórico, Futurista): si las tres coinciden, x1,5. Después, el desfile: paso, final y frase de cierre.${S.runwayBonus ? ` <b class="gold">Ventaja del minireto: +${S.runwayBonus}</b>` : ""}</p>
+          <h3>${tema ? "Temática" : "Categoría"}: «${esc(cat)}»</h3>
+          ${tema ? `<p><i>${esc(tema.d)}</i></p>` : ""}
+          <p>Primero prepara el look: ${tema ? "elige en el burro el que mejor encaje con la temática, " : "outfit, "}peluca y accesorios/maquillaje. Cada pieza tiene una etiqueta oculta (Glamour, Camp, Edgy, Folclórico, Futurista): si las tres coinciden, x1,5. Después, el desfile: paso, final y frase de cierre.${S.runwayBonus ? ` <b class="gold">Ventaja del minireto: +${S.runwayBonus}</b>` : ""}</p>
           <p class="muted">🎮 Clic o teclas 1, 2, 3 y 4 · ${attrChips(["estilo", "performance", "carisma"])}</p>
           <button class="btn btn-primary" id="story-go">¡A la pasarela!</button>
         </div>
@@ -3564,8 +3575,10 @@ const Story = (() => {
   // Pasarela completa (de casa): probador + desfile
   function runRunwayNew(el, cat, done, prefix = "") {
     dressingRoom(el, cat, (st, spec) => {
+      S.revealImg = st.revealImg || null;
       runwayWalk(el, cat, spec, st.lookTag || "Glamour", (walk, flags, finalSpec) => {
         S.lastOutfit = finalSpec;
+        S.revealImg = null;
         S.lastLook = { cat, best: st.pieces[0] ? st.pieces[0].n : "look", worst: st.pieces.slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: flags.atascado, voiceGood: flags.voiceGood };
         done(st.prep * 0.5 + walk * 0.5);
       });
@@ -3576,20 +3589,32 @@ const Story = (() => {
   // ------------------------------ Probador visual ------------------------------
   const skinMe = () => Doll.skinOf(S.queen.id);
   function dressingRoom(el, cat, done, prefix = "") {
-    const main = CAT_TAG[cat] || "Glamour";
+    const TH = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).find((t) => t.n === cat);
+    const main = CAT_TAG[cat] || (TH && TH.tag) || "Glamour";
     const tagOf = (it) => TAG_OF_STYLE[it.s];
-    const fits = (it) => tagOf(it) === main || it.t.includes(cat);
-    const fit = (it) => (fits(it) ? 22 : 9);
+    const fitsTag = (it) => tagOf(it) === main || it.t.includes(cat);
+    const fitsK = (k, it) => !TH ? fitsTag(it) : k === "look" ? it.th === TH.id : k === "peluca" ? (it.th || []).includes(TH.id) || (!it.th && fitsTag(it)) : fitsTag(it);
+    const fits = (it) => fitsTag(it);
+    const fitOf = (k, it) => (k === "look" && TH ? (it.th === TH.id ? 24 : 6) : fitsK(k, it) ? 22 : 9);
     const IMG = (id) => `./images/armario/${id}.webp`;
     const SL = [
-      { k: "look", n: "El look", icon: "👗", items: ARMARIO.look, base: "base-maniqui" },
+      { k: "look", n: TH && TH.id === "P05" ? "El look con reveal" : "El look", icon: "👗", items: ARMARIO.look.filter((x) => !x.rv || (TH && TH.id === "P05")), base: "base-maniqui" },
       { k: "peluca", n: "La peluca", icon: "💇", items: ARMARIO.peluca, base: "base-cabeza" },
       { k: "acc", n: "El toque final", icon: "💄", items: ARMARIO.acc, base: "base-bandeja" },
     ];
     // Tres opciones: una que encaja con la categoría y dos que no tanto
     const opts = SL.map((sl) => {
-      const good = shuffle(sl.items.filter(fits));
-      const bad = shuffle(sl.items.filter((x) => !fits(x)));
+      const good = shuffle(sl.items.filter((x) => fitsK(sl.k, x)));
+      const bad = shuffle(sl.items.filter((x) => !fitsK(sl.k, x) && !(TH && sl.k !== "look" && x.th)));
+      if (TH && sl.k === "look") {
+        // Burro temático: 6 de la temática y 2 que no pegan (de otras temáticas si hay)
+        const otros = shuffle(sl.items.filter((x) => x.th && x.th !== TH.id));
+        return shuffle([...good.slice(0, 6), ...(otros.length >= 2 ? otros : bad).slice(0, 2)]);
+      }
+      if (TH && sl.k === "peluca") {
+        const tw = good.filter((x) => x.th), gw = good.filter((x) => !x.th);
+        return shuffle([...tw.slice(0, 2), ...gw.slice(0, 2 - Math.min(2, tw.length)), bad[0], bad[1]].filter(Boolean));
+      }
       return shuffle([good[0] || bad[2], bad[0], bad[1]].filter(Boolean));
     });
     const chosen = {}, st = { pieces: [], prepRaw: 0 };
@@ -3597,6 +3622,7 @@ const Story = (() => {
     const station = (k, tryIt) => {
       const sl = SL.find((x) => x.k === k);
       const it = tryIt || chosen[k];
+      if (!tryIt && it && it.rv) return IMG(it.rv);
       return IMG(it ? it.id : sl.base);
     };
     function setStation(k, it) {
@@ -3621,7 +3647,7 @@ const Story = (() => {
           <div class="at-rack">
             <div class="dr-steps">${SL.map((s2, i) => `<span class="${i < slot ? "done" : i === slot ? "on" : ""}">${s2.icon}</span>`).join("")}</div>
             <h4>${sl.icon} ${sl.n}</h4>
-            <div class="at-opts">${opts[slot].map((it, i) => `<button class="dr-opt at-opt" data-i="${i}" style="--i:${i}"><img src="${IMG(it.id)}" alt=""><span>${esc(it.n)}</span></button>`).join("")}</div>
+            <div class="at-opts ${opts[slot].length > 4 ? "many" : opts[slot].length > 3 ? "four" : ""}">${opts[slot].map((it, i) => `<button class="dr-opt at-opt ${it.rv ? "has-rv" : ""}" data-i="${i}" style="--i:${i}"><img src="${IMG(it.id)}" alt="">${it.rv ? `<img class="at-rv" src="${IMG(it.rv)}" alt="">` : ""}<span>${esc(it.n)}</span></button>`).join("")}</div>
           </div>
         </div>`;
       el.querySelectorAll(".at-opt").forEach((b) => {
@@ -3637,7 +3663,17 @@ const Story = (() => {
       if (!it) return;
       chosen[SL[slot].k] = it;
       st.pieces.push(it);
-      st.prepRaw += fit(it);
+      st.prepRaw += fitOf(SL[slot].k, it);
+      if (TH && SL[slot].k === "look") st.onTheme = it.th === TH.id;
+      st.revealImg = SL[slot].k === "look" && it.rv ? IMG(it.rv) : st.revealImg || null;
+      if (SL[slot].k === "look" && it.rv) {
+        // Prueba del reveal en el maniquí: antes → después
+        slot++;
+        render();
+        const img = el.querySelector(".at-look img");
+        if (img) { img.src = IMG(it.id); setTimeout(() => { img.classList.add("rv-flip"); img.src = IMG(it.rv); Confetti.burst(700); }, 700); }
+        return;
+      }
       Sound.countdown(false);
       slot++;
       if (slot < SL.length) return render();
@@ -3646,7 +3682,7 @@ const Story = (() => {
     function finish() {
       over = true;
       document.removeEventListener("keydown", onKey);
-      const msg = closeHome(st);
+      const msg = closeHome(st) + (TH ? `<br>${st.onTheme ? `🎯 El look clava «${esc(TH.n)}»` : `😬 Ese look no tiene nada que ver con «${esc(TH.n)}»`}` : "");
       const stars = Math.round((st.prep / 100) * 5);
       el.innerHTML = `
         <div class="at done">
@@ -3661,7 +3697,7 @@ const Story = (() => {
       Confetti.burst(900);
       $("#dr-go").addEventListener("click", () => done(st, { pieces: { ...chosen } }));
     }
-    const onKey = (e) => { const k = { Digit1: 0, Digit2: 1, Digit3: 2 }[e.code]; if (k !== undefined) choose(k); };
+    const onKey = (e) => { const m = /^Digit([1-8])$/.exec(e.code); if (m) choose(+m[1] - 1); };
     document.addEventListener("keydown", onKey);
     cleanup = () => document.removeEventListener("keydown", onKey);
     render();
@@ -3713,14 +3749,21 @@ const Story = (() => {
     }
     function step1() {
       ask("Final de pasarela. ¡Es tu momento!", [
-        { ico: "🖼️", t: "Pose", go: () => { flash(); doll.classList.add("pose"); add(["Glamour", "Edgy"].includes(lookTag) ? 82 : 68); say("📸 Pose limpia. El fotógrafo, contento.", "good"); later(step2, 2200); } },
-        { ico: "🤡", t: "Comedia", go: () => { doll.classList.add("funny"); const ok = lookTag === "Camp"; add(ok ? 94 : 48); say(ok ? "😂 ¡Carcajada en el jurado!" : "El gesto no casaba con el look...", ok ? "good" : "meh"); later(step2, 2200); } },
+        { ico: "🖼️", t: "Pose", go: () => { flash(); doll.classList.add("pose"); if (/reveal/i.test(cat)) { add(35); say("📸 Pose bonita... pero esta pasarela era de REVEAL", "meh"); } else { add(["Glamour", "Edgy"].includes(lookTag) ? 82 : 68); say("📸 Pose limpia. El fotógrafo, contento.", "good"); } later(step2, 2200); } },
+        { ico: "🤡", t: "Comedia", go: () => { doll.classList.add("funny"); const ok = lookTag === "Camp" && !/reveal/i.test(cat); add(ok ? 94 : /reveal/i.test(cat) ? 35 : 48); say(ok ? "😂 ¡Carcajada en el jurado!" : "El gesto no casaba con el look...", ok ? "good" : "meh"); later(step2, 2200); } },
         { ico: "🎁", t: "Reveal", go: () => {
           const c = check(["performance", "carisma"], 60);
-          if (c.ok) {
+          const rvTheme = /reveal/i.test(cat);
+          if (c.ok || (rvTheme && S.revealImg && Math.random() < 0.85)) {
             doll.classList.add("spin");
             later(() => {
               doll.classList.add("revealed");
+              if (S.revealImg) {
+                const card = document.createElement("div");
+                card.className = "rw-rvcard";
+                card.innerHTML = `<img src="${S.revealImg}" alt=""><b>¡REVEAL!</b>`;
+                el.querySelector(".rw").append(card);
+              }
               Confetti.burst(1600);
               Sound.powerup && Sound.powerup();
             }, 600);
