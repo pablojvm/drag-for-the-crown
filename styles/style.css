@@ -1904,3 +1904,34 @@ td.hearts { font-weight: 800; color: #d6204f; white-space: nowrap; }
 .board-card.out { opacity: .6; filter: grayscale(.6); }
 .board-card small { font-size: 11.5px; color: #5a3d66; }
 .board-card .scars { color: #a3124f; }
+
+/* Cabecera del modo historia (HUD) */
+.story-hud { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px; border-radius: 22px; background: rgba(255,255,255,.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.9); box-shadow: 0 14px 34px -16px rgba(59,13,79,.55); }
+.hud-cast { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.story-hud #story-cast { display: flex; flex-wrap: nowrap; gap: 0; max-width: none; padding-left: 8px; }
+.story-hud #story-cast i { width: 34px; height: 34px; margin-left: -7px; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(59,13,79,.25); }
+.story-hud #story-cast i.me { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 2px 8px rgba(255,200,0,.6); z-index: 2; position: relative; }
+.story-hud #story-cast i.ally { border-color: #2fbf71; }
+.story-hud #story-cast i.enemy { border-color: #ff3b5c; }
+.story-hud #story-cast i:hover { transform: translateY(-3px) scale(1.15); z-index: 3; position: relative; }
+.hud-count { font: 700 11px Poppins, sans-serif; color: #7a5a86; white-space: nowrap; text-transform: uppercase; letter-spacing: .06em; }
+.hud-bar { display: flex; gap: 6px; justify-content: flex-end; }
+.hud-btn, .hud-money { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 12px; font: 700 13px Poppins, sans-serif; color: #3b0d4f; white-space: nowrap; }
+.hud-btn { border: 0; cursor: pointer; background: #fff; box-shadow: inset 0 0 0 1.5px rgba(59,13,79,.12); transition: transform .15s, box-shadow .15s, background .15s; }
+.hud-btn:hover { transform: translateY(-1px); box-shadow: inset 0 0 0 1.5px var(--pink), 0 6px 14px -6px rgba(255,61,154,.6); }
+.hud-btn i, .hud-money i { font-style: normal; font-size: 15px; }
+.hud-money { background: linear-gradient(135deg, #fff6d6, #ffe8a3); box-shadow: inset 0 0 0 1.5px rgba(212,160,0,.35); color: #6b4a00; cursor: default; }
+.hud-money b { font-weight: 800; }
+.hud-exit { background: #3b0d4f; color: #fff; box-shadow: none; }
+.hud-exit:hover { background: #561673; box-shadow: 0 6px 14px -6px rgba(59,13,79,.7); }
+.hud-btn[hidden], .hud-money[hidden] { display: none; }
+@media (max-width: 900px) { .hud-btn span { display: none; } .story-hud #story-cast i { width: 28px; height: 28px; } .hud-count { display: none; } }
+.sched { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 12px 0; text-align: left; max-height: 330px; overflow-y: auto; padding: 2px; }
+.sched-ep { background: #fff; border-radius: 14px; padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 3px 10px -5px rgba(59,13,79,.35); animation: pop .35s calc(var(--i) * 45ms) both; }
+.sched-ep b { font: 800 11px Poppins, sans-serif; color: #ff3d9a; text-transform: uppercase; letter-spacing: .05em; }
+.sched-ep > span { font: 700 13px Poppins, sans-serif; color: #3b0d4f; }
+.sched-ep em { font-style: normal; font: 600 12px Poppins, sans-serif; background: #fff0f7; color: #a3124f; padding: 3px 8px; border-radius: 8px; }
+.sched-ep em.ball { background: #efe6ff; color: #4b2a8a; }
+.sched-ep small { color: #9a8aa5; font-size: 11.5px; }
+.sched-ep.nolook { opacity: .75; }
+.call-plan { max-height: 760px; overflow-y: auto; }

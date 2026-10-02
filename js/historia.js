@@ -275,7 +275,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -293,6 +293,7 @@ const Story = (() => {
     PLAIN.forEach((k) => d[k] !== undefined && (S[k] = d[k]));
     UI.show("story");
     Sound.stopAll();
+    if (S.ep === 0 && !S.flags.shopped && S.runwayPlan) return javisCall(nextEpisode);
     if (S.meOut && S.flags.waitRepesca) return repescaStep();
     if (S.meOut && S.flags.aftermath) return S.flags.reunion ? afterFinal() : afterStep();
     if (S.phase && S.phase.ep === S.ep && S.ep > 0) return resumeMid();
@@ -309,7 +310,7 @@ const Story = (() => {
     setSet("werkroom");
     $("#story-season").textContent = "Modo historia";
     $("#story-ep").textContent = "Partida guardada";
-    $("#story-exit").textContent = "← Volver";
+    $("#story-exit").innerHTML = "<i>←</i><span>Volver</span>";
     $("#story-shop").hidden = true;
     $("#story-board").hidden = true;
     $("#story-cast").innerHTML = "";
@@ -686,7 +687,8 @@ const Story = (() => {
     if (fm) $("#story-season").innerHTML += ` <span class="twist-chip fame-chip">${FAMA[fm].icon} ${esc(FAMA[fm].n)}</span>`;
     const nq = nemActive();
     if (nq && S.nemesis.announced) $("#story-season").innerHTML += ` <span class="twist-chip nem-chip">⚔️ Némesis: ${esc(nq.name)}</span>`;
-    $("#story-exit").textContent = "💾 Guardar y salir";
+    $("#story-exit").innerHTML = "<i>💾</i><span>Guardar y salir</span>";
+    $("#story-count").textContent = S.meOut ? "Fuera de la competición" : `${S.rivals.length + 1} en competición · ${S.out.length} fuera`;
     $("#story-shop").hidden = false;
     $("#story-board").hidden = false;
     $("#story-shop .closet-money").textContent = euros(Closet.money);
@@ -4162,21 +4164,42 @@ const Story = (() => {
     if (k === "peluca") return (Array.isArray(it.th) && it.th.includes(TH.id)) || (noTheme && tagFit);
     return tagFit;
   }
-  // Pasarelas de la temporada: primero las temáticas con fotos, luego las clásicas
-  function buildPlan() {
-    const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).filter((t) => ARMARIO.look.filter((x) => x.th === t.id).length >= 6);
+  // Calendario de la temporada: cuántos episodios habrá y qué looks necesitarás en cada uno
+  function seasonEpisodes() {
+    // Una eliminación por episodio hasta quedar 4 (+1 si hay Segunda Oportunidrag)
+    return S.season.cast.length - 4 + (twistOf() === "repesca" ? 1 : 0);
+  }
+  function buildSchedule() {
     let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
     if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS;
-    let count = 0;
-    for (let ep = 1; ep <= Math.max(5, S.season.cast.length - 4); ep++) if (!RETOS[ord[(ep - 1) % ord.length]].noRunway) count++;
-    return [...shuffle(temas.map((t) => t.n)), ...shuffle(CATEGORIAS.slice())].slice(0, Math.max(3, count));
+    const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).filter((t) => ARMARIO.look.filter((x) => x.th === t.id).length >= 6);
+    const pool = [...shuffle(temas.map((t) => t.n)), ...shuffle(CATEGORIAS.filter((c) => !temas.some((t) => t.n === c)))];
+    const take = () => pool.shift() || pick1(CATEGORIAS);
+    const sched = [];
+    for (let ep = 1; ep <= seasonEpisodes(); ep++) {
+      const tipo = ord[(ep - 1) % ord.length];
+      const looks = [];
+      if (tipo === "ball") looks.push({ cat: take(), kind: "ball" }, { cat: take(), kind: "ball" });
+      if (!RETOS[tipo].noRunway) looks.push({ cat: take(), kind: "runway" });
+      sched.push({ ep, tipo, looks });
+    }
+    return sched;
   }
+  function buildPlan() {
+    S.schedule = buildSchedule();
+    S.ballPlan = S.schedule.flatMap((e) => e.looks.filter((l) => l.kind === "ball").map((l) => l.cat));
+    return S.schedule.flatMap((e) => e.looks.filter((l) => l.kind === "runway").map((l) => l.cat));
+  }
+  const allPlannedLooks = () => [...(S.runwayPlan || []), ...(S.ballPlan || [])];
   // Lo mínimo para cubrir cada pasarela (look + peluca + toque final más baratos que encajan)
   function basicBudget(plan) {
+    // Un look distinto por pasarela (no se pueden repetir) + peluca y toque final
     let total = 0;
+    const usedL = new Set();
     plan.forEach((cat) => ["look", "peluca", "acc"].forEach((k) => {
-      const prices = ARMARIO[k].filter((x) => fitsRunway(k, x, cat)).map(priceOf).sort((a, b) => a - b);
-      total += prices[0] || PRICE[k][1];
+      const c = ARMARIO[k].filter((x) => fitsRunway(k, x, cat) && !(k === "look" && usedL.has(x.id))).sort((a, b) => priceOf(a) - priceOf(b))[0];
+      if (c && k === "look") usedL.add(c.id);
+      total += c ? priceOf(c) : PRICE[k][1];
     }));
     return Math.ceil((total * 1.1) / 50) * 50;
   }
@@ -4185,13 +4208,17 @@ const Story = (() => {
     setSet("lounge");
     header();
     $("#story-ep").textContent = "Antes de empezar";
-    const plan = S.runwayPlan || [];
+    const plan = allPlannedLooks();
     const grant = basicBudget(plan);
+    const sched = S.schedule || [];
+    const nLooks = plan.length;
     const lines = [
       ["ambrossi", "¿Sí? ¿Hablo con {yo}? ¡Somos los Javis!"],
       ["calvo", pick1(["Te llamamos con una noticia... ¡Estás dentro de Drag Race España!", "Siéntate, que esto es fuerte: ¡vas a ser concursante de Drag Race España!"])],
       ["me", pick1(["¡¿QUÉ?! ¡No me lo creo!", "Ay, que me da algo. ¡Que me da algo!", "Esperad, que grito... ¡AAAH!"])],
-      ["ambrossi", "Escucha bien, que esto es importante: estas son las pasarelas que vas a tener que preparar."],
+      ["ambrossi", `Escucha bien, que esto es importante: si llegas a la final serán ${sched.length || "unos cuantos"} episodios y vas a necesitar ${nLooks} looks.`],
+      ["ambrossi", "Te decimos las temáticas, pero no en qué orden. Eso es sorpresa."],
+      ["calvo", "Y ojo: lo que compres ahora es lo que hay. Durante la temporada no se puede ir de compras, y ningún look se repite."],
       ["calvo", "Producción te da un presupuesto para lo básico. Lo demás... te lo tendrás que ganar."],
       ["ambrossi", pick1(["Y nada de traer lo de siempre, ¿eh? Queremos verte brillar.", "Haz las maletas con cabeza. Y con lentejuelas."])],
     ];
@@ -4200,10 +4227,11 @@ const Story = (() => {
       body().innerHTML = `
         <div class="story-card call-plan">
           <p class="eyebrow">📞 Los Javis · tus pasarelas de ${esc(S.season.name)}</p>
-          <h3>Prepara estos estilismos</h3>
-          <ol class="plan-list">${plan.map((c, i) => { const t = themeOf(c); return `<li style="--i:${i}"><b>${esc(c)}</b>${t ? `<small>${esc(t.d)}</small>` : ""}</li>`; }).join("")}</ol>
+          <h3>${sched.length} episodios · ${nLooks} looks que preparar</h3>
+          <div class="sched">${shuffle(plan.slice()).map((c, i) => { const t = themeOf(c); const ball = (S.ballPlan || []).includes(c) && !(S.runwayPlan || []).includes(c); return `<div class="sched-ep" style="--i:${i}"><b>${ball ? "🎭 Look para el Ball" : "👠 Pasarela"}</b><span>${esc(c)}</span>${t ? `<small>${esc(t.d)}</small>` : ""}</div>`; }).join("")}</div>
+          <p class="muted">El orden de los retos y las pasarelas es sorpresa: puede cambiar sobre la marcha. Luego vienen el reencuentro y la gran final. Si te eliminan antes, lo que no uses se queda en tu armario para la próxima temporada.</p>
           <p class="gold">💶 Producción te ingresa ${euros(grant)} para lo básico. Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
-          <p class="muted">Gana miniretos, retos y, sobre todo, la corona para comprar piezas más espectaculares.</p>
+          <p class="muted">🛑 Solo puedes comprar ahora. Lo que ganes en la temporada (miniretos, retos, corona) te servirá para la siguiente.</p>
           <button class="btn btn-primary" id="story-go">🛍️ Ir de compras</button>
         </div>`;
       $("#story-go").addEventListener("click", () => shopScreen(body(), then, true));
@@ -4211,11 +4239,15 @@ const Story = (() => {
   }
   // La tienda: todo el armario, con precio y estadísticas
   function shopScreen(el, onDone, first = false) {
-    const plan = S.runwayPlan || [];
+    const plan = [...new Set(allPlannedLooks())];
     let tab = "look", filt = plan.length ? "plan" : "all";
     const IMG = (id) => `./images/armario/${id}.webp`;
     const fitsPlan = (k, it) => plan.filter((c) => fitsRunway(k, it, c));
-    const covered = (c) => ["look", "peluca", "acc"].every((k) => ARMARIO[k].some((x) => Closet.has(x.id) && fitsRunway(k, x, c)));
+    const covered = (c) => {
+      // Looks: hace falta uno distinto por cada vez que sale la categoría
+      const need = allPlannedLooks().filter((x) => x === c).length;
+      return ARMARIO.look.filter((x) => Closet.has(x.id) && fitsRunway("look", x, c)).length >= need && ["peluca", "acc"].every((k) => ARMARIO[k].some((x) => Closet.has(x.id) && fitsRunway(k, x, c)));
+    };
     function items() {
       let L = ARMARIO[tab].slice();
       if (filt === "plan") L = L.filter((x) => fitsPlan(tab, x).length);
@@ -4233,7 +4265,7 @@ const Story = (() => {
           <div class="shop-top">
             <h3>🛍️ La tienda</h3>
             <b class="shop-money">💶 <span class="closet-money">${euros(Closet.money)}</span></b>
-            <button class="btn btn-primary" id="shop-done">${first ? "Hecho: ¡al taller!" : "Cerrar"}</button>
+            <button class="btn btn-primary" id="shop-done">${first ? "Cerrar maletas: ¡al taller!" : "Cerrar"}</button>
           </div>
           ${plan.length ? `<div class="shop-plan">${plan.map((c, i) => `<button class="plan-chip ${covered(c) ? "ok" : ""} ${filt === c ? "on" : ""}" data-c="${i}">${covered(c) ? "✔" : "✖"} ${esc(c)}</button>`).join("")}</div>` : ""}
           <div class="shop-tabs">
@@ -4270,8 +4302,9 @@ const Story = (() => {
         const missing = plan.filter((c) => !covered(c));
         if (first && missing.length && !el.dataset.warned) {
           el.dataset.warned = 1;
-          return Toast.show("⚠️ Te faltan piezas", `Sin nada para: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "..." : ""}. Producción te prestará algo básico.`);
+          return Toast.show("⚠️ Te faltan piezas", `Sin nada para: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "..." : ""}. Después ya no podrás comprar: producción te prestará algo básico. Pulsa otra vez para entrar igualmente.`);
         }
+        if (first) { S.flags.shopped = 1; save(); }
         onDone();
       });
     }
@@ -4279,6 +4312,7 @@ const Story = (() => {
   }
   // Botón de la tienda en la cabecera (fuera de las pruebas)
   function openShopModal() {
+    if (S && S.flags && S.flags.shopped) return Toast.show("🛑 Tienda cerrada", "Durante la temporada no se puede comprar");
     if ($("#story-play") || document.querySelector(".shop-modal") || document.querySelector("#screen-story .shop")) return Toast.show("Ahora no", "Puedes ir de compras entre pruebas");
     const m = document.createElement("div");
     m.className = "shop-modal";
@@ -4301,10 +4335,10 @@ const Story = (() => {
     ];
     // Opciones: lo que tienes en tu armario (lo que encaja primero) + un básico prestado por producción
     const opts = SL.map((sl) => {
-      const own = sl.items.filter((x) => Closet.has(x.id));
+      const own = sl.items.filter((x) => Closet.has(x.id) && !(sl.k === "look" && (S.usedLooks || []).includes(x.id)));
       const byStar = (a, b) => statOf(b)[0] - statOf(a)[0];
       const list = [...own.filter((x) => fitsK(sl.k, x)).sort(byStar), ...own.filter((x) => !fitsK(sl.k, x)).sort(byStar)].slice(0, 7);
-      const loanPool = sl.items.filter((x) => fitsK(sl.k, x) && !Closet.has(x.id)).sort((a, b) => statOf(a)[0] - statOf(b)[0]);
+      const loanPool = sl.items.filter((x) => fitsK(sl.k, x) && !Closet.has(x.id) && !(S.usedLooks || []).includes(x.id)).sort((a, b) => statOf(a)[0] - statOf(b)[0]);
       const loan = loanPool[0] || sl.items.find((x) => !Closet.has(x.id));
       if (loan) list.push({ ...loan, loan: true });
       return list;
@@ -4354,6 +4388,7 @@ const Story = (() => {
       const it = opts[slot][i];
       if (!it) return;
       chosen[SL[slot].k] = it;
+      if (SL[slot].k === "look" && !it.loan) S.usedLooks = [...(S.usedLooks || []), it.id];
       st.pieces.push(it);
       st.prepRaw += fitOf(SL[slot].k, it);
       if (TH && SL[slot].k === "look") st.onTheme = it.th === TH.id;
@@ -4632,7 +4667,10 @@ const Story = (() => {
   }
 
   function mxBall(el, done) {
-    const cats = shuffle(CATEGORIAS).slice(0, 3);
+    const bi = S.ballIdx || 0;
+    const planned = (S.ballPlan || []).slice(bi, bi + 2);
+    S.ballIdx = bi + planned.length;
+    const cats = [...planned, ...shuffle(CATEGORIAS.filter((c) => !planned.includes(c)))].slice(0, 3);
     const scores = [];
     const home = (k) => {
       el.innerHTML = "";
