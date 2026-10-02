@@ -758,8 +758,8 @@ const Story = (() => {
     (S.track[k] = S.track[k] || {})[S.ep] = lab;
   }
   const TRACK_CLASS = (l) =>
-    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : "t-none";
-  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "FINALISTA", FINAL: "FINAL", "3ª": "3ª", MISSC: "MISS S." };
+    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" || l === "FINAL-MISSC" ? "t-final" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : "t-none";
+  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "FINALISTA", "FINAL-MISSC": "FINALISTA 💐", "3ª": "3ª/4ª", MISSC: "MISS S." };
   function trackHTML() {
     const eps = Object.keys(S.epNames).map(Number).sort((a, b) => a - b);
     const everyone = [S.queen, ...S.rivals, ...S.out];
@@ -1318,19 +1318,19 @@ const Story = (() => {
         else if (r === winner) lab = "WIN";
         else if (bottomRows.includes(r)) lab = `BTM${nb}`;
         else if (r.protected) lab = `BTM${nb}`;
-        else if (allCrit) lab = k < Math.ceil(n / 2) ? "HIGH" : "LOW";
-        else if (k <= 2) lab = "HIGH";
-        else if (k >= n - 3) lab = "LOW";
+        else if (k <= (n <= 7 ? 1 : 2)) lab = "HIGH";
+        else if (k >= n - nb - 1) lab = "LOW";
         else lab = "SAFE";
         mark(r.q, lab);
       });
       const labOf = new Map(rows.map((r) => [r, (S.track[keyOf(r.q)] || {})[S.ep]]));
       const nm = (r) => esc(r.me ? "Tú" : r.q.name);
       const faces = (list, cls = "") => `<div class="call-faces ${cls}">${list.map((r, k) => `<span class="${r.me ? "me" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}</span>`).join("")}</div>`;
-      const safe = rows.filter((r) => labOf.get(r) === "SAFE");
-      const judged = rows.filter((r) => labOf.get(r) !== "SAFE");
+      // Con 6 o menos todas reciben valoración: nadie se salva antes de la crítica
+      const safe = allCrit ? [] : rows.filter((r) => labOf.get(r) === "SAFE");
+      const judged = allCrit ? rows.slice() : rows.filter((r) => labOf.get(r) !== "SAFE");
       const meRow = rows.find((r) => r.me);
-      const meSafe = labOf.get(meRow) === "SAFE";
+      const meSafe = !allCrit && labOf.get(meRow) === "SAFE";
       const safeFirst = Math.random() < 0.5;
       const safeTxt = `<p>${safe.length ? `${safe.map(nm).join(", ")}: <b>estáis salvadas</b>. Podéis volver al backstage.` : allCrit ? `Quedáis ${n}: a partir de ahora <b>todas recibís valoración</b>.` : "Esta semana no se salva nadie de antemano."}</p>${safe.length ? faces(safe, "safe") : ""}`;
       const judgedTxt = `<p>${safeFirst ? "El resto..." : `${judged.map(nm).join(", ")}...`} <b>sois las mejores y las peores del programa de hoy</b>.</p>${faces(judged)}`;
@@ -1364,6 +1364,7 @@ const Story = (() => {
         const wins = byLab((l) => l === "WIN" || l === "TOP2");
         const highs = byLab((l) => l === "HIGH");
         const lows = byLab((l) => l === "LOW");
+        const safesC = allCrit ? byLab((l) => l === "SAFE") : [];
         const btms = rows.filter((r) => bottomRows.includes(r) || /^BTM/.test(labOf.get(r) || ""));
         const myLab = labOf.get(meRow);
         header();
@@ -1374,6 +1375,7 @@ const Story = (() => {
             <div class="verdict">
               <div class="v-row win" style="--i:0"><b>${tw === "allstars" ? "💄 Top 2: os jugáis el poder" : "👑 Felicidrages, ganadora del reto"}</b>${faces(wins)}</div>
               ${highs.length ? `<div class="v-row high" style="--i:1"><b>✨ Buen trabajo, estáis a salvo</b>${faces(highs)}</div>` : ""}
+              ${safesC.length ? `<div class="v-row high" style="--i:1"><b>🙂 Estáis a salvo</b>${faces(safesC)}</div>` : ""}
               ${lows.length ? `<div class="v-row low" style="--i:2"><b>😬 A salvo... por los pelos</b>${faces(lows)}</div>` : ""}
               <div class="v-row btm" style="--i:3"><b>💔 Lo siento: sois el bottom ${btms.length}</b>${faces(btms)}</div>
             </div>
@@ -2259,6 +2261,8 @@ const Story = (() => {
   function reunion() {
     setSet("stage");
     S.epNames[S.ep] = "Reencuentro";
+    // Las cuatro que siguen en competición ya son finalistas
+    [...(S.meOut ? [] : [S.queen]), ...S.rivals].forEach((q) => mark(q, "FINAL"));
     header();
     $("#story-ep").textContent = "El reencuentro";
     const all = () => [...S.rivals, ...S.out];
@@ -2333,7 +2337,7 @@ const Story = (() => {
       const win = ranked[0];
       S.missC = keyOf(win);
       if (win === S.queen) earn(400, "Premio Miss Simpatía");
-      mark(win, "MISSC");
+      mark(win, (S.track[keyOf(win)] || {})[S.ep] === "FINAL" ? "FINAL-MISSC" : "MISSC");
       if (win === S.queen) {
         S.points += 1500;
         Achievements.unlock("miss-simpatia");
@@ -2490,7 +2494,7 @@ const Story = (() => {
     const n = rows.length;
     const allCrit = n <= 6;
     rows.forEach((r, k) => {
-      const lab = k === 0 ? "WIN" : k >= n - 2 ? "BTM2" : allCrit ? (k < Math.ceil(n / 2) ? "HIGH" : "LOW") : k <= 2 ? "HIGH" : k >= n - 3 ? "LOW" : "SAFE";
+      const lab = k === 0 ? "WIN" : k >= n - 2 ? "BTM2" : k <= (n <= 7 ? 1 : 2) ? "HIGH" : k >= n - 3 ? "LOW" : "SAFE";
       mark(r.q, lab);
       const key = keyOf(r.q);
       S.record[key] = (S.record[key] || 0) + (k === 0 ? 3 : k >= n - 2 ? 0 : 1);
