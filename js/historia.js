@@ -4056,6 +4056,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
     const log = [];
     const draw = (wait) => {
       const r = cfg.rounds[round];
+      if (r && !wait && r.pre && !r.shown) { r.shown = true; log.push(...r.pre); }
       el.innerHTML = `
         <div class="story-card live">
           <p class="eyebrow">${cfg.icon} ${esc(cfg.title)} · en directo · ${Math.min(round + 1, cfg.rounds.length)}/${cfg.rounds.length}</p>
@@ -4128,6 +4129,45 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       { prompt: "⚖️ Y ahora... ¡el jurado!", sub: "Supreme, Ana Locking y los Javis te miran. Atrévete.", ctx: "Roast al jurado de Drag Race España: Supreme de Luxe, Ana Locking y los Javis (Javier Ambrossi y Javier Calvo)." },
     ];
     liveRounds(el, { title: "El Roast", icon: "🔥", kind: "roast (chiste de humor ácido)", attr: "comedia", rounds, ph: "Tu chiste..." }, done);
+  }
+  // Snatch Game en directo: eliges (o inventas) personaje y contestas a Supreme escribiendo
+  function liveSnatch(el, done) {
+    const chars = shuffle(SNATCH_PERSONAJES).slice(0, 3);
+    el.innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">🎭 Snatch Game en directo</p>
+        <h3>¿A quién imitas?</h3>
+        <div class="choice-col">${chars.map((c, i) => `<button class="btn btn-ghost" data-c="${i}">${c.icon} ${esc(c.name)} <small>· ${esc(c.tono)}</small></button>`).join("")}</div>
+        <form class="ft-form"><input id="sn-own" maxlength="80" autocomplete="off" placeholder="O inventa tu personaje (nombre y estilo)..."><button class="btn btn-primary">Usar</button></form>
+      </div>`;
+    const go = (name, tono) => start(name, tono);
+    el.querySelectorAll("[data-c]").forEach((b) => b.addEventListener("click", () => { const c = chars[+b.dataset.c]; go(c.name, c.tono); }));
+    el.querySelector(".ft-form").addEventListener("submit", (e) => { e.preventDefault(); const v = el.querySelector("#sn-own").value.trim(); if (v) go(v, "el que tú le des"); });
+    async function start(name, tono) {
+      const rivals = shuffle(S.rivals).slice(0, 2);
+      aiWait("Preparando el plató...", el);
+      const plan = await IA.chat(
+        `Eres la guionista del Snatch Game de Drag Race España: Supreme de Luxe hace preguntas absurdas a las concursantes, que imitan personajes. Los personajes son arquetipos y parodias inventadas, nunca personas reales. ${aiSeason()}`,
+        `La protagonista ${S.queen.name} imita a: ${name} (tono ${tono}). Las rivales en el plató: ${rivals.map((q) => `${q.name} (${aiProfile(q)} ${idTxt(q)})`).join(" | ")}.
+Elige un personaje-arquetipo gracioso para cada rival según su identidad, y escribe 4 preguntas de Supreme (máximo 20 palabras, absurdas y con chispa). Para cada pregunta, la respuesta de cada rival en personaje (SOLO las rivales, nunca ${S.queen.name}, que contesta la jugadora) (máximo 22 palabras; que alguna falle a veces).
+Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q":"...","respuestas":[{"reina":"nombre","t":"..."}]}]}`,
+        { json: true, max: 1600, temp: 1 },
+      );
+      const pregs = plan && Array.isArray(plan.preguntas) && plan.preguntas.length >= 3 ? plan.preguntas.slice(0, 4) : shuffle(SNATCH_PREGUNTAS).slice(0, 4).map((q) => ({ q, respuestas: [] }));
+      const pj = {};
+      ((plan && plan.rivales) || []).forEach((x) => x && x.reina && (pj[x.reina] = str(x.personaje)));
+      const rounds = pregs.map((p, i) => ({
+        prompt: `🎤 Supreme: «${IA.clean(str(p.q))}»`,
+        sub: `Eres ${name}. Contesta en personaje.`,
+        pre: [
+          ...(i === 0 ? rivals.filter((q) => pj[q.name]).map((q) => ({ who: "Supreme", t: `${q.name} viene como ${pj[q.name]}.`, cls: "host" })) : []),
+          ...((p.respuestas || []).filter((x) => x && x.t && rivals.some((q) => q.name === str(x.reina))).slice(0, 2).map((x) => ({ who: `${str(x.reina)}${pj[str(x.reina)] ? ` (${pj[str(x.reina)]})` : ""}`, t: IA.clean(str(x.t)), cls: "rival" }))),
+        ],
+        ctx: `Snatch Game. ${S.queen.name} imita a ${name} (tono ${tono}). Pregunta de Supreme: ${str(p.q)}. Valora la gracia, que se mantenga en personaje y la rapidez del remate.`,
+      }));
+      el.innerHTML = "";
+      liveRounds(el, { title: "Snatch Game", icon: "🎭", kind: "Snatch Game (imitación cómica en personaje)", attr: "comedia", rounds, ph: `Lo que dice ${name}...` }, done);
+    }
   }
   function liveImpro(el, done) {
     const SEC = [["noticias", "🗞️ Noticias"], ["entrevista", "🎙️ Entrevista"], ["teletienda", "🛒 Teletienda"]];
@@ -4948,6 +4988,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
 
   // ------------------------------ Maxi retos ------------------------------
   function mxSnatch(el, done) {
+    if (IA.ready() && !mxSnatch.classic) return aiOrClassic(el, "Snatch Game", "🎭", () => liveSnatch(el, done), () => { mxSnatch.classic = true; mxSnatch(el, (sc) => { mxSnatch.classic = false; done(sc); }); });
     const chars = shuffle(SNATCH_PERSONAJES).slice(0, 3);
     const qs = shuffle(SNATCH_PREGUNTAS).slice(0, 5);
     const steps = [
