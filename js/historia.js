@@ -275,7 +275,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks", "log"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -416,6 +416,8 @@ const Story = (() => {
       if (c.fx) c.fx();
       if (c.after && pendingSide) { pendingSide(c.after); pendingSide = null; }
       choices = null;
+      if (typeof logEv === "function" && S && S.ep) logEv(`${S.queen.name} le dice a ${(ctx.q && ctx.q.r1 && ctx.q.r1.name) || "alguien"}: «${fill(c.txt, ctx)}»`);
+      if (c.persona && !c.rel) persona(c.persona);
       lines = [["me", c.txt], ...(c.reply ? [c.reply] : [])];
       i = 0;
       showLine();
@@ -521,7 +523,7 @@ const Story = (() => {
     const [A, B] = S.groups;
     const a = qById(A.members[0]), b = qById(B.members[0]);
     const ctx = { ...ctxWith(a, { r2: b }), q: { r1: a, r2: b, r3: b }, r1: a.name, r2: b.name, g1: A.name, g2: B.name, tension: true };
-    dialog(pickFresh(GRUPOS.formacion), ctx, () => {
+    scene("formGroups", pickFresh(GRUPOS.formacion), ctx, () => {
       header();
       body().innerHTML = `
         <div class="story-card">
@@ -540,7 +542,7 @@ const Story = (() => {
     const inv = S.groups.slice().sort((x, y) => avg(y) - avg(x)).slice(0, 2);
     const g = inv[0], lead = groupMembers(g)[0];
     const ctx = { ...ctxWith(lead), q: { r1: lead }, r1: lead.name, g1: g.name, g2: (inv[1] || g).name };
-    dialog(pickFresh(GRUPOS.invitacion), ctx, () => {
+    scene("invite", pickFresh(GRUPOS.invitacion), ctx, () => {
       body().innerHTML = `
         <div class="story-card">
           <p class="eyebrow">🤝 Te quieren en su grupo</p>
@@ -574,7 +576,7 @@ const Story = (() => {
       const [a, b] = shuffle(groupMembers(mine));
       const other = live.find((g) => g !== mine) || mine;
       const ctx = { ...ctxWith(a, { r2: b || a }), q: { r1: a, r2: b || a, r3: b || a }, r1: a.name, r2: (b || a).name, g1: mine.name, g2: other.name };
-      return dialog(pickFresh(GRUPOS.apoyo), ctx, () => {
+      return scene("groupEvent", pickFresh(GRUPOS.apoyo), ctx, () => {
         S.advice += 3;
         Toast.show(`${mine.icon} Tu grupo te apoya`, "+3 en el próximo reto");
         then();
@@ -584,7 +586,7 @@ const Story = (() => {
       const a = pick1(groupMembers(mine));
       const other = live.find((g) => g !== mine) || mine;
       const ctx = { ...ctxWith(a), q: { r1: a }, r1: a.name, g1: mine.name, g2: other.name, tension: true };
-      return dialog(pickFresh(GRUPOS.roce), ctx, then, [
+      return scene("groupEvent", pickFresh(GRUPOS.roce), ctx, then, [
         { txt: "Tienes razón. Estoy contigo, no lo dudes.", rel: { r1: 1 }, reply: ["r1", "Eso quería oír."] },
         { txt: "Yo hablo con quien quiera, {r1}.", rel: { r1: -2 }, bonus: 120, reply: ["r1", "Vale. Pues ya sé a qué atenerme."] },
       ]);
@@ -608,7 +610,7 @@ const Story = (() => {
           { txt: "Pues yo con {r2}. Tiene razón.", effect: "g2", reply: ["r2", "¿Ves? Hasta {yo} lo ve."] },
           { txt: "(Seguir a lo tuyo, que esto no va contigo)", effect: "nada", reply: ["r1", "Muy bien, Suiza. Tú sigue cosiendo."] },
         ];
-    dialog(ev.lines, ctx, then, choices.map((c) => ({ ...c, after: c.effect })));
+    scene("groupEvent", ev.lines, ctx, then, choices.map((c) => ({ ...c, after: c.effect })));
     // Consecuencias: el choque cambia cómo te ven los dos grupos
     pendingSide = (eff) => {
       if (eff === "g1") { sideWith(G1, 1); sideWith(G2, -1); Toast.show(`${G1.icon} ${G1.name} te lo agradece`, `${G2.icon} ${G2.name} toma nota`); }
@@ -743,7 +745,7 @@ const Story = (() => {
     const q = qById(m.id);
     const bank = m.kind === "salvada" ? (m.fair ? MEMORIA.gracias.justa : MEMORIA.gracias.peor) : m.fair ? MEMORIA.rencor.justo : MEMORIA.rencor.injusto;
     const v = pickFresh(bank);
-    dialog(v.lines, { ...ctxWith(q), q: { r1: q }, r1: q.name, tension: m.kind !== "salvada" }, () => {
+    scene("memoryTalk", v.lines, { ...ctxWith(q), q: { r1: q }, r1: q.name, tension: m.kind !== "salvada" }, () => {
       if (v.after) changeRel(q, v.after);
       then();
     }, v.choices);
@@ -875,26 +877,26 @@ const Story = (() => {
   function workroom() {
     const ctx = ctxWith(pick1(S.rivals));
     let lines;
-    const scene = (then) => {
+    const wscene = (then) => {
       const r = Math.random();
       if (r < 0.12) { const c = pickFresh(JAVIS.consejo); return dialog(c.lines, ctxWith(pick1(S.rivals)), then, c.choices); }
       if (S.groups && r < 0.4) return groupEvent(then);
       return (r < 0.72 ? roleScene : maybeEvent)(then);
     };
-    const go = () => historyScene(() => memoryTalk(() => pactScene(() => nemesisScene(() => fameScene(() => rolePassives(() => (S.ep >= 2 && !S.flags.groups && S.rivals.length >= 5 ? formGroups : scene)(() => miniChallenge(() => hub(() => announce())))))))));
+    const go = () => (ensureIdentities(), historyScene(() => memoryTalk(() => pactScene(() => nemesisScene(() => fameScene(() => rolePassives(() => (S.ep >= 2 && !S.flags.groups && S.rivals.length >= 5 ? formGroups : wscene)(() => directorScene(() => miniChallenge(() => hub(() => announce())))))))))));
     if (S.ep === 1 && twistOf() === "suerte" && S.luck === undefined) {
       return dialog(seasonInfo().intro, ctx, () => pickLuckBox(() => dialog(pickFresh(HISTORIA.tallerPrimerDia), ctxWith(pick1(S.rivals)), go)));
     }
     if (S.ep === 1) lines = [...seasonInfo().intro, ...pickFresh(HISTORIA.tallerPrimerDia)];
     else lines = [...pickFresh(HISTORIA.tallerHost), ...(S.out.length ? pickFresh(HISTORIA.tallerTrasExpulsion) : [])];
-    dialog(lines, ctx, go);
+    scene("workroom", lines, ctx, go);
   }
   // Evento aleatorio del taller: varias reinas y tú eliges bando
   function maybeEvent(then) {
     if (S.rivals.length < 3 || Math.random() < 0.35) return then();
     const ev = pickFresh(HISTORIA.eventos);
     const ctx = ctxWith(pick1(S.rivals));
-    dialog(ev.lines, ctx, then, ev.choices);
+    scene("maybeEvent", ev.lines, ctx, then, ev.choices);
   }
   // Lo que hacen los roles por su cuenta cada semana
   function rolePassives(then) {
@@ -923,7 +925,7 @@ const Story = (() => {
     const sc = pickFresh(role.escenas);
     const ctx = ctxWith(q);
     reveal(q);
-    dialog(sc.lines, { ...ctx, tension: S.roles[q.id] === "villana" }, then, sc.choices);
+    scene("roleScene", sc.lines, { ...ctx, tension: S.roles[q.id] === "villana" }, then, sc.choices);
   }
   // Confesionario: una compañera habla de ti a cámara
   function confesionario(then) {
@@ -933,7 +935,7 @@ const Story = (() => {
     const role = roleOf(q);
     const line = pickFresh(relOf(q) >= 1 ? role.confesionario.bien : relOf(q) <= -1 ? role.confesionario.mal : Math.random() < 0.5 ? role.confesionario.bien : role.confesionario.mal);
     reveal(q);
-    dialog([["r1", "🎥 (Al confesionario) " + line]], { ...ctxWith(q), q: { r1: q }, r1: q.name }, then);
+    scene("confesionario", [["r1", "🎥 (Al confesionario) " + line]], { ...ctxWith(q), q: { r1: q }, r1: q.name }, then);
   }
 
   // Tiempo libre: eliges con quién hablar y cómo
@@ -1027,7 +1029,7 @@ const Story = (() => {
     persona({ pina: "kind", cotilleo: "drama", consejo: "focus", pacto: "kind" }[kind] || "mean");
     if (kind === "debil") {
       const t = traitsOf(q), w = RASGOS.deb[t.deb];
-      return dialog([["me", `Oye, ${q.name}... ¿qué tal llevas lo tuyo? Ya sabes: ${w.n.toLowerCase()}.`], ["r1", pick1(["¿Perdona? ¿A qué viene eso?", "Qué baja has caído, {yo}.", "...No me hables."])]], { ...ctx, tension: true }, () => {
+      return scene("talkInner", [["me", `Oye, ${q.name}... ¿qué tal llevas lo tuyo? Ya sabes: ${w.n.toLowerCase()}.`], ["r1", pick1(["¿Perdona? ¿A qué viene eso?", "Qué baja has caído, {yo}.", "...No me hables."])]], { ...ctx, tension: true }, () => {
         S.form[q.id] = (S.form[q.id] || 0) - (t.deb === "provocable" ? 9 : 6);
         S.points += 300;
         changeRel(q, -1);
@@ -1040,7 +1042,7 @@ const Story = (() => {
     if (kind === "pacto") {
       const t = traitsOf(q);
       const ok = Nem.feel(q.id, S.queen.id) >= -1 && (t.car !== "orgullosa" || Math.random() < 0.5);
-      return dialog([["me", "¿Y si vamos juntas en esto? Tú me cubres y yo te cubro."], ["r1", ok ? "Trato hecho. Pero si me la juegas, lo sabrá todo el taller." : "Mmm... no. Prefiero ir a mi aire."]], ctx, () => {
+      return scene("talkInner", [["me", "¿Y si vamos juntas en esto? Tú me cubres y yo te cubro."], ["r1", ok ? "Trato hecho. Pero si me la juegas, lo sabrá todo el taller." : "Mmm... no. Prefiero ir a mi aire."]], ctx, () => {
         if (ok) { S.pacts = { ...(S.pacts || {}), [q.id]: 1 }; nemEvent("pact", S.queen, q); Toast.show(`🤝 Pacto con ${q.name}`, "Te ayudará en los retos de equipo y te contará secretos"); }
         then();
       });
@@ -1086,7 +1088,7 @@ const Story = (() => {
       if (f && !isNem(q) && Math.random() < 0.5) lines = [["r1", pickFresh(FAMA[f].saludo)], ...lines];
       if (isNem(q)) lines = [["r1", pick1(["¿Qué quieres tú ahora?", "Mira quién viene...", "Uy, la que faltaba."])], ...lines];
     }
-    dialog(lines, ctx, () => {
+    scene("talkInner", lines, ctx, () => {
       after();
       then();
     });
@@ -1313,6 +1315,7 @@ const Story = (() => {
         if (!r.me) S.form[r.q.id] = clamp((S.form[r.q.id] || 0) + (r === winner ? 2 : bottomRows.includes(r) ? 3 : 0) + rnd(-2, 2), -10, 10);
       });
       S.points += myScore * 10 + (won ? 500 : 0);
+      logEv(`Gana el reto ${won ? S.queen.name : winner.q.name}; en el bottom: ${bottomRows.map((r) => r.q.name).join(" y ")}`);
       if (won) { S.wins++; growAttr(((RETOS[S.curTipo] || {}).attrs || [])[0]); earn(300, "Ganas el reto de la semana"); }
       else if (myPos <= 2 && !bottom) earn(80, "Entre las mejores de la semana");
       if (bottom) S.bottoms++;
@@ -1823,10 +1826,10 @@ const Story = (() => {
         if (o.kind === "nemesis") {
           const meB = res.bottomRows.some((r) => r.me), herB = res.bottomRows.some((r) => r.q === o.q);
           const k = meB && !herB ? "gloat" : res.winner.me ? "envidia" : "tension";
-          return dialog(NEMESIS.untucked[k], { ...ctx, q: { r1: o.q }, r1: o.q.name, tension: true }, then, nemChoices());
+          return scene("untucked", NEMESIS.untucked[k], { ...ctx, q: { r1: o.q }, r1: o.q.name, tension: true }, then, nemChoices());
         }
         if (o.kind === "gracias") {
-          return dialog(pickFresh(GRACIAS_CORAZON), { ...ctx, q: { r1: o.q }, r1: o.q.name }, then, [
+          return scene("untucked", pickFresh(GRACIAS_CORAZON), { ...ctx, q: { r1: o.q }, r1: o.q.name }, then, [
             { txt: "Te debo una muy grande. Cuenta conmigo para lo que sea.", rel: { r1: 1 }, reply: ["r1", "Pues lo apunto, eh. Que tengo buena memoria."] },
             { txt: "¿Por qué yo? No lo entiendo...", reply: ["r1", "Porque creo en ti. Y porque quería ver tu cara. Ha merecido la pena."] },
           ]);
@@ -1836,14 +1839,14 @@ const Story = (() => {
           reveal(o.q);
           const base = o.kind === "enemiga" ? HISTORIA.untucked.enemiga[0] : pickFresh(HISTORIA.untucked[o.kind]);
           const lines = [["r1", pick1(rr.untucked)], ...base];
-          if (o.kind === "enemiga") return dialog(lines, ctx, then, HISTORIA.untucked.enemigaChoices);
-          return dialog(lines, ctx, () => {
+          if (o.kind === "enemiga") return scene("untucked", lines, ctx, then, HISTORIA.untucked.enemigaChoices);
+          return scene("untucked", lines, ctx, () => {
             changeRel(o.q, (o.kind === "bottom" ? 2 : 1) + (S.roles[o.q.id] === "graciosa" ? 1 : 0));
             then();
           });
         }
-        if (o.kind === "enemiga") return dialog(HISTORIA.untucked.enemiga[0], ctx, then, HISTORIA.untucked.enemigaChoices);
-        dialog(pickFresh(HISTORIA.untucked[o.kind]), ctx, () => {
+        if (o.kind === "enemiga") return scene("untucked", HISTORIA.untucked.enemiga[0], ctx, then, HISTORIA.untucked.enemigaChoices);
+        scene("untucked", pickFresh(HISTORIA.untucked[o.kind]), ctx, () => {
           changeRel(o.q, o.kind === "bottom" ? 2 : 1);
           then();
         });
@@ -2037,6 +2040,7 @@ const Story = (() => {
     if (S.track[q.id] && S.track[q.id][S.ep] && S.epNames[S.ep] !== "Final") mark(q, "ELIM");
     S.rivals = S.rivals.filter((r) => r !== q);
     S.out.unshift(q);
+    logEv(`${q.name} es eliminada`);
     if (isNem(q)) {
       S.nemesis.done = "fuera";
       S.nemesis.ep = S.ep;
@@ -2286,7 +2290,7 @@ const Story = (() => {
     header();
     $("#story-ep").textContent = "El reencuentro";
     const all = () => [...S.rivals, ...S.out];
-    dialog([...pickFresh(REENCUENTRO.intro), ...pickFresh(JAVIS.reencuentro)], ctxWith(S.out[0] || S.rivals[0]), pickTalk);
+    scene("reunion", [...pickFresh(REENCUENTRO.intro), ...pickFresh(JAVIS.reencuentro)], ctxWith(S.out[0] || S.rivals[0]), pickTalk);
     function pickTalk() {
       if (!S.out.length) return drama();
       body().innerHTML = `
@@ -2305,7 +2309,7 @@ const Story = (() => {
         if (roleOf(q)) lines.push(["r1", roleOf(q).reencuentro]);
         reveal(q);
         const ctx = { ...ctxWith(q), q: { r1: q, r2: S.rivals[0], r3: S.rivals[1] }, r1: q.name, tension: r <= -1 };
-        dialog(lines, ctx, () => {
+        scene("reunion", lines, ctx, () => {
           if (r >= 0) changeRel(q, 1);
           drama();
         }, r <= -1 ? REENCUENTRO.choicesMala : undefined);
@@ -2315,13 +2319,13 @@ const Story = (() => {
       const nq = S.nemesis && S.nemesis.done !== "tregua" ? qById(S.nemesis.id) : null;
       if (nq && !S.flags.nemReunion) {
         S.flags.nemReunion = 1;
-        return dialog(NEMESIS.reencuentro, { ...ctxWith(nq), q: { r1: nq }, r1: nq.name, tension: true }, missSimpatia, NEMESIS.reencuentroChoices);
+        return scene("reunion", NEMESIS.reencuentro, { ...ctxWith(nq), q: { r1: nq }, r1: nq.name, tension: true }, missSimpatia, NEMESIS.reencuentroChoices);
       }
       const everyone = all();
       const a = everyone.find((q) => ["villana", "cizanera", "diva"].includes(S.roles[q.id])) || pick1(everyone);
       const b = pick1(everyone.filter((q) => q !== a)) || a;
       reveal(a);
-      dialog(pickFresh(REENCUENTRO.drama), { ...ctxWith(a, { r2: b }), q: { r1: a, r2: b, r3: b }, r1: a.name, r2: b.name, tension: true }, missSimpatia);
+      scene("reunion", pickFresh(REENCUENTRO.drama), { ...ctxWith(a, { r2: b }), q: { r1: a, r2: b, r3: b }, r1: a.name, r2: b.name, tension: true }, missSimpatia);
     }
   }
   function missSimpatia() {
@@ -3845,6 +3849,101 @@ const Story = (() => {
   }
 
 
+  // ------------------------------ Director de escenas (IA) ------------------------------
+  // Identidad propia de cada reina (se crea una vez y se recuerda entre temporadas)
+  const ID_KEY = "dftc-identidades";
+  const idOf = (q) => (store.get(ID_KEY, {}) || {})[q.id] || null;
+  let idsBusy = null;
+  function ensureIdentities() {
+    if (!IA.ready() || idsBusy) return idsBusy;
+    const all = store.get(ID_KEY, {}) || {};
+    const need = [...S.rivals, ...S.out].filter((q) => !all[q.id]);
+    if (!need.length) return null;
+    idsBusy = IA.chat(
+      "Creas fichas de personaje para un videojuego sobre un concurso drag. Cada reina es un personaje de ficción del juego, con su nombre artístico como única referencia: inventa una personalidad rica y distinta para cada una, sin datos de su vida real.",
+      `Crea una identidad para cada una de estas reinas: ${need.map((q) => `${q.id} (${q.name}${S.roles[q.id] && ROLES_HISTORIA[S.roles[q.id]] ? `, en el taller es ${ROLES_HISTORIA[S.roles[q.id]].name}` : ""})`).join("; ")}.
+Devuelve JSON {"reinas":[{"id":"...","voz":"cómo habla (acento, registro, ritmo)","muletillas":["2 o 3 expresiones suyas"],"drag":"su estilo drag en una frase","pasado":"de dónde viene y qué la trajo al drag (inventado)","ambicion":"qué quiere demostrar","miedo":"su inseguridad","trato":"cómo trata a las demás"}]}. Que todas suenen muy distintas entre sí.`,
+      { json: true, max: 3500, temp: 1, timeout: 45000 },
+    ).then((r) => {
+      idsBusy = null;
+      if (!r || !Array.isArray(r.reinas)) return;
+      const cur = store.get(ID_KEY, {}) || {};
+      r.reinas.forEach((x) => { if (x && x.id && qById(x.id)) cur[x.id] = x; });
+      store.set(ID_KEY, cur);
+    });
+    return idsBusy;
+  }
+  const idTxt = (q) => {
+    const i = idOf(q);
+    return i ? `Identidad de ${q.name}: habla ${i.voz}; muletillas: ${(i.muletillas || []).join(", ")}; drag: ${i.drag}; pasado: ${i.pasado}; quiere ${i.ambicion}; teme ${i.miedo}; con las demás: ${i.trato}.` : "";
+  };
+  // Memoria de lo que pasa en la temporada (para que las escenas tengan continuidad)
+  function logEv(t) {
+    S.log = [...(S.log || []), `Ep.${S.ep}: ${t}`].slice(-30);
+  }
+  const memTxt = () => ((S.log || []).length ? `Lo que ha pasado hasta ahora (más reciente al final):\n${S.log.slice(-14).join("\n")}` : "");
+  const str = (x) => (typeof x === "string" ? x : x && typeof x === "object" ? x.t || x.texto || x.text || "" : x == null ? "" : String(x));
+  function waitDots() {
+    body().innerHTML = `<div class="story-card ia-wait"><div class="ia-dots"><i></i><i></i><i></i></div></div>`;
+  }
+  // Reescribe una escena con la voz de cada personaje, sin cambiar lo que pasa ni sus efectos
+  function scene(kind, lines, ctx, then, choices) {
+    if (!IA.ready() || !lines || !lines.length || S.meOut) return dialog(lines, ctx, then, choices);
+    const keys = [...new Set(lines.map((l) => l[0]))];
+    const cast = keys.map((k) => {
+      const w = who(k, ctx);
+      const q = ctx.q && ctx.q[k];
+      return `- ${k} = ${w.name}${q ? `. ${aiProfile(q)} ${idTxt(q)}` : k === "me" ? " (la protagonista, la jugadora)" : k === "host" ? " (Supreme de Luxe, presentadora)" : ""}`;
+    }).join("\n");
+    const orig = lines.map(([k, t]) => `${k}: ${fill(t, ctx)}`).join("\n");
+    const ch = (choices || []).map((c, i) => `${i + 1}. ${fill(c.txt, ctx)}${c.reply ? ` → responde ${c.reply[0]}: ${fill(c.reply[1], ctx)}` : ""}`).join("\n");
+    waitDots();
+    IA.chat(
+      `Eres el director de escena del juego. Reescribes escenas para que cada personaje hable con SU voz e identidad y para que haya continuidad con lo ocurrido en la temporada. ${aiSeason()}`,
+      `Escena (${kind}). Personajes:\n${cast}\n${memTxt()}\n\nGuion original (mismos hablantes, mismo orden y mismo sentido; puedes cambiar las palabras, añadir detalles de su identidad y referencias a lo ocurrido):\n${orig}\n${ch ? `\nOpciones de respuesta de la protagonista (reescríbelas con el mismo sentido) y la réplica a cada una:\n${ch}` : ""}
+Devuelve JSON {"lineas":[{"k":"clave del hablante","t":"texto"}],"opciones":[{"t":"lo que dice la protagonista","respuesta":"réplica"}]}. Máximo 30 palabras por línea. Usa solo estas claves: ${keys.join(", ")}.`,
+      { json: true, max: 900, temp: 0.95 },
+    ).then((r) => {
+      const ok = r && Array.isArray(r.lineas) && r.lineas.length >= Math.max(1, lines.length - 1) && r.lineas.length <= lines.length + 2 && r.lineas.every((l) => l && keys.includes(l.k) && str(l.t).trim());
+      if (!ok) return dialog(lines, ctx, then, choices);
+      const nl = r.lineas.map((l) => [l.k, IA.clean(str(l.t))]);
+      let nc = choices;
+      if (choices && Array.isArray(r.opciones) && r.opciones.length === choices.length) {
+        nc = choices.map((c, i) => { const o = r.opciones[i] || {}; const t = IA.clean(str(o.t)); const rp = IA.clean(str(o.respuesta)); return { ...c, txt: t || c.txt, reply: c.reply && rp ? [c.reply[0], rp] : c.reply }; });
+      }
+      dialog(nl, ctx, then, nc);
+    });
+  }
+  // Una situación nueva cada episodio, inventada a partir de las identidades y lo que ha pasado
+  function directorScene(then) {
+    if (!IA.ready() || S.rivals.length < 2 || S.meOut) return then();
+    // Protagonistas: tu némesis, una aliada o la reina con más historia reciente
+    const nq = nemActive();
+    const pool = [nq, ...allies(), ...enemies(), ...shuffle(S.rivals)].filter(Boolean);
+    const a = pool[0], b = pool.find((q) => q !== a) || S.rivals.find((q) => q !== a);
+    const ctx = { ...ctxWith(a, { r2: b }), q: { r1: a, r2: b, r3: b }, r1: a.name, r2: b.name };
+    waitDots();
+    IA.chat(
+      `Eres el director de un reality drag. Inventas una situación nueva en el taller entre bastidores, coherente con la identidad de cada reina y con lo que ha pasado en la temporada. Nada repetido ni genérico. ${aiSeason()}`,
+      `Personajes:\n- r1 = ${a.name}. ${aiProfile(a)} ${idTxt(a)}\n- r2 = ${b.name}. ${aiProfile(b)} ${idTxt(b)}\n- me = ${S.queen.name} (la protagonista)\n${memTxt()}\n
+Escribe una escena corta (3 a 5 líneas) que acabe con una decisión de la protagonista, y 3 opciones con efectos distintos.
+Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que dice o hace la protagonista","respuesta":{"k":"r1|r2","t":"réplica"},"efecto":{"r1":-2..2,"r2":-2..2,"fama":"kind|mean|drama|focus","foco":-3..3}}]}`,
+      { json: true, max: 1000, temp: 1 },
+    ).then((r) => {
+      if (!r || !Array.isArray(r.lineas) || !r.lineas.length || !Array.isArray(r.opciones) || r.opciones.length < 2) return then();
+      const lines = r.lineas.filter((l) => l && ["r1", "r2", "me"].includes(l.k) && str(l.t).trim()).slice(0, 6).map((l) => [l.k, IA.clean(str(l.t))]);
+      if (!lines.length) return then();
+      const choices = r.opciones.slice(0, 3).map((o) => {
+        const e = o.efecto || {};
+        const rel = {};
+        ["r1", "r2"].forEach((k) => { const v = clamp(Math.round(+e[k] || 0), -2, 2); if (v) rel[k] = v; });
+        const rep = o.respuesta && ["r1", "r2"].includes(o.respuesta.k) && str(o.respuesta.t).trim() ? [o.respuesta.k, IA.clean(str(o.respuesta.t))] : typeof o.respuesta === "string" && o.respuesta.trim() ? ["r1", IA.clean(o.respuesta)] : null;
+        return { txt: IA.clean(str(o.t)) || "...", rel, persona: P_KEYS.includes(e.fama) ? e.fama : null, adv: clamp(Math.round(+e.foco || 0), -3, 3) || 0, reply: rep };
+      });
+      dialog(lines, ctx, () => { logEv(`Escena en el taller entre ${S.queen.name}, ${a.name} y ${b.name}`); then(); }, choices);
+    });
+  }
+
   // ------------------------------ IA en directo (Ollama) ------------------------------
   // Ficha de una reina para la IA: personalidad, rol, rasgos, relación e historia contigo
   function aiProfile(q) {
@@ -3863,6 +3962,7 @@ const Story = (() => {
       sc ? `Historia entre ellas: ${sc}.` : "",
       labs.length ? `Sus resultados esta temporada: ${labs.join(", ")}.` : "",
       f ? `En el taller, ${S.queen.name} tiene fama de ser ${FAMA[f].n}.` : "",
+      idTxt(q),
     ].filter(Boolean).join(" ");
   }
   const aiSeason = () => `Temporada: ${S.season.name}. Episodio ${S.ep}. Quedan ${S.rivals.length + 1} reinas. La protagonista (la jugadora) es ${S.queen.name}. Resultados de ${S.queen.name}: ${Object.values(S.track.me || {}).join(", ") || "aún ninguno"}.`;
@@ -4124,6 +4224,7 @@ const Story = (() => {
     if (kind === "betray") Nem.addFeel(b.id, a.id, -4);
     if (kind === "pact") { Nem.addFeel(b.id, a.id, 1); Nem.addFeel(a.id, b.id, 1); }
     Nem.scar(a.id, b.id, kind);
+    logEv({ elim: `${a.name} gana el lip sync a ${b.name}`, vote: `${a.name} decide que ${b.name} se vaya`, save: `${a.name} salva a ${b.name}`, humill: `${a.name} ataca el punto débil de ${b.name}`, betray: `${a.name} traiciona a ${b.name}`, pact: `${a.name} y ${b.name} hacen un pacto` }[kind] || kind);
   }
   // Rango de cada reina en el taller (como la jerarquía de capitanes)
   function rankOf(q) {
@@ -4146,7 +4247,7 @@ const Story = (() => {
       if (bank) lines.push([`r${lines.length}`, pick1(bank).replace("{s}", last.s)]);
     });
     const ctx = { ...ctxWith(cands[0].q, { r2: cands[1] && cands[1].q }), q: { r1: cands[0].q, r2: cands[1] ? cands[1].q : cands[0].q }, r1: cands[0].q.name, r2: cands[1] ? cands[1].q.name : "", tension: cands.some((c) => c.f < 0) };
-    dialog(lines.map(([k, t], i) => [i === 0 ? "host" : i === 1 ? "r1" : "r2", t]), ctx, then);
+    scene("historyScene", lines.map(([k, t], i) => [i === 0 ? "host" : i === 1 ? "r1" : "r2", t]), ctx, then);
   }
   // Rumores del taller: peleas, ascensos y viejas cuentas de otras temporadas
   function radioLines() {
@@ -4177,7 +4278,7 @@ const Story = (() => {
       S.advice -= 5;
       nemEvent("betray", q, S.queen);
       learnTrait(q, "car", "Ahora lo sabes");
-      return dialog([["r1", pick1(["Lo siento, {yo}. Esto es una competición y yo he venido a ganar.", "He contado a todas lo que me dijiste. No es personal."])], ["me", "(No me lo puedo creer...)"]], ctx, () => {
+      return scene("pactScene", [["r1", pick1(["Lo siento, {yo}. Esto es una competición y yo he venido a ganar.", "He contado a todas lo que me dijiste. No es personal."])], ["me", "(No me lo puedo creer...)"]], ctx, () => {
         changeRel(q, -4);
         body().innerHTML = `
           <div class="story-card">
@@ -4194,7 +4295,7 @@ const Story = (() => {
     const target = shuffle(S.rivals.filter((r) => r !== q)).find((r) => ["deb", "fort", "car"].some((sl) => !Nem.knows(r.id, sl)));
     if (!target) return then();
     const slot = ["deb", "fort", "car"].find((sl) => !Nem.knows(target.id, sl));
-    dialog([["r1", `Te cuento algo de ${target.name}, como buena aliada...`], ["r1", `${RASGOS[slot][traitsOf(target)[slot]].d}. Úsalo bien.`]], ctx, () => { learnTrait(target, slot, `Tu aliada te cuenta`); then(); });
+    scene("pactScene", [["r1", `Te cuento algo de ${target.name}, como buena aliada...`], ["r1", `${RASGOS[slot][traitsOf(target)[slot]].d}. Úsalo bien.`]], ctx, () => { learnTrait(target, slot, `Tu aliada te cuenta`); then(); });
   }
   // Tablero de rivales: rango, rasgos descubiertos e historia contigo
   function openBoard() {
@@ -4280,7 +4381,7 @@ const Story = (() => {
     if (!S.nemesis.announced) {
       S.nemesis.announced = true;
       reveal(q);
-      return dialog(NEMESIS.nace[S.nemesis.origin] || NEMESIS.nace.choque, ctx, () => {
+      return scene("nemesisScene", NEMESIS.nace[S.nemesis.origin] || NEMESIS.nace.choque, ctx, () => {
         body().innerHTML = `
           <div class="story-card">
             <p class="eyebrow">⚔️ Nace una némesis</p>
@@ -4297,7 +4398,7 @@ const Story = (() => {
     const nb = meLab.filter((l) => /^BTM|ELIM/.test(l)).length, nw = meLab.filter((l) => l === "WIN").length;
     const f = fame();
     const key = nb >= 2 && Math.random() < 0.6 ? "bottoms" : nw >= 2 && Math.random() < 0.6 ? "wins" : f && Math.random() < 0.7 ? f : "generic";
-    dialog(pickFresh(NEMESIS.pullas[key]), ctx, then, nemChoices());
+    scene("nemesisScene", pickFresh(NEMESIS.pullas[key]), ctx, then, nemChoices());
   }
   function nemChoices() {
     return [
@@ -4318,7 +4419,7 @@ const Story = (() => {
     // Las demás se acercan o se apartan según tu fama
     if (f === "kind") changeRel(pick1(S.rivals), 1);
     if (f === "mean" && Math.random() < 0.5) changeRel(pick1(S.rivals.filter((r) => !isNem(r))), -1);
-    dialog(v.lines, { ...ctxWith(q), tension: f === "mean" }, then, v.choices);
+    scene("fameScene", v.lines, { ...ctxWith(q), tension: f === "mean" }, then, v.choices);
   }
   // Valoraciones del jurado personalizadas con tu historia en la temporada
   function personalCrit() {
