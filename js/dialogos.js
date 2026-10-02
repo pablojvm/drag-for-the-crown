@@ -112,10 +112,10 @@ const TEMPORADAS_HISTORIA = {
   },
   es3: {
     twist: "repesca",
-    lema: "La temporada de la repesca",
+    lema: "La temporada de la Segunda Oportunidrag",
     intro: [
       ["host", "Bienvenidas a la tercera temporada. Y os aviso: esta vez, que te vayas no significa que se acabe."],
-      ["host", "A mitad de temporada habrá una REPESCA. Las eliminadas se jugarán volver a la competición."],
+      ["host", "A mitad de temporada llegará la SEGUNDA OPORTUNIDRAG. Las eliminadas se jugarán volver a la competición."],
       ["judge", "Así que ni las que se van pueden relajarse... ni las que se quedan."],
     ],
   },
@@ -1179,3 +1179,186 @@ ARMARIO.peluca.push(...[{"id": "tw-f3d00", "n": "Recogido de madrina con encaje"
 // Reveals
 TEMAS_PASARELA.push({"id": "P05", "n": "Érase una vez… mi reveal", "tag": "Glamour", "d": "Un look que se transforma en la pasarela y cuenta una historia"});
 ARMARIO.look.push(...[{"id": "tr-cf40a", "rv": "tr-cf40b", "n": "Gabardina de oficina → Sirena de lentejuela roja", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-cf41a", "rv": "tr-cf41b", "n": "Capa de villana → Heroína de oro y sol", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-cf42a", "rv": "tr-cf42b", "n": "Abrigo capullo → Mariposa monarca", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-cf43a", "rv": "tr-cf43b", "n": "Rebeca de secretaria → Mini fucsia de cristales", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-cf44a", "rv": "tr-cf44b", "n": "Abrigo de pelo blanco → Vestido de flores de primavera", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-cf45a", "rv": "tr-cf45b", "n": "Hábito azul marino → Látex negro con cruz", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-df10a", "rv": "tr-df10b", "n": "Volantes de tormenta → Falda arcoíris", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-df11a", "rv": "tr-df11b", "n": "Caja de regalo → Mono de cristales", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-df12a", "rv": "tr-df12b", "n": "Luto con velo → Novia en blanco y negro", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-df13a", "rv": "tr-df13b", "n": "Uniforme de limpieza → Vedette dorada con plumas", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-df14a", "rv": "tr-df14b", "n": "Terciopelo muy serio → Polisón con shorts dorados", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-df15a", "rv": "tr-df15b", "n": "Chubasquero amarillo → Lluvia de cristales", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-c240a", "rv": "tr-c240b", "n": "Lienzo en blanco → Cuadro pintado a mano", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-c241a", "rv": "tr-c241b", "n": "Oruga acolchada → Libélula iridiscente", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-c242a", "rv": "tr-c242b", "n": "Uniforme de colegio → Corsé punk de cuadros", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-c243a", "rv": "tr-c243b", "n": "Gabardina gris → Terciopelo rojo con capa de cristal", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-c244a", "rv": "tr-c244b", "n": "Vestido de baile rojo → Mini de flecos", "s": "glam", "t": [], "th": "P05"}, {"id": "tr-c245a", "rv": "tr-c245b", "n": "Campesina de cuento → Princesa de estrellas", "s": "glam", "t": [], "th": "P05"}]);
+
+// Estadísticas del armario: [impacto 1-5, movimiento 1-5]
+const ARMARIO_STATS = {"mini-cristales":[1,5],"perlas-sirena":[1,4],"sirena-azul":[1,2],"pageant-fucsia":[2,5],"kimono-lila":[2,4],"lentejuela-roja":[2,4],"malla-oro":[3,2],"cisne-plumas":[3,1],"discoball":[3,4],"oro-plumas":[4,2],"petalos":[4,2],"capa-armino":[4,2],"plumas-rojo":[5,1],"manto-real":[5,1],"tutu-dulces":[1,4],"chandal":[1,5],"muneca-menta":[2,1],"hombreras":[2,4],"vedette":[3,2],"piruletas":[3,4],"tarta":[4,3],"palomitas":[4,5],"payaso-couture":[5,2],"esmoquin":[1,5],"charol-pinchos":[1,5],"punk":[2,5],"body-leopardo":[2,5],"armadura-negra":[3,5],"latex-rojo":[3,4],"latex-curvas":[4,5],"leopardo-abrigo":[4,1],"opart":[5,2],"astronauta":[1,3],"mono-diamantes":[1,5],"latex-plata":[2,5],"cromo-halo":[3,5],"acrilico":[3,5],"espacial":[4,4],"aros-escultura":[5,2],"flores":[1,4],"dragon-rojo":[1,3],"manola":[2,2],"bata-cola":[3,2],"fallera":[3,2],"flamenca-fucsia":[4,2],"flamenca-lunares":[5,4],"t02-c2003":[1,5],"t02-c2001":[1,4],"t02-1a109":[1,5],"t02-1a108":[1,3],"t02-1a106":[1,3],"t02-c2006":[2,4],"t02-c2009":[2,5],"t02-1a104":[2,5],"t02-1a110":[2,1],"t02-1a102":[2,3],"t02-c2004":[3,5],"t02-c2008":[3,5],"t02-1a105":[3,2],"t02-c2011":[3,5],"t02-c2005":[3,5],"t02-c2002":[4,3],"t02-1a100":[4,3],"t02-1a111":[4,3],"t02-c2000":[4,5],"t02-c2010":[4,4],"t02-1a101":[5,1],"t02-1a103":[5,2],"t02-1a107":[5,1],"t02-c2007":[5,1],"t03-b9d06":[1,4],"t03-b9d00":[1,1],"t03-b9d05":[1,3],"t03-b9d09":[2,3],"t03-b9d01":[2,1],"t03-b9d08":[3,1],"t03-b9d04":[3,2],"t03-b9d07":[3,1],"t03-b9d11":[4,1],"t03-b9d02":[4,2],"t03-b9d10":[5,1],"t03-b9d03":[5,1],"t04-b1005":[1,5],"t04-b1006":[1,2],"t04-b1011":[1,4],"t04-b1009":[2,5],"t04-b1004":[2,3],"t04-b1008":[3,3],"t04-b1002":[3,2],"t04-b1001":[3,1],"t04-b1010":[4,1],"t04-b1003":[4,1],"t04-b1000":[5,1],"t04-b1007":[5,1],"t06-33e01":[1,3],"t06-33e08":[1,4],"t06-33e02":[1,3],"t06-33e09":[2,3],"t06-33e03":[2,3],"t06-33e00":[3,1],"t06-33e07":[3,2],"t06-33e04":[4,2],"t06-33e10":[4,1],"t06-33e05":[5,1],"t06-33e11":[5,1],"t07-8f708":[1,3],"t07-8f709":[1,5],"t07-8f711":[1,4],"t07-8f703":[2,4],"t07-8f702":[2,2],"t07-8f700":[3,2],"t07-8f704":[3,2],"t07-8f706":[3,3],"t07-8f707":[4,2],"t07-8f701":[4,1],"t07-8f710":[5,2],"t07-8f705":[5,1],"t09-a1d11":[1,2],"t09-a1d08":[1,3],"t09-a1d07":[1,3],"t09-a1d09":[2,2],"t09-a1d06":[2,3],"t09-a1d04":[3,3],"t09-a1d01":[3,4],"t09-a1d05":[3,1],"t09-a1d03":[4,1],"t09-a1d02":[4,2],"t09-a1d10":[5,1],"t09-a1d00":[5,1],"t10-ab303":[1,4],"t10-ab309":[1,2],"t10-ab311":[1,5],"t10-ab304":[2,3],"t10-ab300":[2,3],"t10-ab301":[3,4],"t10-ab307":[3,3],"t10-ab308":[3,4],"t10-ab310":[4,2],"t10-ab302":[4,3],"t10-ab305":[5,3],"t10-ab306":[5,1],"t11-c1404":[1,4],"t11-8ed06":[1,5],"t11-8ed01":[1,3],"t11-c1411":[1,2],"t11-8ed05":[2,3],"t11-c1402":[2,2],"t11-c1403":[2,3],"t11-8ed10":[2,4],"t11-c1410":[3,2],"t11-c1408":[3,2],"t11-c1405":[3,4],"t11-8ed00":[4,3],"t11-8ed08":[4,3],"t11-c1400":[4,2],"t11-c1407":[4,1],"t11-c1409":[5,1],"t11-c1401":[5,1],"t11-c1406":[5,1],"t12-34d08":[1,4],"t12-34d11":[1,5],"t12-34d03":[1,5],"t12-34d06":[2,2],"t12-34d05":[2,3],"t12-34d00":[3,2],"t12-34d04":[3,4],"t12-34d07":[3,4],"t12-34d01":[4,4],"t12-34d09":[4,1],"t12-34d02":[5,1],"t12-34d10":[5,3],"t13-09d00":[1,4],"t13-09d02":[1,4],"t13-09d03":[1,4],"t13-09d06":[2,5],"t13-09d07":[2,5],"t13-09d01":[3,5],"t13-09d08":[3,5],"t13-09d04":[3,4],"t13-09d11":[4,5],"t13-09d05":[4,5],"t13-09d09":[5,4],"t13-09d10":[5,3],"tr-c240a":[3,5],"tr-c245a":[3,5],"tr-cf44a":[3,3],"tr-cf40a":[3,5],"tr-c241a":[3,5],"tr-df15a":[3,3],"tr-c243a":[3,4],"tr-cf45a":[3,4],"tr-df13a":[3,4],"tr-c242a":[3,5],"tr-cf42a":[3,3],"tr-cf43a":[4,4],"tr-df14a":[4,4],"tr-cf41a":[4,2],"tr-df10a":[4,2],"tr-df11a":[5,3],"tr-df12a":[5,1],"tr-c244a":[5,1],"cisne":[1,4],"negra-lisa":[1,5],"maria-antonieta":[1,4],"platino":[2,3],"trenza-real":[2,5],"ondas-castanas":[3,4],"ondas-cobre":[3,3],"rizos-rubios":[4,3],"melena-roja":[4,3],"pageant-rubia":[5,1],"hollywood-cobre":[5,1],"helado":[1,5],"algodon":[1,5],"tupe-rosa":[1,5],"cardado-rubio":[2,4],"cardado-xxl":[2,3],"tirabuzones-azul":[3,2],"colmena-lila":[3,2],"corazon-verde":[3,1],"unicornio":[4,3],"disco-roja":[4,3],"rastas":[5,4],"payaso-rizos":[5,1],"pixie-bicolor":[1,5],"cresta":[1,5],"bob-bicolor":[2,4],"coleta-infinita":[2,2],"verde-neon":[3,5],"coleta-leopardo":[3,5],"mullet-leopardo":[4,4],"afro-leopardo":[4,2],"medusa":[5,2],"recogido-espacial":[1,5],"bob-plata":[1,5],"bob-cromo":[2,4],"pinchos-cromo":[3,3],"trenzas-cyber":[3,4],"arcoiris-lisa":[4,3],"ola-azul":[5,2],"mono-peineta":[1,5],"recogido-kanzashi":[1,3],"corona-flores":[2,5],"monos-lunares":[3,4],"trenzas-flores":[3,5],"peineta-rosas":[4,5],"rizos-claveles":[5,2],"tw-a4900":[1,5],"tw-bc304":[1,5],"tw-dc701":[1,4],"tw-dc706":[1,4],"tw-a4905":[1,5],"tw-dc707":[1,4],"tw-f3d01":[1,4],"tw-a4901":[1,1],"tw-bc303":[1,5],"tw-dc709":[1,3],"tw-bc313":[1,3],"tw-a4902":[2,3],"tw-dc702":[2,4],"tw-a5010":[2,1],"tw-bc314":[2,3],"tw-bc301":[2,4],"tw-f3d06":[2,2],"tw-a4909":[2,2],"tw-dc700":[2,4],"tw-dc708":[2,3],"tw-dc710":[2,2],"tw-f3d02":[2,4],"tw-bc309":[3,2],"tw-bc300":[3,3],"tw-bc305":[3,2],"tw-a4911":[3,3],"tw-a5007":[3,2],"tw-bc312":[3,3],"tw-a4910":[3,2],"tw-f3d07":[3,3],"tw-dc711":[3,2],"tw-a4904":[3,4],"tw-a5008":[3,5],"tw-bc311":[4,2],"tw-bc302":[4,1],"tw-dc703":[4,3],"tw-bc306":[4,1],"tw-f3d05":[4,1],"tw-dc705":[4,1],"tw-dc704":[4,1],"tw-bc310":[4,2],"tw-f3d11":[4,2],"tw-a4906":[4,4],"tw-bc308":[4,1],"tw-bc307":[5,1],"tw-f3d03":[5,1],"tw-f3d08":[5,2],"tw-a4903":[5,2],"tw-f3d10":[5,1],"tw-f3d00":[5,1],"tw-f3d04":[5,1],"tw-a5009":[5,1],"tw-a4907":[5,1],"tw-a4908":[5,1],"tacones-cristal":[1,5],"corona-pageant":[1,5],"mk-contorno":[1,5],"abanico-plumas":[1,3],"bolso-corazon":[1,4],"mk-cristales":[2,3],"boa":[2,5],"corona-fina":[2,1],"corona-cristal":[2,4],"collar-perlas":[3,2],"mk-oro":[3,5],"lagrimas-cristal":[3,4],"mk-dorado":[3,2],"mk-pageant":[3,3],"mk-perlas":[4,1],"banda-strass":[4,3],"guantes-strass":[4,2],"bolso-purpurina":[4,2],"guantes-opera":[5,4],"mk-gemas":[5,2],"bolso-disco":[5,1],"tiara-rubies":[5,1],"mk-flamenco":[1,5],"ramo":[1,5],"abanico-rosa":[1,3],"kanzashi":[2,4],"mk-clasico":[2,2],"mk-rosa":[3,2],"manton-crema":[3,5],"castanuelas":[3,4],"manton-rojo":[4,5],"mantilla":[4,4],"abanico-rojo":[5,1],"abanico-encaje":[5,1],"mk-holo":[1,4],"visera":[1,1],"mk-cromo":[2,2],"gafas-cyber":[2,2],"earcuffs":[3,3],"gafas-led":[3,1],"mk-uv":[4,3],"brazaletes":[4,2],"mk-neon":[5,1],"mk-gotico":[1,4],"gafas-leopardo":[1,4],"choker-corazon":[1,2],"arnes-strass":[2,3],"mk-byn":[2,2],"mk-ahumado":[2,3],"candado":[3,3],"mk-escenario":[3,3],"guantes-encaje":[4,4],"mk-grafico":[4,2],"gargantilla":[4,1],"guantes-leopardo":[5,5],"estola":[5,4],"cetro":[1,5],"bolso-pollo":[1,5],"protesis":[1,4],"mk-cartoon":[2,5],"bolso-burger":[2,5],"nariz-roja":[2,3],"aros":[3,1],"mk-muneca":[3,3],"mk-payaso":[4,4],"mk-clown":[4,3],"mk-arcoiris":[4,2],"aros-oro":[5,1],"rinonera":[5,1]};
+
+// ------------------------------ Fama y némesis ------------------------------
+// La fama sale de cómo te comportas en el taller; la némesis, de tus choques
+const FAMA = {
+  kind: {
+    n: "La madre del taller", icon: "🤱",
+    saludo: ["{yo}, ¿tienes un minuto? Es que tú siempre sabes qué decir.", "Ay, {yo}, contigo da gusto hablar.", "Todas dicen que eres la que más cuida al grupo. Y se nota."],
+    reaccion: [
+      { lines: [["r1", "{yo}, necesito ayuda con el look de esta semana. Eres la única que no me va a juzgar."]], choices: [
+        { txt: "Ven, que te lo arreglo yo en un momento.", rel: { r1: 1 }, persona: "kind", reply: ["r1", "Eres un sol. Te debo una."] },
+        { txt: "Hoy no puedo, que también tengo lo mío.", persona: "focus", adv: 2, reply: ["r1", "Vale, vale... lo entiendo."] },
+      ] },
+      { lines: [["r1", "Me han dicho que tú eres la que pone paz. ¿Me ayudas a hablar con {r2}?"]], choices: [
+        { txt: "Claro, vamos juntas.", rel: { r1: 1, r2: 1 }, persona: "kind", reply: ["r2", "Vale... os escucho."] },
+        { txt: "No me meto en lo vuestro.", persona: "focus", reply: ["r1", "Pues pensaba que eras otra cosa."] },
+      ] },
+    ],
+  },
+  mean: {
+    n: "La villana", icon: "😈",
+    saludo: ["Uy, {yo}... ¿vienes en son de paz o a morder?", "Tranquila, que ya me aparto. No vaya a ser.", "Todas hablan de ti, {yo}. Y no precisamente bien."],
+    reaccion: [
+      { lines: [["r1", "{yo}, que sepas que el taller entero está harto de tus comentarios."], ["r2", "Lo dice por todas, eh."]], choices: [
+        { txt: "Pues que me lo digan a la cara.", rel: { r1: -1, r2: -1 }, persona: "mean", bonus: 200, reply: ["r1", "Te lo estamos diciendo, cariño."] },
+        { txt: "Igual me he pasado. Lo siento.", rel: { r1: 1 }, persona: "kind", reply: ["r1", "Vaya. Eso no me lo esperaba."] },
+      ] },
+      { lines: [["r1", "He oído que ahora vas a por mí. ¿Es verdad?"]], choices: [
+        { txt: "Voy a por la corona. Si te pillo en medio...", persona: "mean", bonus: 150, rel: { r1: -1 }, reply: ["r1", "Muy bien. Que gane la mejor."] },
+        { txt: "Qué va, son cosas que se inventan.", reply: ["r1", "Ya... ya veremos."] },
+      ] },
+    ],
+  },
+  drama: {
+    n: "La reina del drama", icon: "🍿",
+    saludo: ["¡{yo}! Cuéntame, que tú siempre sabes lo último.", "Ya estamos... ¿qué ha pasado ahora?", "Contigo nunca se aburre una, eh."],
+    reaccion: [
+      { lines: [["r1", "{yo}, dicen que el cotilleo de ayer salió de ti. ¿Fuiste tú?"]], choices: [
+        { txt: "Yo solo digo lo que todas piensan.", persona: "drama", bonus: 200, rel: { r1: -1 }, reply: ["r1", "Pues piénsalo un poquito más antes."] },
+        { txt: "Me equivoqué. No volverá a pasar.", persona: "kind", rel: { r1: 1 }, reply: ["r1", "Vale. Te creo... por ahora."] },
+      ] },
+      { lines: [["r1", "Las cámaras te adoran, {yo}. Cada vez que abres la boca hay plano."]], choices: [
+        { txt: "Es que alguien tiene que dar contenido.", persona: "drama", bonus: 150, reply: ["r1", "Y tú lo das a cubos."] },
+        { txt: "Esta semana me centro, de verdad.", persona: "focus", adv: 2, reply: ["r1", "Eso quiero verlo."] },
+      ] },
+    ],
+  },
+  focus: {
+    n: "La concentrada", icon: "🎯",
+    saludo: ["{yo}, siempre con la cabeza en el reto, ¿eh?", "No te quiero molestar, que te veo a tope.", "Tú vienes a trabajar, se nota."],
+    reaccion: [
+      { lines: [["r1", "{yo}, eres un poco sosa fuera del escenario, ¿no? Nunca te mojas."]], choices: [
+        { txt: "Me mojo en la pasarela, que es lo que cuenta.", persona: "focus", adv: 2, reply: ["r1", "Touché."] },
+        { txt: "¿Sosa yo? Prepárate.", persona: "drama", bonus: 150, reply: ["r1", "¡Uy, que despierta!"] },
+      ] },
+      { lines: [["r1", "Te he visto ensayar a las tantas. ¿No descansas nunca?"]], choices: [
+        { txt: "Descansaré con la corona puesta.", persona: "focus", adv: 2, reply: ["r1", "Qué miedo me das."] },
+        { txt: "¿Ensayamos juntas?", persona: "kind", rel: { r1: 1 }, reply: ["r1", "¡Venga! Me vendría genial."] },
+      ] },
+    ],
+  },
+};
+
+const NEMESIS = {
+  nace: {
+    choque: [
+      ["r1", "(Confesionario) Lo de {yo} ya no es una pelea de un día. Es personal."],
+      ["r1", "(Confesionario) Ha venido a por mí. Pues que sepa que yo también voy a por ella."],
+    ],
+    historia: [
+      ["r1", "(Confesionario) Cuando he visto entrar a {yo} se me ha revuelto todo. Lo nuestro viene de lejos."],
+      ["r1", "(Confesionario) Tenemos cuentas pendientes de otra temporada. Esta vez no se me escapa."],
+    ],
+    traicion: [
+      ["r1", "(Confesionario) Sí, le he roto el pacto a {yo}. Y ahora va a por mí. Que venga."],
+    ],
+    competencia: [
+      ["r1", "(Confesionario) {yo} y yo siempre acabamos peleando por lo mismo. Solo puede quedar una."],
+      ["r1", "(Confesionario) Cada semana mirándonos de reojo. Me pone de los nervios y me motiva a la vez."],
+    ],
+  },
+  pullas: {
+    bottoms: [
+      [["r1", "¿Otra vez preparando la maleta, {yo}? Ya debes tenerla hecha."]],
+      [["r1", "Yo que tú me aprendía bien las canciones de lip sync. Por si acaso."]],
+    ],
+    wins: [
+      [["r1", "Disfruta tus victorias, {yo}. Las caídas desde arriba duelen más."]],
+      [["r1", "Muy bien lo de ganar, cariño. Pero aquí la corona no se gana en una semana."]],
+    ],
+    mean: [
+      [["r1", "Tú y yo somos iguales, {yo}. Por eso no nos soportamos."]],
+      [["r1", "Vas de dura por el taller, pero conmigo no cuela."]],
+    ],
+    kind: [
+      [["r1", "Tanto abrazo a todas... ¿eso también es estrategia, {yo}?"]],
+      [["r1", "La santa del taller. Ya veremos cuánto te dura la aureola."]],
+    ],
+    drama: [
+      [["r1", "Hoy no has montado ningún numerito, {yo}. ¿Estás enferma?"]],
+      [["r1", "Más drama que talento. Te lo digo con cariño. Poco."]],
+    ],
+    focus: [
+      [["r1", "Tanto ensayar y luego en la pasarela, nada. Qué pena me das."]],
+      [["r1", "Muy concentrada tú, ¿eh? A ver si te concentras en no irte a casa."]],
+    ],
+    generic: [
+      [["r1", "Buenos días, {yo}. Bueno, buenos para mí."]],
+      [["r1", "Esta semana voy a por ti. Te aviso para que no digas."]],
+      [["r1", "¿Ese es tu look de hoy? Valiente. Muy valiente."]],
+    ],
+  },
+  untucked: {
+    gloat: [["r1", "Vaya, vaya... Mira quién está en el bottom. Y yo aquí, tan tranquila."]],
+    envidia: [["r1", "Enhorabuena por la victoria. Que te dure."], ["me", "Gracias... supongo."]],
+    tension: [["r1", "Ni me mires, {yo}. Hoy no estoy para ti."]],
+  },
+  lipsync: [
+    ["host", "Esto es lo que todas estaban esperando: {yo} contra {r1}. Némesis contra némesis."],
+    ["r1", "Por fin. Sin jurado de por medio. Solo tú y yo."],
+  ],
+  adios: [["r1", "Esto no se acaba aquí, {yo}. Nos veremos en el reencuentro."]],
+  reencuentro: [
+    ["host", "Y ahora... lo que todo el mundo quiere ver. {yo} y {r1}, al centro."],
+    ["r1", "Lo voy a decir delante de todas: tú me hiciste la temporada imposible."],
+  ],
+  reencuentroChoices: [
+    { txt: "Y tú a mí. Pero gracias: me hiciste mejor.", rel: { r1: 2 }, persona: "kind", reply: ["r1", "...Vale. Eso no me lo esperaba. Gracias."] },
+    { txt: "No me arrepiento de nada.", persona: "mean", bonus: 300, reply: ["r1", "Ni yo. Y el público lo sabe."] },
+  ],
+  tregua: [["r1", "¿Sabes qué? Estoy cansada de pelear contigo. ¿Tregua?"], ["me", "Tregua."]],
+};
+
+// ------------------------------ Sistema Némesis (memoria entre temporadas) ------------------------------
+const RASGOS = {
+  fort: {
+    lipsync: { n: "Bestia del lip sync", icon: "🔥", d: "Muy peligrosa en un lip sync" },
+    comedia: { n: "Lengua afilada", icon: "🎤", d: "Brilla en Snatch, Roast e impro" },
+    baile: { n: "Pies de fuego", icon: "💃", d: "Brilla en rusicales y coreografías" },
+    costura: { n: "Manos de oro", icon: "🧵", d: "Brilla en costura, Ball y makeover" },
+    pasarela: { n: "Imparable en pasarela", icon: "👠", d: "Siempre puntúa alto en la pasarela" },
+  },
+  deb: {
+    pComedia: { n: "Pánico a la comedia", icon: "😰", d: "Se hunde en Snatch, Roast e impro", cat: "comedia" },
+    pBaile: { n: "Dos pies izquierdos", icon: "🦶", d: "Se hunde en rusicales y coreografías", cat: "baile" },
+    pCostura: { n: "No sabe enhebrar", icon: "🪡", d: "Se hunde en costura, Ball y makeover", cat: "costura" },
+    lsFlojo: { n: "Lip sync flojo", icon: "🫥", d: "En un lip sync se le puede ganar", cat: "lipsync" },
+    provocable: { n: "Se viene abajo si la provocas", icon: "💥", d: "Si la pinchas, se desconcentra muchísimo" },
+  },
+  car: {
+    rencorosa: { n: "Rencorosa", icon: "🧊", d: "No olvida nada: los golpes le duelen el doble" },
+    ambiciosa: { n: "Ambiciosa", icon: "📈", d: "Cada victoria la hace crecer más" },
+    leal: { n: "Leal", icon: "🤞", d: "Si pacta contigo, jamás te traiciona" },
+    traicionera: { n: "Traicionera", icon: "🐍", d: "Puede romper un pacto en el peor momento" },
+    orgullosa: { n: "Orgullosa", icon: "👑", d: "Le cuesta muchísimo hacer las paces" },
+  },
+};
+// Lo que te dice una reina al reencontrarse contigo, según lo que pasó entre vosotras
+const CICATRICES = {
+  "elim:me": ["En {s} me mandaste a casa en un lip sync. Hoy vengo a cobrármela, {yo}.", "{s}. Tú y yo en un lip sync. Yo, haciendo la maleta. Todavía lo sueño."],
+  "elim:her": ["¿Te acuerdas de {s}? Yo sí. Te mandé a casa y lo volvería a hacer.", "La última vez que bailamos juntas, en {s}, te fuiste tú. Que no se te olvide."],
+  "vote:me": ["En {s} me echaste con tu decisión. No se me ha olvidado, cariño.", "Tú elegiste que me fuera en {s}. Ahora elijo yo cómo tratarte."],
+  "vote:her": ["Lo de {s} no fue personal... bueno, un poquito sí.", "En {s} decidí que te fueras. Y fíjate, aquí estás otra vez."],
+  "save:me": ["En {s} me salvaste. Te debo una, y yo pago mis deudas.", "Nunca te he dado las gracias por lo de {s}. Gracias, {yo}."],
+  "save:her": ["En {s} te salvé el cuello. Espero que lo recuerdes.", "Te salvé una vez, en {s}. No me hagas arrepentirme."],
+  "humill:me": ["En {s} te reíste de mi punto débil delante de todas. Ahora me río yo.", "Lo que me hiciste en {s} fue muy feo, {yo}. Muy feo."],
+  "humill:her": ["En {s} te di donde más dolía. ¿Sigue doliendo?", "¿Qué tal tu punto débil, {yo}? Lo recuerdo de {s}."],
+  "betray:me": ["Me traicionaste en {s}. Ni te acerques.", "Pactamos en {s} y me la jugaste. No vuelvo a caer."],
+  "betray:her": ["Sí, te traicioné en {s}. La competición es así. ¿Rencor?", "Lo de {s}... era lo que tenía que hacer."],
+  "pact:me": ["¡{yo}! En {s} fuimos uña y carne. ¿Repetimos?", "Mi aliada de {s}... Qué ganas tenía de verte."],
+  "pact:her": ["¡{yo}! En {s} fuimos uña y carne. ¿Repetimos?", "Mi aliada de {s}... Qué ganas tenía de verte."],
+};
+// Lo que se cuenta en el taller sobre las demás (también de otras temporadas)
+const RADIO = {
+  elim: ["{a} y {b} no se hablan desde que {a} la mandó a casa en {s}.", "Dicen que {b} todavía no ha perdonado a {a} por lo de {s}."],
+  vote: ["{b} tiene la cruz puesta a {a} desde que la echó en {s}.", "Cuidado con juntar a {a} y {b}: lo de {s} sigue muy reciente."],
+  save: ["{b} le debe una a {a} desde {s}.", "Entre {a} y {b} hay buen rollo desde que se salvaron en {s}."],
+  ascenso: ["{a} está crecida: todo el taller la ve como la favorita.", "Se rumorea que {a} va a por todas esta temporada."],
+  pelea: ["Tensión máxima entre {a} y {b} esta semana.", "{a} y {b} han discutido en los espejos. Nadie sabe por qué."],
+  corona: ["{a} viene con corona puesta de {s}. Todas la miran de reojo.", "Ojo: {a} ya ganó en {s} y quiere repetir."],
+};

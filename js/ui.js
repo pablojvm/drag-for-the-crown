@@ -408,6 +408,8 @@ const UI = (() => {
     Story.menu(() => show("franchise"));
   });
   $("#story-exit").addEventListener("click", () => Story.exitToMenu());
+  $("#story-shop").addEventListener("click", () => Story.openShopModal());
+  $("#story-board").addEventListener("click", () => Story.openBoard());
   $("#btn-franchise-back").addEventListener("click", () => show("menu"));
   $("#btn-season-back").addEventListener("click", () => show("franchise"));
   $("#btn-scores").addEventListener("click", () => {

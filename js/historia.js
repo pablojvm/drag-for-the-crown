@@ -261,14 +261,21 @@ const Story = (() => {
     const rest = shuffle(ORDEN_RETOS.filter((t) => t !== "pasarela" && t !== "snatch"));
     rest.splice(1 + Math.floor(Math.random() * 3), 0, "snatch");
     S.order = rest;
+    S.runwayPlan = buildPlan();
+    // La memoria de otras temporadas: cómo te recuerdan las demás
+    S.pacts = {};
+    rivals.forEach((q) => { const f = Nem.feel(q.id, queen.id); if (f) S.rel[q.id] = clamp(Math.round(f * 0.6), -3, 3); });
+    const hated = rivals.filter((q) => Nem.feel(q.id, queen.id) <= -3).sort((a, b) => Nem.feel(a.id, queen.id) - Nem.feel(b.id, queen.id))[0];
+    if (hated) S.nemesis = { id: hated.id, origin: "historia", heat: 6, ep: 0, announced: false };
+    S.runwayIdx = 0;
     Achievements.unlock("debut");
     UI.show("story");
     Sound.stopAll();
-    nextEpisode();
+    javisCall(nextEpisode);
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -286,6 +293,8 @@ const Story = (() => {
     PLAIN.forEach((k) => d[k] !== undefined && (S[k] = d[k]));
     UI.show("story");
     Sound.stopAll();
+    if (S.meOut && S.flags.waitRepesca) return repescaStep();
+    if (S.meOut && S.flags.aftermath) return S.flags.reunion ? afterFinal() : afterStep();
     if (S.phase && S.phase.ep === S.ep && S.ep > 0) return resumeMid();
     S.phase = null;
     nextEpisode();
@@ -301,6 +310,8 @@ const Story = (() => {
     $("#story-season").textContent = "Modo historia";
     $("#story-ep").textContent = "Partida guardada";
     $("#story-exit").textContent = "← Volver";
+    $("#story-shop").hidden = true;
+    $("#story-board").hidden = true;
     $("#story-cast").innerHTML = "";
     body().innerHTML = `
       <div class="story-card intro">
@@ -394,6 +405,13 @@ const Story = (() => {
       }
       Object.entries(c.rel || {}).forEach(([key, d]) => changeRel(ctx.q[key], d));
       if (c.effect === "ayuda") S.helped = true;
+      const relSum = Object.values(c.rel || {}).reduce((a, b) => a + b, 0);
+      if (c.persona) persona(c.persona);
+      else if (relSum > 0) persona("kind");
+      else if (relSum < 0) persona("mean");
+      if ((c.bonus || 0) > 0 && !c.persona) persona("drama");
+      Object.entries(c.rel || {}).forEach(([key, d]) => { if (d < 0 && isNem(ctx.q[key])) heat(1); });
+      if (c.fx) c.fx();
       if (c.after && pendingSide) { pendingSide(c.after); pendingSide = null; }
       choices = null;
       lines = [["me", c.txt], ...(c.reply ? [c.reply] : [])];
@@ -644,13 +662,14 @@ const Story = (() => {
     else if (after < before) Toast.show(`💢 ${q.name}`, "Se ha enfriado la cosa");
     if (allies().length >= 3) Achievements.unlock("aliadas");
     if (after <= -2) Achievements.unlock("enemiga");
+    if (after <= -2 && before > -2) makeNemesis(q, "choque");
   }
   function relBonus() {
     return clamp(allies().length * 4 - enemies().length * 4, -10, 12);
   }
   // Nivel de cada rival: sale de sus estadísticas, su racha y el azar del día
   const skillOf = (q) => 48 + Object.values(q.stats).reduce((a, b) => a + b, 0) * 2.2;
-  const rivalScore = (q) => clamp(skillOf(q) + (S.form[q.id] || 0) + rnd(-22, 14), 5, 99);
+  const rivalScore = (q) => clamp(skillOf(q) + (S.form[q.id] || 0) + traitMod(q) + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) : 0) + rnd(-22, 14), 5, 99);
 
   function header() {
     $("#story-season").textContent = `Modo historia · ${S.season.name} · ${seasonInfo().lema || S.season.franchise.name}`;
@@ -659,11 +678,18 @@ const Story = (() => {
     if (tw === "moneda") chip = "🪙 Bottom de 3 y moneda al aire";
     if (tw === "corazon") { const h = (S.hearts.me || 0) / 2; chip = `❤️ Tienes ${String(h).replace(".", ",")} ${h === 1 ? "corazón" : "corazones"}`; }
     if (tw === "suerte") chip = S.luck === undefined ? "🍀 Cajitas por abrir" : S.luck === "me" ? "🍀 ¡La tienes tú! (en secreto)" : S.luck ? "🍀 ¿Quién la tendrá?" : "🍀 Ya se ha usado";
-    if (tw === "repesca") chip = S.flags.repesca ? "🔁 Repesca hecha" : "🔁 Repesca pendiente";
+    if (tw === "repesca") chip = S.flags.repesca ? "🔁 Segunda Oportunidrag: hecha" : "🔁 Segunda Oportunidrag: pendiente";
     if (tw === "allstars") chip = "💄 Decide la ganadora";
     $("#story-ep").textContent = S.meOut ? "Fuera de la competición" : isFinal() ? (S.flags.reunion ? "Gran final" : "El reencuentro") : `Episodio ${S.ep}`;
     if (chip) $("#story-season").innerHTML += ` <span class="twist-chip">${esc(chip)}</span>`;
+    const fm = fame();
+    if (fm) $("#story-season").innerHTML += ` <span class="twist-chip fame-chip">${FAMA[fm].icon} ${esc(FAMA[fm].n)}</span>`;
+    const nq = nemActive();
+    if (nq && S.nemesis.announced) $("#story-season").innerHTML += ` <span class="twist-chip nem-chip">⚔️ Némesis: ${esc(nq.name)}</span>`;
     $("#story-exit").textContent = "💾 Guardar y salir";
+    $("#story-shop").hidden = false;
+    $("#story-board").hidden = false;
+    $("#story-shop .closet-money").textContent = euros(Closet.money);
     const all = S.meOut ? S.rivals : [S.queen, ...S.rivals];
     $("#story-cast").innerHTML =
       all
@@ -694,6 +720,7 @@ const Story = (() => {
     if (Math.random() < 0.55) lines.push(...pickFresh(JAVIS.critica[nivel]));
     if (score >= 90 && (verdict === "win" || verdict === "none")) lines.push(["judge", "Hoy has puesto el listón altísimo para las demás."]);
     if (score < 30) lines.push(["host", "Tienes que despertar, {yo}. Esto se acaba."]);
+    if (Math.random() < 0.85) lines.push(...personalCrit());
     if (JURADO.veredicto[verdict]) lines.push(["host", pickFresh(JURADO.veredicto[verdict])]);
     return lines;
   }
@@ -768,11 +795,12 @@ const Story = (() => {
           .join("")}</tbody>
       </table></div>`;
   }
-  function showTrack(then, label = "Siguiente episodio") {
+  function showTrack(then, label = "Siguiente episodio", note = "") {
     header();
     body().innerHTML = `
       <div class="story-card track-card">
-        <p class="eyebrow">Fin del episodio ${S.ep}</p>
+        <p class="eyebrow">Fin del episodio ${S.ep}${S.epNames[S.ep] ? ` · ${esc(S.epNames[S.ep])}` : ""}</p>
+        ${note ? `<p class="track-note">${note}</p>` : ""}
         <h3>Track record</h3>
         ${trackHTML()}
         <button class="btn btn-primary" id="track-next">${label}</button>
@@ -849,7 +877,7 @@ const Story = (() => {
       if (S.groups && r < 0.4) return groupEvent(then);
       return (r < 0.72 ? roleScene : maybeEvent)(then);
     };
-    const go = () => memoryTalk(() => rolePassives(() => (S.ep >= 2 && !S.flags.groups && S.rivals.length >= 5 ? formGroups : scene)(() => miniChallenge(() => hub(() => announce())))));
+    const go = () => historyScene(() => memoryTalk(() => pactScene(() => nemesisScene(() => fameScene(() => rolePassives(() => (S.ep >= 2 && !S.flags.groups && S.rivals.length >= 5 ? formGroups : scene)(() => miniChallenge(() => hub(() => announce())))))))));
     if (S.ep === 1 && twistOf() === "suerte" && S.luck === undefined) {
       return dialog(seasonInfo().intro, ctx, () => pickLuckBox(() => dialog(pickFresh(HISTORIA.tallerPrimerDia), ctxWith(pick1(S.rivals)), go)));
     }
@@ -939,6 +967,7 @@ const Story = (() => {
         <p class="eyebrow">Taller · tiempo libre</p>
         <h3>¿Con quién quieres hablar?</h3>
         <p class="muted">Solo te da tiempo a una conversación antes del reto. Pincha en una compañera.</p>
+        ${(() => { const r = radioLines(); return r.length ? `<div class="radio">${r.map((t) => `<p>📻 ${esc(t)}</p>`).join("")}</div>` : ""; })()}
         <div class="wr-room">${werkroomTables()
           .map((t, i) => `<div class="wr-table ${t.mine ? "mine" : ""}" style="--i:${i}"><div class="wr-seats">${t.qs.map(seatHTML).join("")}</div><div class="wr-desk"><span>${esc(t.name)}</span></div></div>`)
           .join("")}</div>
@@ -960,9 +989,12 @@ const Story = (() => {
         <div>
           <p class="eyebrow">${esc(relLabel(q))}</p>
           <h3>${esc(q.name)}</h3>
-          <p>${roleChip(q)} ${groupChip(q)} ${heartChip(q)}</p>
+          <p>${roleChip(q)} ${groupChip(q)} ${heartChip(q)} <span class="role-chip">${rankOf(q).join(" ")}</span></p>
+          <p class="trs">${["fort", "deb", "car"].filter((sl) => Nem.knows(q.id, sl)).map((sl) => `<span class="tr ${sl}">${RASGOS[sl][traitsOf(q)[sl]].icon} ${esc(RASGOS[sl][traitsOf(q)[sl]].n)}</span>`).join("")}</p>
           <p>¿Qué quieres hacer?</p>
-          <div class="approach-list">${HISTORIA.enfoques
+          <div class="approach-list">${[...HISTORIA.enfoques,
+            ...(Nem.knows(q.id, "deb") ? [{ id: "debil", icon: "🎯", txt: "Atacar su punto débil", desc: `${RASGOS.deb[traitsOf(q).deb].n}: la desconcentras (te la guardará)` }] : []),
+            ...(relOf(q) >= 2 && !(S.pacts || {})[q.id] && !isNem(q) ? [{ id: "pacto", icon: "🤝", txt: "Proponer un pacto", desc: "Te ayudará y te contará secretos... si no te traiciona" }] : [])]
             .map((a) => `<button class="btn btn-ghost role" data-a="${a.id}"><b>${a.icon} ${a.txt}</b><small>${a.desc}</small></button>`)
             .join("")}</div>
           <button class="btn btn-ghost small-btn" id="ap-back">← Elegir a otra</button>
@@ -977,6 +1009,28 @@ const Story = (() => {
     const other = ctx.q.r2;
     const rl = S.roles[q.id];
     if (Math.random() < 0.6) reveal(q);
+    persona({ pina: "kind", cotilleo: "drama", consejo: "focus", pacto: "kind" }[kind] || "mean");
+    if (kind === "debil") {
+      const t = traitsOf(q), w = RASGOS.deb[t.deb];
+      return dialog([["me", `Oye, ${q.name}... ¿qué tal llevas lo tuyo? Ya sabes: ${w.n.toLowerCase()}.`], ["r1", pick1(["¿Perdona? ¿A qué viene eso?", "Qué baja has caído, {yo}.", "...No me hables."])]], { ...ctx, tension: true }, () => {
+        S.form[q.id] = (S.form[q.id] || 0) - (t.deb === "provocable" ? 9 : 6);
+        S.points += 300;
+        changeRel(q, -1);
+        if (isNem(q)) heat(2);
+        nemEvent("humill", S.queen, q);
+        Toast.show(`🎯 ${q.name} se desconcentra`, "Te lo recordará... en esta y en otras temporadas");
+        then();
+      });
+    }
+    if (kind === "pacto") {
+      const t = traitsOf(q);
+      const ok = Nem.feel(q.id, S.queen.id) >= -1 && (t.car !== "orgullosa" || Math.random() < 0.5);
+      return dialog([["me", "¿Y si vamos juntas en esto? Tú me cubres y yo te cubro."], ["r1", ok ? "Trato hecho. Pero si me la juegas, lo sabrá todo el taller." : "Mmm... no. Prefiero ir a mi aire."]], ctx, () => {
+        if (ok) { S.pacts = { ...(S.pacts || {}), [q.id]: 1 }; nemEvent("pact", S.queen, q); Toast.show(`🤝 Pacto con ${q.name}`, "Te ayudará en los retos de equipo y te contará secretos"); }
+        then();
+      });
+    }
+    if (isNem(q)) heat(kind === "pina" ? -1 : kind === "pinchar" ? 2 : 0);
     let lines, after = () => {};
     if (kind === "pina") {
       const mood = r >= 1 ? "buena" : r <= -1 ? "mala" : "neutra";
@@ -990,6 +1044,8 @@ const Story = (() => {
       after = () => {
         changeRel(q, 1);
         if (caught) changeRel(other, -2);
+        const sl = other && other !== q ? ["deb", "fort", "car"].find((x) => !Nem.knows(other.id, x)) : null;
+        if (sl) learnTrait(other, sl, `${q.name} te cuenta de ${other.name}`);
       };
     } else if (kind === "consejo") {
       const ok = rl === "madre" || (r >= 0 && Math.random() < 0.8);
@@ -1009,6 +1065,9 @@ const Story = (() => {
         if (rl === "villana") S.advice -= 2; // y ella te la devuelve
       };
     }
+    const f = fame();
+    if (f && !isNem(q) && Math.random() < 0.5) lines = [["r1", pickFresh(FAMA[f].saludo)], ...lines];
+    if (isNem(q)) lines = [["r1", pick1(["¿Qué quieres tú ahora?", "Mira quién viene...", "Uy, la que faltaba."])], ...lines];
     dialog(lines, ctx, () => {
       after();
       then();
@@ -1027,7 +1086,7 @@ const Story = (() => {
   const VENTAJAS = [
     { id: "ventaja", txt: "+6 en el reto de la semana", apply: () => (S.advice += 6) },
     { id: "puntos", txt: "+600 puntos", apply: () => (S.points += 600) },
-    { id: "pasarela", txt: "+8 en la pasarela (te quedas con el mejor burro de ropa)", apply: () => (S.runwayBonus = 8) },
+    { id: "pasarela", txt: "+8 en la pasarela", apply: () => (S.runwayBonus = 8) },
     { id: "eleccion", txt: "eliges primero en el reto: +4 y los mejores materiales", apply: () => (S.advice += 4) },
   ];
   function miniChallenge(then) {
@@ -1067,6 +1126,7 @@ const Story = (() => {
           const win = sc[0];
           if (team) S.captains = [sc[0].q, sc[1].q];
           else if (win.me) premio.apply();
+          if (win.me) earn(100, "Premio del minireto");
           else S.form[win.q.id] = clamp((S.form[win.q.id] || 0) + 3, -10, 10);
           if (win.me) Confetti.burst(1500);
           header();
@@ -1123,7 +1183,8 @@ const Story = (() => {
         if (typeof window.__forceScore === "number") raw = window.__forceScore; // solo pruebas
         Music.stop();
         if (raw >= 95) Achievements.unlock("perfecta");
-        const bonus = relBonus() + S.advice - (S.helped ? 4 : 0);
+        const pactB = S.team ? S.team.filter((q) => S.pacts && S.pacts[q.id]).length * 3 : 0;
+        const bonus = relBonus() + S.advice - (S.helped ? 4 : 0) + pactB;
         S.lastBonus = bonus;
         const close = (walk) => {
           S.lastParts = { reto: Math.round(raw), pasarela: walk === null ? null : Math.round(walk) };
@@ -1144,13 +1205,18 @@ const Story = (() => {
     const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).filter((t) => ARMARIO.look.filter((x) => x.th === t.id).length >= 6);
     S.usedThemes = S.usedThemes || [];
     let tema = null;
-    if (temas.length) {
+    const planned = S.runwayPlan && S.runwayPlan[S.runwayIdx || 0];
+    if (planned && !window.__forceTheme) {
+      S.runwayIdx = (S.runwayIdx || 0) + 1;
+      tema = temas.find((t) => t.n === planned) || null;
+      if (tema) CAT_TAG[tema.n] = tema.tag;
+    } else if (temas.length) {
       const fresh = temas.filter((t) => !S.usedThemes.includes(t.id));
       tema = (window.__forceTheme && temas.find((t) => t.id === window.__forceTheme)) || pick1(fresh.length ? fresh : temas);
       S.usedThemes.push(tema.id);
       CAT_TAG[tema.n] = tema.tag;
     }
-    const cat = tema ? tema.n : pick1(CATEGORIAS);
+    const cat = tema ? tema.n : planned && !window.__forceTheme ? planned : pick1(CATEGORIAS);
     S.runwayCat = cat;
     body().innerHTML = `
       <div class="story-card intro">
@@ -1159,7 +1225,7 @@ const Story = (() => {
           <p class="eyebrow">👠 Pasarela de la semana</p>
           <h3>${tema ? "Temática" : "Categoría"}: «${esc(cat)}»</h3>
           ${tema ? `<p><i>${esc(tema.d)}</i></p>` : ""}
-          <p>Primero prepara el look: ${tema ? "elige en el burro el que mejor encaje con la temática, " : "outfit, "}peluca y accesorios/maquillaje. Cada pieza tiene una etiqueta oculta (Glamour, Camp, Edgy, Folclórico, Futurista): si las tres coinciden, x1,5. Después, el desfile: paso, final y frase de cierre.${S.runwayBonus ? ` <b class="gold">Ventaja del minireto: +${S.runwayBonus}</b>` : ""}</p>
+          <p>Prepara el look con lo que tienes en tu armario: ${tema ? "el look que mejor encaje con la temática, " : "outfit, "}peluca y accesorios/maquillaje. Cuanto más espectacular (★), más puntúa; el movimiento (👣) ayuda en el desfile. Cada pieza tiene una etiqueta oculta (Glamour, Camp, Edgy, Folclórico, Futurista): si las tres coinciden, x1,5. Después, el desfile: paso, final y frase de cierre.${S.runwayBonus ? ` <b class="gold">Ventaja del minireto: +${S.runwayBonus}</b>` : ""}</p>
           <p class="muted">🎮 Clic o teclas 1, 2, 3 y 4 · ${attrChips(["estilo", "performance", "carisma"])}</p>
           <button class="btn btn-primary" id="story-go">¡A la pasarela!</button>
         </div>
@@ -1182,6 +1248,7 @@ const Story = (() => {
     const sc = {};
     S.rivals.forEach((q) => (sc[q.id] = rivalScore(q)));
     let teamLine = "";
+    let winTeam = null;
     const teamOf = {};
     if (S.team) {
       const A = [S.queen, ...S.team], B = S.rivals.filter((q) => !S.team.includes(q));
@@ -1190,11 +1257,16 @@ const Story = (() => {
       const aWins = avg(A) >= avg(B);
       A.forEach((q) => (teamOf[q.id] = "rosa"));
       B.forEach((q) => (teamOf[q.id] = "oro"));
+      winTeam = new Set(aWins ? A : B);
+      if ((aWins ? B : A).length < 2) winTeam = null;
       (aWins ? A : B).forEach((q) => (q === S.queen ? (myScore = Math.min(100, myScore + 8)) : (sc[q.id] = Math.min(99, sc[q.id] + 8))));
       teamLine = `<p class="gold">${aWins ? "🏆 ¡Tu equipo (Rosa) gana el reto por equipos! +8" : "El equipo Oro gana el reto por equipos."}</p>`;
     }
-    const rows = [{ q: S.queen, s: myScore, me: true }, ...S.rivals.map((q) => ({ q, s: sc[q.id] }))].sort((a, b) => b.s - a.s);
+    // Retos por equipos: el jurado salva y nomina por bloques (ganan las del equipo ganador, el bottom sale del perdedor)
+    const rows = [{ q: S.queen, s: myScore, me: true }, ...S.rivals.map((q) => ({ q, s: sc[q.id] }))].sort((a, b) => (winTeam ? (winTeam.has(b.q) ? 1 : 0) - (winTeam.has(a.q) ? 1 : 0) : 0) || b.s - a.s);
     const n = rows.length;
+    // Con 6 reinas o menos ya no hay salvadas: todas reciben valoración
+    const allCrit = n <= 6;
     const winner = rows[0];
     const tw = twistOf();
     // T6: bottom de tres (luego decide la moneda)
@@ -1223,21 +1295,30 @@ const Story = (() => {
         if (!r.me) S.form[r.q.id] = clamp((S.form[r.q.id] || 0) + (r === winner ? 2 : bottomRows.includes(r) ? 3 : 0) + rnd(-2, 2), -10, 10);
       });
       S.points += myScore * 10 + (won ? 500 : 0);
-      if (won) { S.wins++; growAttr(((RETOS[S.curTipo] || {}).attrs || [])[0]); }
+      if (won) { S.wins++; growAttr(((RETOS[S.curTipo] || {}).attrs || [])[0]); earn(300, "Ganas el reto de la semana"); }
+      else if (myPos <= 2 && !bottom) earn(80, "Entre las mejores de la semana");
       if (bottom) S.bottoms++;
       S.streak = won ? S.streak + 1 : 0;
       if (S.streak >= 3) Achievements.unlock("racha");
       const b = S.lastBonus || 0;
       const bonusLine = b ? `<p class="${b > 0 ? "gold" : "muted"}">${b > 0 ? `💞 Consejos, aliadas y concentración: +${b}` : `🗡️ Tus enemigas te lo han puesto difícil: ${b}`}</p>` : "";
       const top2 = rows.slice(0, 2);
+      const cat = RETO_CAT[S.curTipo];
+      if (cat) rows.forEach((r, k) => {
+        if (r.me) return;
+        const t = traitsOf(r.q);
+        if (k <= 1 && t.fort === cat && Math.random() < 0.6) learnTrait(r.q, "fort", "Lo has visto en el reto");
+        if (k >= n - 3 && RASGOS.deb[t.deb].cat === cat && Math.random() < 0.6) learnTrait(r.q, "deb", "Lo has visto en el reto");
+      });
       rows.forEach((r, k) => {
         let lab;
         if (tw === "allstars" && top2.includes(r)) lab = "TOP2";
         else if (r === winner) lab = "WIN";
         else if (bottomRows.includes(r)) lab = `BTM${nb}`;
         else if (r.protected) lab = `BTM${nb}`;
-        else if (k <= 2 && k < n - nb - 1) lab = "HIGH";
-        else if (k >= n - nb - 2) lab = "LOW";
+        else if (allCrit) lab = k < Math.ceil(n / 2) ? "HIGH" : "LOW";
+        else if (k <= 2) lab = "HIGH";
+        else if (k >= n - 3) lab = "LOW";
         else lab = "SAFE";
         mark(r.q, lab);
       });
@@ -1249,7 +1330,7 @@ const Story = (() => {
       const meRow = rows.find((r) => r.me);
       const meSafe = labOf.get(meRow) === "SAFE";
       const safeFirst = Math.random() < 0.5;
-      const safeTxt = `<p>${safe.length ? `${safe.map(nm).join(", ")}: <b>estáis salvadas</b>. Podéis volver al backstage.` : "Esta semana no se salva nadie de antemano."}</p>${safe.length ? faces(safe, "safe") : ""}`;
+      const safeTxt = `<p>${safe.length ? `${safe.map(nm).join(", ")}: <b>estáis salvadas</b>. Podéis volver al backstage.` : allCrit ? `Quedáis ${n}: a partir de ahora <b>todas recibís valoración</b>.` : "Esta semana no se salva nadie de antemano."}</p>${safe.length ? faces(safe, "safe") : ""}`;
       const judgedTxt = `<p>${safeFirst ? "El resto..." : `${judged.map(nm).join(", ")}...`} <b>sois las mejores y las peores del programa de hoy</b>.</p>${faces(judged)}`;
       header();
       Music.play("tension");
@@ -1389,6 +1470,7 @@ const Story = (() => {
         if (!nx) { header(); Toast.show("No se puede usar ahora", "No hay nadie que pueda ocupar ese sitio"); return next(); }
         if (!row.me) {
           changeRel(row.q, 3);
+          nemEvent("save", S.queen, row.q);
           remember(row.q, "salvada", row !== bottomRows.concat([row]).sort((a, c) => a.s - c.s)[0]);
         }
         if (!nx.me) changeRel(nx.q, -1);
@@ -1412,6 +1494,7 @@ const Story = (() => {
       const nx = rescue(row);
       if (!nx) return next();
       if (row.me) { changeRel(q, 2); S.savedBy = q; Toast.show(`❤️ ${q.name} te ha salvado`, "Te ha dado su corazón"); }
+      if (row.q !== q) nemEvent("save", q, row.q);
       if (nx.me) changeRel(q, -1);
       dialog([["r1", row.q === q ? "¡Tengo un corazón entero y lo uso para salvarme!" : `Tengo un corazón entero... y se lo doy a ${row.me ? "{yo}" : row.q.name}.`]], ctx, () =>
         rescueCard("❤️ El corazón", row.q === q ? `¡${esc(q.name)} se salva con su corazón!` : `¡${esc(q.name)} regala su corazón!`, "❤️", row, nx, next));
@@ -1488,6 +1571,7 @@ const Story = (() => {
       const next = useOn(row, holder.name);
       if (!next) return then();
       if (row.me) { changeRel(holder, 2); Toast.show(`🍀 ${holder.name} te ha salvado`, "Te debe haber cogido cariño"); }
+      if (row.q !== holder) nemEvent("save", holder, row.q);
       if (next.me) changeRel(holder, -1);
       dialog([...ask, ["r1", row.q === holder ? "¡Yo! Yo la tengo. Y la uso para salvarme a mí." : `Yo la tengo. Y la uso para salvar a ${row.me ? "{yo}" : row.q.name}.`], ["host", "¡Sorpresa, sorpresa! La reina de la suerte ha hablado."]],
         { ...ctxWith(holder), q: { r1: holder }, r1: holder.name, tension: true }, () => reveal2(holder, row, next));
@@ -1695,6 +1779,8 @@ const Story = (() => {
     res.bottomRows.filter((r) => !r.me).forEach((r) => add(r.q, "bottom", res.pre ? "🫂 Animar a una que lo ha pasado mal" : "🫂 Animar a una del bottom"));
     const ally = allies()[0];
     if (ally) add(ally, "aliada", "💞 Hablar con tu aliada");
+    const nq = nemActive();
+    if (nq) add(nq, "nemesis", "⚔️ Tu némesis te busca");
     const enemy = enemies()[0];
     if (enemy) add(enemy, "enemiga", "🗡️ Encararte con tu enemiga");
     body().innerHTML = `
@@ -1704,12 +1790,17 @@ const Story = (() => {
         <div class="hub-grid">${opts
           .map((o, i) => `<button class="hub-q ${o.kind === "enemiga" ? "enemy" : o.kind === "aliada" ? "ally" : ""}" style="--i:${i}" data-i="${i}"><i style="background-image:url('${photo(o.q)}')"></i><span>${esc(o.q.name)}</span><small>${o.label}</small>${roleChip(o.q)}</button>`)
           .join("")}</div>
-        <button class="btn btn-ghost" id="ut-skip">🍸 Tomarme algo sola</button>
+        <div class="row"><button class="btn btn-ghost" id="ut-skip">🍸 Tomarme algo sola</button><button class="btn btn-ghost" id="ut-spy">🔎 Observar a las demás</button></div>
       </div>`;
     body().querySelectorAll("[data-i]").forEach((b) =>
       b.addEventListener("click", () => {
         const o = opts[+b.dataset.i];
         const ctx = ctxWith(o.q);
+        if (o.kind === "nemesis") {
+          const meB = res.bottomRows.some((r) => r.me), herB = res.bottomRows.some((r) => r.q === o.q);
+          const k = meB && !herB ? "gloat" : res.winner.me ? "envidia" : "tension";
+          return dialog(NEMESIS.untucked[k], { ...ctx, q: { r1: o.q }, r1: o.q.name, tension: true }, then, nemChoices());
+        }
         if (o.kind === "gracias") {
           return dialog(pickFresh(GRACIAS_CORAZON), { ...ctx, q: { r1: o.q }, r1: o.q.name }, then, [
             { txt: "Te debo una muy grande. Cuenta conmigo para lo que sea.", rel: { r1: 1 }, reply: ["r1", "Pues lo apunto, eh. Que tengo buena memoria."] },
@@ -1734,7 +1825,13 @@ const Story = (() => {
         });
       }),
     );
-    $("#ut-skip").addEventListener("click", then);
+    $("#ut-skip").addEventListener("click", () => { persona("focus"); then(); });
+    $("#ut-spy").addEventListener("click", () => {
+      const cand = shuffle(S.rivals).map((q) => [q, ["deb", "fort", "car"].find((x) => !Nem.knows(q.id, x))]).find(([, sl]) => sl);
+      if (cand) learnTrait(cand[0], cand[1], "Observando en el Untucked");
+      else Toast.show("🔎 Nada nuevo", "Ya las tienes caladas a todas");
+      then();
+    });
   }
 
   // Quién se va esta semana
@@ -1763,6 +1860,7 @@ const Story = (() => {
     }
     const pa = clamp(0.5 + (skillOf(a) + (S.form[a.id] || 0) - skillOf(b) - (S.form[b.id] || 0)) / 40, 0.2, 0.8);
     const [stay, go] = Math.random() < pa ? [a, b] : [b, a];
+    nemEvent("elim", stay, go);
     eliminate(go);
     header();
     body().innerHTML = `
@@ -1854,6 +1952,8 @@ const Story = (() => {
           const sOf = (q) => (bottomRows.find((r) => r.q === q) || {}).s || 0;
           const goWasWorst = sOf(go) <= sOf(stay);
           remember(stay, "salvada", !goWasWorst);
+          nemEvent("vote", S.queen, go);
+          nemEvent("save", S.queen, stay);
           eliminate(go);
           return dialog(pickFresh(goWasWorst ? MEMORIA.despedida.justa : MEMORIA.despedida.injusta), { ...ctxWith(go), q: { r1: go }, r1: go.name, tension: true }, () => showASResult(go, stay));
         }),
@@ -1879,13 +1979,16 @@ const Story = (() => {
       const other = pair.find((x) => x !== S.queen);
       const likeMe = relOf(dec) + groupAff(dec, S.queen) + rnd(-1, 1), likeOther = groupAff(dec, other) + rnd(-1.5, 1.5);
       go = likeMe >= likeOther ? other : S.queen;
+      if (S.pacts && S.pacts[dec.id]) go = traitsOf(dec).car === "traicionera" && Math.random() < 0.4 ? S.queen : other;
     } else go = skillOf(pair[0]) + groupAff(dec, pair[0]) * 6 + rnd(-10, 10) < skillOf(pair[1]) + groupAff(dec, pair[1]) * 6 + rnd(-10, 10) ? pair[0] : pair[1];
     const stay = pair.find((x) => x !== go);
     const lines = [["r1", meIn ? (go === S.queen ? "Lo siento, {yo}... Es una decisión muy difícil, pero he elegido a la otra." : "{yo}, esta semana me quedo contigo. No me falles.") : "He tomado mi decisión. No es nada personal."]];
     dialog(lines, { ...ctxWith(dec), tension: true }, () => {
+      nemEvent("vote", dec, go);
+      if (go === S.queen && S.pacts && S.pacts[dec.id]) { delete S.pacts[dec.id]; nemEvent("betray", dec, S.queen); }
       if (go === S.queen) {
         if (twistOf() === "repesca" && !S.flags.repesca) return goHomeRepesca(dec);
-        return theEnd(false, dec, false, "La ganadora del reto ha decidido que te vas.");
+        return aftermath(dec, "La ganadora del reto ha decidido que te vas.");
       }
       if (meIn) changeRel(dec, 1);
       eliminate(go);
@@ -1910,23 +2013,36 @@ const Story = (() => {
     if (S.track[q.id] && S.track[q.id][S.ep] && S.epNames[S.ep] !== "Final") mark(q, "ELIM");
     S.rivals = S.rivals.filter((r) => r !== q);
     S.out.unshift(q);
+    if (isNem(q)) {
+      S.nemesis.done = "fuera";
+      S.nemesis.ep = S.ep;
+      if (!S.meOut) Toast.show(`⚔️ ${q.name} se va a casa`, "Tu némesis está fuera... por ahora");
+    }
     legacyHeart(q);
   }
 
   function lipSync(rival, forCrown, onWin) {
     body().innerHTML = `
       <div class="story-card">
-        <p class="eyebrow">${forCrown ? "Lip sync por la corona" : onWin ? "Lip sync de la repesca" : "Lip sync for your life"}</p>
+        <p class="eyebrow">${forCrown ? "Lip sync por la corona" : onWin ? "Lip sync de la Segunda Oportunidrag" : "Lip sync for your life"}</p>
         <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
         <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
         <p>${forCrown ? "Una ronda, una corona." : onWin ? "Si ganas, vuelves a la competición." : "Gana el duelo de tacones o te vas a casa."}</p>
+        ${isNem(rival) ? `<p class="twist-note">⚔️ Contra tu némesis. Llevabais toda la temporada esperando esto.</p>` : ""}
+        ${Nem.knows(rival.id, "deb") && traitsOf(rival).deb === "lsFlojo" ? `<p class="gold">🎯 Sabes que su lip sync es flojo: empiezas con ventaja.</p>` : ""}
+        ${Nem.knows(rival.id, "fort") && traitsOf(rival).fort === "lipsync" ? `<p class="twist-note">🔥 Es una bestia del lip sync, pero ibas preparada.</p>` : ""}
         <button class="btn btn-primary" id="story-ls">¡A la pasarela!</button>
       </div>`;
     Music.play("tension");
     $("#story-ls").addEventListener("click", () => Curtain.run(() => {
       Music.stop();
+      const rt = traitsOf(rival);
+      S.lsBonus = (rt.deb === "lsFlojo" ? (Nem.knows(rival.id, "deb") ? 12 : 4) : 0) - (rt.fort === "lipsync" ? (Nem.knows(rival.id, "fort") ? 5 : 10) : 0);
       lsGame(rival, (res) => {
         UI.show("story");
+        if (rt.fort === "lipsync") learnTrait(rival, "fort", "Lo has sufrido en el lip sync");
+        if (rt.deb === "lsFlojo") learnTrait(rival, "deb", "Lo has notado en el lip sync");
+        if (window.__forceLose) { res.won = false; if (window.__forceLose === "once") window.__forceLose = false; } // solo pruebas
         S.points += Math.round(res.score || 0);
         if (res.won) {
           S.lipsyncs++;
@@ -1934,7 +2050,8 @@ const Story = (() => {
           if (S.lipsyncs >= 3) Achievements.unlock("superviviente");
         }
         header();
-        if (onWin) return res.won ? onWin(rival) : theEnd(false, rival, false, "La repesca no ha salido bien.");
+        if (!forCrown) nemEvent("elim", res.won ? S.queen : rival, res.won ? rival : S.queen);
+        if (onWin) return res.won ? onWin(rival) : aftermath(rival, "La Segunda Oportunidrag no ha salido bien.");
         if (!res.won && !forCrown && !S.flags.dshantay && Math.random() < 0.15) {
           S.flags.dshantay = true;
           Achievements.unlock("doble-shantay");
@@ -1951,6 +2068,7 @@ const Story = (() => {
         }
         if (!res.won) {
           if (!forCrown && twistOf() === "repesca" && !S.flags.repesca) return goHomeRepesca(rival);
+          if (!forCrown) return aftermath(rival);
           return theEnd(false, rival, forCrown);
         }
         if (forCrown) return theEnd(true, rival);
@@ -1966,38 +2084,42 @@ const Story = (() => {
           </div>`;
         endEpisodeBtn();
       });
-    }, forCrown ? "LIP SYNC POR LA CORONA" : onWin ? "LA REPESCA" : "LIP SYNC FOR YOUR LIFE"));
+    }, forCrown ? "LIP SYNC POR LA CORONA" : onWin ? "SEGUNDA OPORTUNIDRAG" : "LIP SYNC FOR YOUR LIFE"));
   }
 
   // ------------------------------ Repesca (T3) ------------------------------
   // Si te eliminan antes de la repesca, esperas en casa y vuelves a intentarlo
   function goHomeRepesca(by) {
     S.meOut = true;
-    const log = [];
-    // La temporada sigue sin ti hasta la mitad
-    while (S.rivals.length > Math.ceil(S.season.cast.length / 2) - 1 && S.rivals.length > 3) {
-      const sorted = S.rivals.slice().sort((a, b) => rivalScore(a) - rivalScore(b));
-      const go = sorted[0];
-      S.ep++;
-      S.epNames[S.ep] = "Sin ti";
-      sorted.forEach((q, k) => mark(q, k === sorted.length - 1 ? "WIN" : k <= 1 ? "BTM2" : "SAFE"));
-      eliminate(go);
-      log.push(go);
-    }
+    S.flags.waitRepesca = 1;
+    if (S.track.me && S.track.me[S.ep]) mark(S.queen, "ELIM");
+    S.phase = null;
+    save();
     header();
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">Te vas a casa... de momento</p>
         <h3>Sashay away, ${esc(S.queen.name)}</h3>
-        <p>Pero esta temporada tiene <b>repesca</b>. Mientras esperas, la competición sigue:</p>
-        <ol class="ranking">${log.map((q, k) => `<li style="--i:${k}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><b class="tag btm">Eliminada</b></li>`).join("") || "<li>Nadie más se ha ido todavía.</li>"}</ol>
-        <button class="btn btn-primary" id="story-next">¡Llega la repesca!</button>
+        ${by ? `<div class="vs"><img class="gone" src="${photo(S.queen)}"><span>💔</span><img src="${photo(by)}"></div>` : ""}
+        <p>Pero esta temporada hay <b>Segunda Oportunidrag</b>. Mientras esperas en casa, la competición sigue: verás cómo cae cada reina semana a semana.</p>
+        <button class="btn btn-primary" id="story-next">Ver cómo sigue</button>
       </div>`;
-    $("#story-next").addEventListener("click", () => {
-      S.phase = null;
+    $("#story-next").addEventListener("click", repescaStep);
+  }
+  // Semanas sin ti hasta la mitad de la temporada, y entonces llega la Segunda Oportunidrag
+  function repescaStep() {
+    const pending = () => S.rivals.length > Math.ceil(S.season.cast.length / 2) - 1 && S.rivals.length > 3;
+    if (!pending()) {
+      S.flags.waitRepesca = 0;
       save();
-      repesca(() => nextEpisode());
-    });
+      return Curtain.run(() => repesca(() => nextEpisode()), "SEGUNDA OPORTUNIDRAG");
+    }
+    const r = simWeek();
+    S.phase = null;
+    save();
+    const face = (q) => `<i class="tn-face" style="background-image:url('${photo(q)}')"></i>`;
+    showTrack(repescaStep, pending() ? "Siguiente semana" : "¡Llega la Segunda Oportunidrag!",
+      `${face(r.win)} 👑 Gana <b>${esc(r.win.name)}</b> · ${face(r.go)} 💔 <b>${esc(r.go.name)}</b> pierde el lip sync contra <b>${esc(r.stay.name)}</b> y se va a casa.`);
   }
   function repesca(then) {
     S.flags.repesca = true;
@@ -2006,7 +2128,7 @@ const Story = (() => {
     if (S.meOut) {
       const rival = pick1(pool);
       return dialog(
-        [["host", "¡Reinas eliminadas, ha llegado el momento! Solo una vuelve a la competición."], ["r1", "{yo}, no te lo voy a poner fácil."]],
+        [["host", "¡Reinas eliminadas, bienvenidas a la Segunda Oportunidrag! Solo una vuelve a la competición."], ["r1", "{yo}, no te lo voy a poner fácil."]],
         { ...ctxWith(rival), tension: true },
         () =>
           lipSync(rival, false, () => {
@@ -2015,7 +2137,7 @@ const Story = (() => {
             header();
             body().innerHTML = `
               <div class="story-card">
-                <p class="eyebrow">🔁 La repesca</p>
+                <p class="eyebrow">🔁 Segunda Oportunidrag</p>
                 <h3>¡${esc(S.queen.name)} vuelve a la competición!</h3>
                 <p>Las demás no se lo esperaban. Ahora vas con todo.</p>
                 <button class="btn btn-primary" id="story-next">Volver al taller</button>
@@ -2029,7 +2151,7 @@ const Story = (() => {
     S.rivals.push(back);
     header();
     dialog(
-      [["host", "Reinas, antes de empezar... ¡ha llegado la repesca!"], ["host", "Las eliminadas se han batido en un lip sync y una vuelve a la competición."], ...HISTORIA.regresoVuelve],
+      [["host", "Reinas, antes de empezar... ¡ha llegado la Segunda Oportunidrag!"], ["host", "Las eliminadas se han batido en un lip sync y una vuelve a la competición."], ...HISTORIA.regresoVuelve],
       ctxWith(back),
       then,
       [
@@ -2164,6 +2286,11 @@ const Story = (() => {
       }));
     }
     function drama() {
+      const nq = S.nemesis && S.nemesis.done !== "tregua" ? qById(S.nemesis.id) : null;
+      if (nq && !S.flags.nemReunion) {
+        S.flags.nemReunion = 1;
+        return dialog(NEMESIS.reencuentro, { ...ctxWith(nq), q: { r1: nq }, r1: nq.name, tension: true }, missSimpatia, NEMESIS.reencuentroChoices);
+      }
       const everyone = all();
       const a = everyone.find((q) => ["villana", "cizanera", "diva"].includes(S.roles[q.id])) || pick1(everyone);
       const b = pick1(everyone.filter((q) => q !== a)) || a;
@@ -2203,6 +2330,7 @@ const Story = (() => {
       const ranked = everyone.slice().sort((a, b) => votes.get(b).length - votes.get(a).length || appeal.get(b) - appeal.get(a));
       const win = ranked[0];
       S.missC = keyOf(win);
+      if (win === S.queen) earn(400, "Premio Miss Simpatía");
       mark(win, "MISSC");
       if (win === S.queen) {
         S.points += 1500;
@@ -2221,6 +2349,11 @@ const Story = (() => {
           <button class="btn btn-primary" id="story-next">¡A la gran final!</button>
         </div>`;
       S.flags.reunion = true;
+      if (S.meOut) {
+        S.phase = null;
+        save();
+        return $("#story-next").addEventListener("click", afterFinal);
+      }
       endEpisodeBtn();
     }
   }
@@ -2228,7 +2361,7 @@ const Story = (() => {
   // --------------------------------- Final ---------------------------------
   // Top 4: sorteo, dos lip syncs y las ganadoras se enfrentan por la corona
   const simLS = (a, b) => {
-    const v = (q) => skillOf(q) + (S.record[keyOf(q)] || 0) * 2 + (S.form[q.id] || 0);
+    const v = (q) => skillOf(q) + (S.record[keyOf(q)] || 0) * 2 + (S.form[q.id] || 0) + (traitsOf(q).fort === "lipsync" ? 8 : 0) - (traitsOf(q).deb === "lsFlojo" ? 8 : 0) + Nem.power(q.id) * 0.5;
     return Math.random() < clamp(0.5 + (v(a) - v(b)) / 40, 0.2, 0.8) ? [a, b] : [b, a];
   };
   function playLS(rival, o, cb) {
@@ -2324,6 +2457,95 @@ const Story = (() => {
     }
   }
 
+  // ------------------- Si te eliminan: la temporada sigue sin ti -------------------
+  // Se ve semana a semana en el track record, luego el reencuentro (Miss Simpatía) y la final
+  function aftermath(by, reason = "") {
+    S.meOut = true;
+    S.flags.aftermath = 1;
+    S.flags.myPlace = S.rivals.length + 1;
+    S.flags.outEp = S.ep;
+    if (S.track.me && S.track.me[S.ep]) mark(S.queen, "ELIM");
+    S.phase = null;
+    save();
+    Music.stop();
+    header();
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">Sashay away</p>
+        <h3>${esc(S.queen.name)}, te vas a casa... puesto ${S.flags.myPlace}º</h3>
+        ${by ? `<div class="vs"><img class="gone" src="${photo(S.queen)}"><span>💔</span><img src="${photo(by)}"></div>` : ""}
+        <p>${reason || (by ? `${esc(by.name)} se queda en la competición.` : "")}</p>
+        <p class="muted">Pero la temporada sigue: verás cómo va cayendo cada reina hasta el reencuentro, donde aún puedes ganar Miss Simpatía, y la gran final.</p>
+        <button class="btn btn-primary" id="story-next">Ver cómo sigue la temporada</button>
+      </div>`;
+    $("#story-next").addEventListener("click", afterStep);
+  }
+  function simWeek() {
+    S.ep++;
+    const tipo = pickReto();
+    S.epNames[S.ep] = EP_SHORT[tipo] || "Reto";
+    const rows = S.rivals.map((q) => ({ q, s: rivalScore(q) + rnd(-10, 10) })).sort((a, b) => b.s - a.s);
+    const n = rows.length;
+    const allCrit = n <= 6;
+    rows.forEach((r, k) => {
+      const lab = k === 0 ? "WIN" : k >= n - 2 ? "BTM2" : allCrit ? (k < Math.ceil(n / 2) ? "HIGH" : "LOW") : k <= 2 ? "HIGH" : k >= n - 3 ? "LOW" : "SAFE";
+      mark(r.q, lab);
+      const key = keyOf(r.q);
+      S.record[key] = (S.record[key] || 0) + (k === 0 ? 3 : k >= n - 2 ? 0 : 1);
+      S.form[r.q.id] = clamp((S.form[r.q.id] || 0) + (k === 0 ? 2 : k >= n - 2 ? 3 : 0) + rnd(-2, 2), -10, 10);
+    });
+    const [stay, go] = simLS(rows[n - 2].q, rows[n - 1].q);
+    nemEvent("elim", stay, go);
+    eliminate(go);
+    return { win: rows[0].q, stay, go };
+  }
+  function afterStep() {
+    if (S.rivals.length <= 4) return afterReunion();
+    const r = simWeek();
+    S.phase = null;
+    save();
+    const face = (q) => `<i class="tn-face" style="background-image:url('${photo(q)}')"></i>`;
+    showTrack(afterStep, S.rivals.length <= 4 ? "Al reencuentro" : "Siguiente semana",
+      `${face(r.win)} 👑 Gana <b>${esc(r.win.name)}</b> · ${face(r.go)} 💔 <b>${esc(r.go.name)}</b> pierde el lip sync contra <b>${esc(r.stay.name)}</b> y se va a casa.`);
+  }
+  function afterReunion() {
+    Curtain.run(() => {
+      S.ep++;
+      reunion();
+    }, "EL REENCUENTRO");
+  }
+  function afterFinal() {
+    Curtain.run(() => {
+      setSet("stage");
+      S.ep++;
+      S.epNames[S.ep] = "Final";
+      const four = shuffle(S.rivals.slice());
+      const A = four.slice(0, 2), B = four.slice(2, 4);
+      const [w1, l1] = simLS(A[0], A[1]);
+      const [w2, l2] = simLS(B[0], B[1]);
+      const [fw, fl] = simLS(w1, w2);
+      mark(l1, "3ª");
+      mark(l2, "3ª");
+      mark(fw, "WINNER");
+      mark(fl, "RUNNER-UP");
+      header();
+      $("#story-ep").textContent = "Gran final";
+      const pair = (a, b, w) => `<div class="draw-pair"><div class="vs"><img class="${w === a ? "" : "gone"}" src="${photo(a)}" title="${esc(a.name)}"><span>VS</span><img class="${w === b ? "" : "gone"}" src="${photo(b)}" title="${esc(b.name)}"></div><b>Gana ${esc(w.name)}</b></div>`;
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">👑 La gran final · lo ves desde el público</p>
+          <h3>${esc(fw.name)} es la ganadora de ${esc(S.season.name)}</h3>
+          <div class="draw">${pair(A[0], A[1], w1)}${pair(B[0], B[1], w2)}</div>
+          <p>Lip sync por la corona: <b>${esc(fw.name)}</b> vence a <b>${esc(fl.name)}</b>.</p>
+          <div class="vs"><img src="${photo(fw)}"><span>👑</span><img class="gone" src="${photo(fl)}"></div>
+          <button class="btn btn-primary" id="story-next">Track record final</button>
+        </div>`;
+      Confetti.burst(2500);
+      $("#story-next").addEventListener("click", () =>
+        showTrack(() => theEnd(false, fw, false, `Te fuiste en el episodio ${S.flags.outEp || "?"}. La corona se la lleva ${fw.name}.`, S.flags.myPlace || S.out.length + 1), "Resultado final"));
+    }, "GRAN FINAL");
+  }
+
   function theEndRebind(q, s) {
     $("#story-menu").addEventListener("click", () => { abandon(); UI.show("menu"); });
     $("#story-again").addEventListener("click", () => start(q, s));
@@ -2365,6 +2587,15 @@ const Story = (() => {
       if (FRANCHISES.find((f) => f.id === "es").seasons.filter((x) => !x.enEmision).every((x) => crowns.includes(x.id))) Achievements.unlock("espana");
     } else Music.stop();
     const earned = Wallet.add(S.points / 40);
+    const prize = won ? 2500 : place === 2 ? 1000 : place <= 4 ? 500 : 150;
+    // La corona queda en la memoria: la ganadora vuelve más fuerte en las siguientes temporadas
+    const fe = Object.keys(S.epNames).map(Number).sort((a, b) => b - a)[0];
+    [S.queen, ...S.rivals, ...S.out].forEach((q) => {
+      const l = (S.track[keyOf(q)] || {})[fe];
+      if (l === "WINNER") { Nem.addPower(q.id, 3); const d = Nem.get(); d.q[q.id] = { ...(d.q[q.id] || {}), titles: [...((d.q[q.id] || {}).titles || []), S.season.name] }; Nem.put(d); }
+      if (l === "RUNNER-UP" || l === "3ª") Nem.addPower(q.id, 1);
+    });
+    Closet.add(prize);
     body().innerHTML = `
       <div class="story-card end ${won ? "won" : ""}">
         <img class="story-queen" src="${sprite(S.queen)}" alt="">
@@ -2372,7 +2603,7 @@ const Story = (() => {
           <p class="eyebrow">${esc(S.season.name)} · resultado final</p>
           <h3>${won ? `¡${esc(S.queen.name)}, eres la ganadora! 👑` : `Sashay away... puesto ${place}º`}</h3>
           <p>${won ? "La corona es tuya. Felicidrages." : reason || `${esc(rival.name)} te ha ganado el lip sync.`}</p>
-          <p class="story-pts">${entry.score.toLocaleString("es-ES")} puntos · +${earned} ✨</p>
+          <p class="story-pts">${entry.score.toLocaleString("es-ES")} puntos · +${earned} ✨ · 💶 +${prize.toLocaleString("es-ES")} € para tu armario</p>
           <p class="muted">Retos ganados: ${S.wins} · Veces en el bottom: ${S.bottoms} · Lip syncs ganados: ${S.lipsyncs} · Aliadas: ${allies().length}</p>
           ${pos >= 0 ? `<label class="name-entry active story-name">Puesto ${pos + 1} del Top 10 de historia. Tu nombre:
             <input id="story-name" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="${esc(entry.name)}"></label>` : ""}
@@ -3549,7 +3780,7 @@ const Story = (() => {
             t: "🎁 Revelación (reveal)",
             d: "Performance + Carisma. Si sale, puntuación máxima",
             go: () => {
-              const c = check(["performance", "carisma"], 60);
+              const c = check(["performance", "carisma"], 60 - Math.round(((S.walkMov || 3) - 3) * 5));
               if (!c.ok) st.atascado = true;
               return res(c, 100, 15, "¡REVEAL! El público se viene arriba.", "¡Traje atascado! El reveal no se abre...");
             },
@@ -3576,8 +3807,10 @@ const Story = (() => {
   function runRunwayNew(el, cat, done, prefix = "") {
     dressingRoom(el, cat, (st, spec) => {
       S.revealImg = st.revealImg || null;
+      S.walkMov = st.pieces.length ? st.pieces.reduce((t, it) => t + (it.loan ? 3 : statOf(it)[1]), 0) / st.pieces.length : 3;
       runwayWalk(el, cat, spec, st.lookTag || "Glamour", (walk, flags, finalSpec) => {
         S.lastOutfit = finalSpec;
+        S.lookTags = [...(S.lookTags || []), st.lookTag || "Glamour"].slice(-6);
         S.revealImg = null;
         S.lastLook = { cat, best: st.pieces[0] ? st.pieces[0].n : "look", worst: st.pieces.slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: flags.atascado, voiceGood: flags.voiceGood };
         done(st.prep * 0.5 + walk * 0.5);
@@ -3586,36 +3819,495 @@ const Story = (() => {
   }
 
 
+  // ------------------------------ Sistema Némesis ------------------------------
+  // Memoria permanente entre temporadas: cada reina tiene rasgos, poder y cicatrices con las demás.
+  // Lo que pasa aquí se recuerda en las siguientes temporadas (y en All Stars).
+  const NEM_KEY = "dftc-nemesis";
+  const Nem = {
+    get() { const d = store.get(NEM_KEY, null) || {}; return { q: d.q || {}, f: d.f || {}, scars: d.scars || {}, known: d.known || [] }; },
+    put(d) { store.set(NEM_KEY, d); },
+    power(id) { return (this.get().q[id] || {}).power || 0; },
+    titles(id) { return (this.get().q[id] || {}).titles || []; },
+    addPower(id, n) {
+      const d = this.get();
+      const t = traitsOf(qById(id) || { id });
+      if (n > 0 && t.car === "ambiciosa") n *= 2;
+      d.q[id] = { ...(d.q[id] || {}), power: clamp(((d.q[id] || {}).power || 0) + n, 0, 10) };
+      this.put(d);
+    },
+    feel(a, b) { return this.get().f[`${a}>${b}`] || 0; },
+    addFeel(a, b, n) {
+      const d = this.get();
+      if (n < 0 && traitsOf(qById(a) || { id: a }).car === "rencorosa") n *= 2;
+      const k = `${a}>${b}`;
+      d.f[k] = clamp((d.f[k] || 0) + n, -5, 5);
+      this.put(d);
+    },
+    scar(by, to, k) {
+      const d = this.get();
+      const key = [by, to].sort().join("|");
+      d.scars[key] = [...(d.scars[key] || []), { by, to, k, s: S.season.name, sid: S.season.id, ep: S.ep }].slice(-8);
+      this.put(d);
+    },
+    scarsOf(a, b) { return this.get().scars[[a, b].sort().join("|")] || []; },
+    knows(id, slot) { return this.get().known.includes(`${id}:${slot}`); },
+    learn(id, slot) {
+      if (this.knows(id, slot)) return false;
+      const d = this.get();
+      d.known.push(`${id}:${slot}`);
+      this.put(d);
+      return true;
+    },
+  };
+  // Rasgos fijos de cada reina (salen de su nombre: siempre los mismos)
+  function traitsOf(q) {
+    let h = 0;
+    for (const c of String(q.id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    const pick = (o, salt) => { const k = Object.keys(o); return k[(h >>> salt) % k.length]; };
+    const fort = pick(RASGOS.fort, 0);
+    let deb = pick(RASGOS.deb, 5);
+    if (RASGOS.deb[deb].cat === fort) deb = "provocable";
+    return { fort, deb, car: pick(RASGOS.car, 11) };
+  }
+  const RETO_CAT = { snatch: "comedia", roast: "comedia", impro: "comedia", publicidad: "comedia", rusical: "baile", equipos: "baile", lalaparuza: "baile", diseno: "costura", ball: "costura", makeover: "costura", actuacion: "comedia" };
+  // Efecto de los rasgos y del poder en la nota de una reina
+  function traitMod(q) {
+    const t = traitsOf(q), cat = RETO_CAT[S.curTipo];
+    let m = Math.min(5, Nem.power(q.id) * 0.6);
+    if (cat && t.fort === cat) m += 9;
+    if (cat && RASGOS.deb[t.deb].cat === cat) m -= 10;
+    if (t.fort === "pasarela" && !(RETOS[S.curTipo] || {}).noRunway) m += 5;
+    return m;
+  }
+  function learnTrait(q, slot, how) {
+    if (!q || !Nem.learn(q.id, slot)) return;
+    const t = traitsOf(q), r = RASGOS[slot][t[slot]];
+    Toast.show(`🔎 ${how || "Descubres algo"}: ${q.name}`, `${r.icon} ${r.n}`);
+  }
+  // Lo que pasa entre dos reinas queda para siempre
+  function nemEvent(kind, a, b) {
+    if (!a || !b || a === b) return;
+    if (kind === "elim") { Nem.addFeel(b.id, a.id, -2); Nem.addPower(a.id, 1); Nem.addPower(b.id, -1); }
+    if (kind === "vote") Nem.addFeel(b.id, a.id, -3);
+    if (kind === "save") Nem.addFeel(b.id, a.id, 3);
+    if (kind === "humill") Nem.addFeel(b.id, a.id, -2);
+    if (kind === "betray") Nem.addFeel(b.id, a.id, -4);
+    if (kind === "pact") { Nem.addFeel(b.id, a.id, 1); Nem.addFeel(a.id, b.id, 1); }
+    Nem.scar(a.id, b.id, kind);
+  }
+  // Rango de cada reina en el taller (como la jerarquía de capitanes)
+  function rankOf(q) {
+    const eps = Object.keys(S.epNames).map(Number);
+    const labs = eps.map((e) => (S.track[keyOf(q)] || {})[e]).filter(Boolean);
+    const sc = labs.reduce((t, l) => t + (l === "WIN" || l === "TOP2" ? 3 : l === "HIGH" ? 1 : /^BTM/.test(l) ? -2 : l === "LOW" ? -1 : 0), 0) + Nem.power(q.id);
+    return sc >= 7 ? ["👑", "Favorita"] : sc >= 3 ? ["⚔️", "Amenaza"] : sc <= -3 ? ["🪢", "En la cuerda floja"] : ["🙂", "Del montón"];
+  }
+  // Primer día: las reinas con historia contigo te la recuerdan
+  function historyScene(then) {
+    if (S.ep !== 1 || S.flags.histDone) return then();
+    S.flags.histDone = 1;
+    const me = S.queen.id;
+    const cands = S.rivals.map((q) => ({ q, sc: Nem.scarsOf(me, q.id), f: Nem.feel(q.id, me) })).filter((x) => x.sc.length).sort((a, b) => Math.abs(b.f) - Math.abs(a.f)).slice(0, 2);
+    if (!cands.length) return then();
+    const lines = [["host", "Algunas de estas caras ya las conocéis... y ellas no se han olvidado de ti."]];
+    cands.forEach(({ q, sc }) => {
+      const last = sc[sc.length - 1];
+      const bank = CICATRICES[`${last.k}:${last.by === me ? "me" : "her"}`];
+      if (bank) lines.push([`r${lines.length}`, pick1(bank).replace("{s}", last.s)]);
+    });
+    const ctx = { ...ctxWith(cands[0].q, { r2: cands[1] && cands[1].q }), q: { r1: cands[0].q, r2: cands[1] ? cands[1].q : cands[0].q }, r1: cands[0].q.name, r2: cands[1] ? cands[1].q.name : "", tension: cands.some((c) => c.f < 0) };
+    dialog(lines.map(([k, t], i) => [i === 0 ? "host" : i === 1 ? "r1" : "r2", t]), ctx, then);
+  }
+  // Rumores del taller: peleas, ascensos y viejas cuentas de otras temporadas
+  function radioLines() {
+    const out = [];
+    const all = S.rivals;
+    for (let i = 0; i < all.length && out.length < 1; i++) for (let j = 0; j < all.length && out.length < 1; j++) {
+      if (i === j) continue;
+      const sc = Nem.scarsOf(all[i].id, all[j].id).filter((x) => x.sid !== S.season.id && ["elim", "vote", "save"].includes(x.k));
+      if (sc.length && Math.random() < 0.5) { const l = sc[sc.length - 1]; out.push(pick1(RADIO[l.k]).replace("{a}", qById(l.by).name).replace("{b}", qById(l.to).name).replace("{s}", l.s)); }
+    }
+    const crowned = all.find((q) => Nem.titles(q.id).length);
+    if (crowned && Math.random() < 0.4) out.push(pick1(RADIO.corona).replace("{a}", crowned.name).replace("{s}", Nem.titles(crowned.id).slice(-1)[0]));
+    const fav = all.find((q) => rankOf(q)[1] === "Favorita");
+    if (fav && out.length < 2 && Math.random() < 0.5) out.push(pick1(RADIO.ascenso).replace("{a}", fav.name));
+    if (out.length < 2 && all.length >= 3 && Math.random() < 0.4) { const [a, b] = shuffle(all); out.push(pick1(RADIO.pelea).replace("{a}", a.name).replace("{b}", b.name)); }
+    return out.slice(0, 2);
+  }
+  // Pactos: una aliada te cuenta secretos de las demás... o te traiciona
+  function pactScene(then) {
+    const pacts = S.rivals.filter((q) => S.pacts && S.pacts[q.id]);
+    if (!pacts.length) return then();
+    const q = pick1(pacts), t = traitsOf(q);
+    const myLast = (S.track.me || {})[S.ep - 1] || "";
+    const pBetray = t.car === "leal" ? 0 : (t.car === "traicionera" ? 0.3 : 0.08) + (/^BTM|LOW/.test(myLast) ? 0.1 : 0) + (Nem.power(q.id) > Nem.power(S.queen.id) ? 0.08 : 0);
+    const ctx = { ...ctxWith(q), q: { r1: q }, r1: q.name, tension: true };
+    if (Math.random() < pBetray) {
+      delete S.pacts[q.id];
+      S.advice -= 5;
+      nemEvent("betray", q, S.queen);
+      learnTrait(q, "car", "Ahora lo sabes");
+      return dialog([["r1", pick1(["Lo siento, {yo}. Esto es una competición y yo he venido a ganar.", "He contado a todas lo que me dijiste. No es personal."])], ["me", "(No me lo puedo creer...)"]], ctx, () => {
+        changeRel(q, -4);
+        body().innerHTML = `
+          <div class="story-card">
+            <p class="eyebrow">🐍 ¡Traición!</p>
+            <h3>${esc(q.name)} ha roto vuestro pacto</h3>
+            <div class="vs"><img src="${photo(S.queen)}"><span>🗡️</span><img src="${photo(q)}"></div>
+            <p>Ha ido contando tus planes por el taller: <b>-5 en el próximo reto</b>. Esto no se va a olvidar, ni en esta temporada ni en las siguientes.</p>
+            <button class="btn btn-primary" id="story-next">Continuar</button>
+          </div>`;
+        $("#story-next").addEventListener("click", then);
+      });
+    }
+    if (Math.random() > 0.55) return then();
+    const target = shuffle(S.rivals.filter((r) => r !== q)).find((r) => ["deb", "fort", "car"].some((sl) => !Nem.knows(r.id, sl)));
+    if (!target) return then();
+    const slot = ["deb", "fort", "car"].find((sl) => !Nem.knows(target.id, sl));
+    dialog([["r1", `Te cuento algo de ${target.name}, como buena aliada...`], ["r1", `${RASGOS[slot][traitsOf(target)[slot]].d}. Úsalo bien.`]], ctx, () => { learnTrait(target, slot, `Tu aliada te cuenta`); then(); });
+  }
+  // Tablero de rivales: rango, rasgos descubiertos e historia contigo
+  function openBoard() {
+    if (document.querySelector(".shop-modal")) return;
+    const m = document.createElement("div");
+    m.className = "shop-modal";
+    const me = S.queen.id;
+    const list = [...S.rivals, ...S.out];
+    const feelTxt = (f) => (f <= -3 ? "😡 Te odia" : f <= -1 ? "😒 Te tiene ganas" : f >= 3 ? "😍 Te adora" : f >= 1 ? "🙂 Le caes bien" : "😐 Neutral");
+    m.innerHTML = `
+      <div class="shop board">
+        <div class="shop-top"><h3>⚔️ Tus rivales</h3><button class="btn btn-primary" id="board-close">Cerrar</button></div>
+        <p class="muted">Descubre sus puntos fuertes y débiles cotilleando, observando en el Untucked o gracias a tus aliadas. Todo lo que pasa se recuerda en las siguientes temporadas.</p>
+        <div class="board-grid">${list.map((q) => {
+          const t = traitsOf(q), out = S.out.includes(q), [ri, rn] = rankOf(q);
+          const sc = Nem.scarsOf(me, q.id);
+          const tr = ["fort", "deb", "car"].map((sl) => Nem.knows(q.id, sl) ? `<span class="tr ${sl}">${RASGOS[sl][t[sl]].icon} ${esc(RASGOS[sl][t[sl]].n)}</span>` : `<span class="tr unk">❓ ${sl === "fort" ? "Fortaleza" : sl === "deb" ? "Debilidad" : "Carácter"}</span>`).join("");
+          return `<div class="board-card ${out ? "out" : ""} ${isNem(q) ? "nem" : ""} ${S.pacts && S.pacts[q.id] ? "pact" : ""}">
+            <i style="background-image:url('${photo(q)}')"></i>
+            <b>${esc(q.name)}</b>
+            <small>${out ? "Eliminada" : `${ri} ${rn}`}${Nem.titles(q.id).length ? " · 👑 " + Nem.titles(q.id).length : ""}${isNem(q) ? " · ⚔️ Némesis" : ""}${S.pacts && S.pacts[q.id] ? " · 🤝 Pacto" : ""}</small>
+            <small>${feelTxt(Nem.feel(q.id, me))} · Poder ${"●".repeat(Math.round(Nem.power(q.id) / 2))}${"○".repeat(5 - Math.round(Nem.power(q.id) / 2))}</small>
+            <div class="trs">${tr}</div>
+            ${sc.length ? `<small class="scars">${sc.slice(-2).map((x) => `${x.k === "elim" ? "💔" : x.k === "save" ? "🙏" : x.k === "pact" ? "🤝" : x.k === "betray" ? "🐍" : x.k === "vote" ? "💄" : "🎯"} ${esc(x.s)}`).join(" · ")}</small>` : ""}
+          </div>`;
+        }).join("")}</div>
+      </div>`;
+    $("#screen-story").append(m);
+    $("#board-close").addEventListener("click", () => m.remove());
+  }
+
+  // ------------------------------ Fama y némesis ------------------------------
+  // Todo lo que haces suma a tu fama (madre, villana, drama o concentrada).
+  // La némesis nace de un choque fuerte o de la competencia directa, y te persigue toda la temporada.
+  const P_KEYS = ["kind", "mean", "drama", "focus"];
+  function persona(k, n = 1) {
+    if (!k) return;
+    S.persona = S.persona || {};
+    const before = fame();
+    S.persona[k] = (S.persona[k] || 0) + n;
+    const now = fame();
+    if (now && now !== before) Toast.show(`${FAMA[now].icon} Tu fama en el taller: ${FAMA[now].n}`, "Las demás te tratarán según cómo te comportes");
+  }
+  function fame() {
+    const p = S.persona || {};
+    const best = P_KEYS.slice().sort((a, b) => (p[b] || 0) - (p[a] || 0))[0];
+    const second = P_KEYS.filter((k) => k !== best).reduce((m, k) => Math.max(m, p[k] || 0), 0);
+    return (p[best] || 0) >= 3 && (p[best] || 0) > second ? best : null;
+  }
+  const nemQ = () => (S.nemesis && !S.nemesis.done ? qById(S.nemesis.id) : null);
+  const nemActive = () => { const q = nemQ(); return q && S.rivals.includes(q) ? q : null; };
+  const isNem = (q) => !!q && !!S.nemesis && !S.nemesis.done && S.nemesis.id === q.id;
+  function makeNemesis(q, origin) {
+    if (!q || q === S.queen || !S.rivals.includes(q)) return;
+    if (S.nemesis && !S.nemesis.done && S.rivals.some((r) => r.id === S.nemesis.id)) return;
+    if (S.nemesis && S.nemesis.done === "tregua" && S.nemesis.id === q.id) return;
+    S.nemesis = { id: q.id, origin, heat: 4, ep: S.ep, announced: false };
+    if (relOf(q) > -2) S.rel[q.id] = -2;
+  }
+  function heat(d) {
+    if (!S.nemesis || S.nemesis.done) return;
+    S.nemesis.heat = clamp(S.nemesis.heat + d, 0, 10);
+    const q = nemQ();
+    if (S.nemesis.heat <= 0 && q) {
+      S.nemesis.done = "tregua";
+      S.rel[q.id] = 0;
+      Toast.show(`🕊️ Tregua con ${q.name}`, "Ya no es tu némesis");
+    }
+  }
+  // Escena semanal: nace la némesis, o te lanza una pulla según tu historia
+  function nemesisScene(then) {
+    if (S.rivals.length < 3) return then();
+    // Si nadie ha chocado contigo, la rival más directa se convierte en némesis
+    if ((!S.nemesis || (S.nemesis.done && S.nemesis.done !== "tregua" && S.ep - (S.nemesis.ep || 0) >= 2)) && S.ep >= 3) {
+      const eps = Object.keys(S.track.me || {}).map(Number);
+      const close = (q) => eps.reduce((t, e) => t + (["WIN", "HIGH", "TOP2"].includes((S.track[q.id] || {})[e]) && ["WIN", "HIGH", "TOP2"].includes(S.track.me[e]) ? 2 : 0), 0) - relOf(q) * 2 + rnd(0, 2);
+      const cand = S.rivals.slice().sort((a, b) => close(b) - close(a))[0];
+      if (cand && (S.ep >= 4 || Math.random() < 0.5)) makeNemesis(cand, "competencia");
+    }
+    const q = nemActive();
+    if (!q) return then();
+    const ctx = { ...ctxWith(q), q: { r1: q }, r1: q.name, tension: true };
+    if (!S.nemesis.announced) {
+      S.nemesis.announced = true;
+      reveal(q);
+      return dialog(NEMESIS.nace[S.nemesis.origin] || NEMESIS.nace.choque, ctx, () => {
+        body().innerHTML = `
+          <div class="story-card">
+            <p class="eyebrow">⚔️ Nace una némesis</p>
+            <h3>${esc(q.name)} va a por ti</h3>
+            <div class="vs"><img src="${photo(S.queen)}"><span>⚔️</span><img src="${photo(q)}"></div>
+            <p>${S.nemesis.origin === "competencia" ? "Semana tras semana os peleáis por lo mismo." : "Lo vuestro ya es personal."} Te buscará en el taller, en el Untucked y, si puede, en el lip sync. Puedes plantarle cara, ignorarla o intentar hacer las paces.</p>
+            <button class="btn btn-primary" id="story-next">Continuar</button>
+          </div>`;
+        $("#story-next").addEventListener("click", then);
+      });
+    }
+    if (Math.random() > 0.6) return then();
+    const meLab = Object.values(S.track.me || {});
+    const nb = meLab.filter((l) => /^BTM|ELIM/.test(l)).length, nw = meLab.filter((l) => l === "WIN").length;
+    const f = fame();
+    const key = nb >= 2 && Math.random() < 0.6 ? "bottoms" : nw >= 2 && Math.random() < 0.6 ? "wins" : f && Math.random() < 0.7 ? f : "generic";
+    dialog(pickFresh(NEMESIS.pullas[key]), ctx, then, nemChoices());
+  }
+  function nemChoices() {
+    return [
+      { txt: "¿Eso es todo lo que tienes? Qué poquito.", persona: "drama", bonus: 200, fx: () => heat(1), reply: ["r1", "Ríete ahora. Ya veremos el viernes."] },
+      { txt: "(No le contestas y te centras en el reto)", persona: "focus", adv: 3, fx: () => heat(0), reply: ["r1", "Muy bien, hazte la digna."] },
+      { txt: "Oye... ¿y si dejamos esto? No nos hace bien a ninguna.", persona: "kind", fx: () => {
+        if (S.nemesis && S.nemesis.heat <= 4 && Math.random() < 0.6) heat(-3);
+        else Toast.show("😒 No cuela", "Todavía no está lista para hacer las paces");
+      }, reply: ["r1", "...Me lo pensaré."] },
+    ];
+  }
+  // La fama: las demás reaccionan a cómo te comportas
+  function fameScene(then) {
+    const f = fame();
+    if (!f || S.rivals.length < 3 || Math.random() > 0.5) return then();
+    const q = pick1(S.rivals.filter((r) => !isNem(r))) || pick1(S.rivals);
+    const v = pickFresh(FAMA[f].reaccion);
+    // Las demás se acercan o se apartan según tu fama
+    if (f === "kind") changeRel(pick1(S.rivals), 1);
+    if (f === "mean" && Math.random() < 0.5) changeRel(pick1(S.rivals.filter((r) => !isNem(r))), -1);
+    dialog(v.lines, { ...ctxWith(q), tension: f === "mean" }, then, v.choices);
+  }
+  // Valoraciones del jurado personalizadas con tu historia en la temporada
+  function personalCrit() {
+    const eps = Object.keys(S.track.me || {}).map(Number).sort((a, b) => a - b);
+    const labs = eps.map((e) => S.track.me[e]);
+    const prev = labs[labs.length - 2];
+    const nb = labs.filter((l) => /^BTM/.test(l)).length, nw = labs.filter((l) => l === "WIN").length;
+    const out = [];
+    const rs = S.lastParts ? S.lastParts.reto : 50;
+    if (prev && /^BTM/.test(prev) && rs >= 70) out.push(["judge", "La semana pasada estabas en el bottom y hoy mírate. Eso es tener hambre de corona."]);
+    else if (nb >= 2 && rs < 55) out.push(["host", `${S.queen.name}, ya van ${nb} veces abajo. Ya no es un mal día: empieza a ser una tendencia.`]);
+    else if (nw >= 2 && rs < 55) out.push(["judge", `Llevas ${nw} victorias y hoy parece que te has relajado. No te lo creas tanto.`]);
+    else if (nw >= 2 && rs >= 75) out.push(["ambrossi", `Otra semana arriba. Ya van ${nw} victorias y no aflojas.`]);
+    S.lookTags = S.lookTags || [];
+    const lt = S.lookTags.slice(-3);
+    if (lt.length === 3 && lt.every((t) => t === lt[0])) out.push(["calvo", `Tercera semana seguida tirando de ${lt[0]}. Te queda bien, pero quiero ver otra faceta tuya.`]);
+    const f = fame();
+    const FAME_CRIT = {
+      mean: "Fuera de este escenario das mucho que hablar. Aquí arriba también tienes que hacerlo.",
+      kind: "Te veo ayudando a todas en el taller. Precioso, pero hoy necesitaba que te ayudaras a ti.",
+      drama: "El drama del taller da mucho juego, pero no sube la nota. Recuérdalo.",
+      focus: "Se nota que vienes a trabajar y no a hacer amigas. Eso el jurado lo ve.",
+    };
+    if (f && Math.random() < 0.6) out.push([pick1(["judge", "host"]), FAME_CRIT[f]]);
+    const nq = nemActive();
+    if (nq && Math.random() < 0.6) out.push(["host", `Y te veo muy pendiente de ${nq.name}. Mira tu camino, que el suyo no te lleva a la corona.`]);
+    return out.slice(0, 2);
+  }
+
+  // ------------------------------ Armario personal y tienda ------------------------------
+  // Tu armario (y tu dinero) se guarda entre temporadas
+  const CLOSET_KEY = "dftc-closet";
+  const PRICE = { look: [0, 60, 110, 180, 280, 420], peluca: [0, 30, 55, 90, 140, 210], acc: [0, 20, 35, 60, 90, 140] };
+  const SLOT_NAMES = { look: "Looks", peluca: "Pelucas", acc: "Toque final" };
+  const slotMap = {};
+  const slotOf = (it) => {
+    if (!slotMap.ok) { ["look", "peluca", "acc"].forEach((k) => ARMARIO[k].forEach((x) => (slotMap[x.id] = k))); slotMap.ok = 1; }
+    return slotMap[it.id] || "acc";
+  };
+  const statOf = (it) => (typeof ARMARIO_STATS !== "undefined" && ARMARIO_STATS[it.id]) || [2, 3];
+  const priceOf = (it) => PRICE[slotOf(it)][statOf(it)[0]];
+  const euros = (n) => `${Math.round(n).toLocaleString("es-ES")} €`;
+  const Closet = {
+    get() { return store.get(CLOSET_KEY, { money: 0, owned: {} }); },
+    set(c) { store.set(CLOSET_KEY, c); document.querySelectorAll(".closet-money").forEach((e) => (e.textContent = euros(c.money))); },
+    get money() { return this.get().money; },
+    has(id) { return !!this.get().owned[id]; },
+    add(n) { const c = this.get(); c.money = Math.max(0, Math.round(c.money + n)); this.set(c); },
+    buy(it) {
+      const c = this.get(), p = priceOf(it);
+      if (c.owned[it.id] || c.money < p) return false;
+      c.money -= p;
+      c.owned[it.id] = 1;
+      this.set(c);
+      return true;
+    },
+  };
+  function earn(n, why) {
+    Closet.add(n);
+    Toast.show(`💶 +${euros(n)}`, why);
+  }
+  const themeOf = (cat) => (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).find((t) => t.n === cat) || null;
+  // ¿Esta pieza encaja con esta pasarela?
+  function fitsRunway(k, it, cat) {
+    const TH = themeOf(cat);
+    const main = CAT_TAG[cat] || (TH && TH.tag) || "Glamour";
+    const tagFit = TAG_OF_STYLE[it.s] === main || (it.t || []).includes(cat);
+    const noTheme = !it.th || (Array.isArray(it.th) && !it.th.length);
+    if (!TH) return !it.rv && tagFit;
+    if (k === "look") return it.th === TH.id;
+    if (k === "peluca") return (Array.isArray(it.th) && it.th.includes(TH.id)) || (noTheme && tagFit);
+    return tagFit;
+  }
+  // Pasarelas de la temporada: primero las temáticas con fotos, luego las clásicas
+  function buildPlan() {
+    const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).filter((t) => ARMARIO.look.filter((x) => x.th === t.id).length >= 6);
+    let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
+    if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS;
+    let count = 0;
+    for (let ep = 1; ep <= Math.max(5, S.season.cast.length - 4); ep++) if (!RETOS[ord[(ep - 1) % ord.length]].noRunway) count++;
+    return [...shuffle(temas.map((t) => t.n)), ...shuffle(CATEGORIAS.slice())].slice(0, Math.max(3, count));
+  }
+  // Lo mínimo para cubrir cada pasarela (look + peluca + toque final más baratos que encajan)
+  function basicBudget(plan) {
+    let total = 0;
+    plan.forEach((cat) => ["look", "peluca", "acc"].forEach((k) => {
+      const prices = ARMARIO[k].filter((x) => fitsRunway(k, x, cat)).map(priceOf).sort((a, b) => a - b);
+      total += prices[0] || PRICE[k][1];
+    }));
+    return Math.ceil((total * 1.1) / 50) * 50;
+  }
+  // Antes de empezar: los Javis te llaman, te cuentan las pasarelas y te vas de compras
+  function javisCall(then) {
+    setSet("lounge");
+    header();
+    $("#story-ep").textContent = "Antes de empezar";
+    const plan = S.runwayPlan || [];
+    const grant = basicBudget(plan);
+    const lines = [
+      ["ambrossi", "¿Sí? ¿Hablo con {yo}? ¡Somos los Javis!"],
+      ["calvo", pick1(["Te llamamos con una noticia... ¡Estás dentro de Drag Race España!", "Siéntate, que esto es fuerte: ¡vas a ser concursante de Drag Race España!"])],
+      ["me", pick1(["¡¿QUÉ?! ¡No me lo creo!", "Ay, que me da algo. ¡Que me da algo!", "Esperad, que grito... ¡AAAH!"])],
+      ["ambrossi", "Escucha bien, que esto es importante: estas son las pasarelas que vas a tener que preparar."],
+      ["calvo", "Producción te da un presupuesto para lo básico. Lo demás... te lo tendrás que ganar."],
+      ["ambrossi", pick1(["Y nada de traer lo de siempre, ¿eh? Queremos verte brillar.", "Haz las maletas con cabeza. Y con lentejuelas."])],
+    ];
+    dialog(lines, ctxWith(pick1(S.rivals)), () => {
+      if (!S.flags.grant) { S.flags.grant = 1; Closet.add(grant); save(); }
+      body().innerHTML = `
+        <div class="story-card call-plan">
+          <p class="eyebrow">📞 Los Javis · tus pasarelas de ${esc(S.season.name)}</p>
+          <h3>Prepara estos estilismos</h3>
+          <ol class="plan-list">${plan.map((c, i) => { const t = themeOf(c); return `<li style="--i:${i}"><b>${esc(c)}</b>${t ? `<small>${esc(t.d)}</small>` : ""}</li>`; }).join("")}</ol>
+          <p class="gold">💶 Producción te ingresa ${euros(grant)} para lo básico. Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
+          <p class="muted">Gana miniretos, retos y, sobre todo, la corona para comprar piezas más espectaculares.</p>
+          <button class="btn btn-primary" id="story-go">🛍️ Ir de compras</button>
+        </div>`;
+      $("#story-go").addEventListener("click", () => shopScreen(body(), then, true));
+    });
+  }
+  // La tienda: todo el armario, con precio y estadísticas
+  function shopScreen(el, onDone, first = false) {
+    const plan = S.runwayPlan || [];
+    let tab = "look", filt = plan.length ? "plan" : "all";
+    const IMG = (id) => `./images/armario/${id}.webp`;
+    const fitsPlan = (k, it) => plan.filter((c) => fitsRunway(k, it, c));
+    const covered = (c) => ["look", "peluca", "acc"].every((k) => ARMARIO[k].some((x) => Closet.has(x.id) && fitsRunway(k, x, c)));
+    function items() {
+      let L = ARMARIO[tab].slice();
+      if (filt === "plan") L = L.filter((x) => fitsPlan(tab, x).length);
+      else if (filt === "mine") L = L.filter((x) => Closet.has(x.id));
+      else if (filt !== "all") L = L.filter((x) => fitsRunway(tab, x, filt));
+      return L.sort((a, b) => priceOf(a) - priceOf(b));
+    }
+    let host = el.querySelector(":scope > .shop-host");
+    if (!host) { el.innerHTML = `<div class="shop-host"></div>`; host = el.querySelector(".shop-host"); }
+    function render() {
+      const L = items();
+      const el = host;
+      el.innerHTML = `
+        <div class="shop">
+          <div class="shop-top">
+            <h3>🛍️ La tienda</h3>
+            <b class="shop-money">💶 <span class="closet-money">${euros(Closet.money)}</span></b>
+            <button class="btn btn-primary" id="shop-done">${first ? "Hecho: ¡al taller!" : "Cerrar"}</button>
+          </div>
+          ${plan.length ? `<div class="shop-plan">${plan.map((c, i) => `<button class="plan-chip ${covered(c) ? "ok" : ""} ${filt === c ? "on" : ""}" data-c="${i}">${covered(c) ? "✔" : "✖"} ${esc(c)}</button>`).join("")}</div>` : ""}
+          <div class="shop-tabs">
+            ${["look", "peluca", "acc"].map((k) => `<button class="shop-tab ${tab === k ? "on" : ""}" data-t="${k}">${SLOT_NAMES[k]}</button>`).join("")}
+            <span class="shop-sep"></span>
+            ${plan.length ? `<button class="shop-f ${filt === "plan" ? "on" : ""}" data-f="plan">Para mis pasarelas</button>` : ""}
+            <button class="shop-f ${filt === "all" ? "on" : ""}" data-f="all">Todo</button>
+            <button class="shop-f ${filt === "mine" ? "on" : ""}" data-f="mine">Mi armario</button>
+          </div>
+          <div class="shop-grid">${L.length ? L.map((it) => {
+            const own = Closet.has(it.id), p = priceOf(it), [imp, mov] = statOf(it);
+            const fp = fitsPlan(tab, it);
+            return `<div class="shop-card ${own ? "own" : ""}">
+              <div class="shop-img"><img loading="lazy" src="${IMG(it.id)}" alt="">${it.rv ? `<img loading="lazy" class="at-rv" src="${IMG(it.rv)}" alt="">` : ""}</div>
+              <b>${esc(it.n)}</b>
+              <small class="shop-st"><span title="Impacto">${"★".repeat(imp)}${"☆".repeat(5 - imp)}</span> <span title="Movimiento">👣 ${mov}/5</span></small>
+              <small class="shop-tag">${esc(TAG_OF_STYLE[it.s] || "")}${fp.length ? ` · ${fp.map((c) => esc(c)).join(", ")}` : ""}</small>
+              ${own ? `<span class="shop-own">✔ En tu armario</span>` : `<button class="btn ${Closet.money >= p ? "btn-primary" : "btn-ghost"} shop-buy" data-id="${it.id}" ${Closet.money >= p ? "" : "disabled"}>${euros(p)}</button>`}
+            </div>`;
+          }).join("") : `<p class="muted">No hay nada aquí todavía.</p>`}</div>
+          <p class="muted shop-legend">★ Impacto: cuanto más espectacular, más puntúa en la pasarela · 👣 Movimiento: ayuda a desfilar y a que el reveal salga bien</p>
+        </div>`;
+      el.querySelectorAll(".shop-tab").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.t; render(); }));
+      el.querySelectorAll(".shop-f").forEach((b) => b.addEventListener("click", () => { filt = b.dataset.f; render(); }));
+      el.querySelectorAll(".plan-chip").forEach((b) => b.addEventListener("click", () => { filt = plan[+b.dataset.c]; render(); }));
+      el.querySelectorAll(".shop-buy").forEach((b) => b.addEventListener("click", () => {
+        const it = ARMARIO[tab].find((x) => x.id === b.dataset.id);
+        const y = el.querySelector(".shop-grid") ? el.querySelector(".shop-grid").scrollTop : 0;
+        if (it && Closet.buy(it)) { Sound.countdown && Sound.countdown(false); Toast.show("🛍️ ¡Comprado!", it.n); }
+        render();
+        if (el.querySelector(".shop-grid")) el.querySelector(".shop-grid").scrollTop = y;
+      }));
+      $("#shop-done").addEventListener("click", () => {
+        const missing = plan.filter((c) => !covered(c));
+        if (first && missing.length && !el.dataset.warned) {
+          el.dataset.warned = 1;
+          return Toast.show("⚠️ Te faltan piezas", `Sin nada para: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "..." : ""}. Producción te prestará algo básico.`);
+        }
+        onDone();
+      });
+    }
+    render();
+  }
+  // Botón de la tienda en la cabecera (fuera de las pruebas)
+  function openShopModal() {
+    if ($("#story-play") || document.querySelector(".shop-modal") || document.querySelector("#screen-story .shop")) return Toast.show("Ahora no", "Puedes ir de compras entre pruebas");
+    const m = document.createElement("div");
+    m.className = "shop-modal";
+    $("#screen-story").append(m);
+    shopScreen(m, () => m.remove());
+  }
+
   // ------------------------------ Probador visual ------------------------------
   const skinMe = () => Doll.skinOf(S.queen.id);
   function dressingRoom(el, cat, done, prefix = "") {
-    const TH = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).find((t) => t.n === cat);
-    const main = CAT_TAG[cat] || (TH && TH.tag) || "Glamour";
-    const tagOf = (it) => TAG_OF_STYLE[it.s];
-    const fitsTag = (it) => tagOf(it) === main || it.t.includes(cat);
-    const fitsK = (k, it) => !TH ? fitsTag(it) : k === "look" ? it.th === TH.id : k === "peluca" ? (it.th || []).includes(TH.id) || (!it.th && fitsTag(it)) : fitsTag(it);
-    const fits = (it) => fitsTag(it);
-    const fitOf = (k, it) => (k === "look" && TH ? (it.th === TH.id ? 24 : 6) : fitsK(k, it) ? 22 : 9);
+    const TH = themeOf(cat);
+    const fitsK = (k, it) => fitsRunway(k, it, cat);
+    // Puntos de cada pieza: encajar con la temática + lo espectacular que sea (★). Lo prestado puntúa poco
+    const fitOf = (k, it) => (it.loan ? (fitsK(k, it) ? 9 : 4) : fitsK(k, it) ? 12 + statOf(it)[0] * 2.6 : 4 + statOf(it)[0] * 0.8);
     const IMG = (id) => `./images/armario/${id}.webp`;
     const SL = [
       { k: "look", n: TH && TH.id === "P05" ? "El look con reveal" : "El look", icon: "👗", items: ARMARIO.look.filter((x) => !x.rv || (TH && TH.id === "P05")), base: "base-maniqui" },
       { k: "peluca", n: "La peluca", icon: "💇", items: ARMARIO.peluca, base: "base-cabeza" },
       { k: "acc", n: "El toque final", icon: "💄", items: ARMARIO.acc, base: "base-bandeja" },
     ];
-    // Tres opciones: una que encaja con la categoría y dos que no tanto
+    // Opciones: lo que tienes en tu armario (lo que encaja primero) + un básico prestado por producción
     const opts = SL.map((sl) => {
-      const good = shuffle(sl.items.filter((x) => fitsK(sl.k, x)));
-      const bad = shuffle(sl.items.filter((x) => !fitsK(sl.k, x) && !(TH && sl.k !== "look" && x.th)));
-      if (TH && sl.k === "look") {
-        // Burro temático: 6 de la temática y 2 que no pegan (de otras temáticas si hay)
-        const otros = shuffle(sl.items.filter((x) => x.th && x.th !== TH.id));
-        return shuffle([...good.slice(0, 6), ...(otros.length >= 2 ? otros : bad).slice(0, 2)]);
-      }
-      if (TH && sl.k === "peluca") {
-        const tw = good.filter((x) => x.th), gw = good.filter((x) => !x.th);
-        return shuffle([...tw.slice(0, 2), ...gw.slice(0, 2 - Math.min(2, tw.length)), bad[0], bad[1]].filter(Boolean));
-      }
-      return shuffle([good[0] || bad[2], bad[0], bad[1]].filter(Boolean));
+      const own = sl.items.filter((x) => Closet.has(x.id));
+      const byStar = (a, b) => statOf(b)[0] - statOf(a)[0];
+      const list = [...own.filter((x) => fitsK(sl.k, x)).sort(byStar), ...own.filter((x) => !fitsK(sl.k, x)).sort(byStar)].slice(0, 7);
+      const loanPool = sl.items.filter((x) => fitsK(sl.k, x) && !Closet.has(x.id)).sort((a, b) => statOf(a)[0] - statOf(b)[0]);
+      const loan = loanPool[0] || sl.items.find((x) => !Closet.has(x.id));
+      if (loan) list.push({ ...loan, loan: true });
+      return list;
     });
     const chosen = {}, st = { pieces: [], prepRaw: 0 };
     let slot = 0, over = false;
@@ -3647,7 +4339,7 @@ const Story = (() => {
           <div class="at-rack">
             <div class="dr-steps">${SL.map((s2, i) => `<span class="${i < slot ? "done" : i === slot ? "on" : ""}">${s2.icon}</span>`).join("")}</div>
             <h4>${sl.icon} ${sl.n}</h4>
-            <div class="at-opts ${opts[slot].length > 4 ? "many" : opts[slot].length > 3 ? "four" : ""}">${opts[slot].map((it, i) => `<button class="dr-opt at-opt ${it.rv ? "has-rv" : ""}" data-i="${i}" style="--i:${i}"><img src="${IMG(it.id)}" alt="">${it.rv ? `<img class="at-rv" src="${IMG(it.rv)}" alt="">` : ""}<span>${esc(it.n)}</span></button>`).join("")}</div>
+            <div class="at-opts ${opts[slot].length > 4 ? "many" : opts[slot].length > 3 ? "four" : ""}">${opts[slot].map((it, i) => `<button class="dr-opt at-opt ${it.rv ? "has-rv" : ""} ${it.loan ? "loan" : ""}" data-i="${i}" style="--i:${i}"><img src="${IMG(it.id)}" alt="">${it.rv ? `<img class="at-rv" src="${IMG(it.rv)}" alt="">` : ""}<span>${esc(it.n)}</span><small class="at-st">${it.loan ? "🔁 Prestado" : `${"★".repeat(statOf(it)[0])} · 👣${statOf(it)[1]}`}</small></button>`).join("")}</div>
           </div>
         </div>`;
       el.querySelectorAll(".at-opt").forEach((b) => {
@@ -3742,7 +4434,7 @@ const Story = (() => {
       ask("¿Cómo sales a la pasarela?", WALKS.map(([k, ico, t]) => ({ ico, t, go: () => {
         doll.className = `rw-doll pos1 walk-${k}`;
         const ok = k === best;
-        add(ok ? 92 : 52);
+        add((ok ? 92 : 52) + Math.round(((S.walkMov || 3) - 3) * 4));
         later(() => say(ok ? "✨ El paso y el look van de la mano" : "Bien caminado... pero no pega con lo que llevas", ok ? "good" : "meh"), 900);
         later(step1, 2600);
       } })));
@@ -3880,12 +4572,14 @@ const Story = (() => {
     header();
     body().innerHTML = `<div id="story-play"></div>`;
     Music.play("reto");
+    const lsb = S.lsBonus || 0;
+    S.lsBonus = 0;
     runLipsync($("#story-play"), rival, (won, score) => {
       cleanup = null;
       Music.stop();
       if (typeof window.__forceScore === "number") won = window.__forceScore >= 50;
       cb({ won, score: Math.round(score * 10) });
-    });
+    }, undefined, lsb);
   }
 
   // ------------------------------ Maxi retos ------------------------------
@@ -4247,5 +4941,5 @@ const Story = (() => {
     body().innerHTML = `<div id="story-play"></div>`;
     RETOS[tipo].run($("#story-play"), (sc) => { cleanup = null; cb && cb(sc); window.__lastScore = sc; });
   };
-  return { start, abandon, menu, exitToMenu, _test, lastEntryId: null };
+  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), _test, lastEntryId: null };
 })();
