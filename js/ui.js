@@ -409,6 +409,7 @@ const UI = (() => {
   });
   $("#story-exit").addEventListener("click", () => Story.exitToMenu());
   $("#story-board").addEventListener("click", () => Story.openBoard());
+  $("#story-ia").addEventListener("click", () => IA.toggle());
   $("#btn-franchise-back").addEventListener("click", () => show("menu"));
   $("#btn-season-back").addEventListener("click", () => show("franchise"));
   $("#btn-scores").addEventListener("click", () => {

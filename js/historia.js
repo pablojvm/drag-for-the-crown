@@ -313,6 +313,7 @@ const Story = (() => {
     $("#story-exit").innerHTML = "<i>←</i><span>Volver</span>";
     $("#story-shop").hidden = true;
     $("#story-board").hidden = true;
+    $("#story-ia").hidden = true;
     $("#story-cast").innerHTML = "";
     body().innerHTML = `
       <div class="story-card intro">
@@ -691,6 +692,7 @@ const Story = (() => {
     $("#story-count").textContent = S.meOut ? "Fuera de la competición" : `${S.rivals.length + 1} en competición · ${S.out.length} fuera`;
     $("#story-shop").hidden = false;
     $("#story-board").hidden = false;
+    $("#story-ia").hidden = true;
     $("#story-shop .closet-money").textContent = euros(Closet.money);
     const all = S.meOut ? S.rivals : [S.queen, ...S.rivals];
     $("#story-cast").innerHTML =
@@ -758,8 +760,8 @@ const Story = (() => {
     (S.track[k] = S.track[k] || {})[S.ep] = lab;
   }
   const TRACK_CLASS = (l) =>
-    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" || l === "FINAL-MISSC" ? "t-final" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : "t-none";
-  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "FINALISTA", "FINAL-MISSC": "FINALISTA 💐", "3ª": "3ª/4ª", MISSC: "MISS S." };
+    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : "t-none";
+  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", MISSC: "MISS CONGENIALITY" };
   function trackHTML() {
     const eps = Object.keys(S.epNames).map(Number).sort((a, b) => a - b);
     const everyone = [S.queen, ...S.rivals, ...S.out];
@@ -996,6 +998,7 @@ const Story = (() => {
           <p>¿Qué quieres hacer?</p>
           <div class="approach-list">${[...HISTORIA.enfoques,
             ...(Nem.knows(q.id, "deb") ? [{ id: "debil", icon: "🎯", txt: "Atacar su punto débil", desc: `${RASGOS.deb[traitsOf(q).deb].n}: la desconcentras (te la guardará)` }] : []),
+            ...(IA.ready() ? [{ id: "libre", icon: "💬", txt: "Hablar libremente", desc: "Escribe lo que quieras: te contesta en directo según su carácter" }] : []),
             ...(relOf(q) >= 2 && !(S.pacts || {})[q.id] && !isNem(q) ? [{ id: "pacto", icon: "🤝", txt: "Proponer un pacto", desc: "Te ayudará y te contará secretos... si no te traiciona" }] : [])]
             .map((a) => `<button class="btn btn-ghost role" data-a="${a.id}"><b>${a.icon} ${a.txt}</b><small>${a.desc}</small></button>`)
             .join("")}</div>
@@ -1006,6 +1009,16 @@ const Story = (() => {
     $("#ap-back").addEventListener("click", () => hub(then));
   }
   function talk(q, kind, then) {
+    if (kind === "libre") return freeTalk(q, then);
+    if (IA.ready() && !talk.ai && ["pina", "cotilleo", "consejo", "pinchar"].includes(kind)) {
+      aiWait(`${q.name} te mira...`);
+      return aiOpener(q, kind).then((line) => { talk.ai = line ? [["r1", line]] : null; talk.aiFlag = true; talkInner(q, kind, then); });
+    }
+    talkInner(q, kind, then);
+  }
+  function talkInner(q, kind, then) {
+    const opener = talk.ai;
+    talk.ai = null;
     const r = relOf(q);
     const ctx = ctxWith(q);
     const other = ctx.q.r2;
@@ -1068,8 +1081,11 @@ const Story = (() => {
       };
     }
     const f = fame();
-    if (f && !isNem(q) && Math.random() < 0.5) lines = [["r1", pickFresh(FAMA[f].saludo)], ...lines];
-    if (isNem(q)) lines = [["r1", pick1(["¿Qué quieres tú ahora?", "Mira quién viene...", "Uy, la que faltaba."])], ...lines];
+    if (opener) lines = [...opener, ...lines];
+    else {
+      if (f && !isNem(q) && Math.random() < 0.5) lines = [["r1", pickFresh(FAMA[f].saludo)], ...lines];
+      if (isNem(q)) lines = [["r1", pick1(["¿Qué quieres tú ahora?", "Mira quién viene...", "Uy, la que faltaba."])], ...lines];
+    }
     dialog(lines, ctx, () => {
       after();
       then();
@@ -1333,7 +1349,9 @@ const Story = (() => {
       const meSafe = !allCrit && labOf.get(meRow) === "SAFE";
       const safeFirst = Math.random() < 0.5;
       const safeTxt = `<p>${safe.length ? `${safe.map(nm).join(", ")}: <b>estáis salvadas</b>. Podéis volver al backstage.` : allCrit ? `Quedáis ${n}: a partir de ahora <b>todas recibís valoración</b>.` : "Esta semana no se salva nadie de antemano."}</p>${safe.length ? faces(safe, "safe") : ""}`;
-      const judgedTxt = `<p>${safeFirst ? "El resto..." : `${judged.map(nm).join(", ")}...`} <b>sois las mejores y las peores del programa de hoy</b>.</p>${faces(judged)}`;
+      const judgedTxt = allCrit
+        ? `<p>${judged.map(nm).join(", ")}: esta semana <b>todas recibís la valoración del jurado</b>.</p>${faces(judged)}`
+        : `<p>${safeFirst && safe.length ? "El resto..." : `${judged.map(nm).join(", ")}...`} <b>sois las mejores y las peores del programa de hoy</b>.</p>${faces(judged)}`;
       header();
       Music.play("tension");
       body().innerHTML = `
@@ -1341,7 +1359,7 @@ const Story = (() => {
           <p class="eyebrow">${esc(titulo)} · la pasarela ha terminado</p>
           <h3>Supreme tiene algo que deciros...</h3>
           ${teamLine}${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
-          ${safeFirst ? safeTxt + judgedTxt : judgedTxt + (safe.length ? `<p>Las demás, <b>estáis a salvo</b>.</p>${faces(safe, "safe")}` : "")}
+          ${allCrit ? `<p>Quedáis ${n}: a partir de ahora ya no hay salvadas.</p>` + judgedTxt : safeFirst ? safeTxt + judgedTxt : judgedTxt + (safe.length ? `<p>Las demás, <b>estáis a salvo</b>.</p>${faces(safe, "safe")}` : "")}
           <p class="call-me">${meSafe ? "✨ Estás a salvo esta semana." : "👀 Te toca escuchar al jurado."}</p>
           <button class="btn btn-primary" id="story-next">Continuar</button>
         </div>`;
@@ -1355,7 +1373,9 @@ const Story = (() => {
       const critStep = (then) => {
         const ctx = { ...ctxWith(pick1(S.rivals)), tension: !meSafe && bottomRows.some((r) => r.me) };
         if (meSafe) return dialog([["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."], ...othersCrit()], ctx, then);
-        dialog([...buildCritique(myScore, "none"), ...othersCrit().slice(0, 2)], ctx, then);
+        const base = buildCritique(myScore, "none");
+        const lab = (S.track.me || {})[S.ep] || "";
+        aiCritique(base, myScore, lab === "WIN" ? "ganadora del reto" : lab === "HIGH" ? "de las mejores" : /^BTM/.test(lab) ? "en el bottom, al lip sync" : lab === "LOW" ? "de las peores, pero a salvo" : "a salvo").then((lines) => dialog([...lines, ...othersCrit().slice(0, 2)], ctx, then));
       };
       // Resultados en orden: ganadora, altas, bajas y bottom
       const verdict = (then) => {
@@ -3825,6 +3845,210 @@ const Story = (() => {
   }
 
 
+  // ------------------------------ IA en directo (Ollama) ------------------------------
+  // Ficha de una reina para la IA: personalidad, rol, rasgos, relación e historia contigo
+  function aiProfile(q) {
+    const role = ROLES_HISTORIA[S.roles[q.id]];
+    const t = traitsOf(q);
+    const sc = Nem.scarsOf(S.queen.id, q.id).slice(-3).map((x) => `${x.by === S.queen.id ? "tú le hiciste" : "ella te hizo"} «${x.k}» en ${x.s}`).join("; ");
+    const labs = Object.values(S.track[q.id] || {});
+    const f = fame();
+    return [
+      `Reina: ${q.name}.`,
+      role ? `Su rol en el taller: ${role.name} (${role.desc})` : "",
+      `Carácter: ${RASGOS.car[t.car].n} (${RASGOS.car[t.car].d}). Fortaleza: ${RASGOS.fort[t.fort].n}. Debilidad secreta: ${RASGOS.deb[t.deb].n}.`,
+      `Relación con ${S.queen.name}: ${relLabel(q)}.`,
+      isNem(q) ? `Es la NÉMESIS de ${S.queen.name}: la odia y la provoca siempre.` : "",
+      S.pacts && S.pacts[q.id] ? `Tiene un pacto de alianza con ${S.queen.name}.` : "",
+      sc ? `Historia entre ellas: ${sc}.` : "",
+      labs.length ? `Sus resultados esta temporada: ${labs.join(", ")}.` : "",
+      f ? `En el taller, ${S.queen.name} tiene fama de ser ${FAMA[f].n}.` : "",
+    ].filter(Boolean).join(" ");
+  }
+  const aiSeason = () => `Temporada: ${S.season.name}. Episodio ${S.ep}. Quedan ${S.rivals.length + 1} reinas. La protagonista (la jugadora) es ${S.queen.name}. Resultados de ${S.queen.name}: ${Object.values(S.track.me || {}).join(", ") || "aún ninguno"}.`;
+  function aiWait(txt = "✍️ Escribiendo...", target = null) {
+    (target || body()).innerHTML = `<div class="story-card ia-wait"><p class="eyebrow">🎬 En directo</p><h3>${esc(txt)}</h3><div class="ia-dots"><i></i><i></i><i></i></div></div>`;
+  }
+  // Frase de saludo con personalidad para las conversaciones del taller
+  async function aiOpener(q, kind) {
+    const what = { pina: `${S.queen.name} se acerca para intentar hacerse su amiga`, cotilleo: `${S.queen.name} se acerca a cotillear sobre otra compañera`, consejo: `${S.queen.name} le pide consejo para el reto`, pinchar: `${S.queen.name} se acerca a provocarla y meterle presión` }[kind];
+    if (!what) return null;
+    return IA.chat(`Hablas SOLO como ${q.name}. ${aiProfile(q)} ${aiSeason()}`, `${what}. Escribe la primera frase que le dice ${q.name} al verla llegar, según su carácter y su relación. Máximo 20 palabras.`, { max: 60 });
+  }
+  // Conversación libre: escribes tú y la reina contesta en personaje
+  function freeTalk(q, then) {
+    const hist = [];
+    let turns = 0, busy = false;
+    const render = (wait) => {
+      body().innerHTML = `
+        <div class="story-card free-talk">
+          <div class="ft-head"><img src="${sprite(q)}" alt=""><div><p class="eyebrow">💬 Conversación libre · ${esc(relLabel(q))}</p><h3>${esc(q.name)}</h3><p class="muted">Escribe lo que quieras. Te contestará según su carácter y lo que haya pasado entre vosotras. Lo que digas cuenta.</p></div></div>
+          <div class="ft-log">${hist.map((m) => `<p class="ft-msg ${m.me ? "me" : ""}"><b>${esc(m.me ? "Tú" : q.name)}</b>${esc(m.t)}</p>`).join("") || `<p class="muted ft-empty">Empieza tú...</p>`}${wait ? `<p class="ft-msg"><b>${esc(q.name)}</b><span class="ia-dots"><i></i><i></i><i></i></span></p>` : ""}</div>
+          ${turns < 4 ? `<form class="ft-form"><input id="ft-in" maxlength="200" autocomplete="off" placeholder="Escribe aquí..." ${wait ? "disabled" : ""}><button class="btn btn-primary" ${wait ? "disabled" : ""}>Decir</button></form>` : `<p class="muted">Se acaba el tiempo libre.</p>`}
+          <button class="btn btn-ghost" id="ft-end">${turns ? "Terminar la conversación" : "← Volver"}</button>
+        </div>`;
+      const log = body().querySelector(".ft-log");
+      if (log) log.scrollTop = log.scrollHeight;
+      const inp = $("#ft-in");
+      if (inp && !wait) inp.focus();
+      const form = body().querySelector(".ft-form");
+      if (form) form.addEventListener("submit", (e) => { e.preventDefault(); send(); });
+      $("#ft-end").addEventListener("click", () => (turns ? then() : approach(q, then)));
+    };
+    async function send() {
+      const v = ($("#ft-in").value || "").trim();
+      if (!v || busy) return;
+      busy = true;
+      hist.push({ me: true, t: v });
+      render(true);
+      const conv = hist.map((m) => `${m.me ? S.queen.name : q.name}: ${m.t}`).join("\n");
+      const r = await IA.chat(
+        `Hablas SOLO como ${q.name}, concursante de Drag Race España, en el taller. ${aiProfile(q)} ${aiSeason()} Responde en JSON con: "respuesta" (lo que dice ${q.name}, máximo 35 palabras, en personaje), "tono" (cómo le ha sentado lo que ha dicho ${S.queen.name}: "amable", "neutral", "borde", "coqueto" o "amenaza") y "relacion" (número entero de -2 a 2: cuánto mejora o empeora su relación).`,
+        `Conversación hasta ahora:\n${conv}\nResponde como ${q.name}.`,
+        { json: true, max: 140 },
+      );
+      busy = false;
+      turns++;
+      if (!r || !r.respuesta) {
+        hist.push({ me: false, t: pick1(["Ahora no tengo la cabeza para esto, cariño.", "Mira, luego hablamos, que tengo que acabar el look.", "Mmm... déjame pensarlo."]) });
+        return render();
+      }
+      hist.push({ me: false, t: IA.clean(r.respuesta) });
+      const d = clamp(Math.round(+r.relacion || 0), -2, 2);
+      const tono = String(r.tono || "neutral").toLowerCase();
+      if (d) changeRel(q, d);
+      if (/amable|coquet/.test(tono)) persona("kind");
+      if (/borde|amenaza/.test(tono)) { persona("mean"); if (isNem(q)) heat(1); }
+      if (tono.includes("amenaza") && relOf(q) <= -2) makeNemesis(q, "choque");
+      render();
+    }
+    render();
+  }
+  // Críticas del jurado escritas en directo
+  async function aiCritique(lines, score, label) {
+    if (!IA.ready()) return lines;
+    aiWait("El jurado está deliberando...");
+    const lk = S.lastLook;
+    const r = await IA.chat(
+      `Escribes las críticas del jurado de Drag Race España. Supreme de Luxe es la presentadora (directa, teatral, cariñosa pero exigente). Ana Locking es jurado (moda, técnica, seria y precisa). ${aiSeason()} ${(() => { const f = fame(); return f ? `En el taller, ${S.queen.name} tiene fama de ser ${FAMA[f].n}.` : ""; })()}`,
+      `Reto de esta semana: ${S.epNames[S.ep] || "reto"}. Nota de ${S.queen.name} en el reto: ${S.lastParts ? S.lastParts.reto : score}/100${S.lastParts && S.lastParts.pasarela != null ? `, pasarela: ${S.lastParts.pasarela}/100` : ""}. ${lk ? `Categoría de pasarela: ${lk.cat}. Su mejor pieza: ${lk.best}. Su peor pieza: ${lk.worst}.` : ""} Va a quedar como: ${label}. Devuelve JSON con "supreme" y "ana": la crítica de cada una a ${S.queen.name}, en segunda persona, máximo 30 palabras cada una, coherentes con la nota.`,
+      { json: true, max: 200, temp: 0.85 },
+    );
+    if (!r || !r.supreme || !r.ana) return lines;
+    const out = lines.slice();
+    out.splice(1, 2, ["host", IA.clean(r.supreme)], ["judge", IA.clean(r.ana)]);
+    return out;
+  }
+  // Juez de textos escritos por la jugadora (roast, impro)
+  async function aiJudge(kind, context, text) {
+    const r = await IA.chat(
+      `Eres el jurado de Drag Race España valorando un ${kind}. Sé justa y exigente: un texto vacío, sin gracia o que no tenga que ver puntúa bajo (10-35); uno correcto, 50-65; uno ingenioso y con remate, 75-95. ${aiSeason()}`,
+      `${context}\nLo que ha dicho ${S.queen.name}: «${text}»\nDevuelve JSON con "nota" (0-100), "publico" (una de: "carcajada", "risas", "silencio", "abucheo") y "reaccion" (lo que dice Supreme justo después, máximo 20 palabras).`,
+      { json: true, max: 120, temp: 0.7 },
+    );
+    if (!r) return null;
+    return { nota: clamp(Math.round(+r.nota || 40), 0, 100), publico: String(r.publico || "risas"), reaccion: IA.clean(r.reaccion || "") };
+  }
+  // Pantalla común para escribir en directo y ver la reacción
+  function liveRounds(el, cfg, done) {
+    let round = 0;
+    const notes = [];
+    const log = [];
+    const draw = (wait) => {
+      const r = cfg.rounds[round];
+      el.innerHTML = `
+        <div class="story-card live">
+          <p class="eyebrow">${cfg.icon} ${esc(cfg.title)} · en directo · ${Math.min(round + 1, cfg.rounds.length)}/${cfg.rounds.length}</p>
+          <div class="live-log">${log.map((m) => `<p class="lv ${m.cls}"><b>${esc(m.who)}</b>${esc(m.t)}</p>`).join("")}</div>
+          ${r && !wait ? `<h3>${esc(r.prompt)}</h3>${r.sub ? `<p class="muted">${esc(r.sub)}</p>` : ""}
+          <form class="ft-form"><input id="lv-in" maxlength="220" autocomplete="off" placeholder="${esc(cfg.ph || "Escribe aquí tu frase...")}"><button class="btn btn-primary">¡Al micro!</button></form>` : wait ? `<div class="ia-dots"><i></i><i></i><i></i></div>` : ""}
+        </div>`;
+      const box = el.querySelector(".live-log");
+      if (box) box.scrollTop = box.scrollHeight;
+      const inp = el.querySelector("#lv-in");
+      if (inp) inp.focus();
+      const form = el.querySelector(".ft-form");
+      if (form) form.addEventListener("submit", (e) => { e.preventDefault(); send(inp.value.trim()); });
+    };
+    async function send(v) {
+      if (!v) return;
+      const r = cfg.rounds[round];
+      log.push({ who: "Tú", t: v, cls: "me" });
+      draw(true);
+      const j = await aiJudge(cfg.kind, r.ctx, v);
+      const nota = j ? j.nota : 45;
+      notes.push(nota);
+      const pub = j ? j.publico : "risas";
+      log.push({ who: "Público", t: { carcajada: "🤣 ¡Carcajada general!", risas: "😄 Risas", silencio: "😶 Silencio...", abucheo: "😬 Uuuuh..." }[pub] || "😄 Risas", cls: "pub" });
+      if (j && j.reaccion) log.push({ who: "Supreme", t: j.reaccion, cls: "host" });
+      if (r.after) { const extra = await r.after(v, nota); if (extra) log.push(extra); }
+      round++;
+      if (round < cfg.rounds.length) return draw();
+      const avg = notes.reduce((a, b) => a + b, 0) / notes.length;
+      const final = clamp(avg + (A(cfg.attr) - 5) * 2, 0, 100);
+      el.innerHTML = `
+        <div class="story-card live">
+          <p class="eyebrow">${cfg.icon} ${esc(cfg.title)} · resultado</p>
+          <div class="live-log">${log.map((m) => `<p class="lv ${m.cls}"><b>${esc(m.who)}</b>${esc(m.t)}</p>`).join("")}</div>
+          <h3>Nota media del jurado: ${Math.round(final)}</h3>
+          <button class="btn btn-primary" id="lv-done">Continuar</button>
+        </div>`;
+      el.querySelector("#lv-done").addEventListener("click", () => done(final));
+    }
+    draw();
+  }
+  // Elegir entre jugar en directo con IA o la versión de siempre
+  function aiOrClassic(el, title, icon, live, classic) {
+    if (!IA.ready()) return classic();
+    el.innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">${icon} ${esc(title)}</p>
+        <h3>¿Cómo quieres hacerlo?</h3>
+        <div class="choice-col">
+          <button class="btn btn-primary" id="ia-live">✍️ En directo: escribo yo mis frases</button>
+          <button class="btn btn-ghost" id="ia-classic">🎲 Con opciones, como siempre</button>
+        </div>
+      </div>`;
+    el.querySelector("#ia-live").addEventListener("click", live);
+    el.querySelector("#ia-classic").addEventListener("click", classic);
+  }
+  function liveRoast(el, done) {
+    const targets = shuffle(S.rivals).slice(0, 2);
+    const rounds = [
+      ...targets.map((q) => ({
+        prompt: `🎯 Te toca hacerle un roast a ${q.name}`,
+        sub: `${roleKnown(q) ? `Es ${roleOf(q).name.toLowerCase()}. ` : ""}${Nem.knows(q.id, "deb") ? `Sabes que tiene ${RASGOS.deb[traitsOf(q).deb].n.toLowerCase()}. ` : ""}Escribe tu chiste.`,
+        ctx: `Roast a la compañera ${q.name}. ${aiProfile(q)}`,
+        after: async (v, nota) => {
+          if (nota >= 70) changeRel(q, -1);
+          const rep = await IA.chat(`Hablas SOLO como ${q.name}. ${aiProfile(q)}`, `${S.queen.name} acaba de hacerte este chiste en el roast: «${v}». Contesta en una frase muy corta (máximo 15 palabras), con tu carácter.`, { max: 50 });
+          return rep ? { who: q.name, t: rep, cls: "rival" } : null;
+        },
+      })),
+      { prompt: "⚖️ Y ahora... ¡el jurado!", sub: "Supreme, Ana Locking y los Javis te miran. Atrévete.", ctx: "Roast al jurado de Drag Race España: Supreme de Luxe, Ana Locking y los Javis (Javier Ambrossi y Javier Calvo)." },
+    ];
+    liveRounds(el, { title: "El Roast", icon: "🔥", kind: "roast (chiste de humor ácido)", attr: "comedia", rounds, ph: "Tu chiste..." }, done);
+  }
+  function liveImpro(el, done) {
+    const SEC = [["noticias", "🗞️ Noticias"], ["entrevista", "🎙️ Entrevista"], ["teletienda", "🛒 Teletienda"]];
+    el.innerHTML = `<div class="story-card"><p class="eyebrow">📺 Improvisación en directo</p><h3>¿Qué sección conduces?</h3><div class="choice-col">${SEC.map(([k, t]) => `<button class="btn btn-ghost" data-s="${k}">${t}</button>`).join("")}</div></div>`;
+    el.querySelectorAll("[data-s]").forEach((b) => b.addEventListener("click", async () => {
+      const sec = b.dataset.s;
+      const guest = pick1(S.rivals);
+      aiWait("Preparando el plató...", el);
+      const ev = await IA.chat("Eres la regidora de un programa de televisión improvisado en Drag Race España.", `La sección es ${sec}${sec === "entrevista" ? ` y la invitada es ${guest.name}` : ""}. Escribe 3 imprevistos o preguntas cortas (máximo 18 palabras cada una) que obliguen a la presentadora a improvisar. Devuelve JSON con "momentos": lista de 3 textos.`, { json: true, max: 200 });
+      const moms = (ev && Array.isArray(ev.momentos) && ev.momentos.length >= 3 ? ev.momentos : ["El teleprompter se apaga en mitad de la frase.", "Se cae un decorado detrás de ti.", "La regidora te dice que te quedan 10 segundos."]).slice(0, 3).map(IA.clean);
+      const rounds = moms.map((m) => ({
+        prompt: `🔴 ${m}`,
+        sub: "¡Estás en directo! ¿Qué dices?",
+        ctx: `Improvisación en directo, sección ${sec}${sec === "entrevista" ? ` con la invitada ${guest.name}` : ""}. Imprevisto: ${m}`,
+        after: sec === "entrevista" ? async (v) => { const rep = await IA.chat(`Hablas SOLO como ${guest.name}, invitada a una entrevista en directo. ${aiProfile(guest)}`, `La presentadora ${S.queen.name} te dice: «${v}». Contesta en una frase corta y graciosa (máximo 15 palabras).`, { max: 50 }); return rep ? { who: guest.name, t: rep, cls: "rival" } : null; } : null,
+      }));
+      el.innerHTML = "";
+      liveRounds(el, { title: "Improvisación", icon: "📺", kind: "improvisación televisiva", attr: "carisma", rounds, ph: "Lo que dices en directo..." }, (sc) => { if (sc >= 80) growAttr(sc > 90 ? "comedia" : "carisma"); done(sc); });
+    }));
+  }
+
   // ------------------------------ Sistema Némesis ------------------------------
   // Memoria permanente entre temporadas: cada reina tiene rasgos, poder y cicatrices con las demás.
   // Lo que pasa aquí se recuerda en las siguientes temporadas (y en All Stars).
@@ -4826,6 +5050,7 @@ const Story = (() => {
   }
 
   function mxRoast(el, done) {
+    if (IA.ready() && !mxRoast.classic) return aiOrClassic(el, "El Roast", "🔥", () => liveRoast(el, done), () => { mxRoast.classic = true; mxRoast(el, (sc) => { mxRoast.classic = false; done(sc); }); });
     const T = { jurado: { t: "⚖️ Al jurado", d: "Alto riesgo, alta recompensa", diff: 62, cap: 100 }, comp: { t: "👯 A las compañeras", d: "Crea drama", diff: 55, cap: 96 }, auto: { t: "🪞 A ti misma", d: "Autohumor: seguro, con techo", diff: 42, cap: 82 } };
     const bank = shuffle([...ROAST, ...COMEDIA]).slice(0, 4);
     const steps = [
@@ -4884,6 +5109,7 @@ const Story = (() => {
   }
 
   function mxImpro(el, done) {
+    if (IA.ready() && !mxImpro.classic) return aiOrClassic(el, "Improvisación", "📺", () => liveImpro(el, done), () => { mxImpro.classic = true; mxImpro(el, (sc) => { mxImpro.classic = false; done(sc); }); });
     const EVENTS = [
       "El teleprompter se apaga en mitad de la noticia.",
       "Se cae un decorado detrás de ti.",
