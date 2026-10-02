@@ -376,9 +376,12 @@ const Story = (() => {
           <p class="dlg-name">${esc(w.name)} <small>${esc(w.role)}</small></p>
           <p class="dlg-text"></p>
           <p class="dlg-hint">Clic, Espacio o Enter para continuar ▸</p>
+          ${canSay(k) ? `<button class="btn btn-ghost dlg-say" id="dlg-say">✍️ Responder</button>` : ""}
         </div>
         <button class="btn btn-ghost dlg-skip" id="dlg-skip">Saltar</button>`;
       typeText(scene.querySelector(".dlg-text"), fill(t, ctx));
+      const say = scene.querySelector("#dlg-say");
+      if (say) say.addEventListener("click", (e) => { e.stopPropagation(); openSay(k, false); });
       scene.querySelector("#dlg-skip").addEventListener("click", (e) => {
         e.stopPropagation();
         i = lines.length;
@@ -390,12 +393,14 @@ const Story = (() => {
         <img class="dlg-char right" src="${sprite(S.queen)}" alt="">
         <div class="dlg-box">
           <p class="dlg-name">${esc(S.queen.name)} <small>Tú</small></p>
-          <div class="dlg-choices">${choices.map((c, k) => `<button class="btn btn-ghost" data-k="${k}"><b>${k + 1}</b> ${esc(fill(c.txt, ctx))}</button>`).join("")}</div>
+          <div class="dlg-choices">${choices.map((c, k) => `<button class="btn btn-ghost" data-k="${k}"><b>${k + 1}</b> ${esc(fill(c.txt, ctx))}</button>`).join("")}${sayTarget() ? `<button class="btn btn-ghost dlg-own" id="dlg-own"><b>✍️</b> Decir otra cosa...</button>` : ""}</div>
         </div>`;
-      scene.querySelectorAll(".dlg-choices button").forEach((b) => b.addEventListener("click", (e) => {
+      scene.querySelectorAll(".dlg-choices button[data-k]").forEach((b) => b.addEventListener("click", (e) => {
         e.stopPropagation();
         pickChoice(+b.dataset.k);
       }));
+      const own = scene.querySelector("#dlg-own");
+      if (own) own.addEventListener("click", (e) => { e.stopPropagation(); openSay(sayTarget(), true); });
     }
     function pickChoice(k) {
       const c = choices[k];
@@ -422,6 +427,54 @@ const Story = (() => {
       i = 0;
       showLine();
     }
+    // Responder con tus propias palabras (la reina contesta en directo)
+    function canSay(k) {
+      return typeof IA !== "undefined" && IA.ready() && S && !S.meOut && /^r\d$/.test(k) && ctx.q && ctx.q[k] && ctx.q[k] !== S.queen && S.rivals.includes(ctx.q[k]);
+    }
+    function sayTarget() {
+      const ks = [...new Set(lines.map((l) => l[0]))].filter(canSay);
+      return ks[0] || (canSay("r1") ? "r1" : null);
+    }
+    function openSay(k, fromChoices) {
+      if (!k) return;
+      const q = ctx.q[k];
+      clearInterval(typing);
+      typing = null;
+      const box = scene.querySelector(".dlg-box");
+      box.innerHTML = `
+        <p class="dlg-name">${esc(S.queen.name)} <small>Tú · a ${esc(q.name)}</small></p>
+        <form class="ft-form dlg-form"><input id="dlg-in" maxlength="200" autocomplete="off" placeholder="Escribe lo que le dices a ${esc(q.name)}..."><button class="btn btn-primary">Decir</button></form>
+        <button class="btn btn-ghost small-btn" id="dlg-cancel">← Volver</button>`;
+      const inp = box.querySelector("#dlg-in");
+      inp.focus({ preventScroll: true });
+      box.addEventListener("click", (e) => e.stopPropagation());
+      box.querySelector("#dlg-cancel").addEventListener("click", () => (fromChoices ? showChoices() : showLine()));
+      box.querySelector(".dlg-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const v = inp.value.trim();
+        if (!v) return;
+        box.innerHTML = `<p class="dlg-name">${esc(q.name)}</p><div class="ia-dots"><i></i><i></i><i></i></div>`;
+        const before = lines.slice(0, Math.min(i + 1, lines.length)).map(([kk, tt]) => `${who(kk, ctx).name}: ${fill(tt, ctx)}`).join("\n");
+        const r = await IA.chat(
+          `Hablas SOLO como ${q.name}. ${aiProfile(q)} ${aiSeason()}`,
+          `Escena hasta ahora:\n${before}\n${S.queen.name} le dice a ${q.name}: «${v}»\nResponde como ${q.name}, en personaje, coherente con la escena y con lo que ha dicho (máximo 35 palabras). Devuelve JSON {"respuesta":"...","tono":"amable|neutral|borde|coqueto|amenaza","relacion":-2..2}`,
+          { json: true, max: 220 },
+        );
+        const rep = r && (typeof r.respuesta === "string" ? r.respuesta : "") ? IA.clean(r.respuesta) : pick1(["Mmm... vale, cariño. Me lo apunto.", "¿Y eso a qué viene ahora?", "Ya hablaremos tú y yo."]);
+        if (r) {
+          const d = clamp(Math.round(+r.relacion || 0), -2, 2);
+          if (d) changeRel(q, d);
+          const tono = String(r.tono || "").toLowerCase();
+          if (/amable|coquet/.test(tono)) persona("kind");
+          if (/borde|amenaza/.test(tono)) { persona("mean"); if (isNem(q)) heat(1); }
+        }
+        if (typeof logEv === "function") logEv(`${S.queen.name} le dice a ${q.name}: «${v}»`);
+        const add = [["me", v], [k, rep]];
+        if (fromChoices) { choices = null; lines = add; i = 0; }
+        else lines = [...lines.slice(0, i + 1), ...add, ...lines.slice(i + 1)], i++;
+        showLine();
+      });
+    }
     function finish() {
       stop();
       then();
@@ -443,6 +496,7 @@ const Story = (() => {
       el.dataset.full = full;
     }
     const next = () => {
+      if (scene.querySelector(".dlg-form") || scene.querySelector(".ia-dots")) return;
       const tx = scene.querySelector(".dlg-text");
       if (typing && tx) {
         clearInterval(typing);
@@ -456,6 +510,8 @@ const Story = (() => {
       }
     };
     const onKey = (e) => {
+      if (e.target && e.target.tagName === "INPUT") return;
+      if (scene.querySelector(".dlg-form")) return;
       if (scene.querySelector(".dlg-choices")) {
         const k = { Digit1: 0, Digit2: 1, Digit3: 2 }[e.code];
         if (k !== undefined) pickChoice(k);
@@ -1817,6 +1873,7 @@ const Story = (() => {
         <div class="hub-grid">${opts
           .map((o, i) => `<button class="hub-q ${o.kind === "enemiga" ? "enemy" : o.kind === "aliada" ? "ally" : ""}" style="--i:${i}" data-i="${i}"><i style="background-image:url('${photo(o.q)}')"></i><span>${esc(o.q.name)}</span><small>${o.label}</small>${roleChip(o.q)}</button>`)
           .join("")}</div>
+        ${IA.ready() ? `<p class="muted">o habla libremente con cualquiera:</p><div class="ut-free">${S.rivals.map((q) => `<button class="ut-face" data-f="${q.id}" title="${esc(q.name)}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span></button>`).join("")}</div>` : ""}
         <div class="row"><button class="btn btn-ghost" id="ut-skip">🍸 Tomarme algo sola</button><button class="btn btn-ghost" id="ut-spy">🔎 Observar a las demás</button></div>
       </div>`;
     body().querySelectorAll("[data-i]").forEach((b) =>
@@ -1852,6 +1909,7 @@ const Story = (() => {
         });
       }),
     );
+    body().querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", () => freeTalk(qById(b.dataset.f), then, "Untucked")));
     $("#ut-skip").addEventListener("click", () => { persona("focus"); then(); });
     $("#ut-spy").addEventListener("click", () => {
       const cand = shuffle(S.rivals).map((q) => [q, ["deb", "fort", "car"].find((x) => !Nem.knows(q.id, x))]).find(([, sl]) => sl);
@@ -3976,7 +4034,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
     return IA.chat(`Hablas SOLO como ${q.name}. ${aiProfile(q)} ${aiSeason()}`, `${what}. Escribe la primera frase que le dice ${q.name} al verla llegar, según su carácter y su relación. Máximo 20 palabras.`, { max: 60 });
   }
   // Conversación libre: escribes tú y la reina contesta en personaje
-  function freeTalk(q, then) {
+  function freeTalk(q, then, where = "el taller") {
     const hist = [];
     let turns = 0, busy = false;
     const render = (wait) => {
@@ -3990,10 +4048,10 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       const log = body().querySelector(".ft-log");
       if (log) log.scrollTop = log.scrollHeight;
       const inp = $("#ft-in");
-      if (inp && !wait) inp.focus();
+      if (inp && !wait) inp.focus({ preventScroll: true });
       const form = body().querySelector(".ft-form");
       if (form) form.addEventListener("submit", (e) => { e.preventDefault(); send(); });
-      $("#ft-end").addEventListener("click", () => (turns ? then() : approach(q, then)));
+      $("#ft-end").addEventListener("click", () => (turns || where !== "el taller" ? then() : approach(q, then)));
     };
     async function send() {
       const v = ($("#ft-in").value || "").trim();
@@ -4003,7 +4061,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       render(true);
       const conv = hist.map((m) => `${m.me ? S.queen.name : q.name}: ${m.t}`).join("\n");
       const r = await IA.chat(
-        `Hablas SOLO como ${q.name}, concursante de Drag Race España, en el taller. ${aiProfile(q)} ${aiSeason()} Responde en JSON con: "respuesta" (lo que dice ${q.name}, máximo 35 palabras, en personaje), "tono" (cómo le ha sentado lo que ha dicho ${S.queen.name}: "amable", "neutral", "borde", "coqueto" o "amenaza") y "relacion" (número entero de -2 a 2: cuánto mejora o empeora su relación).`,
+        `Hablas SOLO como ${q.name}, concursante de Drag Race España, en ${where}. ${aiProfile(q)} ${aiSeason()} Responde en JSON con: "respuesta" (lo que dice ${q.name}, máximo 35 palabras, en personaje), "tono" (cómo le ha sentado lo que ha dicho ${S.queen.name}: "amable", "neutral", "borde", "coqueto" o "amenaza") y "relacion" (número entero de -2 a 2: cuánto mejora o empeora su relación).`,
         `Conversación hasta ahora:\n${conv}\nResponde como ${q.name}.`,
         { json: true, max: 140 },
       );
@@ -4067,7 +4125,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       const box = el.querySelector(".live-log");
       if (box) box.scrollTop = box.scrollHeight;
       const inp = el.querySelector("#lv-in");
-      if (inp) inp.focus();
+      if (inp) inp.focus({ preventScroll: true });
       const form = el.querySelector(".ft-form");
       if (form) form.addEventListener("submit", (e) => { e.preventDefault(); send(inp.value.trim()); });
     };
