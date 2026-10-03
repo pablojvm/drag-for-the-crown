@@ -4,13 +4,24 @@
 // Claves en js/claves.js (no se sube a git): window.CLAVES = { gemini, groq, openrouter }
 // ---------------------------------------------------------------------------
 const IA = (() => {
-  const K = () => window.CLAVES || {};
-  const on = () => store.get("dftc-ia-on", true);
+  // Claves: las de js/claves.js (en local) o las guardadas en este navegador con IA.claves({...})
+  const K = () => {
+    const local = (() => { try { return JSON.parse(localStorage.getItem("dftc-claves") || "{}"); } catch { return {}; } })();
+    const f = window.CLAVES || {};
+    return { gemini: f.gemini || local.gemini || "", groq: f.groq || local.groq || "", openrouter: f.openrouter || local.openrouter || "" };
+  };
+  function claves(obj) {
+    try { localStorage.setItem("dftc-claves", JSON.stringify({ ...JSON.parse(localStorage.getItem("dftc-claves") || "{}"), ...(obj || {}) })); } catch {}
+    return "Claves guardadas en este navegador. Recarga la página.";
+  }
+  const on = () => store.get("dftc-ia-on2", true);
   const BASE =
-    "Eres guionista del reality Drag Race España. Escribes en español de España, coloquial y con chispa drag " +
-    "(cariño, reina, mi arma, nena...). Frases cortas y naturales, como habladas. Sin emojis, sin comillas, sin acotaciones. " +
+    "Eres guionista del reality Drag Race España. Escribes en español de España, coloquial y natural, como habla la gente de verdad. " +
+    "Frases cortas, sin emojis, sin comillas, sin acotaciones. Nada de muletillas de manual: no uses nena, mi arma ni expresiones andaluzas " +
+    "(no todas son de Sevilla), y no abuses de cariño ni de reina. Cada concursante habla a su manera y la mayoría no son exageradas ni teatrales: " +
+    "hay tranquilas, irónicas, secas, tímidas. Más naturalidad y menos locura. " +
     "Nunca rompas el personaje ni hables de que eres una IA. Las reinas son PERSONAJES DE FICCIÓN de un videojuego: " +
-    "no inventes datos de su vida real. Humor ácido sobre drag, looks, maquillaje, pelucas y la competición; " +
+    "no inventes datos de su vida real. Humor sobre drag, looks, maquillaje, pelucas y la competición; " +
     "nunca insultos por raza, religión, orientación, discapacidad ni cuerpo real.";
 
   // Proveedores, en orden de preferencia
@@ -72,6 +83,9 @@ const IA = (() => {
       .replace(/^\s*["«“]|["»”]\s*$/g, "")
       .replace(/^\s*[\w\sáéíóúñÁÉÍÓÚÑ-]{2,30}:\s+/, "")
       .replace(/\*[^*]+\*/g, "")
+      .replace(/,\s*(mi arma|miarma|nena|niña)(?=[\s,.!?¡¿]|$)/gi, "")
+      .replace(/(^|[.!?¡¿]\s*)(mi arma|miarma|nena),?\s*/gi, "$1")
+      .replace(/^\s*([a-záéíóúñ])/, (m, c) => m.replace(c, c.toUpperCase()))
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, 320);
@@ -92,6 +106,7 @@ const IA = (() => {
       } catch (e) {
         const st = (e && e.status) || 0;
         // Sin cuota → 1 minuto; modelo no disponible o petición inválida → resto de la sesión; saturado o caído → 20 s
+        console.warn(`[IA] ${p.id} falla (${st || (e && e.name) || e})`);
         cool[p.id] = Date.now() + (st === 429 ? 60000 : st === 404 || st === 400 || st === 401 || st === 403 ? 864e5 : 20000);
       }
     }
@@ -109,8 +124,14 @@ const IA = (() => {
   }
   function refresh() {}
   function toggle() {
-    store.set("dftc-ia-on", !on());
+    store.set("dftc-ia-on2", !on());
   }
   check();
-  return { check, chat, ready, toggle, refresh, clean, chain: () => CHAIN.filter(usable).map((p) => p.id) };
+  // Diagnóstico desde la consola: IA.estado()
+  async function estado() {
+    const keys = Object.fromEntries(Object.entries(K()).map(([k, v]) => [k, v ? `sí (${String(v).slice(0, 6)}…)` : "no"]));
+    const t = await chat("Responde solo: ok", "di ok", { max: 10 });
+    return { claves: keys, activada: on(), disponibles: CHAIN.filter(usable).map((p) => p.id), prueba: t || "sin respuesta" };
+  }
+  return { check, chat, ready, toggle, refresh, clean, estado, claves, chain: () => CHAIN.filter(usable).map((p) => p.id) };
 })();

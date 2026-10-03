@@ -134,9 +134,8 @@ const Story = (() => {
   };
   RETOS.ball = {
     titulo: () => "El Ball: el baile de trajes",
-    desc: "Tres conceptos, tres looks. Dos los traes de casa y los desfilas; el tercero lo coses desde cero en el taller con materiales imposibles. Esta semana el Ball ES la pasarela.",
+    desc: "Tres conceptos, tres looks. Dos los traes de casa y los desfilas; el tercero lo coses desde cero en el taller con materiales imposibles. Después, como siempre, la pasarela de la semana.",
     ctrl: "Pasarela: Espacio o ¡POSE! · Taller: flechas o arrastra",
-    noRunway: true,
     run: (el, done) => runBall(el, done),
   };
   RETOS.diseno = {
@@ -172,8 +171,8 @@ const Story = (() => {
   Object.assign(RETOS.snatch, { run: (el, d) => mxSnatch(el, d), attrs: ["comedia", "carisma"], ctrl: DC,
     desc: "Imita a un personaje en el plató de Supreme. Controla la barra de Foco: si pasa de 80 interrumpes, si baja de 30 no existes. Elige entre comedia absurda, réplica a una rival o respuesta segura, y roba la atención cuando otra falle." });
   Object.assign(RETOS.ball, { run: (el, d) => mxBall(el, d), attrs: ["estilo"], ctrl: DC,
-    desc: "Tres looks. Los dos de casa se montan por sinergia de etiquetas (outfit, peluca y accesorio). El tercero lo coses en el taller repartiendo 10 puntos de acción. Esta semana el Ball ES la pasarela." });
-  Object.assign(RETOS.diseno, { run: (el, d) => mxMateriales(el, d), attrs: ["estilo"], ctrl: DC, noRunway: true,
+    desc: "Tres looks. Los dos de casa se montan por sinergia de etiquetas (outfit, peluca y accesorio). El tercero lo coses en el taller repartiendo 10 puntos de acción. Después, la pasarela de la semana." });
+  Object.assign(RETOS.diseno, { run: (el, d) => mxMateriales(el, d), attrs: ["estilo"], ctrl: DC,
     desc: "Reclama un lote de materiales (flexible, rígido o absurdo). Cuanto más raro, más Audacia... pero más difícil coserlo. Si fallas, el vestido se rompe en plena pasarela." });
   Object.assign(RETOS.rusical, { run: (el, d) => mxRusical(el, d), attrs: ["performance", "comedia"], ctrl: DC,
     desc: "Elige papel (principal, cómico o secundario) y decide en directo: paso limpio o truco arriesgado, y la intención de cada estrofa." });
@@ -195,7 +194,7 @@ const Story = (() => {
   RETOS.lalaparuza = {
     titulo: () => "Lalaparuza: el torneo de lip syncs",
     desc: "Sin taller: eliminatorias directas de lip sync. Elige canción según tu perfil y el de tu rival, y gestiona la energía en cada duelo.",
-    ctrl: DC, attrs: ["performance", "carisma"], noRunway: true, run: (el, d) => mxLalaparuza(el, d),
+    ctrl: DC, attrs: ["performance", "carisma"], run: (el, d) => mxLalaparuza(el, d),
   };
   const ORDEN_RETOS = ["snatch", "roast", "ball", "diseno", "rusical", "actuacion", "equipos", "makeover", "impro", "publicidad", "lalaparuza"];
 
@@ -275,7 +274,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks", "log"];
+  const PLAIN = ["memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks", "log", "miniWin", "aggr"];
   function save() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -413,16 +412,20 @@ const Story = (() => {
       Object.entries(c.rel || {}).forEach(([key, d]) => changeRel(ctx.q[key], d));
       if (c.effect === "ayuda") S.helped = true;
       const relSum = Object.values(c.rel || {}).reduce((a, b) => a + b, 0);
-      if (c.persona) persona(c.persona);
+      // Si te han provocado, contestar no te convierte en la villana: como mucho, das drama
+      const provoked = !!(ctx.tension || (ctx.q && isNem(ctx.q.r1)));
+      const pk = c.persona === "mean" && provoked ? "drama" : c.persona;
+      if (pk) persona(pk, pk === c.persona ? 1 : 0.5);
       else if (relSum > 0) persona("kind");
-      else if (relSum < 0) persona("mean");
+      else if (relSum < 0) persona(provoked ? "drama" : "mean", provoked ? 0.5 : 1);
+      if (relSum < 0 && ctx.q && isNem(ctx.q.r1)) nemTally("mine", provoked ? 0.5 : 1);
       if ((c.bonus || 0) > 0 && !c.persona) persona("drama");
       Object.entries(c.rel || {}).forEach(([key, d]) => { if (d < 0 && isNem(ctx.q[key])) heat(1); });
       if (c.fx) c.fx();
       if (c.after && pendingSide) { pendingSide(c.after); pendingSide = null; }
       choices = null;
       if (typeof logEv === "function" && S && S.ep) logEv(`${S.queen.name} le dice a ${(ctx.q && ctx.q.r1 && ctx.q.r1.name) || "alguien"}: «${fill(c.txt, ctx)}»`);
-      if (c.persona && !c.rel) persona(c.persona);
+      if (pk && !c.rel) persona(pk, pk === c.persona ? 1 : 0.5);
       lines = [["me", c.txt], ...(c.reply ? [c.reply] : [])];
       i = 0;
       showLine();
@@ -457,16 +460,14 @@ const Story = (() => {
         const before = lines.slice(0, Math.min(i + 1, lines.length)).map(([kk, tt]) => `${who(kk, ctx).name}: ${fill(tt, ctx)}`).join("\n");
         const r = await IA.chat(
           `Hablas SOLO como ${q.name}. ${aiProfile(q)} ${aiSeason()}`,
-          `Escena hasta ahora:\n${before}\n${S.queen.name} le dice a ${q.name}: «${v}»\nResponde como ${q.name}, en personaje, coherente con la escena y con lo que ha dicho (máximo 35 palabras). Devuelve JSON {"respuesta":"...","tono":"amable|neutral|borde|coqueto|amenaza","relacion":-2..2}`,
+          `Escena hasta ahora:\n${before}\n${S.queen.name} le dice a ${q.name}: «${v}»\nResponde como ${q.name}, en personaje, coherente con la escena y con lo que ha dicho (máximo 35 palabras). En "jugadora" clasifica lo que ha dicho ${S.queen.name} teniendo en cuenta quién empezó: "amable", "neutral", "defiende" (contesta a una provocación) o "provoca" (ataca sin que la hayan provocado). Devuelve JSON {"respuesta":"...","tono":"amable|neutral|borde|coqueto|amenaza","relacion":-2..2,"jugadora":"amable|neutral|defiende|provoca"}`,
           { json: true, max: 220 },
         );
         const rep = r && (typeof r.respuesta === "string" ? r.respuesta : "") ? IA.clean(r.respuesta) : pick1(["Mmm... vale, cariño. Me lo apunto.", "¿Y eso a qué viene ahora?", "Ya hablaremos tú y yo."]);
         if (r) {
           const d = clamp(Math.round(+r.relacion || 0), -2, 2);
           if (d) changeRel(q, d);
-          const tono = String(r.tono || "").toLowerCase();
-          if (/amable|coquet/.test(tono)) persona("kind");
-          if (/borde|amenaza/.test(tono)) { persona("mean"); if (isNem(q)) heat(1); }
+          talkFame(q, r);
         }
         if (typeof logEv === "function") logEv(`${S.queen.name} le dice a ${q.name}: «${v}»`);
         const add = [["me", v], [k, rep]];
@@ -1200,6 +1201,7 @@ const Story = (() => {
           if (!team) S.team = null;
           const sc = [{ q: S.queen, s: Math.round(clamp(raw, 0, 100)), me: true }, ...S.rivals.map((q) => ({ q, s: Math.round(clamp(rivalScore(q) + rnd(-12, 8), 0, 99)) }))].sort((a, b) => b.s - a.s);
           const win = sc[0];
+          S.miniWin = win.me ? "me" : win.q.id;
           if (team) S.captains = [sc[0].q, sc[1].q];
           else if (win.me) premio.apply();
           if (win.me) earn(100, "Premio del minireto");
@@ -1229,6 +1231,7 @@ const Story = (() => {
     const titulo = reto.titulo();
     S.epNames[S.ep] = EP_SHORT[tipo] || "Reto";
     S.curTipo = tipo;
+    S.curTitulo = titulo;
     S.team = null;
     const go = () => challengeIntro(reto, titulo, tipo);
     const caps = () => {
@@ -3896,11 +3899,12 @@ const Story = (() => {
     dressingRoom(el, cat, (st, spec) => {
       S.revealImg = st.revealImg || null;
       S.walkMov = st.pieces.length ? st.pieces.reduce((t, it) => t + (it.loan ? 3 : statOf(it)[1]), 0) / st.pieces.length : 3;
+      S.curPieces = st.pieces.map((it) => `${it.n}${it.loan ? " (prestado)" : ""}`);
       runwayWalk(el, cat, spec, st.lookTag || "Glamour", (walk, flags, finalSpec) => {
         S.lastOutfit = finalSpec;
         S.lookTags = [...(S.lookTags || []), st.lookTag || "Glamour"].slice(-6);
         S.revealImg = null;
-        S.lastLook = { cat, best: st.pieces[0] ? st.pieces[0].n : "look", worst: st.pieces.slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: flags.atascado, voiceGood: flags.voiceGood };
+        S.lastLook = { cat, best: st.pieces[0] ? st.pieces[0].n : "look", worst: st.pieces.slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: flags.atascado, voiceGood: flags.voiceGood, concepto: flags.concepto || null, critica: flags.critica || null };
         done(st.prep * 0.5 + walk * 0.5);
       });
     }, prefix);
@@ -3909,7 +3913,7 @@ const Story = (() => {
 
   // ------------------------------ Director de escenas (IA) ------------------------------
   // Identidad propia de cada reina (se crea una vez y se recuerda entre temporadas)
-  const ID_KEY = "dftc-identidades";
+  const ID_KEY = "dftc-identidades2";
   const idOf = (q) => (store.get(ID_KEY, {}) || {})[q.id] || null;
   let idsBusy = null;
   function ensureIdentities() {
@@ -3920,7 +3924,7 @@ const Story = (() => {
     idsBusy = IA.chat(
       "Creas fichas de personaje para un videojuego sobre un concurso drag. Cada reina es un personaje de ficción del juego, con su nombre artístico como única referencia: inventa una personalidad rica y distinta para cada una, sin datos de su vida real.",
       `Crea una identidad para cada una de estas reinas: ${need.map((q) => `${q.id} (${q.name}${S.roles[q.id] && ROLES_HISTORIA[S.roles[q.id]] ? `, en el taller es ${ROLES_HISTORIA[S.roles[q.id]].name}` : ""})`).join("; ")}.
-Devuelve JSON {"reinas":[{"id":"...","voz":"cómo habla (acento, registro, ritmo)","muletillas":["2 o 3 expresiones suyas"],"drag":"su estilo drag en una frase","pasado":"de dónde viene y qué la trajo al drag (inventado)","ambicion":"qué quiere demostrar","miedo":"su inseguridad","trato":"cómo trata a las demás"}]}. Que todas suenen muy distintas entre sí.`,
+Devuelve JSON {"reinas":[{"id":"...","voz":"cómo habla (acento, registro, ritmo)","muletillas":["1 o 2 expresiones suyas, normales, nada de tópicos"],"drag":"su estilo drag en una frase","pasado":"de dónde viene y qué la trajo al drag (inventado)","ambicion":"qué quiere demostrar","miedo":"su inseguridad","trato":"cómo trata a las demás"}]}. Que todas suenen muy distintas entre sí y sean creíbles: de distintas partes de España, la mayoría con un habla natural, no exagerada; nada de nena ni mi arma.`,
       { json: true, max: 3500, temp: 1, timeout: 45000 },
     ).then((r) => {
       idsBusy = null;
@@ -3933,7 +3937,7 @@ Devuelve JSON {"reinas":[{"id":"...","voz":"cómo habla (acento, registro, ritmo
   }
   const idTxt = (q) => {
     const i = idOf(q);
-    return i ? `Identidad de ${q.name}: habla ${i.voz}; muletillas: ${(i.muletillas || []).join(", ")}; drag: ${i.drag}; pasado: ${i.pasado}; quiere ${i.ambicion}; teme ${i.miedo}; con las demás: ${i.trato}.` : "";
+    return i ? `Identidad de ${q.name}: habla ${i.voz}; drag: ${i.drag}; pasado: ${i.pasado}; quiere ${i.ambicion}; teme ${i.miedo}; con las demás: ${i.trato}.` : "";
   };
   // Memoria de lo que pasa en la temporada (para que las escenas tengan continuidad)
   function logEv(t) {
@@ -4015,7 +4019,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       role ? `Su rol en el taller: ${role.name} (${role.desc})` : "",
       `Carácter: ${RASGOS.car[t.car].n} (${RASGOS.car[t.car].d}). Fortaleza: ${RASGOS.fort[t.fort].n}. Debilidad secreta: ${RASGOS.deb[t.deb].n}.`,
       `Relación con ${S.queen.name}: ${relLabel(q)}.`,
-      isNem(q) ? `Es la NÉMESIS de ${S.queen.name}: la odia y la provoca siempre.` : "",
+      isNem(q) ? `Es la NÉMESIS de ${S.queen.name}: la odia y la provoca siempre. Si ${S.queen.name} le contesta, es porque ella ha empezado.` : "",
       S.pacts && S.pacts[q.id] ? `Tiene un pacto de alianza con ${S.queen.name}.` : "",
       sc ? `Historia entre ellas: ${sc}.` : "",
       labs.length ? `Sus resultados esta temporada: ${labs.join(", ")}.` : "",
@@ -4023,7 +4027,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       idTxt(q),
     ].filter(Boolean).join(" ");
   }
-  const aiSeason = () => `Temporada: ${S.season.name}. Episodio ${S.ep}. Quedan ${S.rivals.length + 1} reinas. La protagonista (la jugadora) es ${S.queen.name}. Resultados de ${S.queen.name}: ${Object.values(S.track.me || {}).join(", ") || "aún ninguno"}.`;
+  const aiSeason = () => `Temporada: ${S.season.name}. Episodio ${S.ep}. Quedan ${S.rivals.length + 1} reinas. La protagonista (la jugadora) es ${S.queen.name}. Resultados de ${S.queen.name}: ${Object.values(S.track.me || {}).join(", ") || "aún ninguno"}. ${nemStory()}`;
   function aiWait(txt = "✍️ Escribiendo...", target = null) {
     (target || body()).innerHTML = `<div class="story-card ia-wait"><p class="eyebrow">🎬 En directo</p><h3>${esc(txt)}</h3><div class="ia-dots"><i></i><i></i><i></i></div></div>`;
   }
@@ -4061,7 +4065,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       render(true);
       const conv = hist.map((m) => `${m.me ? S.queen.name : q.name}: ${m.t}`).join("\n");
       const r = await IA.chat(
-        `Hablas SOLO como ${q.name}, concursante de Drag Race España, en ${where}. ${aiProfile(q)} ${aiSeason()} Responde en JSON con: "respuesta" (lo que dice ${q.name}, máximo 35 palabras, en personaje), "tono" (cómo le ha sentado lo que ha dicho ${S.queen.name}: "amable", "neutral", "borde", "coqueto" o "amenaza") y "relacion" (número entero de -2 a 2: cuánto mejora o empeora su relación).`,
+        `Hablas SOLO como ${q.name}, concursante de Drag Race España, en ${where}. ${aiProfile(q)} ${aiSeason()} Responde en JSON con: "respuesta" (lo que dice ${q.name}, máximo 35 palabras, en personaje), "tono" (cómo contesta ${q.name}: "amable", "neutral", "borde", "coqueto" o "amenaza"), "relacion" (número entero de -2 a 2: cuánto mejora o empeora su relación) y "jugadora" (cómo se ha comportado ${S.queen.name} en su último mensaje, teniendo en cuenta quién empezó: "amable", "neutral", "defiende" si contesta a una provocación, o "provoca" si ataca sin que la hayan provocado).`,
         `Conversación hasta ahora:\n${conv}\nResponde como ${q.name}.`,
         { json: true, max: 140 },
       );
@@ -4075,8 +4079,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       const d = clamp(Math.round(+r.relacion || 0), -2, 2);
       const tono = String(r.tono || "neutral").toLowerCase();
       if (d) changeRel(q, d);
-      if (/amable|coquet/.test(tono)) persona("kind");
-      if (/borde|amenaza/.test(tono)) { persona("mean"); if (isNem(q)) heat(1); }
+      talkFame(q, r);
       if (tono.includes("amenaza") && relOf(q) <= -2) makeNemesis(q, "choque");
       render();
     }
@@ -4089,7 +4092,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
     const lk = S.lastLook;
     const r = await IA.chat(
       `Escribes las críticas del jurado de Drag Race España. Supreme de Luxe es la presentadora (directa, teatral, cariñosa pero exigente). Ana Locking es jurado (moda, técnica, seria y precisa). ${aiSeason()} ${(() => { const f = fame(); return f ? `En el taller, ${S.queen.name} tiene fama de ser ${FAMA[f].n}.` : ""; })()}`,
-      `Reto de esta semana: ${S.epNames[S.ep] || "reto"}. Nota de ${S.queen.name} en el reto: ${S.lastParts ? S.lastParts.reto : score}/100${S.lastParts && S.lastParts.pasarela != null ? `, pasarela: ${S.lastParts.pasarela}/100` : ""}. ${lk ? `Categoría de pasarela: ${lk.cat}. Su mejor pieza: ${lk.best}. Su peor pieza: ${lk.worst}.` : ""} Va a quedar como: ${label}. Devuelve JSON con "supreme" y "ana": la crítica de cada una a ${S.queen.name}, en segunda persona, máximo 30 palabras cada una, coherentes con la nota.`,
+      `Reto de esta semana: ${S.epNames[S.ep] || "reto"}. Nota de ${S.queen.name} en el reto: ${S.lastParts ? S.lastParts.reto : score}/100${S.lastParts && S.lastParts.pasarela != null ? `, pasarela: ${S.lastParts.pasarela}/100` : ""}. ${lk ? `Categoría de pasarela: ${lk.cat}. Su mejor pieza: ${lk.best}. Su peor pieza: ${lk.worst}.${lk.concepto ? ` Concepto que defendió: «${lk.concepto}».` : ""}${lk.critica ? ` Ya le dijeron en la pasarela: ${lk.critica}` : ""}` : ""} Va a quedar como: ${label}. Devuelve JSON con "supreme" y "ana": la crítica de cada una a ${S.queen.name}, en segunda persona, máximo 30 palabras cada una, coherentes con la nota.`,
       { json: true, max: 200, temp: 0.85 },
     );
     if (!r || !r.supreme || !r.ana) return lines;
@@ -4194,13 +4197,15 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
     el.innerHTML = `
       <div class="story-card">
         <p class="eyebrow">🎭 Snatch Game en directo</p>
-        <h3>¿A quién imitas?</h3>
+        <h3>¿A quién vas a interpretar?</h3>
+        <p class="muted">Escribe el personaje que quieras y responderás a Supreme como si fueras esa persona.</p>
+        <form class="ft-form"><input id="sn-own" maxlength="80" autocomplete="off" placeholder="Tu personaje..."><button class="btn btn-primary">¡A plató!</button></form>
+        <p class="muted">o elige uno de estos:</p>
         <div class="choice-col">${chars.map((c, i) => `<button class="btn btn-ghost" data-c="${i}">${c.icon} ${esc(c.name)} <small>· ${esc(c.tono)}</small></button>`).join("")}</div>
-        <form class="ft-form"><input id="sn-own" maxlength="80" autocomplete="off" placeholder="O inventa tu personaje (nombre y estilo)..."><button class="btn btn-primary">Usar</button></form>
       </div>`;
     const go = (name, tono) => start(name, tono);
     el.querySelectorAll("[data-c]").forEach((b) => b.addEventListener("click", () => { const c = chars[+b.dataset.c]; go(c.name, c.tono); }));
-    el.querySelector(".ft-form").addEventListener("submit", (e) => { e.preventDefault(); const v = el.querySelector("#sn-own").value.trim(); if (v) go(v, "el que tú le des"); });
+    el.querySelector(".ft-form").addEventListener("submit", (e) => { e.preventDefault(); const v = el.querySelector("#sn-own").value.trim(); if (v) go(v, "el de ese personaje"); });
     async function start(name, tono) {
       const rivals = shuffle(S.rivals).slice(0, 2);
       aiWait("Preparando el plató...", el);
@@ -4216,18 +4221,264 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
       ((plan && plan.rivales) || []).forEach((x) => x && x.reina && (pj[x.reina] = str(x.personaje)));
       const rounds = pregs.map((p, i) => ({
         prompt: `🎤 Supreme: «${IA.clean(str(p.q))}»`,
-        sub: `Eres ${name}. Contesta en personaje.`,
+        sub: `Eres ${name}. Contesta como si fueras esa persona.`,
         pre: [
           ...(i === 0 ? rivals.filter((q) => pj[q.name]).map((q) => ({ who: "Supreme", t: `${q.name} viene como ${pj[q.name]}.`, cls: "host" })) : []),
           ...((p.respuestas || []).filter((x) => x && x.t && rivals.some((q) => q.name === str(x.reina))).slice(0, 2).map((x) => ({ who: `${str(x.reina)}${pj[str(x.reina)] ? ` (${pj[str(x.reina)]})` : ""}`, t: IA.clean(str(x.t)), cls: "rival" }))),
         ],
-        ctx: `Snatch Game. ${S.queen.name} imita a ${name} (tono ${tono}). Pregunta de Supreme: ${str(p.q)}. Valora la gracia, que se mantenga en personaje y la rapidez del remate.`,
+        ctx: `Snatch Game. ${S.queen.name} interpreta a ${name}. Pregunta de Supreme: ${str(p.q)}. Valora la gracia, que se mantenga en el personaje elegido y el remate. En tu reacción no imites ni pongas frases en boca de ese personaje: solo comenta la actuación.`,
       }));
       el.innerHTML = "";
       liveRounds(el, { title: "Snatch Game", icon: "🎭", kind: "Snatch Game (imitación cómica en personaje)", attr: "comedia", rounds, ph: `Lo que dice ${name}...` }, done);
     }
   }
+  // Improvisación por grupos: se monta una escena, cada una tiene un personaje y todas interactúan
   function liveImpro(el, done) {
+    const mates = (S.team && S.team.length ? S.team.filter((q) => S.rivals.includes(q)) : shuffle(S.rivals)).slice(0, 2);
+    if (mates.length < 1) return liveImproSolo(el, done);
+    aiWait("Montando la escena...", el);
+    IA.chat(
+      `Eres la directora del reto de improvisación de Drag Race España: un grupo de reinas improvisa una escena cómica, cada una con un personaje. ${aiSeason()}`,
+      `El grupo: ${S.queen.name} (la jugadora) y ${mates.map((q) => `${q.name} (${aiProfile(q)} ${idTxt(q)})`).join(" | ")}.
+Inventa una escena cómica y concreta (lugar y conflicto), un personaje para cada rival que encaje con su identidad, y 3 personajes posibles para ${S.queen.name}.
+Devuelve JSON {"escena":"premisa en 25 palabras","personajes":[{"reina":"nombre","personaje":"..."}],"opciones":["...","...","..."]}`,
+      { json: true, max: 700, temp: 1 },
+    ).then((plan) => {
+      if (!plan || !plan.escena) return liveImproSolo(el, done);
+      const pj = {};
+      (plan.personajes || []).forEach((x) => x && x.reina && (pj[str(x.reina)] = str(x.personaje)));
+      mates.forEach((q) => (pj[q.name] = pj[q.name] || "un personaje secundario"));
+      const opts = (Array.isArray(plan.opciones) ? plan.opciones : []).map(str).filter(Boolean).slice(0, 3);
+      el.innerHTML = `
+        <div class="story-card live">
+          <p class="eyebrow">📺 Improvisación en grupo</p>
+          <h3>${esc(IA.clean(str(plan.escena)))}</h3>
+          <div class="impro-cast">${mates.map((q) => `<span><i style="background-image:url('${photo(q)}')"></i><b>${esc(q.name)}</b><small>${esc(pj[q.name])}</small></span>`).join("")}</div>
+          <p class="muted">¿Qué personaje eres tú?</p>
+          <div class="choice-col">${opts.map((o, i) => `<button class="btn btn-ghost" data-o="${i}">${esc(o)}</button>`).join("")}</div>
+          <form class="ft-form"><input id="im-own" maxlength="80" autocomplete="off" placeholder="O inventa tu personaje..."><button class="btn btn-primary">Usar</button></form>
+        </div>`;
+      el.querySelectorAll("[data-o]").forEach((b) => b.addEventListener("click", () => play(opts[+b.dataset.o])));
+      el.querySelector(".ft-form").addEventListener("submit", (e) => { e.preventDefault(); const v = el.querySelector("#im-own").value.trim(); if (v) play(v); });
+      function play(mine) {
+        const scene = IA.clean(str(plan.escena));
+        const log = [];
+        let turn = 0, mineN = 0;
+        const TURNS = 5;
+        const castTxt = () => [`${S.queen.name} (jugadora) es ${mine}`, ...mates.map((q) => `${q.name} es ${pj[q.name]}. ${idTxt(q)}`)].join(". ");
+        const transcript = () => log.map((m) => `${m.who}: ${m.t}`).join("\n");
+        const draw = (wait) => {
+          el.innerHTML = `
+            <div class="story-card live">
+              <p class="eyebrow">📺 Improvisación en grupo · ${Math.min(turn + 1, TURNS)}/${TURNS}</p>
+              <p class="muted"><b>Escena:</b> ${esc(scene)} · <b>Tú:</b> ${esc(mine)}</p>
+              <div class="live-log">${log.map((m) => `<p class="lv ${m.me ? "me" : "rival"}"><b>${esc(m.who)}${m.me ? "" : ` · ${esc(pj[m.who] || "")}`}</b>${esc(m.t)}</p>`).join("")}${wait ? `<div class="ia-dots"><i></i><i></i><i></i></div>` : ""}</div>
+              ${wait ? "" : `<form class="ft-form"><input id="lv-in" maxlength="220" autocomplete="off" placeholder="Lo que dice o hace ${esc(mine)}..."><button class="btn btn-primary">¡En escena!</button></form>`}
+            </div>`;
+          const box = el.querySelector(".live-log");
+          if (box) box.scrollTop = box.scrollHeight;
+          const inp = el.querySelector("#lv-in");
+          if (inp) inp.focus({ preventScroll: true });
+          const f = el.querySelector(".ft-form");
+          if (f) f.addEventListener("submit", (e) => { e.preventDefault(); const v = inp.value.trim(); if (v) mineLine(v); });
+        };
+        async function others() {
+          draw(true);
+          const r = await IA.chat(
+            `Escribes las intervenciones de las rivales en una improvisación en grupo de Drag Race España. Cada una habla SOLO como su personaje, reaccionando a lo último que ha pasado, siguiendo la escena y dando pie a la jugadora. Nunca escribas lo que dice ${S.queen.name}.`,
+            `Escena: ${scene}\nReparto: ${castTxt()}\n${log.length ? `Lo que ha pasado:\n${transcript()}` : "La escena empieza ahora."}\n${turn === TURNS - 1 ? "Es el último turno: buscad un final." : ""}
+Devuelve JSON {"lineas":[{"reina":"nombre de una rival","t":"lo que dice o hace (máximo 25 palabras)"}]} con 1 o 2 intervenciones.`,
+            { json: true, max: 400, temp: 1 },
+          );
+          const ls = (r && Array.isArray(r.lineas) ? r.lineas : []).filter((x) => x && mates.some((q) => q.name === str(x.reina)) && str(x.t).trim()).slice(0, 2);
+          if (!ls.length) ls.push({ reina: mates[0].name, t: pick1(["¿Y ahora qué hacemos?", "¡Esto no estaba en el guion!", "Bueno, yo sigo, que el público espera."]) });
+          ls.forEach((x) => log.push({ who: str(x.reina), t: IA.clean(str(x.t)) }));
+          draw();
+        }
+        function mineLine(v) {
+          log.push({ who: S.queen.name, t: v, me: true });
+          mineN++;
+          turn++;
+          if (turn >= TURNS) return judge();
+          others();
+        }
+        async function judge() {
+          draw(true);
+          const r = await IA.chat(
+            `Eres el jurado de Drag Race España valorando una improvisación en grupo. Valora a cada reina por separado: gracia, escucha (si reacciona a las demás), personaje y si hace avanzar la escena. Un aporte vacío o que ignora la escena puntúa bajo (10-35); correcto 50-65; brillante 75-95.`,
+            `Escena: ${scene}\nReparto: ${castTxt()}\nTranscripción:\n${transcript()}\nDevuelve JSON {"notas":[{"reina":"nombre","nota":0-100}],"supreme":"comentario de Supreme sobre la escena (máximo 30 palabras)","mejor":"nombre de la que más ha destacado"}`,
+            { json: true, max: 400, temp: 0.6 },
+          );
+          const notas = {};
+          (r && Array.isArray(r.notas) ? r.notas : []).forEach((x) => x && (notas[str(x.reina)] = clamp(Math.round(+x.nota || 50), 0, 100)));
+          const myN = notas[S.queen.name] != null ? notas[S.queen.name] : 50;
+          mates.forEach((q) => { if (notas[q.name] != null) S.form[q.id] = clamp((S.form[q.id] || 0) + Math.round((notas[q.name] - 55) / 8), -10, 10); });
+          const final = clamp(myN + (A("comedia") - 5) * 1.5 + (A("carisma") - 5) * 1.5, 0, 100);
+          logEv(`Improvisación en grupo: ${S.queen.name} como ${mine}; destacó ${str(r && r.mejor) || "nadie en especial"}`);
+          el.innerHTML = `
+            <div class="story-card live">
+              <p class="eyebrow">📺 Improvisación en grupo · resultado</p>
+              <div class="live-log">${log.map((m) => `<p class="lv ${m.me ? "me" : "rival"}"><b>${esc(m.who)}</b>${esc(m.t)}</p>`).join("")}</div>
+              ${r && r.supreme ? `<p class="lv host"><b>Supreme</b>${esc(IA.clean(str(r.supreme)))}</p>` : ""}
+              <div class="impro-cast">${[{ q: S.queen, n: myN }, ...mates.map((q) => ({ q, n: notas[q.name] }))].map((x) => `<span><i style="background-image:url('${photo(x.q)}')"></i><b>${esc(x.q === S.queen ? "Tú" : x.q.name)}</b><small>${x.n != null ? x.n : "–"}</small></span>`).join("")}</div>
+              <button class="btn btn-primary" id="lv-done">Continuar</button>
+            </div>`;
+          el.querySelector("#lv-done").addEventListener("click", () => { if (final >= 80) growAttr(final > 90 ? "comedia" : "carisma"); done(final); });
+        }
+        others();
+      }
+    });
+  }
+  // Interpretación: hay guion. Reparto, ensayo (memorizar) y rodaje (dar el tono que pide la dirección)
+  const TONOS = { dramatico: "🎭 Dramático", comico: "😂 Cómico", contenido: "🤫 Contenido", exagerado: "🔥 Exagerado" };
+  const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9ñ ]/g, "").trim();
+  function liveActing(el, done) {
+    ensureTeam();
+    const mates = (S.team && S.team.length ? S.team.filter((q) => S.rivals.includes(q)) : shuffle(S.rivals)).slice(0, 3);
+    aiWait("Los Javis están repartiendo los guiones...", el);
+    IA.chat(
+      `Eres guionista del reto de interpretación de Drag Race España, dirigido por los Javis. Escribes una escena corta con guion cerrado (no se improvisa), parodia de un género, con humor drag. ${aiSeason()}`,
+      `Reparto disponible: ${S.queen.name} (la jugadora) y ${mates.map((q) => q.name).join(", ")} (${mates.length + 1} actrices).
+Los papeles son personajes de ficción con nombres inventados (por ejemplo «Doña Remedios» o «la Condesa de Albacete»), NUNCA los nombres de las reinas.
+Escribe: título, género, sinopsis, ${mates.length + 1} papeles (uno protagonista de peso grande, el resto medio o pequeño) y un guion de 8 a 11 líneas repartidas entre los papeles (el protagonista con 3 o 4 líneas). Cada línea lleva el tono correcto según la acotación (dramatico, comico, contenido o exagerado), una acotación breve y una "clave": una palabra o expresión corta y memorable que aparece literalmente en esa línea.
+Devuelve JSON {"titulo":"...","genero":"...","sinopsis":"...","papeles":[{"papel":"nombre del personaje","descripcion":"...","peso":"grande|medio|pequeño"}],"guion":[{"papel":"...","t":"texto de la línea","acotacion":"...","tono":"dramatico|comico|contenido|exagerado","clave":"..."}]}`,
+      { json: true, max: 2200, temp: 1 },
+    ).then((g) => {
+      const roles = g && Array.isArray(g.papeles) ? g.papeles.filter((x) => x && x.papel).slice(0, mates.length + 1) : [];
+      const lines = g && Array.isArray(g.guion) ? g.guion.filter((x) => x && x.papel && str(x.t).trim()) : [];
+      if (roles.length < 2 || lines.length < 5) { mxActing.classic = true; return mxActing(el, (sc) => { mxActing.classic = false; done(sc); }); }
+      casting(g, roles, lines);
+    });
+    function casting(g, roles, lines) {
+      const count = (r) => lines.filter((l) => str(l.papel) === str(r.papel)).length;
+      el.innerHTML = `
+        <div class="story-card live">
+          <p class="eyebrow">🎬 Interpretación · el reparto</p>
+          <h3>«${esc(IA.clean(str(g.titulo)))}»</h3>
+          <p class="muted"><b>${esc(str(g.genero))}</b> · ${esc(IA.clean(str(g.sinopsis)))}</p>
+          <p>¿Qué papel pides? Un papel grande luce más... y si fallas se nota más.</p>
+          <div class="choice-col">${roles.map((r, i) => `<button class="btn btn-ghost role" data-r="${i}"><b>${esc(str(r.papel))} · ${esc(str(r.peso || "medio"))}</b><small>${esc(IA.clean(str(r.descripcion)))} · ${count(r)} frases</small></button>`).join("")}</div>
+        </div>`;
+      el.querySelectorAll("[data-r]").forEach((b) => b.addEventListener("click", () => {
+        let mine = roles[+b.dataset.r];
+        // Si pides el protagonista, otra reina con más carisma puede quitártelo
+        const rival = mates.find((q) => (q.stats.rate || 3) + (S.form[q.id] || 0) / 4 > A("carisma") / 2 + 1 && Math.random() < 0.3);
+        let note = "";
+        if (str(mine.peso) === "grande" && rival) {
+          const alt = roles.find((r) => r !== mine);
+          note = `Los Javis le dan el protagonista a ${rival.name}. Tú haces de ${str(alt.papel)}.`;
+          mine = alt;
+        }
+        const others = roles.filter((r) => r !== mine);
+        const cast = { [str(mine.papel)]: S.queen };
+        mates.forEach((q, i) => others[i] && (cast[str(others[i].papel)] = q));
+        rehearse(g, mine, cast, lines, note);
+      }));
+    }
+    function rehearse(g, mine, cast, lines, note) {
+      const myLines = lines.filter((l) => str(l.papel) === str(mine.papel));
+      el.innerHTML = `
+        <div class="story-card live">
+          <p class="eyebrow">🎬 Lectura de guion</p>
+          ${note ? `<p class="twist-note">${esc(note)}</p>` : ""}
+          <h3>Eres ${esc(str(mine.papel))}</h3>
+          <p class="muted">Léete bien tus frases (en rosa): en el rodaje tendrás que decirlas de memoria y con el tono que pide la dirección.</p>
+          <div class="script">${lines.map((l) => { const me = str(l.papel) === str(mine.papel); const q = cast[str(l.papel)]; return `<p class="${me ? "me" : ""}"><b>${esc(str(l.papel))}${q && q !== S.queen ? ` (${esc(q.name)})` : me ? " (tú)" : ""}</b> <i>(${esc(IA.clean(str(l.acotacion)))})</i> ${esc(IA.clean(str(l.t)))}</p>`; }).join("")}</div>
+          <button class="btn btn-primary" id="ac-go">🎬 ¡Acción!</button>
+        </div>`;
+      el.querySelector("#ac-go").addEventListener("click", () => shoot(g, mine, cast, lines, myLines));
+    }
+    function shoot(g, mine, cast, lines, myLines) {
+      let idx = 0, mem = 0, tone = 0;
+      const log = [];
+      const results = [];
+      const draw = (phase, line) => {
+        const keyWord = IA.clean(str(line.clave));
+        const text = IA.clean(str(line.t));
+        const blank = keyWord && norm(text).includes(norm(keyWord)) ? text.replace(new RegExp(keyWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), "_____") : text.replace(/\S+[.!?¡¿]*$/, "_____");
+        let blankT = blank;
+        if (blankT === text) { const ws = text.split(" "); const k = ws.reduce((b, w, i) => (w.replace(/[^\wáéíóúñ]/gi, "").length > ws[b].replace(/[^\wáéíóúñ]/gi, "").length ? i : b), 0); line.clave = ws[k].replace(/[^\wáéíóúñ]/gi, ""); ws[k] = "_____"; blankT = ws.join(" "); }
+        el.innerHTML = `
+          <div class="story-card live">
+            <p class="eyebrow">🎬 Rodando «${esc(IA.clean(str(g.titulo)))}» · frase ${idx + 1}/${myLines.length}</p>
+            <div class="live-log">${log.map((m) => `<p class="lv ${m.me ? "me" : "rival"}"><b>${esc(m.who)}</b>${esc(m.t)}</p>`).join("")}</div>
+            ${phase === "mem" ? `<h3>Te toca: ${esc(blankT)}</h3><p class="muted">¿Qué falta? (de memoria)</p>
+              <form class="ft-form"><input id="ac-in" maxlength="80" autocomplete="off" placeholder="La palabra que falta..."><button class="btn btn-primary">Decirlo</button></form>`
+            : `<h3>«${esc(text)}»</h3><p class="muted">Acotación: <i>${esc(IA.clean(str(line.acotacion)))}</i>. ¿Con qué tono la dices?</p>
+              <div class="choice-col">${Object.entries(TONOS).map(([k, t]) => `<button class="btn btn-ghost" data-t="${k}">${t}</button>`).join("")}</div>`}
+          </div>`;
+        const box = el.querySelector(".live-log");
+        if (box) box.scrollTop = box.scrollHeight;
+        if (phase === "mem") {
+          const inp = el.querySelector("#ac-in");
+          inp.focus({ preventScroll: true });
+          el.querySelector(".ft-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const kw = IA.clean(str(line.clave));
+            const ok = kw && norm(inp.value).length >= Math.min(3, norm(kw).length) && (norm(kw).includes(norm(inp.value)) || norm(inp.value).includes(norm(kw)));
+            if (ok) mem++;
+            Toast.show(ok ? "✅ ¡Frase clavada!" : "😬 Te has quedado en blanco", ok ? "Ni un fallo" : `Era: «${kw}»`);
+            results.push({ ok });
+            draw("tone", line);
+          });
+        } else {
+          el.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => {
+            const right = norm(line.tono).startsWith(norm(b.dataset.t).slice(0, 5));
+            if (right) tone++;
+            results[results.length - 1].tone = b.dataset.t;
+            results[results.length - 1].right = right;
+            log.push({ who: `${str(mine.papel)} (tú) · ${TONOS[b.dataset.t]}`, t: text, me: true });
+            idx++;
+            advance();
+          }));
+        }
+      };
+      let li = 0;
+      function advance() {
+        // Las frases de las demás hasta tu siguiente frase
+        while (li < lines.length && str(lines[li].papel) !== str(mine.papel)) {
+          const l = lines[li];
+          const q = cast[str(l.papel)];
+          log.push({ who: `${str(l.papel)}${q ? ` (${q.name})` : ""}`, t: IA.clean(str(l.t)) });
+          li++;
+        }
+        if (li >= lines.length || idx >= myLines.length) return wrap();
+        const line = lines[li];
+        li++;
+        draw("mem", line);
+      }
+      async function wrap() {
+        const n = Math.max(1, myLines.length);
+        const memP = mem / n, toneP = tone / n;
+        const peso = str(mine.peso);
+        let score = 18 + memP * 40 + toneP * 34 + (A("performance") - 5) * 1.5 + (A("carisma") - 5);
+        if (peso === "grande") score = 50 + (score - 50) * 1.25;
+        if (peso === "pequeño") score = Math.min(score, 82);
+        score = clamp(Math.round(score), 0, 100);
+        // Las demás actrices: su nota sale de su nivel y de sus rasgos
+        const otherNotes = Object.entries(cast).filter(([, q]) => q !== S.queen).map(([papel, q]) => ({ q, papel, n: clamp(Math.round(rivalScore(q)), 0, 100) }));
+        aiWait("Los Javis revisan el montaje...", el);
+        const c = await IA.chat(
+          `Eres los Javis (Javier Ambrossi y Javier Calvo), directores del reto de interpretación en Drag Race España. Cariñosos pero exigentes, hablan de cine y de actuación.`,
+          `Película: «${str(g.titulo)}» (${str(g.genero)}). ${S.queen.name} hizo de ${str(mine.papel)} (papel ${peso}): se supo ${mem} de ${n} frases y acertó el tono en ${tone} de ${n}. Nota: ${score}/100. Otras: ${otherNotes.map((o) => `${o.q.name} como ${o.papel}: ${o.n}`).join("; ")}.
+Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","calvo":"comentario sobre el reparto (máximo 30 palabras)"}`,
+          { json: true, max: 300, temp: 0.8 },
+        );
+        logEv(`Interpretación «${str(g.titulo)}»: ${S.queen.name} hizo de ${str(mine.papel)} (nota ${score})`);
+        el.innerHTML = `
+          <div class="story-card live">
+            <p class="eyebrow">🎬 «${esc(IA.clean(str(g.titulo)))}» · el montaje final</p>
+            <div class="impro-cast"><span><i style="background-image:url('${photo(S.queen)}')"></i><b>Tú · ${esc(str(mine.papel))}</b><small>Memoria ${mem}/${n} · Tono ${tone}/${n} · ${score}</small></span>${otherNotes.map((o) => `<span><i style="background-image:url('${photo(o.q)}')"></i><b>${esc(o.q.name)} · ${esc(o.papel)}</b><small>${o.n}</small></span>`).join("")}</div>
+            ${c && c.ambrossi ? `<p class="lv host"><b>Javier Ambrossi</b>${esc(IA.clean(str(c.ambrossi)))}</p>` : ""}
+            ${c && c.calvo ? `<p class="lv host"><b>Javier Calvo</b>${esc(IA.clean(str(c.calvo)))}</p>` : ""}
+            <button class="btn btn-primary" id="lv-done">Continuar</button>
+          </div>`;
+        el.querySelector("#lv-done").addEventListener("click", () => { if (score >= 85) growAttr("performance"); done(score); });
+      }
+      advance();
+    }
+  }
+  function liveImproSolo(el, done) {
     const SEC = [["noticias", "🗞️ Noticias"], ["entrevista", "🎙️ Entrevista"], ["teletienda", "🛒 Teletienda"]];
     el.innerHTML = `<div class="story-card"><p class="eyebrow">📺 Improvisación en directo</p><h3>¿Qué sección conduces?</h3><div class="choice-col">${SEC.map(([k, t]) => `<button class="btn btn-ghost" data-s="${k}">${t}</button>`).join("")}</div></div>`;
     el.querySelectorAll("[data-s]").forEach((b) => b.addEventListener("click", async () => {
@@ -4245,6 +4496,494 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
       el.innerHTML = "";
       liveRounds(el, { title: "Improvisación", icon: "📺", kind: "improvisación televisiva", attr: "carisma", rounds, ph: "Lo que dices en directo..." }, (sc) => { if (sc >= 80) growAttr(sc > 90 ? "comedia" : "carisma"); done(sc); });
     }));
+  }
+
+
+  // ------------------------------ Maxiretos escritos con IA ------------------------------
+  // Formulario con caja de texto grande
+  const taForm = (id, ph, max = 400, rows = 4, btn = "Enviar") =>
+    `<form class="ta-form"><textarea id="${id}" maxlength="${max}" rows="${rows}" placeholder="${esc(ph)}"></textarea><button class="btn btn-primary">${btn}</button></form>`;
+  const onTa = (el, id, cb) => {
+    const t = el.querySelector("#" + id);
+    t.focus({ preventScroll: true });
+    t.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && t.rows <= 2) { e.preventDefault(); t.form.requestSubmit(); } });
+    el.querySelector(".ta-form").addEventListener("submit", (e) => { e.preventDefault(); const v = t.value.trim(); if (v.length >= 3) cb(v); });
+  };
+  // Notas de 0 a 100 (si el modelo contesta de 0 a 10, se escala)
+  const nums = (r, keys, d = 50) => {
+    const v = keys.map((k) => +(r && r[k]));
+    const ten = v.every((x) => !x || x <= 10) && v.some((x) => x > 0);
+    return v.map((x) => clamp(Math.round(x ? (ten ? x * 10 : x) : d), 0, 100));
+  };
+  const judgeLines = (r, a = "supreme", b = "ana", na = "Supreme", nb = "Ana Locking") =>
+    `${r && r[a] ? `<p class="lv host"><b>${na}</b>${esc(IA.clean(str(r[a])))}</p>` : ""}${r && r[b] ? `<p class="lv host"><b>${nb}</b>${esc(IA.clean(str(r[b])))}</p>` : ""}`;
+  function liveResult(el, eyebrow, html, score, then) {
+    el.innerHTML = `<div class="story-card live"><p class="eyebrow">${eyebrow}</p>${html}<h3>Nota del jurado: ${Math.round(score)}</h3><button class="btn btn-primary" id="lv-done">Continuar</button></div>`;
+    el.querySelector("#lv-done").addEventListener("click", then);
+  }
+  // Las compañeras del reto: tu equipo si lo hay, si no, al azar
+  const crew = (n) => (S.team && S.team.length ? S.team.filter((q) => S.rivals.includes(q)) : shuffle(S.rivals)).slice(0, n);
+
+  // Rusical: la IA escribe el musical, eliges papel y completas tus versos
+  function liveRusical(el, done, tema) {
+    // Reparte los papeles la ganadora del minireto
+    const iWin = S.miniWin === "me";
+    let winQ = !iWin && S.miniWin ? S.rivals.find((q) => q.id === S.miniWin) : null;
+    const mates = [...(winQ ? [winQ] : []), ...shuffle(S.rivals.filter((q) => q !== winQ))].slice(0, 3);
+    if (!iWin && !winQ) winQ = mates[0];
+    const fail = () => { mxRusical.classic = true; mxRusical(el, (sc) => { mxRusical.classic = false; done(sc); }); };
+    aiWait("Los compositores están terminando la partitura...", el);
+    IA.chat(
+      `Eres la guionista y letrista del Rusical de Drag Race España: un musical paródico, cantado, con humor drag. ${aiSeason()}`,
+      `Tema del Rusical: ${tema}. Reparto: ${S.queen.name} (la jugadora) y ${mates.map((q) => q.name).join(", ")} (${mates.length + 1} reinas).
+Los papeles son personajes de ficción con nombres inventados (el campo "papel" es el nombre del personaje, nunca su peso), NUNCA los nombres de las reinas.
+Escribe: título, sinopsis (máximo 25 palabras), ${mates.length + 1} papeles (uno protagonista de peso "grande", el resto "medio" o "pequeño") qué papel quiere cada rival (${mates.map((q) => q.name).join(", ")}) con una frase suya, natural y en su estilo (máximo 20 palabras), en la que se lo cuenta a ${S.queen.name}, y la letra: entre 7 y 9 estrofas en orden, repartidas entre los papeles (el protagonista con 3, el resto con 1 o 2). Cada estrofa son 2 versos cortos (máximo 10 palabras cada uno) que riman entre sí.
+Devuelve JSON {"titulo":"...","sinopsis":"...","papeles":[{"papel":"...","descripcion":"...","peso":"grande|medio|pequeño"}],"deseos":[{"reina":"nombre","papel":"...","frase":"..."}],"letra":[{"papel":"...","versos":["...","..."]}]}`,
+      { json: true, max: 1800, temp: 1 },
+    ).then((g) => {
+      const roles = g && Array.isArray(g.papeles) ? g.papeles.filter((x) => x && x.papel).slice(0, mates.length + 1) : [];
+      // Nombres de papel raros (el peso o el nombre de una reina): se arreglan
+      const BAD = /^(grande|medio|peque(ñ|n)o|protagonista|papel)$/i;
+      roles.forEach((r, k) => {
+        const nm = str(r.papel).trim();
+        if (BAD.test(nm) || [S.queen, ...S.rivals].some((q) => q.name === nm)) {
+          const fixed = (IA.clean(str(r.descripcion)).match(/^(?:la |el |una |un )?[\wáéíóúñ]+(?: [\wáéíóúñ]+)?/i) || [`Personaje ${k + 1}`])[0].replace(/^una /i, "la ").replace(/^un /i, "el ");
+          (g.letra || []).forEach((l) => l && str(l.papel) === nm && (l.papel = fixed));
+          r.papel = fixed.charAt(0).toUpperCase() + fixed.slice(1);
+          (g.letra || []).forEach((l) => l && l.papel === fixed && (l.papel = r.papel));
+        }
+      });
+      const letra = g && Array.isArray(g.letra) ? g.letra.filter((x) => x && x.papel && Array.isArray(x.versos) && x.versos.length >= 2) : [];
+      if (roles.length < 2 || letra.length < 4) return fail();
+      const count = (r) => letra.filter((l) => str(l.papel) === str(r.papel)).length;
+      const P = (r) => str(r.papel);
+      const want = {}, said = {};
+      mates.forEach((q) => {
+        const d = (Array.isArray(g.deseos) ? g.deseos : []).find((x) => x && str(x.reina) === q.name);
+        want[q.id] = (d && roles.find((r) => P(r) === str(d.papel))) || pick1(roles);
+        said[q.id] = (d && IA.clean(str(d.frase))) || `A mí me encantaría hacer de ${P(want[q.id])}.`;
+      });
+      const known = new Set();
+      const head = `<h3>«${esc(IA.clean(str(g.titulo)))}»</h3><p class="muted">${esc(IA.clean(str(g.sinopsis)))}</p>
+        <div class="script">${roles.map((r) => `<p><b>${esc(P(r))} · ${esc(str(r.peso || "medio"))}</b> ${esc(IA.clean(str(r.descripcion)))} <i>(${count(r)} estrofas)</i></p>`).join("")}</div>`;
+      const talk = () => {
+        el.innerHTML = `
+          <div class="story-card live">
+            <p class="eyebrow">🎭 El Rusical · los papeles</p>
+            ${head}
+            <p class="twist-note">Reparte los papeles ${iWin ? "<b>tú</b>, que has ganado el minireto" : `<b>${esc(winQ.name)}</b>, que ha ganado el minireto`}.</p>
+            <p>Habla con tus compañeras para saber qué papel quiere cada una:</p>
+            <div class="live-log">${mates.filter((q) => known.has(q.id)).map((q) => `<p class="lv rival"><b>${esc(q.name)} · quiere ${esc(P(want[q.id]))}</b>${esc(said[q.id])}</p>`).join("")}</div>
+            <div class="choice-col">${mates.filter((q) => !known.has(q.id)).map((q) => `<button class="btn btn-ghost" data-m="${q.id}">💬 Hablar con ${esc(q.name)}${q === winQ ? " (la que reparte)" : ""}</button>`).join("")}
+              <button class="btn btn-primary" id="rs-go">${iWin ? "📋 Repartir los papeles" : "🙋 Pedir mi papel"}</button></div>
+          </div>`;
+        el.querySelectorAll("[data-m]").forEach((b) => b.addEventListener("click", () => { known.add(b.dataset.m); talk(); }));
+        el.querySelector("#rs-go").addEventListener("click", () => (iWin ? assign() : ask()));
+      };
+      // La gana una rival: pides papel y ella decide
+      const ask = () => {
+        el.innerHTML = `
+          <div class="story-card live">
+            <p class="eyebrow">🎭 El Rusical · tu petición</p>
+            <h3>¿Qué papel le pides a ${esc(winQ.name)}?</h3>
+            <div class="choice-col">${roles.map((r, i) => `<button class="btn btn-ghost role" data-r="${i}"><b>${esc(P(r))} · ${esc(str(r.peso || "medio"))}</b><small>${count(r)} estrofas${mates.filter((q) => known.has(q.id) && want[q.id] === r).map((q) => ` · lo quiere ${esc(q.name)}`).join("")}</small></button>`).join("")}</div>
+          </div>`;
+        el.querySelectorAll("[data-r]").forEach((b) => b.addEventListener("click", () => decide(roles[+b.dataset.r])));
+      };
+      const decide = (myWish) => {
+        const cast = {};
+        const free = () => roles.filter((r) => !cast[P(r)]);
+        cast[P(want[winQ.id])] = winQ;
+        // Prioridad: cuánto le gustas a quien reparte (y si has hablado con ella)
+        const prio = (q) => (q === S.queen ? relOf(winQ) * 1.5 + (known.has(winQ.id) ? 1 : 0) : (S.form[q.id] || 0) / 4) + Math.random() * 2;
+        const rest = [S.queen, ...mates.filter((q) => q !== winQ)].sort((a, b) => prio(b) - prio(a));
+        const left = [];
+        rest.forEach((q) => { const w = q === S.queen ? myWish : want[q.id]; if (!cast[P(w)]) cast[P(w)] = q; else left.push(q); });
+        left.forEach((q) => { const r = free()[0]; if (r) cast[P(r)] = q; });
+        const mine = roles.find((r) => cast[P(r)] === S.queen);
+        const got = mine === myWish;
+        if (!got) changeRel(winQ, -1);
+        mates.forEach((q) => { if (q !== winQ) S.form[q.id] = clamp((S.form[q.id] || 0) + (cast[P(want[q.id])] === q ? 1 : -1), -10, 10); });
+        logEv(`Rusical: ${winQ.name} reparte los papeles; ${S.queen.name} pidió ${P(myWish)} y ${got ? "se lo dio" : `le tocó ${P(mine)}`}`);
+        result(cast, mine, got ? `${winQ.name} te da el papel que pedías.` : `${winQ.name} no te da ${P(myWish)}. Tú haces de ${P(mine)}.`);
+      };
+      // La ganadora eres tú: repartes
+      const assign = () => {
+        const all = [S.queen, ...mates];
+        // Propuesta inicial sin repetidos: a cada una lo que pide si está libre
+        const pre = new Array(all.length).fill(-1);
+        all.forEach((q, i) => { if (q === S.queen) return; const j = roles.indexOf(want[q.id]); if (!pre.includes(j)) pre[i] = j; });
+        all.forEach((q, i) => { if (pre[i] < 0) pre[i] = roles.findIndex((r, j) => !pre.includes(j)); });
+        el.innerHTML = `
+          <div class="story-card live">
+            <p class="eyebrow">🎭 El Rusical · repartes tú</p>
+            <h3>¿Quién hace cada papel?</h3>
+            <p class="muted">Dar a cada una lo que pide te gana amigas. Quitárselo, enemigas.</p>
+            <div class="cast-grid">${all.map((q, i) => `<label><span><i style="background-image:url('${photo(q)}')"></i><b>${esc(q === S.queen ? "Tú" : q.name)}</b>${q !== S.queen && known.has(q.id) ? `<small>quiere ${esc(P(want[q.id]))}</small>` : ""}</span>
+              <select data-q="${i}">${roles.map((r, j) => `<option value="${j}" ${pre[i] === j ? "selected" : ""}>${esc(P(r))} · ${esc(str(r.peso || "medio"))}</option>`).join("")}</select></label>`).join("")}</div>
+            <button class="btn btn-primary" id="rs-ok">✅ Este es el reparto</button>
+          </div>`;
+        el.querySelector("#rs-ok").addEventListener("click", () => {
+          const pickd = [...el.querySelectorAll("[data-q]")].map((x) => +x.value);
+          if (new Set(pickd).size !== pickd.length) return Toast.show("🎭 Hay papeles repetidos", "Cada reina tiene que hacer un papel distinto");
+          const cast = {};
+          all.forEach((q, i) => (cast[P(roles[pickd[i]])] = q));
+          let ok = 0, no = 0;
+          mates.forEach((q) => {
+            const g2 = cast[P(want[q.id])] === q;
+            changeRel(q, g2 ? 1 : -1);
+            S.form[q.id] = clamp((S.form[q.id] || 0) + (g2 ? 1 : -1), -10, 10);
+            g2 ? ok++ : no++;
+          });
+          const mine = roles[pickd[0]];
+          logEv(`Rusical: ${S.queen.name} reparte los papeles y se queda ${P(mine)}; ${ok} contentas y ${no} molestas`);
+          result(cast, mine, no ? `${no} compañera${no > 1 ? "s" : ""} no ha${no > 1 ? "n" : ""} tenido el papel que quería${no > 1 ? "n" : ""}.` : "Todas tienen el papel que pedían.");
+        });
+      };
+      const result = (cast, mine, note) => {
+        el.innerHTML = `
+          <div class="story-card live">
+            <p class="eyebrow">🎭 El Rusical · el reparto</p>
+            <h3>«${esc(IA.clean(str(g.titulo)))}»</h3>
+            <div class="impro-cast">${roles.map((r) => { const q = cast[P(r)]; return q ? `<span><i style="background-image:url('${photo(q)}')"></i><b>${esc(q === S.queen ? "Tú" : q.name)}</b><small>${esc(P(r))}</small></span>` : ""; }).join("")}</div>
+            <p class="twist-note">${esc(note)}</p>
+            <button class="btn btn-primary" id="rs-sing">🎶 ¡Al escenario!</button>
+          </div>`;
+        if (!count(mine)) { const ex = letra.find((l) => !cast[str(l.papel)]) || letra[letra.length - 1]; ex.papel = mine.papel; }
+        el.querySelector("#rs-sing").addEventListener("click", () => sing(g, mine, cast, ""));
+      };
+      talk();
+      function sing(g, mine, cast, note) {
+        let li = 0;
+        const log = [];
+        const mineV = [];
+        const draw = (line) => {
+          el.innerHTML = `
+            <div class="story-card live">
+              <p class="eyebrow">🎭 «${esc(IA.clean(str(g.titulo)))}» · en escena</p>
+              ${note ? `<p class="twist-note">${esc(note)}</p>` : ""}
+              <div class="live-log">${log.map((m) => `<p class="lv ${m.me ? "me" : "rival"}"><b>${esc(m.who)}</b>${m.t.map(esc).join("<br>")}</p>`).join("")}</div>
+              <h3>🎶 Te toca, ${esc(str(mine.papel))}:</h3>
+              <p class="rw-quote">${esc(IA.clean(str(line.versos[0])))}<br>…</p>
+              <form class="ft-form"><input id="lv-in" maxlength="90" autocomplete="off" placeholder="Tu verso (que rime y se pueda cantar)..."><button class="btn btn-primary">🎤 Cantar</button></form>
+            </div>`;
+          const box = el.querySelector(".live-log");
+          if (box) box.scrollTop = box.scrollHeight;
+          const inp = el.querySelector("#lv-in");
+          inp.focus({ preventScroll: true });
+          el.querySelector(".ft-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const v = inp.value.trim();
+            if (!v) return;
+            const v1 = IA.clean(str(line.versos[0]));
+            mineV.push(`${v1} / ${v}`);
+            log.push({ who: `${str(mine.papel)} (tú)`, t: [v1, v], me: true });
+            next();
+          });
+        };
+        function next() {
+          while (li < letra.length && str(letra[li].papel) !== str(mine.papel)) {
+            const l = letra[li++];
+            const q = cast[str(l.papel)];
+            log.push({ who: `${str(l.papel)}${q ? ` (${q.name})` : ""}`, t: l.versos.slice(0, 2).map((v) => IA.clean(str(v))) });
+          }
+          if (li >= letra.length) return judge();
+          draw(letra[li++]);
+        }
+        async function judge() {
+          aiWait("El jurado comenta el número...", el);
+          const r = await IA.chat(
+            "Eres el jurado del Rusical en Drag Race España: Supreme de Luxe y Ana Locking. Valoras los versos que ha escrito la reina: si riman con el verso anterior, si se pueden cantar, si tienen gracia y si encajan con su personaje y con la historia. Sé exigente: vacío o sin rima 10-35; correcto 50-65; ingenioso y cantable 75-95.",
+            `Rusical «${str(g.titulo)}» (${tema}). ${S.queen.name} hace de ${str(mine.papel)} (${str(mine.descripcion)}). Sus estrofas (el primer verso venía escrito; el segundo, tras la barra, es suyo):\n${mineV.join("\n")}
+Puntúa de 0 a 100. Devuelve JSON {"rima":0,"gracia":0,"personaje":0,"supreme":"comentario (máximo 25 palabras)","ana":"comentario (máximo 25 palabras)"}`,
+            { json: true, max: 350, temp: 0.6 },
+          );
+          const [c1, c2, c3] = nums(r, ["rima", "gracia", "personaje"]);
+          let sc = c1 * 0.35 + c2 * 0.4 + c3 * 0.25 + (A("performance") - 5) * 1.5 + (A("comedia") - 5);
+          const peso = str(mine.peso);
+          if (peso === "grande") sc = 50 + (sc - 50) * 1.2;
+          if (peso === "pequeño") sc = Math.min(sc, 82);
+          sc = clamp(Math.round(sc), 0, 100);
+          logEv(`Rusical «${str(g.titulo)}»: ${S.queen.name} hizo de ${str(mine.papel)} (nota ${sc})`);
+          liveResult(el, `🎭 «${esc(IA.clean(str(g.titulo)))}» · el jurado`, `
+            <div class="live-log">${log.filter((m) => m.me).map((m) => `<p class="lv me"><b>${esc(m.who)}</b>${m.t.map(esc).join("<br>")}</p>`).join("")}</div>
+            <p class="muted">Rima ${c1} · Gracia ${c2} · Personaje ${c3}</p>${judgeLines(r)}`, sc, () => { if (sc >= 85) growAttr("performance"); done(sc); });
+        }
+        next();
+      }
+    });
+  }
+
+  // Girl Groups: nombre y estilo de la banda, tu estrofa y la IA compone el tema con las demás
+  function liveGirlGroups(el, done) {
+    ensureTeam();
+    const mates = crew(3);
+    if (!mates.length) mates.push(pick1(S.rivals));
+    const STY = [["pop", "💖 Pop de verbena"], ["rap", "🎤 Rap chulapo"], ["reggaeton", "🍑 Reguetón"], ["euro", "🪩 Eurovisión"]];
+    const SUG = shuffle(["Las Lentejuelas Asesinas", "Purpurina Mecánica", "Las Tías Buenas del Barrio", "Peluca Sónica", "Las Hijas del Desamor", "Tacón y Rímel"]).slice(0, 3);
+    el.innerHTML = `
+      <div class="story-card live">
+        <p class="eyebrow">🎤 Girl Groups · vuestra banda</p>
+        <div class="impro-cast">${[S.queen, ...mates].map((q) => `<span><i style="background-image:url('${photo(q)}')"></i><b>${esc(q === S.queen ? "Tú" : q.name)}</b></span>`).join("")}</div>
+        <h3>¿Cómo se llama la banda?</h3>
+        <form class="ft-form"><input id="gg-n" maxlength="40" autocomplete="off" placeholder="El nombre de vuestro grupo..."></form>
+        <div class="chip-row">${SUG.map((s) => `<button class="btn btn-ghost chip" data-n="${esc(s)}">${esc(s)}</button>`).join("")}</div>
+        <p class="muted">Y el estilo del himno:</p>
+        <div class="choice-col">${STY.map(([k, t]) => `<button class="btn btn-ghost" data-st="${k}">${t}</button>`).join("")}</div>
+      </div>`;
+    const inp = el.querySelector("#gg-n");
+    el.querySelector(".ft-form").addEventListener("submit", (e) => e.preventDefault());
+    el.querySelectorAll("[data-n]").forEach((b) => b.addEventListener("click", () => (inp.value = b.dataset.n)));
+    el.querySelectorAll("[data-st]").forEach((b) => b.addEventListener("click", () => compose(inp.value.trim() || SUG[0], STY.find((s) => s[0] === b.dataset.st)[1].slice(3))));
+    async function compose(band, style) {
+      aiWait("La productora está montando la base...", el);
+      const r = await IA.chat(
+        `Eres la productora musical del reto Girl Groups de Drag Race España. Escribes letras de himno drag, pegadizas y con humor. ${aiSeason()}`,
+        `Banda: «${band}», estilo ${style}. Integrantes: ${S.queen.name} (la jugadora) y ${mates.map((q) => `${q.name} (${idTxt(q) || aiProfile(q)})`).join(" | ")}.
+Escribe el título del tema, el estribillo (4 versos) y una estrofa de 4 versos para cada rival, con la voz y el carácter de cada una. NO escribas la estrofa de ${S.queen.name}: la escribe la jugadora.
+Devuelve JSON {"titulo":"...","estribillo":["...","...","...","..."],"estrofas":[{"reina":"nombre","versos":["...","...","...","..."]}]}`,
+        { json: true, max: 1200, temp: 1 },
+      );
+      if (!r || !Array.isArray(r.estribillo)) { mxGirlGroups.classic = true; return mxGirlGroups(el, (sc) => { mxGirlGroups.classic = false; done(sc); }); }
+      const coro = r.estribillo.slice(0, 4).map((v) => IA.clean(str(v)));
+      const est = (Array.isArray(r.estrofas) ? r.estrofas : []).filter((x) => x && mates.some((q) => q.name === str(x.reina)) && Array.isArray(x.versos));
+      const title = IA.clean(str(r.titulo)) || band;
+      el.innerHTML = `
+        <div class="story-card live">
+          <p class="eyebrow">🎤 «${esc(title)}» · ${esc(band)}</p>
+          <div class="live-log">
+            <p class="lv host"><b>Estribillo</b>${coro.map(esc).join("<br>")}</p>
+            ${est.map((x) => `<p class="lv rival"><b>${esc(str(x.reina))}</b>${x.versos.slice(0, 4).map((v) => esc(IA.clean(str(v)))).join("<br>")}</p>`).join("")}
+          </div>
+          <h3>✍️ Tu estrofa</h3>
+          <p class="muted">Cuatro versos, uno por línea. Que se note tu personalidad y que pegue con el tema.</p>
+          ${taForm("gg-v", "Verso 1\nVerso 2\nVerso 3\nVerso 4", 320, 4, "🎧 Grabar")}
+        </div>`;
+      onTa(el, "gg-v", (v) => stage(band, style, title, coro, est, v));
+    }
+    function stage(band, style, title, coro, est, verse) {
+      el.innerHTML = `
+        <div class="story-card live">
+          <p class="eyebrow">🎤 «${esc(title)}» · la coreografía</p>
+          <h3>Actuación en directo: ¿dónde te colocas?</h3>
+          <div class="choice-col">
+            <button class="btn btn-ghost" data-p="c">⭐ En el centro <small>· robas miradas, exige Performance</small></button>
+            <button class="btn btn-ghost" data-p="l">↔️ A los lados <small>· más seguro</small></button>
+          </div>
+        </div>`;
+      el.querySelectorAll("[data-p]").forEach((b) => b.addEventListener("click", () => judge(band, style, title, coro, est, verse, b.dataset.p === "c")));
+    }
+    async function judge(band, style, title, coro, est, verse, center) {
+      aiWait("El jurado escucha el tema...", el);
+      const r = await IA.chat(
+        "Eres el jurado de Drag Race España valorando un Girl Group. Valora a cada reina por su estrofa: gracia, ritmo, personalidad y si encaja con el tema. Un texto vacío o sin ritmo 10-35; correcto 50-65; brillante 75-95.",
+        `Tema «${title}» de ${band} (${style}). Estribillo: ${coro.join(" / ")}.\n${est.map((x) => `${str(x.reina)}: ${x.versos.map(str).join(" / ")}`).join("\n")}\n${S.queen.name}: ${verse.replace(/\n+/g, " / ")}
+Notas de 0 a 100. Devuelve JSON {"notas":[{"reina":"nombre","nota":0}],"supreme":"comentario sobre el grupo (máximo 25 palabras)","ana":"comentario a ${S.queen.name} (máximo 25 palabras)"}`,
+        { json: true, max: 400, temp: 0.6 },
+      );
+      const notas = {};
+      (r && Array.isArray(r.notas) ? r.notas : []).forEach((x) => x && (notas[str(x.reina)] = clamp(Math.round(+x.nota || 50), 0, 100)));
+      const myN = notas[S.queen.name] != null ? notas[S.queen.name] : 50;
+      mates.forEach((q) => { if (notas[q.name] != null) S.form[q.id] = clamp((S.form[q.id] || 0) + Math.round((notas[q.name] - 55) / 8), -10, 10); });
+      const ok = !center || check(["performance"], 60).ok;
+      const sc = clamp(Math.round(myN + (A("performance") - 5) * 1.5 + (A("carisma") - 5) + (center ? (ok ? 8 : -10) : 0)), 0, 100);
+      logEv(`Girl Groups: ${S.queen.name} canta en ${band} el tema «${title}» (nota ${sc})`);
+      liveResult(el, `🎤 «${esc(title)}» · el jurado`, `
+        <div class="impro-cast">${[{ q: S.queen, n: myN }, ...mates.map((q) => ({ q, n: notas[q.name] }))].map((x) => `<span><i style="background-image:url('${photo(x.q)}')"></i><b>${esc(x.q === S.queen ? "Tú" : x.q.name)}</b><small>${x.n != null ? x.n : "–"}</small></span>`).join("")}</div>
+        ${center ? `<p class="twist-note">${ok ? "⭐ En el centro y clavando cada paso." : "😬 En el centro... y fuera de ritmo."}</p>` : ""}${judgeLines(r)}`, sc, () => done(sc));
+    }
+  }
+
+  // Materiales imposibles: la IA te da la caja y tú describes lo que construyes
+  function liveMateriales(el, done) {
+    aiWait("Ana Locking está preparando las cajas...", el);
+    IA.chat(
+      "Eres la producción del reto de materiales poco convencionales de Drag Race España. Preparas una caja de materiales que no son tela.",
+      `Prepara una caja con nombre ingenioso y 6 materiales concretos, raros y españoles (de ferretería, cocina, chino, verbena...). Añade la frase con la que Ana Locking la presenta (máximo 20 palabras).
+Devuelve JSON {"caja":"...","materiales":["...","...","...","...","...","..."],"ana":"..."}`,
+      { json: true, max: 400, temp: 1 },
+    ).then((box) => {
+      const mats = box && Array.isArray(box.materiales) && box.materiales.length >= 4 ? box.materiales.slice(0, 6).map((m) => IA.clean(str(m))) : null;
+      if (!mats) { mxMateriales.classic = true; return mxMateriales(el, (sc) => { mxMateriales.classic = false; done(sc); }); }
+      el.innerHTML = `
+        <div class="story-card live">
+          <p class="eyebrow">🧰 Materiales imposibles · ${esc(IA.clean(str(box.caja)))}</p>
+          ${box.ana ? `<p class="lv host"><b>Ana Locking</b>${esc(IA.clean(str(box.ana)))}</p>` : ""}
+          <div class="chip-row">${mats.map((m) => `<span class="chip">${esc(m)}</span>`).join("")}</div>
+          <h3>¿Qué construyes con esto?</h3>
+          <p class="muted">Ponle nombre en la primera línea y describe el look: qué haces con cada material, la silueta y cómo lo sujetas.</p>
+          ${taForm("mt-d", "El vestido de la verbena\nCon los farolillos hago un corpiño...", 500, 5, "🧵 Al taller")}
+        </div>`;
+      onTa(el, "mt-d", (v) => {
+        const name = v.split("\n")[0].slice(0, 60);
+        el.innerHTML = "";
+        prepSew(el, `Materiales imposibles · ${name}`, 12, (sew, info) => judge(box, mats, name, v, sew, info));
+      });
+    });
+    async function judge(box, mats, name, desc, sew, info) {
+      aiWait("Ana Locking examina las costuras...", el);
+      const r = await IA.chat(
+        "Eres el jurado de Drag Race España en el reto de materiales poco convencionales: Ana Locking (moda, construcción, si es creíble) y Supreme de Luxe (impacto). Exigentes: una descripción vaga, que no usa los materiales o imposible de llevar puntúa bajo.",
+        `Materiales de la caja: ${mats.join(", ")}. Look de ${S.queen.name}: «${desc}».${info.descosido ? " En la pasarela se le descosió una parte." : ""}
+Valora de 0 a 100: "credible" (si se puede construir y llevar), "moda" (si parece alta costura y no un disfraz) y "uso" (si usa bien los materiales de la caja).
+Devuelve JSON {"credible":0,"moda":0,"uso":0,"ana":"comentario (máximo 25 palabras)","supreme":"comentario (máximo 25 palabras)"}`,
+        { json: true, max: 350, temp: 0.6 },
+      );
+      const [c1, c2, c3] = nums(r, ["credible", "moda", "uso"]);
+      const sc = clamp(Math.round((c1 * 0.35 + c2 * 0.4 + c3 * 0.25) * 0.7 + sew * 0.3 + (A("estilo") - 5)), 0, 100);
+      S.lastLook = { cat: "materiales imposibles", best: name, worst: info.descosido ? "traje descosido" : name, concepto: desc.slice(0, 140), critica: r ? `${str(r.ana)} ${str(r.supreme)}` : null };
+      logEv(`Materiales imposibles: ${S.queen.name} presenta «${name}» (nota ${sc})`);
+      liveResult(el, `🧰 «${esc(name)}» · el jurado`, `${info.descosido ? `<p class="twist-note">💥 Una costura no aguanta en la pasarela.</p>` : ""}<p class="muted">Credible ${c1} · Moda ${c2} · Uso de materiales ${c3}</p>${judgeLines(r, "ana", "supreme", "Ana Locking", "Supreme")}`, sc, () => { if (sc >= 85) growAttr("estilo"); done(sc); });
+    }
+  }
+
+  // El Ball con concepto: cada look se defiende con su concepto y el jurado mira la coherencia de los tres
+  function liveBall(el, done, cats) {
+    const scores = [], concepts = [];
+    const home = (k) => {
+      el.innerHTML = "";
+      runRunwayNew(el, cats[k], (sc) => { scores.push(sc); concepts.push(`«${cats[k]}»: ${(S.lastLook && S.lastLook.concepto) || "sin concepto"}`); k === 0 ? home(1) : sewn(); }, `Ball ${k + 1}/3 · `);
+    };
+    const sewn = () => {
+      el.innerHTML = "";
+      prepSew(el, `El Ball · Look 3/3 (hecho en el taller) · «${cats[2]}»`, 0, (sc, info) => {
+        el.innerHTML = "";
+        S.curPieces = [`un look cosido desde cero en el taller${info.descosido ? " (con una costura floja)" : ""}`];
+        runwayWalk(el, cats[2], sewnSpec(cats[2], info.descosido ? { pat: "solid" } : { pat: "sequins" }), CAT_TAG[cats[2]] || "Glamour", (walk, flags) => {
+          scores.push(sc * 0.5 + walk * 0.5);
+          concepts.push(`«${cats[2]}»: ${(flags && flags.concepto) || "sin concepto"}`);
+          S.lastLook = { cat: cats[2], best: "look hecho en el taller", worst: info.descosido ? "traje descosido" : "look hecho en el taller", concepto: flags && flags.concepto };
+          finish();
+        });
+      });
+    };
+    async function finish() {
+      aiWait("El jurado repasa los tres looks...", el);
+      const r = await IA.chat(
+        "Eres el jurado del Ball de Drag Race España: Supreme de Luxe y Ana Locking. Valoras si los tres looks de la reina cuentan una historia propia y coherente, con un hilo reconocible (estética, personaje o idea), o si son tres looks sueltos.",
+        `Conceptos de ${S.queen.name} en el Ball:\n${concepts.join("\n")}\nPuntúa de 0 a 100. Devuelve JSON {"coherencia":0,"supreme":"comentario (máximo 25 palabras)","ana":"comentario (máximo 25 palabras)"}`,
+        { json: true, max: 300, temp: 0.6 },
+      );
+      const [coh] = nums(r, ["coherencia"], 55);
+      const avg = scores.reduce((a, b) => a + b, 0) / Math.max(1, scores.length);
+      const sc = clamp(Math.round(avg * 0.8 + coh * 0.2), 0, 100);
+      logEv(`El Ball: ${S.queen.name} defiende tres looks (${concepts.join("; ")}). Nota ${sc}`);
+      liveResult(el, "👑 El Ball · el veredicto", `
+        <div class="live-log">${concepts.map((c, i) => `<p class="lv me"><b>Look ${i + 1} · ${Math.round(scores[i] || 0)}</b>${esc(c)}</p>`).join("")}</div>
+        <p class="muted">Coherencia de los tres: ${coh}</p>${judgeLines(r)}`, sc, () => done(sc));
+    }
+    home(0);
+  }
+
+  // Makeover: tu modelo tiene historia propia; charláis y diseñas el look de familia
+  function liveMakeover(el, done, kind) {
+    aiWait("Están llegando las invitadas...", el);
+    IA.chat(
+      "Creas personajes de ficción para el reto makeover de Drag Race España: personas que nunca han hecho drag y a las que una reina convierte en su familia drag.",
+      `El makeover es: ${kind}. Inventa la persona que le toca a ${S.queen.name}: nombre inventado, quién es (oficio o relación), una historia breve (máximo 30 palabras), lo cómoda que está con el drag (baja, media o alta), su personalidad y lo primero que le dice a ${S.queen.name} (máximo 20 palabras).
+Devuelve JSON {"nombre":"...","quien":"...","historia":"...","comodidad":"baja|media|alta","personalidad":"...","saludo":"..."}`,
+      { json: true, max: 400, temp: 1 },
+    ).then((m) => {
+      if (!m || !m.nombre) { mxMakeover.classic = true; return mxMakeover(el, (sc) => { mxMakeover.classic = false; done(sc); }); }
+      const who = IA.clean(str(m.nombre));
+      const sys = `Hablas SOLO como ${who}, ${str(m.quien)}, que va a hacer un makeover drag con ${S.queen.name} en Drag Race España. Tu historia: ${str(m.historia)}. Personalidad: ${str(m.personalidad)}. Comodidad con el drag: ${str(m.comodidad)}. Contestas con naturalidad, máximo 25 palabras, y te vas abriendo si te tratan bien.`;
+      const log = [{ who, t: IA.clean(str(m.saludo)) || "Hola... yo nunca he hecho esto." }];
+      let turns = 0;
+      const draw = (wait) => {
+        el.innerHTML = `
+          <div class="story-card live">
+            <p class="eyebrow">💄 Makeover · conoce a tu modelo ${Math.min(turns + 1, 3)}/3</p>
+            <h3>${esc(who)} <small class="muted">· ${esc(IA.clean(str(m.quien)))}</small></h3>
+            <p class="muted">${esc(IA.clean(str(m.historia)))} · Comodidad: <b>${esc(str(m.comodidad))}</b></p>
+            <div class="live-log">${log.map((x) => `<p class="lv ${x.me ? "me" : "rival"}"><b>${esc(x.who)}</b>${esc(x.t)}</p>`).join("")}${wait ? `<div class="ia-dots"><i></i><i></i><i></i></div>` : ""}</div>
+            ${wait ? "" : `<form class="ft-form"><input id="lv-in" maxlength="200" autocomplete="off" placeholder="Lo que le dices a ${esc(who)}..."><button class="btn btn-primary">Decir</button></form>`}
+          </div>`;
+        const box = el.querySelector(".live-log");
+        if (box) box.scrollTop = box.scrollHeight;
+        const inp = el.querySelector("#lv-in");
+        if (!inp) return;
+        inp.focus({ preventScroll: true });
+        el.querySelector(".ft-form").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const v = inp.value.trim();
+          if (!v) return;
+          log.push({ who: "Tú", t: v, me: true });
+          turns++;
+          draw(true);
+          const rep = await IA.chat(sys, `Conversación hasta ahora:\n${log.map((x) => `${x.me ? S.queen.name : who}: ${x.t}`).join("\n")}\nContesta a lo último que te ha dicho ${S.queen.name}.`, { max: 70 });
+          log.push({ who, t: rep || "Vale... me fío de ti." });
+          if (turns >= 3) design();
+          else draw();
+        });
+      };
+      function design() {
+        el.innerHTML = `
+          <div class="story-card live">
+            <p class="eyebrow">💄 Makeover · el look de familia</p>
+            <div class="live-log">${log.slice(-2).map((x) => `<p class="lv ${x.me ? "me" : "rival"}"><b>${esc(x.who)}</b>${esc(x.t)}</p>`).join("")}</div>
+            <h3>Diseña a tu ${esc(kind.includes("madre") ? "madre" : kind.includes("hermana") ? "hermana" : "familia")} drag</h3>
+            <p class="muted">Primera línea: su nombre drag. Después: maquillaje, ropa y el detalle que os hace familia, pensando en cómo es ${esc(who)}.</p>
+            ${taForm("mk-d", "Rímel Pérez\nMismo ojo ahumado que yo pero más suave...", 500, 5, "💄 ¡A maquillar!")}
+          </div>`;
+        onTa(el, "mk-d", judge);
+      }
+      async function judge(v) {
+        aiWait("Salís juntas a la pasarela...", el);
+        const r = await IA.chat(
+          "Eres el jurado del makeover en Drag Race España: Supreme de Luxe y Ana Locking. Valoras el parecido de familia (si el look de la modelo se parece al estilo de la reina) y la conexión (si la reina ha escuchado a su modelo y ha adaptado el look a cómo es y a lo cómoda que está).",
+          `Reina: ${S.queen.name} (estilo ${S.lookTags && S.lookTags.length ? S.lookTags.slice(-3).join(", ") : "propio"}). Modelo: ${who}, ${str(m.quien)}. ${str(m.historia)} Comodidad: ${str(m.comodidad)}.
+Conversación:\n${log.map((x) => `${x.me ? S.queen.name : who}: ${x.t}`).join("\n")}\nDiseño: «${v}»
+Puntúa de 0 a 100. Devuelve JSON {"parecido":0,"conexion":0,"supreme":"comentario (máximo 25 palabras)","ana":"comentario (máximo 25 palabras)","modelo":"lo que dice ${who} al verse en el espejo (máximo 20 palabras)"}`,
+          { json: true, max: 400, temp: 0.7 },
+        );
+        const [c1, c2] = nums(r, ["parecido", "conexion"]);
+        const sc = clamp(Math.round(c1 * 0.5 + c2 * 0.5 + (A("maquillaje") - 5) * 2 + (A("carisma") - 5)), 0, 100);
+        const dn = v.split("\n")[0].slice(0, 40);
+        logEv(`Makeover: ${S.queen.name} convierte a ${who} en ${dn} (nota ${sc})`);
+        liveResult(el, `💄 ${esc(who)} es ahora ${esc(dn)}`, `${r && r.modelo ? `<p class="lv rival"><b>${esc(who)}</b>${esc(IA.clean(str(r.modelo)))}</p>` : ""}<p class="muted">Parecido ${c1} · Conexión ${c2}</p>${judgeLines(r)}`, sc, () => { if (sc >= 85) growAttr("maquillaje"); done(sc); });
+      }
+      draw();
+    });
+  }
+
+  // Publicidad: producto absurdo, tu eslogan y tu guion
+  function livePublicidad(el, done) {
+    aiWait("El cliente está llegando con el producto...", el);
+    IA.chat(
+      "Eres la productora del reto de publicidad de Drag Race España. Inventas productos absurdos (inventados, sin marcas reales) que las reinas tienen que anunciar.",
+      `Inventa un producto absurdo y gracioso, su marca inventada y lo que pide el cliente del anuncio (máximo 20 palabras).
+Devuelve JSON {"producto":"...","marca":"...","descripcion":"máximo 25 palabras","cliente":"..."}`,
+      { json: true, max: 300, temp: 1.1 },
+    ).then((p) => {
+      if (!p || !p.producto) { mxPublicidad.classic = true; return mxPublicidad(el, (sc) => { mxPublicidad.classic = false; done(sc); }); }
+      const prod = IA.clean(str(p.producto)), marca = IA.clean(str(p.marca));
+      el.innerHTML = `
+        <div class="story-card live">
+          <p class="eyebrow">📺 Publicidad · ${esc(marca)}</p>
+          <h3>${esc(prod)}</h3>
+          <p class="muted">${esc(IA.clean(str(p.descripcion)))}</p>
+          ${p.cliente ? `<p class="lv host"><b>El cliente</b>${esc(IA.clean(str(p.cliente)))}</p>` : ""}
+          <p><b>📣 El eslogan</b></p>
+          <form class="ft-form"><input id="pb-e" maxlength="90" autocomplete="off" placeholder="Tu eslogan..."></form>
+          <p><b>🎬 El guion del anuncio</b> <span class="muted">(qué pasa y qué dices, 30 segundos)</span></p>
+          ${taForm("pb-g", "Salgo de una bañera de purpurina y digo...", 600, 5, "🎬 ¡Grabamos!")}
+        </div>`;
+      el.querySelector(".ft-form").addEventListener("submit", (e) => { e.preventDefault(); el.querySelector("#pb-g").focus(); });
+      onTa(el, "pb-g", async (g) => {
+        const slogan = el.querySelector("#pb-e").value.trim() || "(sin eslogan)";
+        aiWait("Montando el anuncio...", el);
+        const r = await IA.chat(
+          "Eres el jurado de Drag Race España en el reto de publicidad: Supreme de Luxe y los Javis. Valoras el eslogan (pegadizo y camp), el guion (gracioso, claro, que venda el producto) y el humor drag. Exigentes: sin eslogan o con un guion vacío puntúa bajo.",
+          `Producto: ${prod} de ${marca} (${str(p.descripcion)}). Pide el cliente: ${str(p.cliente)}.\nEslogan de ${S.queen.name}: «${slogan}»\nGuion: «${g}»
+Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"comentario (máximo 25 palabras)","javis":"comentario de los Javis (máximo 25 palabras)"}`,
+          { json: true, max: 350, temp: 0.6 },
+        );
+        const [c1, c2, c3] = nums(r, ["eslogan", "guion", "camp"]);
+        const sc = clamp(Math.round(c1 * 0.3 + c2 * 0.4 + c3 * 0.3 + (A("carisma") - 5) * 1.5 + (A("comedia") - 5)), 0, 100);
+        logEv(`Publicidad: ${S.queen.name} anuncia ${prod} con el eslogan «${slogan}» (nota ${sc})`);
+        liveResult(el, `📺 ${esc(marca)} · el anuncio`, `<p class="rw-quote">«${esc(slogan)}»</p><p class="muted">Eslogan ${c1} · Guion ${c2} · Camp ${c3}</p>${judgeLines(r, "supreme", "javis", "Supreme", "Los Javis")}`, sc, () => { if (sc >= 85) growAttr("carisma"); done(sc); });
+      });
+    });
   }
 
   // ------------------------------ Sistema Némesis ------------------------------
@@ -4437,6 +5176,34 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
     const now = fame();
     if (now && now !== before) Toast.show(`${FAMA[now].icon} Tu fama en el taller: ${FAMA[now].n}`, "Las demás te tratarán según cómo te comportes");
   }
+  // Cuenta quién ataca a quién en la rivalidad (para saber quién es la mala de verdad)
+  function nemTally(k, n = 1) {
+    if (!S.nemesis || S.nemesis.done) return;
+    S.nemesis[k] = (S.nemesis[k] || 0) + n;
+  }
+  // Lo que pasa en una charla libre: tu fama depende de lo que haces tú, no de cómo te contesta ella
+  function talkFame(q, r) {
+    const tono = String((r && r.tono) || "").toLowerCase();
+    const me = String((r && r.jugadora) || "neutral").toLowerCase();
+    const hostil = /borde|amenaza/.test(tono);
+    if (/amable/.test(me)) persona("kind");
+    else if (/provoca/.test(me)) { persona("mean"); if (isNem(q)) { nemTally("mine"); heat(1); } }
+    else if (/defiende/.test(me)) { persona("drama", 0.3); if (isNem(q)) nemTally("mine", 0.3); }
+    if (hostil && !/provoca/.test(me)) {
+      S.aggr = S.aggr || {};
+      S.aggr[q.id] = (S.aggr[q.id] || 0) + 1;
+      if (isNem(q)) { nemTally("her"); heat(1); }
+    }
+  }
+  // Quién empezó: texto para que la IA (escenas, jurado) lo tenga claro
+  function nemStory() {
+    const q = nemActive();
+    if (!q) return "";
+    const her = S.nemesis.her || 0, mine = S.nemesis.mine || 0;
+    if (her >= mine + 1.5) return `${q.name} es la que provoca a ${S.queen.name} una y otra vez; ${S.queen.name} solo se defiende, y el taller lo ve. La que se está ganando fama de mala es ${q.name}.`;
+    if (mine >= her + 1.5) return `${S.queen.name} es la que no deja en paz a ${q.name}.`;
+    return `${S.queen.name} y ${q.name} se pican mutuamente.`;
+  }
   function fame() {
     const p = S.persona || {};
     const best = P_KEYS.slice().sort((a, b) => (p[b] || 0) - (p[a] || 0))[0];
@@ -4496,11 +5263,12 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
     const nb = meLab.filter((l) => /^BTM|ELIM/.test(l)).length, nw = meLab.filter((l) => l === "WIN").length;
     const f = fame();
     const key = nb >= 2 && Math.random() < 0.6 ? "bottoms" : nw >= 2 && Math.random() < 0.6 ? "wins" : f && Math.random() < 0.7 ? f : "generic";
+    nemTally("her");
     scene("nemesisScene", pickFresh(NEMESIS.pullas[key]), ctx, then, nemChoices());
   }
   function nemChoices() {
     return [
-      { txt: "¿Eso es todo lo que tienes? Qué poquito.", persona: "drama", bonus: 200, fx: () => heat(1), reply: ["r1", "Ríete ahora. Ya veremos el viernes."] },
+      { txt: "¿Eso es todo lo que tienes? Qué poquito.", persona: "drama", bonus: 200, fx: () => { heat(1); nemTally("mine", 0.5); }, reply: ["r1", "Ríete ahora. Ya veremos el viernes."] },
       { txt: "(No le contestas y te centras en el reto)", persona: "focus", adv: 3, fx: () => heat(0), reply: ["r1", "Muy bien, hazte la digna."] },
       { txt: "Oye... ¿y si dejamos esto? No nos hace bien a ninguna.", persona: "kind", fx: () => {
         if (S.nemesis && S.nemesis.heat <= 4 && Math.random() < 0.6) heat(-3);
@@ -4510,6 +5278,19 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
   }
   // La fama: las demás reaccionan a cómo te comportas
   function fameScene(then) {
+    const nq = nemActive();
+    if (nq && S.rivals.length >= 3 && (S.nemesis.her || 0) >= (S.nemesis.mine || 0) + 2 && !S.nemesis.sided && Math.random() < 0.6) {
+      S.nemesis.sided = S.ep;
+      const ally = S.rivals.filter((r) => r !== nq).sort((a, b) => relOf(b) - relOf(a))[0];
+      const ctx = ctxWith(ally, { r2: nq });
+      return scene("fameScene", [
+        ["r1", "Oye, {yo}, lo de {r2} contigo ya pasa de castaño oscuro. Todas lo estamos viendo."],
+        ["r1", "Que conste que la que empieza siempre es ella. Tú bastante aguantas."],
+      ], ctx, then, [
+        { txt: "Gracias. Me alegra saber que no estoy loca.", rel: { r1: 1 }, persona: "kind", reply: ["r1", "Para nada. Aquí tienes gente de tu lado."] },
+        { txt: "Paso de ella. Yo vengo a por la corona.", persona: "focus", adv: 2, reply: ["r1", "Así me gusta."] },
+      ]);
+    }
     const f = fame();
     if (!f || S.rivals.length < 3 || Math.random() > 0.5) return then();
     const q = pick1(S.rivals.filter((r) => !isNem(r))) || pick1(S.rivals);
@@ -4543,7 +5324,12 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
     };
     if (f && Math.random() < 0.6) out.push([pick1(["judge", "host"]), FAME_CRIT[f]]);
     const nq = nemActive();
-    if (nq && Math.random() < 0.6) out.push(["host", `Y te veo muy pendiente de ${nq.name}. Mira tu camino, que el suyo no te lleva a la corona.`]);
+    if (nq && Math.random() < 0.6) {
+      const her = S.nemesis.her || 0, mine = S.nemesis.mine || 0;
+      if (mine >= her + 1.5) out.push(["host", `Y te veo muy pendiente de ${nq.name}. Mira tu camino, que el suyo no te lleva a la corona.`]);
+      else if (her >= mine + 1.5) out.push(["host", pick1([`Sé que ${nq.name} no te lo está poniendo fácil en el taller. Que no te saque de lo tuyo.`, `Hay quien gasta más energía en ti que en su look. Tú sigue así, que se nota quién viene a trabajar.`])]);
+      else out.push(["host", `Lo tuyo con ${nq.name} da para una serie. Que no os quite la vista de la corona a ninguna de las dos.`]);
+    }
     return out.slice(0, 2);
   }
 
@@ -4867,6 +5653,104 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
 
   // ------------------------------ Pasarela visual ------------------------------
   function runwayWalk(el, cat, lookSpec, lookTag, done) {
+    if (IA.ready() && !S.meOut) return conceptRunway(el, cat, lookSpec, lookTag, done);
+    return classicWalk(el, cat, lookSpec, lookTag, done);
+  }
+  // Pasarela con concepto: escribes la idea de tu look y eliges tres momentos; el jurado valora concepto y coherencia
+  function conceptRunway(el, cat, lookSpec, lookTag, done) {
+    const pieces = S.curPieces && S.curPieces.length ? S.curPieces : ["un look cosido en el taller"];
+    S.curPieces = null;
+    const TH = themeOf(cat);
+    const flags = {};
+    const timers = [];
+    const later = (f, ms) => timers.push(setTimeout(f, ms));
+    cleanup = () => timers.forEach(clearTimeout);
+    const stage = (inner) => `
+      <div class="rw">
+        <div class="rw-floor"></div>
+        <div class="rw-lights">${"<i></i>".repeat(7)}</div>
+        <div class="rw-doll rw-queen pos0" id="rw-doll"><img class="doll-fig" src="${sprite(S.queen)}" alt=""></div>
+        <div class="rw-cat">«${esc(cat)}»</div>
+        <div class="rw-panel">${inner}</div>
+      </div>`;
+    el.innerHTML = stage(`
+      <h4>💭 ¿Cuál es el concepto de tu look?</h4>
+      <p class="muted">${TH ? `${esc(TH.d)} · ` : ""}Llevas: ${pieces.map(esc).join(" · ")}</p>
+      <form class="ft-form"><input id="rw-cp" maxlength="140" autocomplete="off" placeholder="Ej.: una sirena atrapada en una red de pesca de lujo"><button class="btn btn-primary">Salir a la pasarela</button></form>`);
+    el.querySelector("#rw-cp").focus({ preventScroll: true });
+    el.querySelector(".ft-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const c = el.querySelector("#rw-cp").value.trim();
+      if (c) moments(c);
+    });
+    async function moments(concept) {
+      flags.concepto = concept;
+      el.querySelector(".rw-panel").innerHTML = `<div class="ia-dots"><i></i><i></i><i></i></div>`;
+      const r = await IA.chat(
+        "Eres coreógrafa de pasarela de Drag Race España. Propones momentos de desfile concretos y visuales, coherentes con el concepto y las piezas.",
+        `Categoría: «${cat}»${TH ? ` (${TH.d})` : ""}. Piezas: ${pieces.join(", ")}. Concepto de la reina: «${concept}».
+Propón 3 opciones para cada momento del desfile: "entrada" (cómo sale), "detalle" (qué enseña a mitad de pasarela) y "final" (cómo remata en la marca). Cada opción en máximo 10 palabras; una de las tres debe encajar mucho mejor con el concepto que las otras.
+Devuelve JSON {"entrada":["...","...","..."],"detalle":["...","...","..."],"final":["...","...","..."]}`,
+        { json: true, max: 500, temp: 0.9 },
+      );
+      const def = { entrada: ["Paso firme y mirada a cámara", "Entrada lenta y misteriosa", "Salgo bailando"], detalle: ["Giro para enseñar la espalda", "Juego con el accesorio", "Me toco la peluca con descaro"], final: ["Pose congelada", "Guiño al jurado", "Me tiro al suelo con drama"] };
+      const M = ["entrada", "detalle", "final"].map((k) => ({ k, opts: (r && Array.isArray(r[k]) && r[k].length >= 2 ? r[k].map(str) : def[k]).slice(0, 3).map(IA.clean) }));
+      if (S.revealImg) M[2].opts.push("🎁 ¡Hacer el reveal!");
+      const picks = [];
+      const NAMES = { entrada: "🚶 La entrada", detalle: "✨ A mitad de pasarela", final: "📸 En la marca" };
+      const CLS = ["pos1", "pos2", "pos2"];
+      const step = (i) => {
+        if (i >= M.length) return judge(concept, picks);
+        const m = M[i];
+        el.querySelector(".rw-panel").innerHTML = `<h4>${NAMES[m.k]}</h4><div class="choice-col">${m.opts.map((o, j) => `<button class="btn btn-ghost rwc" data-j="${j}">${esc(o)}</button>`).join("")}</div>`;
+        el.querySelectorAll("[data-j]").forEach((b) => b.addEventListener("click", () => {
+          const o = m.opts[+b.dataset.j];
+          picks.push(`${m.k}: ${o}`);
+          const doll = el.querySelector("#rw-doll");
+          doll.className = `rw-doll rw-queen ${CLS[i]} ${i === 0 ? `walk-${WALK_OF_TAG[lookTag] || "fuerte"}` : i === 2 ? "pose" : ""}`;
+          if (o.startsWith("🎁")) {
+            flags.reveal = true;
+            doll.classList.add("spin");
+            later(() => {
+              doll.classList.add("revealed");
+              const card = document.createElement("div");
+              card.className = "rw-rvcard";
+              card.innerHTML = `<img src="${S.revealImg}" alt=""><b>¡REVEAL!</b>`;
+              el.querySelector(".rw").append(card);
+              Confetti.burst(1600);
+            }, 600);
+          }
+          el.querySelector(".rw-panel").innerHTML = `<p class="rw-quote">${esc(o)}</p>`;
+          later(() => step(i + 1), 1500);
+        }));
+      };
+      step(0);
+    }
+    async function judge(concept, picks) {
+      el.querySelector(".rw-panel").innerHTML = `<h4>El jurado toma nota...</h4><div class="ia-dots"><i></i><i></i><i></i></div>`;
+      const r = await IA.chat(
+        "Eres el jurado de Drag Race España valorando una pasarela: Supreme de Luxe (espectáculo y actitud) y Ana Locking (moda, construcción y coherencia). Sois exigentes: un concepto genérico o que no tiene nada que ver con lo que lleva puntúa bajo.",
+        `Categoría: «${cat}»${TH ? ` (${TH.d})` : ""}. Lo que lleva: ${pieces.join(", ")}. Concepto que defiende: «${concept}». Su desfile: ${picks.join("; ")}.${flags.reveal ? " Hace un reveal." : ""}
+Valora de 0 a 100: "concepto" (originalidad y fuerza de la idea), "coherencia" (si el concepto encaja con la categoría y con lo que lleva) y "desfile" (si los momentos elegidos cuentan esa historia). Añade "supreme" y "ana": una frase de cada una, máximo 25 palabras, dirigida a la reina.
+Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..."}`,
+        { json: true, max: 400, temp: 0.6 },
+      );
+      const n = (v, d) => clamp(Math.round(+v || d), 0, 100);
+      const c1 = n(r && r.concepto, 55), c2 = n(r && r.coherencia, 55), c3 = n(r && r.desfile, 55);
+      let score = c1 * 0.35 + c2 * 0.4 + c3 * 0.25 + (A("estilo") - 5) + (A("performance") - 5) * 0.5;
+      if (flags.reveal && /reveal/i.test(cat)) score += 6;
+      score = clamp(Math.round(score), 0, 100);
+      flags.critica = r ? `${str(r.supreme)} ${str(r.ana)}` : null;
+      el.querySelector(".rw-panel").innerHTML = `
+        <h4>Concepto ${c1} · Coherencia ${c2} · Desfile ${c3}</h4>
+        ${r && r.supreme ? `<p class="lv host"><b>Supreme</b>${esc(IA.clean(str(r.supreme)))}</p>` : ""}
+        ${r && r.ana ? `<p class="lv host"><b>Ana Locking</b>${esc(IA.clean(str(r.ana)))}</p>` : ""}
+        <button class="btn btn-primary" id="rw-done">Continuar</button>`;
+      logEv(`Pasarela «${cat}»: ${S.queen.name} defiende el concepto «${concept}» (nota ${score})`);
+      el.querySelector("#rw-done").addEventListener("click", () => { cleanup = null; done(score, flags, lookSpec); });
+    }
+  }
+  function classicWalk(el, cat, lookSpec, lookTag, done) {
     const flags = {};
     const timers = [];
     const later = (f, ms) => timers.push(setTimeout(f, ms));
@@ -5099,6 +5983,7 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
     const planned = (S.ballPlan || []).slice(bi, bi + 2);
     S.ballIdx = bi + planned.length;
     const cats = [...planned, ...shuffle(CATEGORIAS.filter((c) => !planned.includes(c)))].slice(0, 3);
+    if (IA.ready() && !S.meOut) return liveBall(el, done, cats);
     const scores = [];
     const home = (k) => {
       el.innerHTML = "";
@@ -5118,6 +6003,7 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
   }
 
   function mxMateriales(el, done) {
+    if (IA.ready() && !mxMateriales.classic) return aiOrClassic(el, "Materiales imposibles", "🧰", () => liveMateriales(el, done), () => { mxMateriales.classic = true; mxMateriales(el, (sc) => { mxMateriales.classic = false; done(sc); }); });
     const LOTS = [
       { k: "flex", t: "🛍️ Lote flexible", d: "Bolsas de patatas, cortinas, globos. Fácil de coser.", diff: 0, aud: 0 },
       { k: "rig", t: "🪣 Lote rígido", d: "Tapones, tornillos, macetas. +Audacia, más difícil.", diff: 12, aud: 10 },
@@ -5147,6 +6033,7 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
 
   function mxRusical(el, done) {
     const tema = pick1(["la revista de los 70", "la movida madrileña", "una diva de la copla", "el destape", "las verbenas de agosto"]);
+    if (IA.ready() && !mxRusical.classic) return aiOrClassic(el, "El Rusical", "🎭", () => liveRusical(el, done, (S.curTitulo || "").split(": ")[1] || tema), () => { mxRusical.classic = true; mxRusical(el, (sc) => { mxRusical.classic = false; done(sc); }); });
     const MOODS = [["dramatica", "🎭 Dramática"], ["alegre", "🌈 Alegre"], ["agresiva", "🔥 Agresiva"]];
     const STANZAS = [
       ["«Me dejaste en la estación con la maleta y el corazón…»", "dramatica"],
@@ -5187,6 +6074,7 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
   }
 
   function mxGirlGroups(el, done) {
+    if (IA.ready() && !mxGirlGroups.classic) return aiOrClassic(el, "Girl Groups", "🎤", () => liveGirlGroups(el, done), () => { mxGirlGroups.classic = true; mxGirlGroups(el, (sc) => { mxGirlGroups.classic = false; done(sc); }); });
     ensureTeam();
     const mate = pick1(S.team) || pick1(S.rivals);
     const steps = [
@@ -5225,6 +6113,7 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
   }
 
   function mxActing(el, done) {
+    if (IA.ready() && !mxActing.classic) return aiOrClassic(el, "Interpretación", "🎬", () => liveActing(el, done), () => { mxActing.classic = true; mxActing(el, (sc) => { mxActing.classic = false; done(sc); }); });
     ensureTeam();
     const genero = pick1([["telenovela", "sobre"], ["drama de época", "drama"], ["parodia de serie juvenil", "absurdo"], ["anuncio de teletienda", "sobre"]]);
     const partner = pick1(S.team) || pick1(S.rivals);
@@ -5272,6 +6161,7 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
   }
 
   function mxMakeover(el, done) {
+    if (IA.ready() && !mxMakeover.classic) return aiOrClassic(el, "Makeover", "💄", () => liveMakeover(el, done, S.curTitulo || "Makeover: tu hermana drag"), () => { mxMakeover.classic = true; mxMakeover(el, (sc) => { mxMakeover.classic = false; done(sc); }); });
     const MODELS = [
       { n: "Tu padre", d: "Muy poco cómodo, cuerpo grande", comfort: "baja", body: "grande" },
       { n: "Un futbolista de tercera", d: "Comodidad media, espalda ancha", comfort: "media", body: "grande" },
@@ -5339,6 +6229,7 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
   }
 
   function mxPublicidad(el, done) {
+    if (IA.ready() && !mxPublicidad.classic) return aiOrClassic(el, "Publicidad", "📺", () => livePublicidad(el, done), () => { mxPublicidad.classic = true; mxPublicidad(el, (sc) => { mxPublicidad.classic = false; done(sc); }); });
     const P = {
       perfume: { t: "💎 Perfume absurdamente caro", slogans: ["«Huele a dinero que no tienes»", "«Un perfume muy bueno»", "«Fragancia con notas de... cosas»"] },
       aparato: { t: "🔌 Aparato inútil", slogans: ["«Para lo que nunca te hizo falta»", "«Es un aparato que hace cosas»", "«Cómpralo, está bien»"] },
