@@ -2000,3 +2000,12 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 .cast-grid small { color: var(--ink-soft, #8a5a78); font-size: 13px; }
 .cast-grid select { font: 600 14px Poppins, sans-serif; padding: 8px 10px; border-radius: 10px; border: 1.5px solid #ffc2dd; max-width: 55%; }
 @media (max-width: 600px) { .cast-grid label { flex-direction: column; align-items: stretch; } .cast-grid select { max-width: none; } }
+
+/* Que ninguna tarjeta se salga por abajo (el escenario mide 1000 px y se escala entero): scroll dentro y el log encoge primero */
+#story-body .story-card { max-height: 770px; overflow-y: auto; overscroll-behavior: contain; }
+#story-body .story-card.live { display: flex; flex-direction: column; }
+.story-card.live > * { flex-shrink: 0; }
+.story-card.live > .live-log { flex-shrink: 1; min-height: 72px; }
+.story-card.live > .script { flex-shrink: 1; min-height: 104px; }
+.story-card.live > .btn { align-self: flex-start; }
+.story-card.live > h3, .story-card.live > .eyebrow { text-align: center; }
