@@ -1374,9 +1374,13 @@ const Story = (() => {
         if (!r.me) S.form[r.q.id] = clamp((S.form[r.q.id] || 0) + (r === winner ? 2 : bottomRows.includes(r) ? 3 : 0) + rnd(-2, 2), -10, 10);
       });
       S.points += myScore * 10 + (won ? 500 : 0);
-      logEv(`Gana el reto ${won ? S.queen.name : winner.q.name}; en el bottom: ${bottomRows.map((r) => r.q.name).join(" y ")}`);
-      if (won) { S.wins++; growAttr(((RETOS[S.curTipo] || {}).attrs || [])[0]); earn(300, "Ganas el reto de la semana"); }
-      else if (myPos <= 2 && !bottom) earn(80, "Entre las mejores de la semana");
+      // Lo que delata el resultado (premios, crónica de la temporada) espera al veredicto
+      const payout = () => {
+        logEv(`Gana el reto ${won ? S.queen.name : winner.q.name}; en el bottom: ${bottomRows.map((r) => r.q.name).join(" y ")}`);
+        if (won) { growAttr(((RETOS[S.curTipo] || {}).attrs || [])[0]); earn(300, "Ganas el reto de la semana"); }
+        else if (myPos <= 2 && !bottom) earn(80, "Entre las mejores de la semana");
+      };
+      if (won) S.wins++;
       if (bottom) S.bottoms++;
       S.streak = won ? S.streak + 1 : 0;
       if (S.streak >= 3) Achievements.unlock("racha");
@@ -1390,6 +1394,10 @@ const Story = (() => {
         if (k <= 1 && t.fort === cat && Math.random() < 0.6) learnTrait(r.q, "fort", "Lo has visto en el reto");
         if (k >= n - 3 && RASGOS.deb[t.deb].cat === cat && Math.random() < 0.6) learnTrait(r.q, "deb", "Lo has visto en el reto");
       });
+      // Las posiciones se deciden ya, pero no se apuntan en el track record hasta el veredicto (después del Untucked)
+      const labs = new Map();
+      let marked = false;
+      const applyMarks = () => { if (marked) return; marked = true; rows.forEach((r) => mark(r.q, labs.get(r))); payout(); };
       rows.forEach((r, k) => {
         let lab;
         if (tw === "allstars" && top2.includes(r)) lab = "TOP2";
@@ -1399,9 +1407,9 @@ const Story = (() => {
         else if (k <= (n <= 7 ? 1 : 2)) lab = "HIGH";
         else if (k >= n - nb - 1) lab = "LOW";
         else lab = "SAFE";
-        mark(r.q, lab);
+        labs.set(r, lab);
       });
-      const labOf = new Map(rows.map((r) => [r, (S.track[keyOf(r.q)] || {})[S.ep]]));
+      const labOf = labs;
       const nm = (r) => esc(r.me ? "Tú" : r.q.name);
       const faces = (list, cls = "") => `<div class="call-faces ${cls}">${list.map((r, k) => `<span class="${r.me ? "me" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}</span>`).join("")}</div>`;
       // Con 6 o menos todas reciben valoración: nadie se salva antes de la crítica
@@ -1436,11 +1444,12 @@ const Story = (() => {
         const ctx = { ...ctxWith(pick1(S.rivals)), tension: !meSafe && bottomRows.some((r) => r.me) };
         if (meSafe) return dialog([["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."], ...othersCrit()], ctx, then);
         const base = buildCritique(myScore, "none");
-        const lab = (S.track.me || {})[S.ep] || "";
-        aiCritique(base, myScore, lab === "WIN" ? "ganadora del reto" : lab === "HIGH" ? "de las mejores" : /^BTM/.test(lab) ? "en el bottom, al lip sync" : lab === "LOW" ? "de las peores, pero a salvo" : "a salvo").then((lines) => dialog([...lines, ...othersCrit().slice(0, 2)], ctx, then));
+        const lab = labOf.get(meRow) || "";
+        aiCritique(base, myScore, lab === "WIN" || lab === "TOP2" ? "muy buena" : lab === "HIGH" ? "buena" : /^BTM/.test(lab) ? "muy mala" : lab === "LOW" ? "floja" : "correcta").then((lines) => dialog([...lines, ...othersCrit().slice(0, 2)], ctx, then));
       };
       // Resultados en orden: ganadora, altas, bajas y bottom
       const verdict = (then) => {
+        applyMarks();
         setSet("panel");
         const byLab = (f) => rows.filter((r) => f(labOf.get(r)));
         const wins = byLab((l) => l === "WIN" || l === "TOP2");
@@ -1885,8 +1894,9 @@ const Story = (() => {
         const ctx = ctxWith(o.q);
         if (o.kind === "nemesis") {
           const meB = res.bottomRows.some((r) => r.me), herB = res.bottomRows.some((r) => r.q === o.q);
-          const k = meB && !herB ? "gloat" : res.winner.me ? "envidia" : "tension";
-          return scene("untucked", NEMESIS.untucked[k], { ...ctx, q: { r1: o.q }, r1: o.q.name, tension: true }, then, nemChoices());
+          const kb = meB && !herB ? "gloat" : res.winner.me ? "envidia" : "tension";
+          const k = res.pre && kb !== "tension" ? kb + "Pre" : kb;
+          return scene("untucked", NEMESIS.untucked[k] || NEMESIS.untucked.tension, { ...ctx, q: { r1: o.q }, r1: o.q.name, tension: true }, then, nemChoices());
         }
         if (o.kind === "gracias") {
           return scene("untucked", pickFresh(GRACIAS_CORAZON), { ...ctx, q: { r1: o.q }, r1: o.q.name }, then, [
@@ -1897,7 +1907,7 @@ const Story = (() => {
         const rr = roleOf(o.q);
         if (rr && Math.random() < 0.5) {
           reveal(o.q);
-          const base = o.kind === "enemiga" ? HISTORIA.untucked.enemiga[0] : pickFresh(HISTORIA.untucked[o.kind]);
+          const base = o.kind === "enemiga" ? HISTORIA.untucked.enemiga[0] : pickFresh(HISTORIA.untucked[res.pre && HISTORIA.untucked[o.kind + "Pre"] ? o.kind + "Pre" : o.kind]);
           const lines = [["r1", pick1(rr.untucked)], ...base];
           if (o.kind === "enemiga") return scene("untucked", lines, ctx, then, HISTORIA.untucked.enemigaChoices);
           return scene("untucked", lines, ctx, () => {
@@ -1906,7 +1916,7 @@ const Story = (() => {
           });
         }
         if (o.kind === "enemiga") return scene("untucked", HISTORIA.untucked.enemiga[0], ctx, then, HISTORIA.untucked.enemigaChoices);
-        scene("untucked", pickFresh(HISTORIA.untucked[o.kind]), ctx, () => {
+        scene("untucked", pickFresh(HISTORIA.untucked[res.pre && HISTORIA.untucked[o.kind + "Pre"] ? o.kind + "Pre" : o.kind]), ctx, () => {
           changeRel(o.q, o.kind === "bottom" ? 2 : 1);
           then();
         });
@@ -4092,7 +4102,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
     const lk = S.lastLook;
     const r = await IA.chat(
       `Escribes las críticas del jurado de Drag Race España. Supreme de Luxe es la presentadora (directa, teatral, cariñosa pero exigente). Ana Locking es jurado (moda, técnica, seria y precisa). ${aiSeason()} ${(() => { const f = fame(); return f ? `En el taller, ${S.queen.name} tiene fama de ser ${FAMA[f].n}.` : ""; })()}`,
-      `Reto de esta semana: ${S.epNames[S.ep] || "reto"}. Nota de ${S.queen.name} en el reto: ${S.lastParts ? S.lastParts.reto : score}/100${S.lastParts && S.lastParts.pasarela != null ? `, pasarela: ${S.lastParts.pasarela}/100` : ""}. ${lk ? `Categoría de pasarela: ${lk.cat}. Su mejor pieza: ${lk.best}. Su peor pieza: ${lk.worst}.${lk.concepto ? ` Concepto que defendió: «${lk.concepto}».` : ""}${lk.critica ? ` Ya le dijeron en la pasarela: ${lk.critica}` : ""}` : ""} Va a quedar como: ${label}. Devuelve JSON con "supreme" y "ana": la crítica de cada una a ${S.queen.name}, en segunda persona, máximo 30 palabras cada una, coherentes con la nota.`,
+      `Reto de esta semana: ${S.epNames[S.ep] || "reto"}. Nota de ${S.queen.name} en el reto: ${S.lastParts ? S.lastParts.reto : score}/100${S.lastParts && S.lastParts.pasarela != null ? `, pasarela: ${S.lastParts.pasarela}/100` : ""}. ${lk ? `Categoría de pasarela: ${lk.cat}. Su mejor pieza: ${lk.best}. Su peor pieza: ${lk.worst}.${lk.concepto ? ` Concepto que defendió: «${lk.concepto}».` : ""}${lk.critica ? ` Ya le dijeron en la pasarela: ${lk.critica}` : ""}` : ""} Su valoración global es ${label}. Devuelve JSON con "supreme" y "ana": la crítica de cada una a ${S.queen.name}, en segunda persona, máximo 30 palabras cada una, coherentes con la nota. Son SOLO valoraciones: nunca digas posiciones ni resultados (ni ganadora, ni mejores, ni peores, ni bottom, ni lip sync, ni a salvo, ni en peligro); eso se anuncia después del Untucked.`,
       { json: true, max: 200, temp: 0.85 },
     );
     if (!r || !r.supreme || !r.ana) return lines;
@@ -5302,9 +5312,9 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   }
   // Valoraciones del jurado personalizadas con tu historia en la temporada
   function personalCrit() {
-    const eps = Object.keys(S.track.me || {}).map(Number).sort((a, b) => a - b);
+    const eps = Object.keys(S.track.me || {}).map(Number).filter((e) => e < S.ep).sort((a, b) => a - b);
     const labs = eps.map((e) => S.track.me[e]);
-    const prev = labs[labs.length - 2];
+    const prev = labs[labs.length - 1];
     const nb = labs.filter((l) => /^BTM/.test(l)).length, nw = labs.filter((l) => l === "WIN").length;
     const out = [];
     const rs = S.lastParts ? S.lastParts.reto : 50;

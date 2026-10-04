@@ -1297,6 +1297,9 @@ const NEMESIS = {
     gloat: [["r1", "Vaya, vaya... Mira quién está en el bottom. Y yo aquí, tan tranquila."]],
     envidia: [["r1", "Enhorabuena por la victoria. Que te dure."], ["me", "Gracias... supongo."]],
     tension: [["r1", "Ni me mires, {yo}. Hoy no estoy para ti."]],
+    // Antes del veredicto: nadie sabe nada, solo se imaginan cosas por las críticas
+    gloatPre: [["r1", "Con esas críticas, yo de ti iría repasando canciones. Por si acaso."], ["me", "Las críticas no son el veredicto. Tranquila."]],
+    envidiaPre: [["r1", "Muy contenta te veo con lo que te han dicho. No cantes victoria, que aún no han decidido nada."], ["me", "No canto nada. Espero, como todas."]],
   },
   lipsync: [
     ["host", "Esto es lo que todas estaban esperando: {yo} contra {r1}. Némesis contra némesis."],
@@ -1362,3 +1365,15 @@ const RADIO = {
   pelea: ["Tensión máxima entre {a} y {b} esta semana.", "{a} y {b} han discutido en los espejos. Nadie sabe por qué."],
   corona: ["{a} viene con corona puesta de {s}. Todas la miran de reojo.", "Ojo: {a} ya ganó en {s} y quiere repetir."],
 };
+
+// Untucked antes del veredicto: aún no se sabe quién gana ni quién va al bottom
+HISTORIA.untucked.ganadoraPre = [
+  [["me", "{r1}, qué críticas te han hecho. Te veo arriba."], ["r1", "No me lo digas, que me gafas. Hasta que no lo diga Supreme, nada."]],
+  [["me", "Al jurado le ha encantado lo tuyo, {r1}."], ["r1", "Eso parecía... pero aquí nunca se sabe."]],
+  [["me", "¿Cómo lo llevas? Las críticas han sido muy buenas."], ["r1", "Nerviosa igual. A veces te ponen por las nubes y luego ni ganas."]],
+];
+HISTORIA.untucked.bottomPre = [
+  [["me", "{r1}, ¿cómo estás? Las críticas han sido duras."], ["r1", "Fatal. Me veo cantando esta noche."], ["me", "Aún no han decidido nada. Respira."]],
+  [["me", "No te comas la cabeza, {r1}. A otras también les han dado caña."], ["r1", "Ya, pero a mí más. Ojalá me equivoque."]],
+  [["me", "{r1}, ¿quieres un poco de agua?"], ["r1", "Quiero que acabe esta espera. Gracias, de verdad."]],
+];
