@@ -1413,15 +1413,16 @@ const Story = (() => {
       const nm = (r) => esc(r.me ? "Tú" : r.q.name);
       const faces = (list, cls = "") => `<div class="call-faces ${cls}">${list.map((r, k) => `<span class="${r.me ? "me" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}</span>`).join("")}</div>`;
       // Con 6 o menos todas reciben valoración: nadie se salva antes de la crítica
-      const safe = allCrit ? [] : rows.filter((r) => labOf.get(r) === "SAFE");
-      const judged = allCrit ? rows.slice() : rows.filter((r) => labOf.get(r) !== "SAFE");
+      // Desordenadas: que el orden no delate quién va arriba o abajo
+      const safe = allCrit ? [] : shuffle(rows.filter((r) => labOf.get(r) === "SAFE"));
+      const judged = shuffle(allCrit ? rows.slice() : rows.filter((r) => labOf.get(r) !== "SAFE"));
       const meRow = rows.find((r) => r.me);
       const meSafe = !allCrit && labOf.get(meRow) === "SAFE";
       const safeFirst = Math.random() < 0.5;
       const safeTxt = `<p>${safe.length ? `${safe.map(nm).join(", ")}: <b>estáis salvadas</b>. Podéis volver al backstage.` : allCrit ? `Quedáis ${n}: a partir de ahora <b>todas recibís valoración</b>.` : "Esta semana no se salva nadie de antemano."}</p>${safe.length ? faces(safe, "safe") : ""}`;
       const judgedTxt = allCrit
         ? `<p>${judged.map(nm).join(", ")}: esta semana <b>todas recibís la valoración del jurado</b>.</p>${faces(judged)}`
-        : `<p>${safeFirst && safe.length ? "El resto..." : `${judged.map(nm).join(", ")}...`} <b>sois las mejores y las peores del programa de hoy</b>.</p>${faces(judged)}`;
+        : `<p>${judged.map(nm).join(", ")}... <b>sois las mejores y las peores del programa de hoy</b>.</p>${faces(judged)}`;
       header();
       Music.play("tension");
       body().innerHTML = `
@@ -1429,7 +1430,7 @@ const Story = (() => {
           <p class="eyebrow">${esc(titulo)} · la pasarela ha terminado</p>
           <h3>Supreme tiene algo que deciros...</h3>
           ${teamLine}${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
-          ${allCrit ? `<p>Quedáis ${n}: a partir de ahora ya no hay salvadas.</p>` + judgedTxt : safeFirst ? safeTxt + judgedTxt : judgedTxt + (safe.length ? `<p>Las demás, <b>estáis a salvo</b>.</p>${faces(safe, "safe")}` : "")}
+          ${allCrit ? `<p>Quedáis ${n}: a partir de ahora ya no hay salvadas.</p>` + judgedTxt : safeFirst && safe.length ? safeTxt + judgedTxt : judgedTxt + (safe.length ? `<p>Las demás, <b>estáis a salvo</b>.</p>${faces(safe, "safe")}` : "")}
           <p class="call-me">${meSafe ? "✨ Estás a salvo esta semana." : "👀 Te toca escuchar al jurado."}</p>
           <button class="btn btn-primary" id="story-next">Continuar</button>
         </div>`;
@@ -2673,7 +2674,20 @@ const Story = (() => {
       lipsyncs: S.lipsyncs,
       score: Math.round(S.points),
       date: new Date().toISOString(),
+      track: trackHTML(),
     };
+    // La reina que reina ahora en esta temporada: la ganadora de tu última partida
+    {
+      const fe2 = Object.keys(S.epNames).map(Number).sort((a, b) => b - a)[0];
+      const champ = [S.queen, ...S.rivals, ...S.out].find((x) => (S.track[keyOf(x)] || {})[fe2] === "WINNER");
+      if (champ) {
+        const R = store.get("dftc-reinantes", {});
+        const prev = R[S.season.id] || {};
+        R[S.season.id] = { queen: champ.id, mine: champ === S.queen, player: S.queen.id, date: entry.date, reigns: (prev.queen === champ.id ? prev.reigns || 1 : 0) + 1 };
+        store.set("dftc-reinantes", R);
+        entry.champ = champ.id;
+      }
+    }
     const pos = StoryBoard.record(entry);
     store.set(SAVE_KEY, null);
     Story.lastEntryId = pos >= 0 ? entry.id : null;
@@ -3644,10 +3658,18 @@ const Story = (() => {
     return h % 4;
   };
   // Atributos (1-10): salen de las estadísticas de la reina, con su toque propio
+  function baseAttrs(q, st) {
+    const f = (v, k) => clamp(Math.round(v * 1.5 + hashN(q.id, k) - 0.5), 2, 10);
+    return { comedia: f(st.rate, "c"), carisma: f(st.lives, "k"), estilo: f(st.power, "e"), performance: f(st.speed, "p"), maquillaje: f((st.power + st.rate) / 2, "m") };
+  }
+  // Ficha de modo historia para la pantalla de elegir reina
+  function preview(q) {
+    const t = traitsOf(q);
+    return { attrs: baseAttrs(q, Wardrobe.statsOf(q)), names: ATTR_NAMES, car: RASGOS.car[t.car], fort: RASGOS.fort[t.fort], titles: Nem.titles(q.id) };
+  }
   function attrsOf(q) {
     const st = q === S.queen ? Wardrobe.statsOf(q) : q.stats;
-    const f = (v, k) => clamp(Math.round(v * 1.5 + hashN(q.id, k) - 0.5), 2, 10);
-    const a = { comedia: f(st.rate, "c"), carisma: f(st.lives, "k"), estilo: f(st.power, "e"), performance: f(st.speed, "p"), maquillaje: f((st.power + st.rate) / 2, "m") };
+    const a = baseAttrs(q, st);
     if (q === S.queen) Object.entries(S.attrGrowth || {}).forEach(([k, v]) => (a[k] = clamp(a[k] + v, 1, 10)));
     return a;
   }
@@ -6310,5 +6332,5 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
     body().innerHTML = `<div id="story-play"></div>`;
     RETOS[tipo].run($("#story-play"), (sc) => { cleanup = null; cb && cb(sc); window.__lastScore = sc; });
   };
-  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), _test, lastEntryId: null };
+  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), preview, _test, lastEntryId: null };
 })();

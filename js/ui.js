@@ -33,7 +33,7 @@ const UI = (() => {
 
   // Numera los hijos de las rejillas para la entrada en cascada
   function stagger(root) {
-    root.querySelectorAll("#franchise-grid, #season-grid, #queen-grid, #scores-table tbody, #ach-grid, .stats, #unlock-list, .career").forEach((g) => {
+    root.querySelectorAll("#franchise-grid, #season-grid, #queen-grid, #scores-table tbody, #ach-grid, #reign-grid, .stats, #unlock-list, .career").forEach((g) => {
       g.classList.add("stagger");
       [...g.children].forEach((c, i) => c.style.setProperty("--i", i));
     });
@@ -209,6 +209,27 @@ const UI = (() => {
     $("#det-place").textContent =
       pos < 0 ? "" : mode === "story" ? "📖 En la historia, todo depende de ti" : currentSeason.enEmision ? "📺 Temporada en emisión" : pos === n - 1 ? "👑 Ganadora de la temporada" : `Puesto ${n - pos}º de ${n}`;
     $("#det-quote").textContent = q.quote ? `“${q.quote}”` : "";
+    $(".power-label").textContent = mode === "story" ? "🎭 Su carácter" : "✨ Poder especial";
+    if (mode === "story" && Story.preview) {
+      // Modo historia: sus atributos de historia (1-10), no las estadísticas del arcade
+      const P = Story.preview(q);
+      $("#det-stats").innerHTML =
+        Object.entries(P.attrs)
+          .map(([k, v]) => `
+        <div class="stat-row story-stat">
+          <span>${P.names[k]}</span>
+          <span class="pips ten">${Array.from({ length: 10 }, (_, i) => `<i class="${i < v ? "on" : ""}"></i>`).join("")}</span>
+          <b class="stat-n">${v}</b>
+        </div>`)
+          .join("") +
+        `<p class="wallet-line">${P.fort ? `${P.fort.icon} Fortaleza: <b>${esc(P.fort.n)}</b> · ${esc(P.fort.d)}` : ""}</p>` +
+        (P.titles.length ? `<p class="wallet-line">👑 Coronas en historia: <b>${P.titles.map(esc).join(", ")}</b></p>` : "");
+      $("#det-power").textContent = P.car ? P.car.n : "";
+      $("#det-power-desc").textContent = P.car ? P.car.d : "";
+      $("#det-lock").innerHTML = "";
+      details.classList.add("open");
+      return;
+    }
     const st = Wardrobe.statsOf(q);
     $("#det-stats").innerHTML =
       Object.entries(STAT_LABELS)
@@ -339,12 +360,52 @@ const UI = (() => {
       `<p class="ach-sum">${Object.keys(done).length}/${LOGROS.length} logros · <b class="sequins">${Wallet.balance}</b> lentejuelas ✨</p>` +
       LOGROS.map((l) => `<div class="ach ${done[l.id] ? "done" : ""}"><i>${done[l.id] ? l.icon : "🔒"}</i><div><strong>${esc(l.name)}</strong><small>${esc(l.desc)}</small></div><em>+${l.reward} ✨</em></div>`).join("");
   }
+  // Reinas reinantes: la ganadora original de cada temporada, o la que ganó tu última partida
+  function renderReigns() {
+    const R = store.get("dftc-reinantes", {});
+    const fmtD = (d) => new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+    $("#reign-grid").innerHTML = allSeasons()
+      .filter((s) => s.cast && s.cast.length)
+      .map((s, i) => {
+        const r = R[s.id];
+        const orig = s.enEmision ? null : queenById(s.winner);
+        const q = r ? queenById(r.queen) : orig;
+        const player = r && queenById(r.player);
+        const sub = r
+          ? r.mine ? "Coronada en tu partida" : `Ganó en tu partida${player ? ` con ${esc(player.name)}` : ""}`
+          : orig ? "Ganadora original" : "En emisión · aún sin reina";
+        return `<div class="reign ${r ? (r.mine ? "mine" : "played") : ""}" style="--i:${i}">
+          <span class="tag-mini" style="background:${s.franchise.color}">${s.franchise.tag}</span>
+          <i class="reign-pic" style="background-image:url('${q ? lookOf(q, s.id).portrait : PORTADAS[s.id] || ""}')"></i>
+          <span class="reign-crown">👑</span>
+          <strong>${esc(q ? q.name : "¿?")}</strong>
+          <small class="reign-season">${esc(s.name)} · ${s.year}</small>
+          <small class="reign-sub">${sub}${r && r.reigns > 1 ? ` · ${r.reigns} coronas seguidas` : ""}</small>
+          ${r ? `<small class="muted">${fmtD(r.date)}${orig && orig.id !== r.queen ? ` · Original: ${esc(orig.name)}` : ""}</small>` : ""}
+        </div>`;
+      })
+      .join("");
+  }
+  // Track record de una partida guardada en el ranking
+  function openEntryTrack(e) {
+    const q = queenById(e.queen), s = seasonById(e.season);
+    const m = document.createElement("div");
+    m.className = "track-modal";
+    m.innerHTML = `<div class="story-card track-card"><p class="eyebrow">${esc(s ? s.name : "")} · ${esc(e.name || "Anónima")} con ${esc(q ? q.name : e.queen)}</p><h3>Track record</h3>${e.track}<button class="btn btn-primary" id="tm-close">Cerrar</button></div>`;
+    document.body.append(m);
+    const close = () => m.remove();
+    m.querySelector("#tm-close").addEventListener("click", close);
+    m.addEventListener("click", (ev) => ev.target === m && close());
+  }
   function renderScores() {
     const logros = scoresTab === "logros";
-    $(".scores-layout").style.display = logros ? "none" : "";
+    const reigns = scoresTab === "reinas";
+    $(".scores-layout").style.display = logros || reigns ? "none" : "";
     $("#ach-grid").style.display = logros ? "" : "none";
+    $("#reign-grid").style.display = reigns ? "" : "none";
     document.querySelectorAll("#scores-tabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === scoresTab));
     if (logros) return renderAchievements();
+    if (reigns) return renderReigns();
     const story = scoresTab === "story";
     document.querySelectorAll("#scores-tabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === scoresTab));
     $("#th-res").textContent = story ? "Resultado" : "Rondas";
@@ -356,16 +417,17 @@ const UI = (() => {
         const date = new Date(e.date).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
         const res = story ? (e.won ? "👑 Ganadora" : `Puesto ${e.place}º`) : e.won ? "👑" : `${e.rounds}/${e.totalRounds || "?"}`;
         const pic = q ? (story ? lookOf(q, e.season).portrait : q.portrait) : "";
-        return `<tr class="${e.id === mine ? "me" : ""}">
+        return `<tr class="${e.id === mine ? "me" : ""}${story && e.track ? " has-track" : ""}" data-n="${i}" ${story && e.track ? 'title="Ver su track record"' : ""}>
           <td>${i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</td>
           <td>${esc(e.name || "Anónima")}</td>
           <td><span class="mini" style="background-image:url('${pic}')"></span>${esc(q ? q.name : e.queen)}</td>
-          <td>${seasonTag(e.season)}${res}</td>
+          <td>${seasonTag(e.season)}${res}${story && e.track ? ' <span class="trk-ico">📊</span>' : ""}</td>
           <td class="pts">${fmt(e.score)}</td>
           <td class="muted">${date}</td>
         </tr>`;
       })
       .join("");
+    if (story) $("#scores-table tbody").querySelectorAll("tr.has-track").forEach((tr) => tr.addEventListener("click", () => openEntryTrack(board[+tr.dataset.n])));
     $("#scores-table").style.display = board.length ? "" : "none";
     $("#scores-empty").style.display = board.length ? "none" : "";
     $("#scores-empty").textContent = story ? "Todavía no has jugado ninguna temporada en modo historia." : "Todavía no hay partidas. ¡A la pasarela!";

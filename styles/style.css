@@ -2009,3 +2009,22 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 .story-card.live > .script { flex-shrink: 1; min-height: 104px; }
 .story-card.live > .btn { align-self: flex-start; }
 .story-card.live > h3, .story-card.live > .eyebrow { text-align: center; }
+
+/* Hall of Fame: reinas reinantes */
+#reign-grid { width: 1150px; max-width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; max-height: 640px; overflow-y: auto; padding: 6px; }
+.reign { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 14px 14px; border-radius: 22px; background: rgba(255,255,255,.88); border: 2px solid rgba(255,79,216,.3); text-align: center; animation: card-rise .5s var(--ease-out) both; animation-delay: calc(var(--i) * 60ms); }
+.reign.played { border-color: #ffcf4d; box-shadow: 0 0 0 3px rgba(255,207,77,.35); }
+.reign.mine { border-color: #ffcf4d; box-shadow: 0 0 0 4px #ffcf4d, 0 18px 40px -18px rgba(199,134,0,.7); }
+.reign .tag-mini { position: absolute; top: 10px; left: 10px; }
+.reign-pic { width: 128px; height: 128px; border-radius: 50%; background-size: cover; background-position: center top; border: 4px solid #ffcf4d; margin-top: 8px; }
+.reign-crown { font-size: 28px; margin-top: -22px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.25)); }
+.reign strong { font-family: "Bungee", sans-serif; font-size: 18px; color: var(--pink, #ff3d9a); line-height: 1.15; }
+.reign small { font-size: 13px; }
+.reign-season { font-weight: 700; color: var(--ink, #3a0a2a); }
+.reign-sub { color: #c78600; font-weight: 600; }
+#scores-table tr.has-track { cursor: pointer; }
+#scores-table tr.has-track:hover td { background: rgba(255,79,216,.08); }
+.trk-ico { font-size: 13px; opacity: .7; }
+#det-stats .pips.ten { gap: 4px; }
+#det-stats .pips.ten i { width: 14px; }
+.story-stat .stat-n { min-width: 24px; text-align: right; font-weight: 800; color: var(--pink, #ff3d9a); }
