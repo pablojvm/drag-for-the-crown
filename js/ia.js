@@ -122,6 +122,27 @@ const IA = (() => {
     }
     return ready();
   }
+  // Foto generada del look: Gemini (si la clave tiene cuota de imagen) o Pollinations (gratis, sin clave)
+  async function image(prompt) {
+    if (!on()) return null;
+    const k = K().gemini;
+    if (k && !(cool.img > Date.now())) {
+      try {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${encodeURIComponent(k)}`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(40000),
+          body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseModalities: ["IMAGE"] } }),
+        });
+        if (!r.ok) throw { status: r.status };
+        const d = await r.json();
+        const part = ((((d.candidates || [])[0] || {}).content || {}).parts || []).find((x) => x.inlineData);
+        if (part) return `data:${part.inlineData.mimeType || "image/png"};base64,${part.inlineData.data}`;
+        throw { status: 0 };
+      } catch (e) {
+        cool.img = Date.now() + 864e5; // sin cuota de imagen: no se vuelve a intentar en esta sesión
+      }
+    }
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.slice(0, 700))}?width=576&height=832&nologo=true&seed=${Math.floor(Math.random() * 1e6)}`;
+  }
   function refresh() {}
   function toggle() {
     store.set("dftc-ia-on2", !on());
@@ -133,5 +154,5 @@ const IA = (() => {
     const t = await chat("Responde solo: ok", "di ok", { max: 10 });
     return { claves: keys, activada: on(), disponibles: CHAIN.filter(usable).map((p) => p.id), prueba: t || "sin respuesta" };
   }
-  return { check, chat, ready, toggle, refresh, clean, estado, claves, chain: () => CHAIN.filter(usable).map((p) => p.id) };
+  return { check, chat, image, ready, toggle, refresh, clean, estado, claves, chain: () => CHAIN.filter(usable).map((p) => p.id) };
 })();

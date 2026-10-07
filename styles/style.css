@@ -2028,3 +2028,31 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 #det-stats .pips.ten { gap: 4px; }
 #det-stats .pips.ten i { width: 14px; }
 .story-stat .stat-n { min-width: 24px; text-align: right; font-weight: 800; color: var(--pink, #ff3d9a); }
+/* Foto generada del look (Materiales) */
+.look-photo { position: relative; align-self: center; width: 260px; min-height: 120px; margin: 6px auto 10px; border-radius: 18px; overflow: hidden; background: #fff0f7; border: 3px solid #ffcf4d; display: grid; place-items: center; flex-shrink: 0; }
+.look-photo img { display: none; width: 100%; height: auto; }
+.look-photo.ok img { display: block; }
+.look-photo.ok .ia-dots, .look-photo.ok small { display: none; }
+.look-photo small { font-size: 12px; color: #8a5a78; padding: 0 10px 10px; text-align: center; }
+.look-photo.ko .ia-dots { display: none; }
+.look-photo .look-sketch { display: none; }
+.look-photo.ko .look-sketch { display: block; width: 180px; padding-top: 8px; }
+.look-photo.ko .look-sketch svg { width: 100%; height: auto; }
+.look-photo.ko small { display: none; }
+.ball-steps { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.ball-steps span { padding: 6px 14px; border-radius: 999px; background: #fff0f7; border: 1.5px solid #ffc2dd; font: 700 14px Poppins, sans-serif; color: #8a5a78; }
+.ball-steps span.on { background: linear-gradient(90deg, var(--pink, #ff3d9a), #ff8a3d); color: #fff; border-color: transparent; }
+.ball-steps span.done { opacity: .6; text-decoration: line-through; }
+.ball-steps i { color: #c78600; font-style: normal; }
+/* Retos por parejas o grupos */
+.groups-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin: 12px 0; }
+.group-col { display: flex; flex-direction: column; gap: 8px; min-width: 170px; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.85); border: 2px solid #ffc2dd; animation: card-rise .45s var(--ease-out) both; animation-delay: calc(var(--i) * 70ms); }
+.group-col.mine { border-color: #ffcf4d; box-shadow: 0 0 0 3px rgba(255,207,77,.5); }
+.group-col b { font-family: "Bungee", sans-serif; color: var(--pink, #ff3d9a); font-size: 15px; }
+.group-col span { display: flex; align-items: center; gap: 8px; font: 600 14px Poppins, sans-serif; text-align: left; }
+.group-col span i { width: 34px; height: 34px; border-radius: 50%; background-size: cover; background-position: center top; flex: none; }
+/* Listas de papeles y opciones largas en cuadrícula */
+.story-card .choice-col:has(> .role) { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; align-items: stretch; }
+.story-card .choice-col:has(> .role) > .role { width: auto; max-width: none; margin: 0; }
+.story-card.live .choice-col:has(> :nth-child(4)):not(:has(> .role)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.story-card.live .choice-col:has(> :nth-child(4)) > .btn { width: auto; margin: 0; }
