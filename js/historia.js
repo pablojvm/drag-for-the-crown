@@ -1275,13 +1275,13 @@ const Story = (() => {
       draft(c[0], c[1], go);
     };
     const grouped = reto.groups && S.rivals.length + 1 >= reto.groups * 2;
-    dialog(pickFresh(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => (grouped ? formGroups(reto.groups, go) : reto.team && S.rivals.length >= 3 ? caps() : go()));
+    dialog(pickFresh(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => (grouped ? formChallengeGroups(reto.groups, go) : reto.team && S.rivals.length >= 3 ? caps() : go()));
   }
 
   // Parejas o grupos para el reto. Si has ganado el minireto, eliges tú a tus compañeras; si no, las reparte Supreme
   const GROUP_NAMES = ["Rosa", "Oro", "Turquesa", "Lila", "Coral", "Esmeralda"];
   const groupWord = (size) => (size === 2 ? "Pareja" : "Grupo");
-  function formGroups(size, then) {
+  function formChallengeGroups(size, then) {
     const all = [S.queen, ...S.rivals];
     const finish = (mine) => {
       const rest = shuffle(all.filter((q) => !mine.includes(q)));
