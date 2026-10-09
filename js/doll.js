@@ -48,6 +48,10 @@ const Doll = (() => {
       p = `<pattern id="${id}" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(90)"><rect width="10" height="10" fill="#f7f3ee"/><rect width="5" height="10" fill="#1b1b1b"/></pattern>`;
     else if (pat === "flowers")
       p = `<pattern id="${id}" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="${c}"/><g fill="#fff" opacity=".9"><circle cx="5" cy="5" r="2"/><circle cx="8" cy="5" r="2"/><circle cx="6.5" cy="2.5" r="2"/><circle cx="6.5" cy="7.5" r="2"/></g><circle cx="6.5" cy="5" r="1.4" fill="#ffd34d"/><g fill="${dark}"><circle cx="15" cy="15" r="1.8"/><circle cx="17.5" cy="15" r="1.8"/><circle cx="16" cy="12.8" r="1.8"/></g></pattern>`;
+    else if (pat === "dots")
+      p = `<pattern id="${id}" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="${c}"/><circle cx="4" cy="4" r="2.6" fill="${c === "#f4f1ec" ? "#c8102e" : "#fff"}"/><circle cx="11" cy="11" r="2.6" fill="${c === "#f4f1ec" ? "#c8102e" : "#fff"}"/></pattern>`;
+    else if (pat === "lace")
+      p = `<pattern id="${id}" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="${dark}"/><circle cx="6" cy="6" r="4.2" fill="none" stroke="${c}" stroke-width="1.6"/><circle cx="0" cy="0" r="2" fill="${c}"/><circle cx="12" cy="12" r="2" fill="${c}"/><circle cx="12" cy="0" r="2" fill="${c}"/><circle cx="0" cy="12" r="2" fill="${c}"/></pattern>`;
     else if (pat === "metal")
       p = `<linearGradient id="${id}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".25" stop-color="${light}"/><stop offset=".55" stop-color="${c}"/><stop offset=".8" stop-color="${dark}"/><stop offset="1" stop-color="${light}"/></linearGradient>`;
     else p = `<linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="${dark}"/><stop offset=".45" stop-color="${c}"/><stop offset="1" stop-color="${shade(c, -0.25)}"/></linearGradient>`;
@@ -92,6 +96,20 @@ const Doll = (() => {
           out += `<path d="M${100 - w0} ${y} L${100 + w0} ${y} L${100 + w1} ${y + 60} Q${100 + w1 / 2} ${y + 72} 100 ${y + 62} Q${100 - w1 / 2} ${y + 72} ${100 - w1} ${y + 60} Z" fill="${fill}" stroke="${shade(look.color, -0.4)}" stroke-width="2"/>`;
         });
       }
+      // Adornos cosidos a mano
+      const H = { gown: 418, mermaid: 418, mini: 266, jumpsuit: 404, suit: 404, bodysuit: 214, cape: 214, flamenca: 408 }[s] || 400;
+      const W2 = { gown: 64, mermaid: 54, mini: 34, jumpsuit: 28, suit: 28, bodysuit: 20, cape: 20, flamenca: 62 }[s] || 40;
+      const dk = shade(look.color || "#888", -0.45);
+      (look.trims || []).forEach((t) => {
+        if (t === "pedreria") out += `<g fill="#fff" opacity=".9">${[[92, 120], [108, 132], [96, 150], [104, 186], [88, 230], [112, 250], [100, 300], [84, 340], [118, 360], [96, 390]].filter(([, y]) => y < H - 6).map(([x, y]) => `<path d="M${x} ${y - 3} l1.2 2.4 l2.4 .6 l-2.4 .6 l-1.2 2.4 l-1.2 -2.4 l-2.4 -.6 l2.4 -.6z"/>`).join("")}</g>`;
+        if (t === "plumas") out += `<g fill="${shade(look.color || "#fff", 0.35)}" opacity=".95">${Array.from({ length: 9 }, (_, k) => `<ellipse cx="${100 - W2 + (k * W2) / 4}" cy="${H - 2}" rx="9" ry="6"/>`).join("")}<ellipse cx="70" cy="100" rx="10" ry="7"/><ellipse cx="130" cy="100" rx="10" ry="7"/></g>`;
+        if (t === "flecos") out += `<g stroke="${shade(look.color || "#fff", 0.2)}" stroke-width="1.6">${Array.from({ length: 13 }, (_, k) => `<path d="M${78 + k * 3.7} 172 l0 ${22 + (k % 3) * 4}"/>`).join("")}</g>`;
+        if (t === "volantes") out += `<path d="M${100 - W2} ${H - 6} ${Array.from({ length: 8 }, (_, k) => `q${W2 / 8} 12 ${W2 / 4} 0`).join(" ")}" fill="none" stroke="#fff" stroke-width="3" opacity=".85"/>`;
+        if (t === "tachuelas") out += `<g fill="#d9d9d9" stroke="#777" stroke-width=".6">${Array.from({ length: 9 }, (_, k) => `<circle cx="${80 + k * 5}" cy="${171 + Math.sin(k) * 0.5}" r="2"/>`).join("")}${Array.from({ length: 7 }, (_, k) => `<circle cx="${82 + k * 6}" cy="${101 - Math.sin((k / 6) * Math.PI) * 4}" r="1.8"/>`).join("")}</g>`;
+        if (t === "leds") out += `<g fill="#7ff9ff">${[[86, 126], [114, 126], [100, 160], [80, 210], [120, 210], [92, 280], [108, 320], [100, 370]].filter(([, y]) => y < H - 6).map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6"/><circle cx="${x}" cy="${y}" r="6" opacity=".25"/>`).join("")}</g>`;
+        if (t === "lazos") out += `<g fill="${shade(look.color || "#ff5fa2", 0.4)}" stroke="${dk}" stroke-width="1"><path d="M100 172 l-14 -9 l0 18z M100 172 l14 -9 l0 18z"/><circle cx="100" cy="172" r="3.5"/></g>`;
+        if (t === "escamas") out += `<g fill="none" stroke="#fff" stroke-width="1" opacity=".45">${Array.from({ length: 6 }, (_, r) => Array.from({ length: 4 }, (_, k) => `<path d="M${84 + k * 10 + (r % 2) * 5} ${190 + r * 20} q5 7 10 0"/>`).join("")).join("").replace(/M(\d+) (\d+)/g, (m) => m)}</g>`;
+      });
     } else out = `<path d="M70 100 Q100 90 130 100 L126 208 L108 226 L92 226 L74 208 Z" fill="#f4eef6" stroke="#d9c9e3" stroke-dasharray="4 3"/>`;
     // Cabeza y cara
     front += `<ellipse cx="100" cy="60" rx="21" ry="25" fill="${skin}"/>`;

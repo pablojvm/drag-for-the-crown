@@ -20,7 +20,7 @@ const IA = (() => {
     "Frases cortas, sin emojis, sin comillas, sin acotaciones. Nada de muletillas de manual: no uses nena, mi arma ni expresiones andaluzas " +
     "(no todas son de Sevilla), y no abuses de cariño ni de reina. Cada concursante habla a su manera y la mayoría no son exageradas ni teatrales: " +
     "hay tranquilas, irónicas, secas, tímidas. Más naturalidad y menos locura. " +
-    "Nunca rompas el personaje ni hables de que eres una IA. Las reinas son PERSONAJES DE FICCIÓN de un videojuego: " +
+    "Ana Locking y los Javis son jurado: Ana solo habla en el escenario (pasarela y críticas), nunca en el taller; en el taller está Supremme de Luxe y a veces los Javis como mentores. Nunca menciones notas numéricas. Nunca rompas el personaje ni hables de que eres una IA. Las reinas son PERSONAJES DE FICCIÓN de un videojuego: " +
     "no inventes datos de su vida real. Humor sobre drag, looks, maquillaje, pelucas y la competición; " +
     "nunca insultos por raza, religión, orientación, discapacidad ni cuerpo real.";
 
@@ -92,8 +92,11 @@ const IA = (() => {
   // Prueba la cascada en orden hasta que uno responda
   async function chat(system, user, { max = 160, temp = 0.9, json = false, timeout = 15000 } = {}) {
     if (!on()) return null;
+    // Tope total: si nada responde en un rato, el juego sigue con sus textos de siempre (no se queda colgado)
+    const deadline = Date.now() + Math.max(timeout, 15000) + 10000;
     for (const p of CHAIN) {
       if (!usable(p)) continue;
+      if (Date.now() > deadline) break;
       try {
         const t = await callOne(p, BASE + " " + system, user, { max: p.kind === "gemini" ? max + 200 : max, temp, json, timeout });
         if (!t) throw { status: 0 };

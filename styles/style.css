@@ -2056,3 +2056,80 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 .story-card .choice-col:has(> .role) > .role { width: auto; max-width: none; margin: 0; }
 .story-card.live .choice-col:has(> :nth-child(4)):not(:has(> .role)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .story-card.live .choice-col:has(> :nth-child(4)) > .btn { width: auto; margin: 0; }
+/* Conversación en grupo */
+.wr-join { margin-top: 4px; padding: 4px 10px; border-radius: 999px; border: 0; background: linear-gradient(90deg, var(--pink, #ff3d9a), #ff8a3d); color: #fff; font: 700 12px Poppins, sans-serif; cursor: pointer; }
+.wr-desk { display: flex; flex-direction: column; align-items: center; }
+.gt-faces { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 6px 0 10px; }
+.gt-faces span { display: flex; flex-direction: column; align-items: center; gap: 2px; font: 700 13px Poppins, sans-serif; width: 96px; text-align: center; }
+.gt-faces i { width: 52px; height: 52px; border-radius: 50%; background-size: cover; background-position: center top; border: 3px solid #ffc2dd; }
+.gt-faces small { font-weight: 500; font-size: 11px; color: #8a5a78; }
+#ut-group { margin: 10px auto 0; display: block; }
+/* Súper Lalaparuza */
+.lala-table { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 12px 0; }
+.lala-table > b { width: 100%; text-align: center; font: 700 14px Poppins, sans-serif; color: #8a5a78; }
+.lala-table span { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 110px; padding: 8px; border-radius: 16px; background: rgba(255,255,255,.85); border: 2px solid #ffc2dd; font: 700 13px Poppins, sans-serif; }
+.lala-table span.me { border-color: #ffcf4d; box-shadow: 0 0 0 3px rgba(255,207,77,.45); }
+.lala-table i { width: 54px; height: 54px; border-radius: 50%; background-size: cover; background-position: center top; }
+.lala-table em { font-style: normal; font-size: 15px; min-height: 18px; }
+.lala-log { text-align: left; max-width: 560px; margin: 8px auto; font-size: 15px; }
+.lala-log p { margin: 4px 0; font-size: 15px !important; }
+
+/* Taller de costura */
+.taller .tl-grid { display: grid; grid-template-columns: 260px 1fr; gap: 16px; min-height: 0; flex: 1; overflow: hidden; }
+.taller .tl-doll { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.taller .tl-doll svg { height: 380px; width: auto; filter: drop-shadow(0 14px 16px rgba(59,13,79,.35)); }
+.taller .tl-doll b { padding: 2px 12px; border-radius: 999px; background: var(--gold); font-size: 13px; }
+.taller .tl-form { overflow-y: auto; padding-right: 6px; display: flex; flex-direction: column; gap: 10px; }
+.taller .tl-row h4 { margin: 0 0 6px; font-size: 14px; }
+.taller .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.taller .plan-chip small { opacity: .7; font-size: 11px; }
+.taller .tl-colors { display: flex; flex-wrap: wrap; gap: 6px; }
+.taller .tl-sw { width: 28px; height: 28px; border-radius: 50%; background: var(--c); border: 2px solid rgba(0,0,0,.15); cursor: pointer; }
+.taller .tl-sw.on { outline: 3px solid var(--gold); outline-offset: 2px; }
+.taller .tl-name { width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,.2); font: inherit; }
+.taller .tl-right { display: flex; flex-direction: column; min-height: 0; }
+.taller .tl-form { flex: 1; min-height: 0; }
+.taller .tl-buy { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0 0; border-top: 1px solid rgba(0,0,0,.08); }
+.shop-top .btn { white-space: nowrap; font-size: 17px; padding: 12px 22px; }
+.taller #tl-sew { font-size: 20px; padding: 12px 26px; }
+
+.taller .tl-fit { font-size: 13px; }
+.taller .tl-fit.ok { color: #1f8a3a; font-weight: 700; }
+.taller .tl-fit.ko { color: #b3122a; font-weight: 700; }
+.taller .tl-sewing { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; flex: 1; }
+.taller .tl-sewing .tl-doll svg { height: 360px; }
+.taller .tl-step { font-size: 18px; font-weight: 700; }
+@media (max-width: 900px) { .taller .tl-grid { grid-template-columns: 1fr; overflow-y: auto; } .taller .tl-doll svg { height: 240px; } }
+
+.taller .tl-boceto { position: relative; background: #fffdf6; border-radius: 18px; padding: 10px 8px; border: 1px dashed #d8c9a8; }
+.taller .tl-boceto svg { filter: saturate(.85) drop-shadow(0 6px 8px rgba(59,13,79,.2)); }
+.taller .tl-tag { position: absolute; top: 8px; left: 10px; font-size: 12px; color: #8a6d3b; font-weight: 700; }
+.taller .sg { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; min-height: 0; }
+.taller .sg-head { text-align: center; }
+.taller .sg-head h3 { margin: 0; font: 900 24px Poppins, sans-serif; }
+.taller .sg-head p { margin: 4px 0 0; font-size: 14px; }
+.taller #sg-cv { width: 760px; max-width: 100%; height: auto; border-radius: 16px; touch-action: none; cursor: crosshair; box-shadow: 0 10px 24px -10px rgba(59,13,79,.5); }
+.taller .sg-bar { width: 760px; max-width: 100%; height: 10px; border-radius: 99px; background: #f1e3ee; overflow: hidden; }
+.taller .sg-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--pink), #b23cff); transition: width .2s; }
+.taller .tl-photo { position: relative; width: 250px; height: 360px; border-radius: 18px; overflow: hidden; border: 3px solid #ffcf4d; background: #fff0f7; display: grid; place-items: center; flex-shrink: 0; }
+.taller .tl-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s; }
+.taller .tl-photo.ok img { opacity: 1; }
+.taller .tl-photo .tl-sketch { display: none; }
+.taller .tl-photo.ko .tl-sketch { display: block; }
+.taller .tl-photo.ko .tl-sketch svg { height: 330px; width: auto; }
+.taller .tl-photo.ok .ia-dots, .taller .tl-photo.ok small, .taller .tl-photo.ko .ia-dots, .taller .tl-photo.ko small { display: none; }
+.taller .tl-photo small { position: absolute; bottom: 12px; left: 10px; right: 10px; font-size: 12px; color: #8a5a78; text-align: center; }
+.rw-lookcard { position: absolute; left: 22px; top: 70px; width: 170px; padding: 8px 8px 10px; background: #fff; border-radius: 6px; transform: rotate(-4deg); box-shadow: 0 12px 26px rgba(0,0,0,.45); z-index: 3; text-align: center; }
+.rw-lookcard img { width: 100%; height: 220px; object-fit: cover; border-radius: 3px; background: #fff0f7; }
+.rw-lookcard b { display: block; margin-top: 6px; font-size: 12px; line-height: 1.2; color: #3b0d4f; }
+@media (max-width: 900px) { .rw-lookcard { width: 110px; } .rw-lookcard img { height: 140px; } }
+.rw-lookcard img.sk { object-fit: contain; }
+.taller .tl-3d { width: 250px; height: 380px; display: grid; place-items: center; }
+.taller .tl-3d canvas { width: 100% !important; height: 100% !important; cursor: grab; border-radius: 14px; }
+.taller .tl-3d canvas:active { cursor: grabbing; }
+.taller .tl-3d.big { width: 300px; height: 400px; }
+.taller .tl-hint { font-size: 11px; }
+.taller .tl-result { display: flex; gap: 18px; align-items: center; justify-content: center; }
+.taller .tl-result .tl-photo { width: 200px; height: 290px; }
+.taller .tl-result .tl-photo.ko { display: none; }
+.taller .tl-boceto { background: radial-gradient(circle at 50% 35%, #ffffff, #f6e6f0 70%); border-style: solid; border-color: #f0d8e6; }

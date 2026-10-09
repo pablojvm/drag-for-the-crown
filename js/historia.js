@@ -88,7 +88,7 @@ const Story = (() => {
     run: (el, done) => runSnatch(el, done, COMEDIA, "🎙️ Tu monólogo", "Chiste"),
   };
   RETOS.roast = {
-    titulo: () => "El roast de Supreme",
+    titulo: () => "El roast de Supremme",
     desc: "Toca asar a las juezas y a tus compañeras. Elige el remate más afilado sin pasarte de la raya.",
     ctrl: "Clic o teclas 1, 2 y 3",
     run: (el, done) => runSnatch(el, done, ROAST, "🔥 El roast", "Remate"),
@@ -125,10 +125,10 @@ const Story = (() => {
   };
   // Catálogo del reto semanal (como en el programa)
   RETOS.snatch.titulo = () => "Snatch Game";
-  RETOS.snatch.desc = "La prueba reina de la temporada. Imita a un personaje de la cultura popular y responde con humor e improvisación a las preguntas de Supreme. Cada respuesta tiene que sonar a TU personaje.";
+  RETOS.snatch.desc = "La prueba reina de la temporada. Imita a un personaje de la cultura popular y responde con humor e improvisación a las preguntas de Supremme. Cada respuesta tiene que sonar a TU personaje.";
   RETOS.roast = {
-    titulo: () => pick1(["El Roast: el rapapolvos a Supreme", "El Roast: rapapolvos al jurado", "El Roast: homenaje con cuchillo"]),
-    desc: "Monólogo de comedia afilado. Elige el remate más punzante (sin pasarte de la raya) para Supreme, el jurado y tus compañeras.",
+    titulo: () => pick1(["El Roast: el rapapolvos a Supremme", "El Roast: rapapolvos al jurado", "El Roast: homenaje con cuchillo"]),
+    desc: "Monólogo de comedia afilado. Elige el remate más punzante (sin pasarte de la raya) para Supremme, el jurado y tus compañeras.",
     ctrl: "Clic o teclas 1, 2 y 3",
     run: (el, done) => runSnatch(el, done, [...ROAST, ...COMEDIA], "🔥 El rapapolvos", "Remate", 6),
   };
@@ -169,7 +169,7 @@ const Story = (() => {
   };
   const DC = "Clic o teclas 1, 2, 3 y 4";
   Object.assign(RETOS.snatch, { run: (el, d) => mxSnatch(el, d), attrs: ["comedia", "carisma"], ctrl: DC,
-    desc: "Imita a un personaje en el plató de Supreme. Controla la barra de Foco: si pasa de 80 interrumpes, si baja de 30 no existes. Elige entre comedia absurda, réplica a una rival o respuesta segura, y roba la atención cuando otra falle." });
+    desc: "Imita a un personaje en el plató de Supremme. Controla la barra de Foco: si pasa de 80 interrumpes, si baja de 30 no existes. Elige entre comedia absurda, réplica a una rival o respuesta segura, y roba la atención cuando otra falle." });
   Object.assign(RETOS.ball, { run: (el, d) => mxBall(el, d), attrs: ["estilo"], ctrl: DC, noRunway: true,
     titulo: () => (S && S.season ? currentBall().n : "El Ball"),
     desc: "" });
@@ -207,7 +207,7 @@ const Story = (() => {
   const BALLS = [
     { id: "elementos", n: "El Baile de los Elementos", c: [["Fuego", "Edgy", "Llamas, calor y peligro"], ["Agua", "Glamour", "Fluidez, brillo y profundidad"], ["Eleganza de Tierra", "Folclórico", "Cosida en el taller con arpillera, corcho, hojas secas y piedras"]] },
     { id: "primarios", n: "El Baile de los Colores Primarios", c: [["Rojo", "Glamour", "Todo rojo, de pies a cabeza"], ["Azul", "Edgy", "Azul en todas sus versiones"], ["Eleganza Amarilla", "Camp", "Cosida en el taller con chubasqueros, cinta de balizar y patitos de goma"]] },
-    { id: "suenos", n: "El Baile de los Sueños", c: [["Dulces sueños", "Glamour", "La fantasía más bonita"], ["Pesadilla", "Edgy", "Lo que te despierta de madrugada"], ["Eleganza del Despertar", "Camp", "Cosida en el taller con pijamas, sábanas y antifaces"]] },
+    { id: "suenos", n: "El Baile de los Sueños", c: [["Dulces sueños", "Camp", "La fantasía más dulce y exagerada"], ["Pesadilla", "Edgy", "Lo que te despierta de madrugada"], ["Eleganza del Despertar", "Camp", "Cosida en el taller con pijamas, sábanas y antifaces"]] },
     { id: "tiempo", n: "El Baile del Tiempo", c: [["Pasado", "Folclórico", "Una época que ya no existe"], ["Presente", "Glamour", "El ahora, con todo su brillo"], ["Eleganza del Futuro", "Futurista", "Cosida en el taller con papel de aluminio, cables y CDs"]] },
     { id: "mar", n: "El Baile del Mar", c: [["Sirena", "Glamour", "La reina de las profundidades"], ["Marinera", "Folclórico", "Puerto, rayas y salitre"], ["Eleganza de Lonja", "Camp", "Cosida en el taller con redes, boyas y cajas de pescado"]] },
     { id: "pecados", n: "El Baile de los Pecados", c: [["Lujuria", "Glamour", "Tentación sin disimulo"], ["Envidia", "Edgy", "Verde, venenosa y con razón"], ["Eleganza de la Soberbia", "Camp", "Cosida en el taller con espejos, oro falso y coronas de cartón"]] },
@@ -232,37 +232,37 @@ const Story = (() => {
   RETOS.lalaparuza.noRunway = true;
   const ORDEN_RETOS = ["snatch", "roast", "ball", "diseno", "rusical", "actuacion", "equipos", "makeover", "impro", "publicidad", "lalaparuza"];
 
-  // Miniretos: dan ventaja para el reto de la semana
+  // Minirretos: dan ventaja para el reto de la semana
   const MINIRETOS = {
     lectura: {
-      titulo: () => "Minireto: Reading is Fundamental",
+      titulo: () => "Minirreto: Reading is Fundamental",
       desc: "Gafas de lectura puestas. La biblioteca está abierta: suelta el chascarrillo más afilado (y con cariño) a cada compañera.",
       ctrl: "Clic o teclas 1, 2 y 3",
       run: (el, done) => runSnatch(el, done, LECTURAS, "📚 La biblioteca", "Lectura", 4),
     },
     fotocall: {
-      titulo: () => pick1(["Minireto: fotocall extremo (con viento)", "Minireto: fotocall extremo (bajo el agua)", "Minireto: fotocall extremo (en el barro)"]),
+      titulo: () => pick1(["Minirreto: fotocall extremo (con viento)", "Minirreto: fotocall extremo (bajo el agua)", "Minirreto: fotocall extremo (en el barro)"]),
       desc: "Ventiladores, cubos de agua y barro. Toca tu foto cuando dispare el fotógrafo... y esquiva los chorros sin perder el tipo.",
       ctrl: "Clic o toca las casillas",
       run: (el, done) => runFotos(el, done, pick1(["💦", "🌪️", "🟤"]), 16, "¡Chorro en toda la cara! 💦"),
     },
     pitcrew: {
-      titulo: () => "Minireto: el Pit Crew",
+      titulo: () => "Minirreto: el Pit Crew",
       desc: "Los chicos del Pit Crew esconden los accesorios. Encuentra las parejas antes de que acabe el tiempo (y sin distraerte).",
       ctrl: "Clic o toca las cartas",
       run: (el, done) => runMemoria(el, done, ["💪", "🕶️", "🧢", "🩳", "🏋️", "🥤"], 35, "Encuentra las parejas del Pit Crew"),
     },
   };
   Object.assign(MINIRETOS, {
-    posado: { titulo: () => "Minireto: posado exprés", desc: "Clava cada pose cuando el foco pase por la zona dorada.", ctrl: "Espacio, clic o ¡POSE!", run: (el, d) => runPasarela(el, d, 5, "Posado exprés") },
-    coreo: { titulo: () => "Minireto: coreografía relámpago", desc: "Repite los pasos de la coreógrafa en el mismo orden.", ctrl: "Flechas o toca las flechas", run: runBaile },
-    caza: { titulo: () => "Minireto: caza de materiales", desc: "Recoge lo bueno y esquiva las tijeras.", ctrl: "Flechas ← → o arrastra", run: (el, d) => runDiseno(el, d, null, 15) },
-    karaoke: { titulo: () => "Minireto: karaoke a ritmo", desc: "Pulsa cada nota justo cuando llegue a la línea.", ctrl: "D F J K o toca los carriles", run: runRusical },
-    carta: { titulo: () => "Minireto: copia la carta de maquillaje", desc: "Memoriza la carta y reprodúcela zona por zona.", ctrl: "Clic en los colores", run: runMaquillaje },
-    guion: { titulo: () => "Minireto: memoriza el guion", desc: "Recuerda la palabra que falta en cada frase.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => { const t = S.team; runGuion(el, (sc) => { S.team = t; d(sc); }); } },
-    flash: { titulo: () => "Minireto: ¡flash!", desc: "Pulsa en cuanto salte el flash (ni antes ni tarde).", ctrl: "Espacio o clic", run: (el, d) => runMiniFlash(el, "¡Flash!", d) },
-    preguntas: { titulo: () => "Minireto: preguntas rápidas", desc: "La respuesta más graciosa, y rápido.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => runSnatch(el, d, PREGUNTAS, "🎤 Supreme", "Pregunta", 4) },
-    estilismo: { titulo: () => "Minireto: estilismo exprés", desc: "Monta un look con peluca, look, zapatos y accesorio en 30 segundos... y desfílalo.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => runEstilismo(el, pick1(CATEGORIAS), d, 2) },
+    posado: { titulo: () => "Minirreto: posado exprés", desc: "Clava cada pose cuando el foco pase por la zona dorada.", ctrl: "Espacio, clic o ¡POSE!", run: (el, d) => runPasarela(el, d, 5, "Posado exprés") },
+    coreo: { titulo: () => "Minirreto: coreografía relámpago", desc: "Repite los pasos de la coreógrafa en el mismo orden.", ctrl: "Flechas o toca las flechas", run: runBaile },
+    caza: { titulo: () => "Minirreto: caza de materiales", desc: "Recoge lo bueno y esquiva las tijeras.", ctrl: "Flechas ← → o arrastra", run: (el, d) => runDiseno(el, d, null, 15) },
+    karaoke: { titulo: () => "Minirreto: karaoke a ritmo", desc: "Pulsa cada nota justo cuando llegue a la línea.", ctrl: "D F J K o toca los carriles", run: runRusical },
+    carta: { titulo: () => "Minirreto: copia la carta de maquillaje", desc: "Memoriza la carta y reprodúcela zona por zona.", ctrl: "Clic en los colores", run: runMaquillaje },
+    guion: { titulo: () => "Minirreto: memoriza el guion", desc: "Recuerda la palabra que falta en cada frase.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => { const t = S.team; runGuion(el, (sc) => { S.team = t; d(sc); }); } },
+    flash: { titulo: () => "Minirreto: ¡flash!", desc: "Pulsa en cuanto salte el flash (ni antes ni tarde).", ctrl: "Espacio o clic", run: (el, d) => runMiniFlash(el, "¡Flash!", d) },
+    preguntas: { titulo: () => "Minirreto: preguntas rápidas", desc: "La respuesta más graciosa, y rápido.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => runSnatch(el, d, PREGUNTAS, "🎤 Supremme", "Pregunta", 4) },
+    estilismo: { titulo: () => "Minirreto: estilismo exprés", desc: "Monta un look con peluca, look, zapatos y accesorio en 30 segundos... y desfílalo.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => runEstilismo(el, pick1(CATEGORIAS), d, 2) },
   });
   const ORDEN_MINI = Object.keys(MINIRETOS);
 
@@ -299,7 +299,7 @@ const Story = (() => {
     S.pacts = {};
     rivals.forEach((q) => { const f = Nem.feel(q.id, queen.id); if (f) S.rel[q.id] = clamp(Math.round(f * 0.6), -3, 3); });
     const hated = rivals.filter((q) => Nem.feel(q.id, queen.id) <= -3).sort((a, b) => Nem.feel(a.id, queen.id) - Nem.feel(b.id, queen.id))[0];
-    if (hated) S.nemesis = { id: hated.id, origin: "historia", heat: 6, ep: 0, announced: false };
+    if (hated && NEMESIS_ON) S.nemesis = { id: hated.id, origin: "historia", heat: 6, ep: 0, announced: false };
     S.runwayIdx = 0;
     Achievements.unlock("debut");
     UI.show("story");
@@ -354,7 +354,7 @@ const Story = (() => {
         <div>
           <p class="eyebrow">${esc(se.franchise.name)} · ${esc(se.name)}</p>
           <h3>${esc(q.name)}</h3>
-          <p>Vas por el episodio ${d.phase && d.phase.ep === d.ep ? `${d.ep} (${d.phase.stage === "mini" ? "después del minireto" : "en los resultados"})` : d.ep + 1}. Quedan ${d.rivals.length + (d.meOut ? 0 : 1)} reinas en la competición.</p>
+          <p>Vas por el episodio ${d.phase && d.phase.ep === d.ep ? `${d.ep} (${d.phase.stage === "mini" ? "después del minirreto" : "en los resultados"})` : d.ep + 1}. Quedan ${d.rivals.length + (d.meOut ? 0 : 1)} reinas en la competición.</p>
           <p class="muted">${Math.round(d.points).toLocaleString("es-ES")} puntos · ${d.wins} retos ganados</p>
           <div class="row">
             <button class="btn btn-ghost" id="story-new">Nueva historia</button>
@@ -743,7 +743,7 @@ const Story = (() => {
   // --------------------------- Relaciones ----------------------------------
   // -3 (enemiga) ... +3 (aliada). Aliada >= 2, enemiga <= -2
   const relOf = (q) => (q && S.rel[q.id]) || 0;
-  const relLabel = (q) => { const r = relOf(q); return r >= 2 ? "💞 Aliada" : r >= 1 ? "Buena relación" : r <= -2 ? "🗡️ Enemiga" : r <= -1 ? "Tensión" : "Neutral"; };
+  const relLabel = (q) => { const r = relOf(q); return r >= 2 ? "💞 Aliada" : r >= 1 ? "Buena relación" : r <= -2 ? "😒 Mala relación" : r <= -1 ? "Tensión" : "Neutral"; };
   const allies = () => S.rivals.filter((q) => relOf(q) >= 2);
   const enemies = () => S.rivals.filter((q) => relOf(q) <= -2);
   function changeRel(q, d) {
@@ -752,7 +752,7 @@ const Story = (() => {
     const after = clamp(before + d, -3, 3);
     S.rel[q.id] = after;
     if (after >= 2 && before < 2) Toast.show(`💞 ${q.name} es tu aliada`, "Te echará un cable en los retos");
-    else if (after <= -2 && before > -2) Toast.show(`🗡️ ${q.name} va a por ti`, "Cuidado con ella");
+    else if (after <= -2 && before > -2) Toast.show(`😒 Con ${q.name} no hay buen rollo`, "Lo vais a notar en el taller");
     else if (after > before) Toast.show(`💗 ${q.name}`, "Os lleváis un poco mejor");
     else if (after < before) Toast.show(`💢 ${q.name}`, "Se ha enfriado la cosa");
     if (allies().length >= 3) Achievements.unlock("aliadas");
@@ -764,7 +764,9 @@ const Story = (() => {
   }
   // Nivel de cada rival: sale de sus estadísticas, su racha y el azar del día
   const skillOf = (q) => 48 + Object.values(q.stats).reduce((a, b) => a + b, 0) * 2.2;
-  const rivalScore = (q) => clamp(skillOf(q) + (S.form[q.id] || 0) + traitMod(q) + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) : 0) + rnd(-22, 14), 5, 99);
+  // Cada temporada de la franquicia es algo más dura que la anterior
+  const seasonBoost = () => Math.min(10, ((S.season && S.season.index) || 0) * 2);
+  const rivalScore = (q) => clamp(skillOf(q) + seasonBoost() + clamp(S.form[q.id] || 0, -8, 8) + traitMod(q) + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) : 0) + rnd(-22, 14), 5, 99);
 
   function header() {
     $("#story-season").textContent = `Modo historia · ${S.season.name} · ${seasonInfo().lema || S.season.franchise.name}`;
@@ -800,9 +802,9 @@ const Story = (() => {
   }
 
   // --------------------------- Críticas del jurado --------------------------
-  function buildCritique(score, verdict) {
+  function buildCritique(score, verdict, forced) {
     const rs = S.lastParts ? S.lastParts.reto : score;
-    const nivel = rs >= 75 ? "top" : rs >= 50 ? "mid" : "low";
+    const nivel = forced || (rs >= 75 ? "top" : rs >= 50 ? "mid" : "low");
     const bank = (JURADO.reto[S.curTipo] || JURADO.reto.pasarela)[nivel];
     // El look de pasarela no siempre va a la par que el reto
     const w = S.lastParts && S.lastParts.pasarela;
@@ -813,10 +815,10 @@ const Story = (() => {
     const a = ["host", pickFresh(bank)];
     const lk = S.lastLook;
     const b = ["judge", lk && Math.random() < 0.7 ? pickFresh(ESTILO_CRITICA[lookN]).replace("{pieza}", (lookN === "top" ? lk.best : lk.worst).toLowerCase()).replace("{cat}", lk.cat) : pickFresh(JURADO.pasarela[lookN])];
-    lines.push(a, [b[0], `${pickFresh(JURADO.aperturaAna)} ${b[1].replace(/^./, (c) => c.toLowerCase())}`]);
+    lines.push(a, [b[0], `${pickFresh(JURADO.aperturaAna)} ${b[1]}`]);
     if (Math.random() < 0.55) lines.push(...pickFresh(JAVIS.critica[nivel]));
-    if (score >= 90 && (verdict === "win" || verdict === "none")) lines.push(["judge", "Hoy has puesto el listón altísimo para las demás."]);
-    if (score < 30) lines.push(["host", "Tienes que despertar, {yo}. Esto se acaba."]);
+    if (score >= 90 && (verdict === "win" || verdict === "none")) lines.push(["judge", "Has subido el nivel esta semana."]);
+    if (score < 30) lines.push(["host", "Hoy te he visto despistada, {yo}."]);
     if (Math.random() < 0.85) lines.push(...personalCrit());
     if (JURADO.veredicto[verdict]) lines.push(["host", pickFresh(JURADO.veredicto[verdict])]);
     return lines;
@@ -905,7 +907,7 @@ const Story = (() => {
     $("#track-next").addEventListener("click", then);
   }
 
-  // Puntos de control dentro del episodio: tras el minireto y tras reto + pasarela
+  // Puntos de control dentro del episodio: tras el minirreto y tras reto + pasarela
   function checkpoint(stage, extra = {}) {
     S.phase = { ep: S.ep, stage, advice: S.advice, runwayBonus: S.runwayBonus || 0, captains: S.captains ? S.captains.map((q) => keyOf(q)) : null, ...extra };
     save();
@@ -1067,16 +1069,18 @@ const Story = (() => {
         <p class="muted">Solo te da tiempo a una conversación antes del reto. Pincha en una compañera.</p>
         ${(() => { const r = radioLines(); return r.length ? `<div class="radio">${r.map((t) => `<p>📻 ${esc(t)}</p>`).join("")}</div>` : ""; })()}
         <div class="wr-room">${werkroomTables()
-          .map((t, i) => `<div class="wr-table ${t.mine ? "mine" : ""}" style="--i:${i}"><div class="wr-seats">${t.qs.map(seatHTML).join("")}</div><div class="wr-desk"><span>${esc(t.name)}</span></div></div>`)
+          .map((t, i) => `<div class="wr-table ${t.mine ? "mine" : ""}" style="--i:${i}"><div class="wr-seats">${t.qs.map(seatHTML).join("")}</div><div class="wr-desk"><span>${esc(t.name)}</span>${IA.ready() && t.qs.filter((q) => q !== S.queen).length >= 2 ? `<button class="wr-join" data-t="${i}">💬 Sentarte con ellas</button>` : ""}</div></div>`)
           .join("")}</div>
         <p class="attr-row">Tus atributos: ${attrChips(Object.keys(ATTR_NAMES))}</p>
         <div class="row"><button class="btn btn-ghost" id="hub-skip">🎯 Concentrarme en mi reto</button>${trackBtn()}</div>
       </div>`;
     bindTrack();
     body().querySelectorAll(".hub-q").forEach((b) => b.addEventListener("click", () => approach(qById(b.dataset.id), then)));
+    const tables = werkroomTables();
+    body().querySelectorAll(".wr-join").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); groupTalk(tables[+b.dataset.t].qs.filter((q) => q !== S.queen), then, `el taller, en la mesa «${tables[+b.dataset.t].name}», mientras trabajan en el reto de la semana`); }));
     $("#hub-skip").addEventListener("click", () => {
-      S.advice += 3;
-      Toast.show("🎯 Concentrada", "+3 en el próximo reto");
+      S.advice += 5;
+      Toast.show("🎯 Concentrada", "+5 en el próximo reto");
       then();
     });
   }
@@ -1122,7 +1126,7 @@ const Story = (() => {
     if (kind === "debil") {
       const t = traitsOf(q), w = RASGOS.deb[t.deb];
       return scene("talkInner", [["me", `Oye, ${q.name}... ¿qué tal llevas lo tuyo? Ya sabes: ${w.n.toLowerCase()}.`], ["r1", pick1(["¿Perdona? ¿A qué viene eso?", "Qué baja has caído, {yo}.", "...No me hables."])]], { ...ctx, tension: true }, () => {
-        S.form[q.id] = (S.form[q.id] || 0) - (t.deb === "provocable" ? 9 : 6);
+        S.form[q.id] = clamp((S.form[q.id] || 0) - (t.deb === "provocable" ? 6 : 4), -8, 8);
         S.points += 300;
         changeRel(q, -1);
         if (isNem(q)) heat(2);
@@ -1170,7 +1174,7 @@ const Story = (() => {
       after = () => {
         changeRel(q, -1);
         S.points += 150;
-        S.form[q.id] = (S.form[q.id] || 0) - (rl === "sensible" ? 6 : 3); // la pone nerviosa
+        S.form[q.id] = clamp((S.form[q.id] || 0) - (rl === "sensible" ? 4 : 2), -8, 8); // la pone nerviosa
         if (rl === "villana") S.advice -= 2; // y ella te la devuelve
       };
     }
@@ -1193,13 +1197,13 @@ const Story = (() => {
     return ord[(S.ep - 1) % ord.length];
   }
 
-  // ------------------------------ Minireto ----------------------------------
-  // Cada episodio empieza con un minireto que da ventaja para el reto de la semana
+  // ------------------------------ Minirreto ----------------------------------
+  // Cada episodio empieza con un minirreto que da ventaja para el reto de la semana
   const VENTAJAS = [
-    { id: "ventaja", txt: "+6 en el reto de la semana", apply: () => (S.advice += 6) },
-    { id: "puntos", txt: "+600 puntos", apply: () => (S.points += 600) },
-    { id: "pasarela", txt: "+8 en la pasarela", apply: () => (S.runwayBonus = 8) },
-    { id: "eleccion", txt: "eliges primero en el reto: +4 y los mejores materiales", apply: () => (S.advice += 4) },
+    { id: "ventaja", txt: "una ventaja en el reto de la semana", apply: () => (S.advice += 6) },
+    { id: "puntos", txt: "un premio en metálico para el armario", apply: () => { S.points += 600; earn(150, "Premio del minirreto"); } },
+    { id: "pasarela", txt: "una ventaja en la pasarela", apply: () => (S.runwayBonus = 16) },
+    { id: "eleccion", txt: "elegir primero en el reto y quedarse los mejores materiales", apply: () => (S.advice += 4) },
   ];
   function miniChallenge(then) {
     setSet("werkroom");
@@ -1213,13 +1217,13 @@ const Story = (() => {
     const titulo = mini.titulo();
     const premio = team ? { id: "capitana", txt: "ser capitana y elegir equipo para el reto de esta semana" } : VENTAJAS[(S.ep + S.season.cast.length) % VENTAJAS.length];
     const javis = Math.random() < 0.35;
-    const intro = javis ? [...pickFresh(JAVIS.mini), ["calvo", `Hoy: ${titulo.replace("Minireto: ", "")}. La ganadora se lleva ${premio.txt}.`]] : [["host", pick1(["¡Reinas, empezamos con un minireto!", "Antes del gran reto... ¡minireto!", "Quitaos las batas, que hay minireto."])], ["host", `Hoy: ${titulo.replace("Minireto: ", "")}. La ganadora se lleva ${premio.txt}.`]];
+    const intro = javis ? [...pickFresh(JAVIS.mini), ["calvo", `Hoy: ${titulo.replace("Minirreto: ", "")}. La ganadora se lleva ${premio.txt}.`]] : [["host", pick1(["¡Reinas, empezamos con un minirreto!", "Antes del gran reto... ¡minirreto!", "Quitaos las batas, que hay minirreto."])], ["host", `Hoy: ${titulo.replace("Minirreto: ", "")}. La ganadora se lleva ${premio.txt}.`]];
     dialog(intro, ctxWith(pick1(S.rivals)), () => {
       body().innerHTML = `
         <div class="story-card intro">
           <img class="story-queen" src="${sprite(S.queen)}" alt="">
           <div>
-            <p class="eyebrow">⚡ Minireto · premio: ${esc(premio.txt)}</p>
+            <p class="eyebrow">⚡ Minirreto · premio: ${esc(premio.txt)}</p>
             <h3>${esc(titulo)}</h3>
             <p>${mini.desc}</p>
             <p class="muted">🎮 ${mini.ctrl}</p>
@@ -1239,19 +1243,19 @@ const Story = (() => {
           S.miniWin = win.me ? "me" : win.q.id;
           if (team) S.captains = [sc[0].q, sc[1].q];
           else if (win.me) premio.apply();
-          if (win.me) earn(100, "Premio del minireto");
+          if (win.me) earn(100, "Premio del minirreto");
           else S.form[win.q.id] = clamp((S.form[win.q.id] || 0) + 3, -10, 10);
           if (win.me) Confetti.burst(1500);
           header();
           body().innerHTML = `
             <div class="story-card">
               <p class="eyebrow">⚡ ${esc(titulo)} · resultados</p>
-              <h3>${win.me ? "¡Ganas el minireto! ⚡" : `${esc(win.q.name)} gana el minireto`}</h3>
+              <h3>${win.me ? "¡Ganas el minirreto! ⚡" : `${esc(win.q.name)} gana el minirreto`}</h3>
               <p class="${win.me ? "gold" : "muted"}">${team ? `Capitanas: <b>${esc(sc[0].me ? "tú" : sc[0].q.name)}</b> y <b>${esc(sc[1].me ? "tú" : sc[1].q.name)}</b>.` : win.me ? `Premio: ${esc(premio.txt)}.` : `Se lleva ${esc(premio.txt)}.`}</p>
               <ol class="ranking">${sc.slice(0, 5)
-                .map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}</span>${k === 0 ? `<b class="tag win">Ganadora</b>` : team && k === 1 ? `<b class="tag win">Capitana</b>` : ""}<em>${r.s}</em></li>`)
+                .map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}</span>${k === 0 ? `<b class="tag win">Ganadora</b>` : team && k === 1 ? `<b class="tag win">Capitana</b>` : ""}</li>`)
                 .join("")}</ol>
-              ${sc.slice(0, 5).some((r) => r.me) ? "" : `<p class="muted">Tú: ${sc.find((r) => r.me).s} puntos · puesto ${sc.findIndex((r) => r.me) + 1}º</p>`}
+
               <button class="btn btn-primary" id="story-next">Continuar</button>
             </div>`;
           checkpoint("mini");
@@ -1278,7 +1282,7 @@ const Story = (() => {
     dialog(pickFresh(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => (grouped ? formChallengeGroups(reto.groups, go) : reto.team && S.rivals.length >= 3 ? caps() : go()));
   }
 
-  // Parejas o grupos para el reto. Si has ganado el minireto, eliges tú a tus compañeras; si no, las reparte Supreme
+  // Parejas o grupos para el reto. Si has ganado el minirreto, eliges tú a tus compañeras; si no, las reparte Supremme
   const GROUP_NAMES = ["Rosa", "Oro", "Turquesa", "Lila", "Coral", "Esmeralda"];
   const groupWord = (size) => (size === 2 ? "Pareja" : "Grupo");
   function formChallengeGroups(size, then) {
@@ -1304,13 +1308,13 @@ const Story = (() => {
       $("#story-next").addEventListener("click", then);
     };
     if (S.miniWin !== "me") return finish([S.queen, ...shuffle(S.rivals).slice(0, size - 1)]);
-    // Has ganado el minireto: eliges tú
+    // Has ganado el minirreto: eliges tú
     const mine = [S.queen];
     const pickScreen = () => {
       if (mine.length >= size) return finish(mine);
       body().innerHTML = `
         <div class="story-card">
-          <p class="eyebrow">Has ganado el minireto</p>
+          <p class="eyebrow">Has ganado el minirreto</p>
           <h3>${size === 2 ? "Elige a tu pareja" : `Elige a tu grupo (${mine.length}/${size})`}</h3>
           <div class="hub-grid">${S.rivals.filter((q) => !mine.includes(q)).map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}</button>`).join("")}</div>
         </div>`;
@@ -1320,6 +1324,9 @@ const Story = (() => {
   }
 
   function challengeIntro(reto, titulo, tipo, onScore) {
+    S.curPieces = null;
+    S.ballCtx = null;
+    [mxSnatch, mxActing, mxRusical, mxGirlGroups, mxMateriales, mxMakeover, mxImpro, mxPublicidad, mxRoast].forEach((f) => (f.classic = false));
     body().innerHTML = `
       <div class="story-card intro">
         <img class="story-queen" src="${sprite(S.queen)}" alt="">
@@ -1327,6 +1334,7 @@ const Story = (() => {
           <p class="eyebrow">${S.cGroups && S.team ? `${S.team.length === 1 ? "Tu pareja" : "Tu grupo"}: ${S.team.map((q) => esc(q.name)).join(" y ")}` : S.team ? `Equipo Rosa · ${S.team.length + 1} reinas` : `Quedan ${S.rivals.length + 1} reinas`}</p>
           <h3>${esc(titulo)}</h3>
           <p>${reto.desc}</p>
+          ${S.rivals.length + 1 === 5 ? `<p class="twist-note">🎟️ Último reto antes de la final: la ganadora se lleva un pase directo a la gran final y no tendrá que pasar por la Súper Lalaparuza.</p>` : ""}
           <p class="muted">🎮 ${reto.ctrl}</p>
           ${reto.attrs ? `<p class="attr-row">Cuentan: ${attrChips(reto.attrs)}</p>` : ""}
           <button class="btn btn-primary" id="story-go">¡Empezar!</button>
@@ -1335,6 +1343,7 @@ const Story = (() => {
     $("#story-go").addEventListener("click", () => {
       body().innerHTML = `<div id="story-play"></div>`;
       if (reto.noRunway) S.lastLook = null; // el look del reto es el de esta semana
+      if (reto.noRunway && S.runwayBonus) { S.advice += 6; S.runwayBonus = 0; }
       Music.play("reto");
       reto.run($("#story-play"), (raw) => {
         cleanup = null;
@@ -1342,7 +1351,7 @@ const Story = (() => {
         Music.stop();
         if (raw >= 95) Achievements.unlock("perfecta");
         const pactB = S.team ? S.team.filter((q) => S.pacts && S.pacts[q.id]).length * 3 : 0;
-        const bonus = relBonus() + S.advice - (S.helped ? 4 : 0) + pactB;
+        const bonus = clamp(relBonus() + S.advice - (S.helped ? 4 : 0) + pactB, -12, 12);
         S.lastBonus = bonus;
         const close = (walk) => {
           S.lastParts = { reto: Math.round(raw), pasarela: walk === null ? null : Math.round(walk) };
@@ -1383,7 +1392,7 @@ const Story = (() => {
           <p class="eyebrow">👠 Pasarela de la semana</p>
           <h3>${tema ? "Temática" : "Categoría"}: «${esc(cat)}»</h3>
           ${tema ? `<p><i>${esc(tema.d)}</i></p>` : ""}
-          <p>Prepara el look con lo que tienes en tu armario: ${tema ? "el look que mejor encaje con la temática, " : "outfit, "}peluca y accesorios/maquillaje. Cuanto más espectacular (★), más puntúa; el movimiento (👣) ayuda en el desfile. Cada pieza tiene una etiqueta oculta (Glamour, Camp, Edgy, Folclórico, Futurista): si las tres coinciden, x1,5. Después, el desfile: paso, final y frase de cierre.${S.runwayBonus ? ` <b class="gold">Ventaja del minireto: +${S.runwayBonus}</b>` : ""}</p>
+          <p>Prepara el look con lo que tienes en tu armario: ${tema ? "el look que mejor encaje con la temática, " : "outfit, "}peluca y accesorios/maquillaje. Cuanto más espectacular (★), más puntúa; el movimiento (👣) ayuda en el desfile. Cada pieza tiene una etiqueta oculta (Glamour, Camp, Edgy, Folclórico, Futurista): si las tres coinciden, x1,5. Después, el desfile: paso, final y frase de cierre.${S.runwayBonus ? ` <b class="gold">Ventaja del minirreto: +${S.runwayBonus}</b>` : ""}</p>
           <p class="muted">🎮 Clic o teclas 1, 2, 3 y 4 · ${attrChips(["estilo", "performance", "carisma"])}</p>
           <button class="btn btn-primary" id="story-go">¡A la pasarela!</button>
         </div>
@@ -1403,12 +1412,14 @@ const Story = (() => {
   // Resultado de la semana: todo sale de las notas del día (nada predefinido)
   function results(myScore, titulo) {
     setSet("panel");
-    const sc = {};
-    S.rivals.forEach((q) => (sc[q.id] = rivalScore(q)));
+    let sc = {};
+    if (S.phase && S.phase.ep === S.ep && S.phase.sc) sc = { ...S.phase.sc };
+    S.rivals.forEach((q) => { if (sc[q.id] == null) sc[q.id] = rivalScore(q); });
+    if (S.phase && S.phase.ep === S.ep && !S.phase.sc) { S.phase.sc = { ...sc }; save(); }
     let teamLine = "";
     let winTeam = null;
     const teamOf = {};
-    if (S.team && !S.cGroups) {
+    if (S.team && !S.cGroups && (RETOS[S.curTipo] || {}).team) {
       const A = [S.queen, ...S.team], B = S.rivals.filter((q) => !S.team.includes(q));
       const val = (q) => (q === S.queen ? myScore : sc[q.id]);
       const avg = (T) => T.reduce((a, q) => a + val(q), 0) / Math.max(1, T.length);
@@ -1442,7 +1453,8 @@ const Story = (() => {
     const winner = rows[0];
     const tw = twistOf();
     // T6: bottom de tres (luego decide la moneda)
-    const nb = tw === "moneda" && n >= 6 ? 3 : 2;
+    let nb = tw === "moneda" && n >= 6 ? 3 : 2;
+    if (groupOf) { const lastSize = rows.filter((r) => groupOf.get(r) === nGroups - 1).length; nb = Math.max(1, Math.min(nb, lastSize)); }
     let bottomRows = rows.slice(n - nb);
     const notes = [];
     // Salvar a una del bottom: entra la siguiente peor que no esté ya dentro
@@ -1464,28 +1476,34 @@ const Story = (() => {
       rows.forEach((r) => {
         const k = keyOf(r.q);
         S.record[k] = (S.record[k] || 0) + (r === winner ? 3 : bottomRows.includes(r) ? 0 : 1);
-        if (!r.me) S.form[r.q.id] = clamp((S.form[r.q.id] || 0) + (r === winner ? 2 : bottomRows.includes(r) ? 3 : 0) + rnd(-2, 2), -10, 10);
+        if (!r.me) S.form[r.q.id] = clamp(Math.round((S.form[r.q.id] || 0) * 0.8) + (r === winner ? 2 : bottomRows.includes(r) ? -1 : 0) + rnd(-1, 1), -8, 8);
       });
       S.points += myScore * 10 + (won ? 500 : 0);
       // Lo que delata el resultado (premios, crónica de la temporada) espera al veredicto
       const payout = () => {
+        if (S.phase && S.phase.ep === S.ep && S.phase.paid) return;
+        if (S.phase && S.phase.ep === S.ep) { S.phase.paid = 1; }
         logEv(`Gana el reto ${won ? S.queen.name : winner.q.name}; en el bottom: ${bottomRows.map((r) => r.q.name).join(" y ")}`);
-        if (won) { growAttr(((RETOS[S.curTipo] || {}).attrs || [])[0]); earn(300, "Ganas el reto de la semana"); }
+        if (n === 5 && tw !== "allstars") { S.flags.pase = keyOf(winner.q); logEv(`${winner.me ? S.queen.name : winner.q.name} gana el pase directo a la gran final`); }
+        if (won && tw !== "allstars") { growAttr(((RETOS[S.curTipo] || {}).attrs || [])[0]); earn(300, "Ganas el reto de la semana"); }
         else if (myPos <= 2 && !bottom) earn(80, "Entre las mejores de la semana");
+        if (S.streak >= 3) Achievements.unlock("racha");
+        traitPeek.forEach((f) => f());
+        if (S.phase && S.phase.ep === S.ep) save();
       };
-      if (won) S.wins++;
+      if (won && tw !== "allstars") S.wins++;
       if (bottom) S.bottoms++;
       S.streak = won ? S.streak + 1 : 0;
-      if (S.streak >= 3) Achievements.unlock("racha");
       const b = S.lastBonus || 0;
       const bonusLine = b ? `<p class="${b > 0 ? "gold" : "muted"}">${b > 0 ? `💞 Consejos, aliadas y concentración: +${b}` : `🗡️ Tus enemigas te lo han puesto difícil: ${b}`}</p>` : "";
       const top2 = rows.slice(0, 2);
       const cat = RETO_CAT[S.curTipo];
+      const traitPeek = [];
       if (cat) rows.forEach((r, k) => {
         if (r.me) return;
         const t = traitsOf(r.q);
-        if (k <= 1 && t.fort === cat && Math.random() < 0.6) learnTrait(r.q, "fort", "Lo has visto en el reto");
-        if (k >= n - 3 && RASGOS.deb[t.deb].cat === cat && Math.random() < 0.6) learnTrait(r.q, "deb", "Lo has visto en el reto");
+        if (k <= 1 && t.fort === cat && Math.random() < 0.6) traitPeek.push(() => learnTrait(r.q, "fort", "Lo has visto en el reto"));
+        if (k >= n - 3 && RASGOS.deb[t.deb].cat === cat && Math.random() < 0.6) traitPeek.push(() => learnTrait(r.q, "deb", "Lo has visto en el reto"));
       });
       // Las posiciones se deciden ya, pero no se apuntan en el track record hasta el veredicto (después del Untucked)
       const labs = new Map();
@@ -1497,7 +1515,7 @@ const Story = (() => {
         else if (r === winner) lab = "WIN";
         else if (bottomRows.includes(r)) lab = `BTM${nb}`;
         else if (r.protected) lab = `BTM${nb}`;
-        else if (groupOf) lab = groupOf.get(r) === 0 ? "HIGH" : groupOf.get(r) === nGroups - 1 ? "LOW" : "SAFE";
+        else if (groupOf) lab = groupOf.get(r) === 0 ? (k <= (n <= 7 ? 1 : 2) ? "HIGH" : "SAFE") : groupOf.get(r) === nGroups - 1 ? "LOW" : "SAFE";
         else if (k <= (n <= 7 ? 1 : 2)) lab = "HIGH";
         else if (k >= n - nb - 1) lab = "LOW";
         else lab = "SAFE";
@@ -1522,7 +1540,7 @@ const Story = (() => {
       body().innerHTML = `
         <div class="story-card call">
           <p class="eyebrow">${esc(titulo)} · la pasarela ha terminado</p>
-          <h3>Supreme tiene algo que deciros...</h3>
+          <h3>Supremme tiene algo que deciros...</h3>
           ${teamLine}${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
           ${allCrit ? `<p>Quedáis ${n}: a partir de ahora ya no hay salvadas.</p>` + judgedTxt : safeFirst && safe.length ? safeTxt + judgedTxt : judgedTxt + (safe.length ? `<p>Las demás, <b>estáis a salvo</b>.</p>${faces(safe, "safe")}` : "")}
           <p class="call-me">${meSafe ? "✨ Estás a salvo esta semana." : "👀 Te toca escuchar al jurado."}</p>
@@ -1546,10 +1564,10 @@ const Story = (() => {
         if (IA.ready()) {
           aiWait("El jurado está deliberando...");
           ai = await IA.chat(
-            `Escribes las críticas del jurado de Drag Race España a cada reina. Supreme de Luxe (teatral, cariñosa pero exigente) habla sobre todo del reto, Ana Locking (moda, técnica, directa) sobre todo de la pasarela y el look, aunque las dos pueden comentar las dos cosas. Los Javis (Javier Ambrossi y Javier Calvo) también son jueces y a veces dan su valoración. Son SOLO valoraciones: nunca digas posiciones ni resultados (ni ganadora, ni mejores, ni peores, ni bottom, ni lip sync, ni a salvo). ${aiSeason()}`,
+            `Escribes las críticas del jurado de Drag Race España a cada reina. Supremme de Luxe (teatral, cariñosa pero exigente) habla sobre todo del reto, Ana Locking (moda, técnica, directa) sobre todo de la pasarela y el look, aunque las dos pueden comentar las dos cosas. Los Javis (Javier Ambrossi y Javier Calvo) también son jueces y a veces dan su valoración. Son SOLO valoraciones: nunca digas posiciones ni resultados (ni ganadora, ni mejores, ni peores, ni bottom, ni lip sync, ni a salvo). ${aiSeason()}`,
             `Reto de esta semana: ${S.curTitulo || S.epNames[S.ep] || "reto"}. ${runwayCat ? `Pasarela: «${runwayCat}».` : "Esta semana no hay pasarela aparte: habla del look con el que presentó el reto."}
 Reinas (valoración global de cada una): ${others.map((r) => `${r.q.name} (${lvl(r)})`).join("; ")}.
-Para cada una escribe "reto" (lo que le dice Supreme sobre su reto, concreto, máximo 22 palabras), "pasarela" (lo que le dice Ana sobre su look, inventa un look concreto que encaje con la categoría, máximo 22 palabras) y, solo en algunas, "javis" (un comentario de los Javis, máximo 18 palabras). Dirígete a ella por su nombre. Que cada crítica sea distinta.
+Para cada una escribe "reto" (lo que le dice Supremme sobre su reto, concreto, máximo 22 palabras), "pasarela" (lo que le dice Ana sobre su look, inventa un look concreto que encaje con la categoría, máximo 22 palabras) y, solo en algunas, "javis" (un comentario de los Javis, máximo 18 palabras). Dirígete a ella por su nombre. Que cada crítica sea distinta.
 Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javis":"..."}]}`,
             { json: true, max: 1600, temp: 0.85, timeout: 30000 },
           );
@@ -1565,11 +1583,11 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         });
       };
       const critStep = (then) => {
-        const ctx = { ...ctxWith(pick1(S.rivals)), tension: !meSafe && bottomRows.some((r) => r.me) };
+        const ctx = { ...ctxWith(pick1(S.rivals)), tension: false };
         rivalCrit().then((rc) => {
           if (meSafe) return dialog([["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."], ...rc.flat()], ctx, then);
-          const base = buildCritique(myScore, "none");
           const lab = labOf.get(meRow) || "";
+          const base = buildCritique(myScore, "none", /WIN|TOP2|HIGH/.test(lab) ? "top" : /BTM|LOW/.test(lab) ? "low" : "mid");
           const k = Math.floor(rc.length / 2);
           aiCritique(base, myScore, lab === "WIN" || lab === "TOP2" ? "muy buena" : lab === "HIGH" ? "buena" : /^BTM/.test(lab) ? "muy mala" : lab === "LOW" ? "floja" : "correcta").then((lines) => dialog([...rc.slice(0, k).flat(), ...lines, ...rc.slice(k).flat()], ctx, then));
         });
@@ -1591,7 +1609,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
             <p class="eyebrow">Las decisiones del jurado</p>
             <h3>${myLab === "TOP2" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? "¡Has ganado el reto! 👑" : /^BTM/.test(myLab) ? "Vas al lip sync..." : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
             <div class="verdict">
-              <div class="v-row win" style="--i:0"><b>${tw === "allstars" ? "💄 Top 2: os jugáis el poder" : "👑 Felicidrages, ganadora del reto"}</b>${faces(wins)}</div>
+              <div class="v-row win" style="--i:0"><b>${tw === "allstars" ? "💄 Top 2: os jugáis el poder" : n === 5 ? "👑 Ganadora del reto y 🎟️ pase directo a la gran final" : "👑 Felicidrages, ganadora del reto"}</b>${faces(wins)}</div>
               ${highs.length ? `<div class="v-row high" style="--i:1"><b>✨ Buen trabajo, estáis a salvo</b>${faces(highs)}</div>` : ""}
               ${safesC.length ? `<div class="v-row high" style="--i:1"><b>🙂 Estáis a salvo</b>${faces(safesC)}</div>` : ""}
               ${lows.length ? `<div class="v-row low" style="--i:2"><b>😬 A salvo... por los pelos</b>${faces(lows)}</div>` : ""}
@@ -1607,11 +1625,11 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
             elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2) }),
           ),
         );
-      const ut = (then, pre) => untucked({ winner, bottomRows, savedBy: S.savedBy, pre }, then);
+      const ut = (then, pre) => untucked({ winner, bottomRows, savedBy: S.savedBy, pre, labOf }, then);
       // T5: veredicto → grabación del corazón → Untucked (para dar las gracias). Resto: Untucked → veredicto
       $("#story-next").addEventListener("click", () =>
         critStep(() => confesionario(() =>
-          tw === "corazon" ? verdict(() => heartReveal(() => ut(toLipSync))) : ut(() => verdict(toLipSync), true),
+          tw === "corazon" ? ut(() => verdict(() => heartReveal(toLipSync)), true) : ut(() => verdict(toLipSync), true),
         )),
       );
     };
@@ -1722,7 +1740,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         rescueCard("❤️ El corazón", row.q === q ? `¡${esc(q.name)} se salva con su corazón!` : `¡${esc(q.name)} regala su corazón!`, "❤️", row, nx, next));
     }
 
-    // T4: antes del lip sync Supreme pregunta por la reina de la suerte
+    // T4: antes del lip sync Supremme pregunta por la reina de la suerte
     function luckMoment(then) {
       if (tw !== "suerte" || !S.luck || S.rivals.length < 3) return then();
       const useOn = (row, holderName) => {
@@ -1842,7 +1860,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">🪙 La moneda</p>
-        <h3>Supreme lanza la moneda al aire...</h3>
+        <h3>Supremme lanza la moneda al aire...</h3>
         <div class="coin-wrap"><div class="coin ${cara ? "cara" : "cruz"}"><b>CARA</b><b>CRUZ</b></div></div>
         <p class="coin-res">¡Ha salido <b>${cara ? "CARA" : "CRUZ"}</b>!</p>
         <p>${cara ? "Las compañeras salvadas votan a la cara a qué reina del bottom quieren <b>SALVAR</b>." : "Las compañeras salvadas votan a la cara a qué reina del bottom quieren <b>CONDENAR</b> al lip sync."}</p>
@@ -1933,7 +1951,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           <h3>${cara ? "¿A quién SALVAS?" : "¿A quién CONDENAS al lip sync?"}</h3>
           <p class="muted">Todas verán lo que votas.</p>
           <div class="hub-grid">${three
-            .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small><small class="score-note">Nota del reto: ${Math.round(scoreOf(q))}</small></button>`)
+            .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small><small class="score-note"></small></button>`)
             .join("")}</div>
           ${trackBtn()}
         </div>`;
@@ -1997,14 +2015,19 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     const opts = [];
     const add = (q, kind, label) => q && q !== S.queen && S.rivals.includes(q) && !opts.some((o) => o.q === q) && opts.push({ q, kind, label });
     if (res.savedBy) add(res.savedBy, "gracias", "🙏 Darle las gracias por salvarte");
-    if (!res.winner.me) add(res.winner.q, "ganadora", res.pre ? "✨ Hablar con una de las favoritas" : "👑 Felicitar a la ganadora");
-    res.bottomRows.filter((r) => !r.me).forEach((r) => add(r.q, "bottom", res.pre ? "🫂 Animar a una que lo ha pasado mal" : "🫂 Animar a una del bottom"));
+    if (res.pre) {
+      // Antes del veredicto nadie sabe nada: te acercas a quien quieras a comentar las críticas
+      // Lo que se habla depende de las críticas que ha escuchado cada una (eso sí lo saben todas)
+      const tone = (q) => { const r = res.labOf && [...res.labOf.keys()].find((x) => x.q === q); const l = r ? res.labOf.get(r) : ""; return /WIN|TOP2|HIGH/.test(l) ? "ganadoraPre" : /BTM|LOW/.test(l) ? "bottomPre" : "charlaPre"; };
+      shuffle(S.rivals).slice(0, 2).forEach((q) => add(q, tone(q), "💬 Comentar las críticas"));
+    } else {
+      if (!res.winner.me) add(res.winner.q, "ganadora", "👑 Felicitar a la ganadora");
+      res.bottomRows.filter((r) => !r.me).forEach((r) => add(r.q, "bottom", "🫂 Animar a una del bottom"));
+    }
     const ally = allies()[0];
     if (ally) add(ally, "aliada", "💞 Hablar con tu aliada");
     const nq = nemActive();
     if (nq) add(nq, "nemesis", "⚔️ Tu némesis te busca");
-    const enemy = enemies()[0];
-    if (enemy) add(enemy, "enemiga", "🗡️ Encararte con tu enemiga");
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">Untucked</p>
@@ -2013,6 +2036,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           .map((o, i) => `<button class="hub-q ${o.kind === "enemiga" ? "enemy" : o.kind === "aliada" ? "ally" : ""}" style="--i:${i}" data-i="${i}"><i style="background-image:url('${photo(o.q)}')"></i><span>${esc(o.q.name)}</span><small>${o.label}</small>${roleChip(o.q)}</button>`)
           .join("")}</div>
         ${IA.ready() ? `<p class="muted">o habla libremente con cualquiera:</p><div class="ut-free">${S.rivals.map((q) => `<button class="ut-face" data-f="${q.id}" title="${esc(q.name)}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span></button>`).join("")}</div>` : ""}
+        ${IA.ready() && S.rivals.length >= 2 ? `<button class="btn btn-primary" id="ut-group">💬 Sentarte con todas en el sofá</button>` : ""}
         <div class="row"><button class="btn btn-ghost" id="ut-skip">🍸 Tomarme algo sola</button><button class="btn btn-ghost" id="ut-spy">🔎 Observar a las demás</button></div>
       </div>`;
     body().querySelectorAll("[data-i]").forEach((b) =>
@@ -2051,6 +2075,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     );
     body().querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", () => freeTalk(qById(b.dataset.f), then, "Untucked")));
     $("#ut-skip").addEventListener("click", () => { persona("focus"); then(); });
+    const utg = $("#ut-group");
+    if (utg) utg.addEventListener("click", () => groupTalk(S.rivals.slice(), then, "el Untucked, mientras el jurado delibera. Acaban de escuchar las críticas"));
     $("#ut-spy").addEventListener("click", () => {
       const cand = shuffle(S.rivals).map((q) => [q, ["deb", "fort", "car"].find((x) => !Nem.knows(q.id, x))]).find(([, sl]) => sl);
       if (cand) learnTrait(cand[0], cand[1], "Observando en el Untucked");
@@ -2128,10 +2154,14 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
               if (S.lipsyncs >= 3) Achievements.unlock("superviviente");
               Toast.show("💄 ¡Has ganado el lip sync!", "Tienes el poder de decidir");
               mark(S.queen, "WIN");
+              if (S.rivals.length + 1 === 5) S.flags.pase = "me";
+              S.wins++;
+              earn(300, "Ganas el reto de la semana");
               return then({ q: S.queen, me: true });
             }
             Toast.show(`💄 ${rival.name} gana el lip sync`, "Ella decide");
             mark(rival, "WIN");
+            if (S.rivals.length + 1 === 5) S.flags.pase = rival.id;
             then({ q: rival });
           });
         }, "LIP SYNC POR EL PODER"),
@@ -2277,7 +2307,12 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         }
         header();
         if (!forCrown) nemEvent("elim", res.won ? S.queen : rival, res.won ? rival : S.queen);
-        if (onWin) return res.won ? onWin(rival) : aftermath(rival, "La Segunda Oportunidrag no ha salido bien.");
+        if (onWin) {
+          if (res.won) return onWin(rival);
+          // Si pierdes la Segunda Oportunidrag, la que gana vuelve de verdad a la competición
+          if (S.out.includes(rival) && !S.rivals.includes(rival)) { S.out = S.out.filter((q) => q !== rival); S.rivals.push(rival); logEv(`${rival.name} vuelve a la competición con la Segunda Oportunidrag`); }
+          return aftermath(rival, "La Segunda Oportunidrag no ha salido bien.");
+        }
         if (!res.won && !forCrown && !S.flags.dshantay && Math.random() < 0.15) {
           S.flags.dshantay = true;
           Achievements.unlock("doble-shantay");
@@ -2388,7 +2423,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
   }
 
   // ------------------------- Capitanas y equipos ---------------------------
-  // Minireto previo: las dos mejores son capitanas y eligen equipo por turnos
+  // Minirreto previo: las dos mejores son capitanas y eligen equipo por turnos
   function captains(then) {
     dialog(pickFresh(CAPITANAS.intro), ctxWith(pick1(S.rivals)), () => {
       body().innerHTML = `<div id="story-play"></div>`;
@@ -2406,11 +2441,11 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         header();
         body().innerHTML = `
           <div class="story-card">
-            <p class="eyebrow">Minireto · resultados</p>
+            <p class="eyebrow">Minirreto · resultados</p>
             <h3>${caps.includes(S.queen) ? "¡Eres capitana! 👑" : `Capitanas: ${esc(caps[0].name)} y ${esc(caps[1].name)}`}</h3>
-            ${sc[0].me ? `<p class="gold">Ganas el minireto: +3 en el reto y eliges primero.</p>` : ""}
+            ${sc[0].me ? `<p class="gold">Ganas el minirreto: +3 en el reto y eliges primero.</p>` : ""}
             <ol class="ranking">${sc
-              .map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}</span>${k < 2 ? `<b class="tag win">Capitana</b>` : ""}<em>${r.s}</em></li>`)
+              .map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}</span>${k < 2 ? `<b class="tag win">Capitana</b>` : ""}</li>`)
               .join("")}</ol>
             <button class="btn btn-primary" id="story-next">Elegir equipos</button>
           </div>`;
@@ -2514,7 +2549,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       }));
     }
     function drama() {
-      const nq = S.nemesis && S.nemesis.done !== "tregua" ? qById(S.nemesis.id) : null;
+      const nq = NEMESIS_ON && S.nemesis && S.nemesis.done !== "tregua" ? qById(S.nemesis.id) : null;
       if (nq && !S.flags.nemReunion) {
         S.flags.nemReunion = 1;
         return scene("reunion", NEMESIS.reencuentro, { ...ctxWith(nq), q: { r1: nq }, r1: nq.name, tension: true }, missSimpatia, NEMESIS.reencuentroChoices);
@@ -2617,71 +2652,116 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       });
     }, o.curtain));
   }
+  // Gran final: Súper Lalaparuza. Todas contra todas en lip sync; gana la que más duelos se lleve.
+  // Si alguien tiene el pase directo (ganó el último reto antes de la final), espera a la ganadora y se juegan la corona.
+  const pairsOf = (list) => list.flatMap((a, i) => list.slice(i + 1).map((b) => [a, b]));
+  const nmQ = (q) => (q === S.queen ? "Tú" : q.name);
+  function standingsHTML(list, wins, title) {
+    const sorted = list.slice().sort((a, b) => (wins.get(b) || 0) - (wins.get(a) || 0));
+    return `<div class="lala-table">${title ? `<b>${title}</b>` : ""}${sorted.map((q) => `<span class="${q === S.queen ? "me" : ""}"><i style="background-image:url('${photo(q)}')"></i>${esc(nmQ(q))}<em>${"👑".repeat(wins.get(q) || 0) || "·"}</em></span>`).join("")}</div>`;
+  }
+  // Versión simulada (cuando ves la final desde el público)
+  function simSuperLala(four, pase) {
+    const pool = four.filter((q) => q !== pase);
+    const wins = new Map(pool.map((q) => [q, 0]));
+    const log = [];
+    shuffle(pairsOf(pool)).forEach(([a, b]) => { const [w] = simLS(a, b); wins.set(w, wins.get(w) + 1); log.push({ a, b, w }); });
+    const order = () => pool.slice().sort((a, b) => wins.get(b) - wins.get(a));
+    let lead = order();
+    let tied = lead.filter((q) => wins.get(q) === wins.get(lead[0]));
+    while (tied.length > 1) { const [w, l] = simLS(tied[0], tied[1]); log.push({ a: tied[0], b: tied[1], w, desempate: true }); tied = [w, ...tied.slice(2)]; }
+    let champ = tied[0], runner;
+    if (pase) { const [w, l] = simLS(champ, pase); log.push({ a: champ, b: pase, w, corona: true }); runner = l; champ = w; }
+    else runner = order().find((q) => q !== champ);
+    return { champ, runner, wins, log, pool };
+  }
   function finale() {
     setSet("stage");
     if (S.bottoms === 0) Achievements.unlock("sin-bottom");
     S.epNames[S.ep] = "Final";
-    const four = shuffle([S.queen, ...S.rivals]);
-    const A = four.slice(0, 2), B = four.slice(2, 4);
-    const mine = A.includes(S.queen) ? A : B, other = mine === A ? B : A;
-    const myRival = mine.find((q) => q !== S.queen);
-    dialog([...pickFresh(HISTORIA.final), ...pickFresh(JAVIS.final), ...pickFresh(FINAL_SORTEO)], ctxWith(S.rivals[0]), sorteo);
-    function sorteo() {
+    const four = [S.queen, ...S.rivals];
+    const pase = S.flags.pase ? four.find((q) => keyOf(q) === S.flags.pase) || null : null;
+    const pool = shuffle(four.filter((q) => q !== pase));
+    const wins = new Map(pool.map((q) => [q, 0]));
+    const duels = shuffle(pairsOf(pool));
+    // Tu temporada cuenta: las victorias te dan ventaja en la final y los bottoms te la quitan
+    const seasonEdge = clamp(S.wins * 3 - S.bottoms * 2, -6, 12);
+    const intro = [
+      ["host", "Reinas, bienvenidas a la gran final. Este año no hay sorteo: hay Súper Lalaparuza."],
+      ["host", pase ? `${pase === S.queen ? "Tú tienes" : `${pase.name} tiene`} el pase directo: ${pase === S.queen ? "esperas" : "espera"} a la ganadora de la Súper Lalaparuza y os jugáis la corona en un último lip sync.` : "Todas contra todas, un lip sync por pareja. La que más duelos gane se lleva la corona."],
+      ["judge", "Y si hay empate, se desempata en el escenario. Aquí no se regala nada."],
+    ];
+    dialog([...pickFresh(HISTORIA.final), ...pickFresh(JAVIS.final), ...intro], ctxWith(S.rivals[0]), board);
+    let di = 0;
+    function board(note = "") {
       header();
       body().innerHTML = `
         <div class="story-card">
-          <p class="eyebrow">🎲 El sorteo</p>
-          <h3>Así quedan los lip syncs</h3>
-          <div class="draw">${[A, B]
-            .map((p, k) => `<div class="draw-pair" style="--i:${k}"><small>Lip sync ${k + 1}</small><div class="vs"><img src="${photo(p[0])}" title="${esc(p[0].name)}"><span>VS</span><img src="${photo(p[1])}" title="${esc(p[1].name)}"></div><b>${esc(p[0] === S.queen ? "Tú" : p[0].name)} · ${esc(p[1] === S.queen ? "Tú" : p[1].name)}</b></div>`)
-            .join("")}</div>
-          <p>Las ganadoras de cada lip sync se enfrentan por la corona.</p>
+          <p class="eyebrow">👑 Súper Lalaparuza · duelo ${Math.min(di + 1, duels.length)} de ${duels.length}</p>
+          <h3>${di < duels.length ? `${esc(nmQ(duels[di][0]))} vs ${esc(nmQ(duels[di][1]))}` : "Se acabaron los duelos"}</h3>
+          ${note ? `<p class="twist-note">${note}</p>` : ""}
+          ${standingsHTML(pool, wins, "Duelos ganados")}
+          ${pase ? `<p class="muted">🎟️ Pase directo: <b>${esc(nmQ(pase))}</b> espera en la final.</p>` : ""}
           ${trackBtn()}
-          <button class="btn btn-primary" id="story-next">Primer lip sync</button>
+          <button class="btn btn-primary" id="story-next">${di < duels.length ? (duels[di].includes(S.queen) ? "💃 Mi lip sync" : "Ver el duelo") : "Resultado"}</button>
         </div>`;
       bindTrack();
-      $("#story-next").addEventListener("click", semiOther);
+      $("#story-next").addEventListener("click", () => (di < duels.length ? duel() : afterRound()));
     }
-    let otherWin;
-    function semiOther() {
-      const [w, l] = simLS(other[0], other[1]);
-      otherWin = w;
-      mark(l, "3ª");
-      eliminate(l);
+    function lsMe(rival, eyebrow, text, cb) {
+      S.lsBonus = seasonEdge;
+      playLS(rival, { eyebrow, text, curtain: "SÚPER LALAPARUZA" }, cb);
+    }
+    function duel() {
+      const [a, b] = duels[di++];
+      if (a === S.queen || b === S.queen) {
+        const rv = a === S.queen ? b : a;
+        return lsMe(rv, "Súper Lalaparuza", `Cada duelo ganado te acerca a la corona.`, (won) => { const w = won ? S.queen : rv; wins.set(w, wins.get(w) + 1); board(won ? `💃 Ganas el duelo contra ${esc(rv.name)}.` : `💔 ${esc(rv.name)} se lleva el duelo.`); });
+      }
+      const [w, l] = simLS(a, b);
+      wins.set(w, wins.get(w) + 1);
+      board(`${esc(w.name)} gana a ${esc(l.name)}. ${esc(fill(pickFresh(HISTORIA.lipsyncOtras), { a: w.name, b: l.name }))}`);
+    }
+    // Empates: se desempata en el escenario (dos a dos)
+    function afterRound() {
+      const top = Math.max(...pool.map((q) => wins.get(q)));
+      const tied = pool.filter((q) => wins.get(q) === top);
+      tiebreak(tied, (lead) => (pase ? crown(lead, pase) : finish(lead, pool.filter((q) => q !== lead).sort((a, b) => wins.get(b) - wins.get(a))[0])));
+    }
+    function tiebreak(tied, then) {
+      if (tied.length === 1) return then(tied[0]);
+      const [a, b] = tied;
+      const rest = tied.slice(2);
+      const next = (w) => tiebreak([w, ...rest], then);
+      if (a === S.queen || b === S.queen) {
+        const rv = a === S.queen ? b : a;
+        return showCard("Empate", `${esc(nmQ(a))} y ${esc(nmQ(b))} empatan`, "Se desempata con otro lip sync.", "💃 Lip sync de desempate", () => lsMe(rv, "Desempate", "Quien gane sigue adelante.", (won) => next(won ? S.queen : rv)));
+      }
+      const [w, l] = simLS(a, b);
+      showCard("Empate", `Desempate: ${esc(a.name)} vs ${esc(b.name)}`, `Gana <b>${esc(w.name)}</b>.`, "Seguir", () => next(w));
+    }
+    function showCard(eyebrow, title, text, btn, then) {
       header();
-      body().innerHTML = `
-        <div class="story-card">
-          <p class="eyebrow">Semifinal · lip sync</p>
-          <h3>${esc(w.name)} vs ${esc(l.name)}</h3>
-          <p class="muted">${esc(fill(pickFresh(HISTORIA.lipsyncOtras), { a: w.name, b: l.name }))}</p>
-          <div class="vs"><img src="${photo(w)}"><span>👑</span><img class="gone" src="${photo(l)}"></div>
-          <p><b>${esc(w.name)}</b> pasa a la final. Ahora te toca a ti contra <b>${esc(myRival.name)}</b>.</p>
-          <button class="btn btn-primary" id="story-next">Mi lip sync</button>
-        </div>`;
-      $("#story-next").addEventListener("click", mySemi);
+      body().innerHTML = `<div class="story-card"><p class="eyebrow">👑 ${eyebrow}</p><h3>${title}</h3><p>${text}</p>${standingsHTML(pool, wins, "Duelos ganados")}<button class="btn btn-primary" id="story-next">${btn}</button></div>`;
+      $("#story-next").addEventListener("click", then);
     }
-    function mySemi() {
-      playLS(myRival, { eyebrow: "Semifinal · lip sync", text: `Si ganas, te enfrentas a ${esc(otherWin.name)} por la corona.`, curtain: "SEMIFINAL" }, (won) => {
-        if (!won) {
-          mark(S.queen, "3ª");
-          const [fw, fl] = simLS(myRival, otherWin);
-          mark(fw, "WINNER");
-          mark(fl, "RUNNER-UP");
-          return theEnd(false, myRival, false, `${myRival.name} te gana en la semifinal. La corona se la lleva ${fw.name}.`, 3);
-        }
-        mark(myRival, "3ª");
-        eliminate(myRival);
-        header();
-        body().innerHTML = `
-          <div class="story-card">
-            <p class="eyebrow">¡Estás en la final!</p>
-            <h3>${esc(S.queen.name)} vs ${esc(otherWin.name)}</h3>
-            <div class="vs"><img src="${photo(S.queen)}"><span>👑</span><img src="${photo(otherWin)}"></div>
-            <p>Un último lip sync. Una corona.</p>
-            <button class="btn btn-primary" id="story-next">Lip sync por la corona</button>
-          </div>`;
-        $("#story-next").addEventListener("click", () => lipSync(otherWin, true));
-      });
+    // Pase directo: la ganadora de la Súper Lalaparuza contra la que tiene el pase
+    function crown(lead, holder) {
+      if (lead === S.queen || holder === S.queen) {
+        const rv = lead === S.queen ? holder : lead;
+        return showCard("Lip sync por la corona", `${esc(nmQ(lead))} vs ${esc(nmQ(holder))}`, "Un último lip sync. Una corona.", "👑 Lip sync por la corona", () => lsMe(rv, "Lip sync por la corona", "La que gane se lleva la corona.", (won) => finish(won ? S.queen : rv, won ? rv : S.queen)));
+      }
+      const [w, l] = simLS(lead, holder);
+      showCard("Lip sync por la corona", `${esc(lead.name)} vs ${esc(holder.name)}`, `Gana <b>${esc(w.name)}</b>.`, "Ver el resultado", () => finish(w, l));
+    }
+    function finish(champ, runner) {
+      four.filter((q) => q !== champ && q !== runner && q !== S.queen).forEach((q) => { mark(q, "3ª"); eliminate(q); });
+      if (champ === S.queen) return theEnd(true, runner, true);
+      if (runner === S.queen) return theEnd(false, champ, true, `${champ.name} te gana la corona en la Súper Lalaparuza.`, 2);
+      mark(S.queen, "3ª");
+      mark(champ, "WINNER");
+      mark(runner, "RUNNER-UP");
+      return theEnd(false, champ, false, `La Súper Lalaparuza se la lleva ${champ.name}.`, 3);
     }
   }
 
@@ -2747,30 +2827,27 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       setSet("stage");
       S.ep++;
       S.epNames[S.ep] = "Final";
-      const four = shuffle(S.rivals.slice());
-      const A = four.slice(0, 2), B = four.slice(2, 4);
-      const [w1, l1] = simLS(A[0], A[1]);
-      const [w2, l2] = simLS(B[0], B[1]);
-      const [fw, fl] = simLS(w1, w2);
-      mark(l1, "3ª");
-      mark(l2, "3ª");
-      mark(fw, "WINNER");
-      mark(fl, "RUNNER-UP");
+      const four = S.rivals.slice();
+      const pase = S.flags.pase ? four.find((q) => keyOf(q) === S.flags.pase) || null : null;
+      const r = simSuperLala(four, pase);
+      four.filter((q) => q !== r.champ && q !== r.runner).forEach((q) => mark(q, "3ª"));
+      mark(r.champ, "WINNER");
+      mark(r.runner, "RUNNER-UP");
       header();
       $("#story-ep").textContent = "Gran final";
-      const pair = (a, b, w) => `<div class="draw-pair"><div class="vs"><img class="${w === a ? "" : "gone"}" src="${photo(a)}" title="${esc(a.name)}"><span>VS</span><img class="${w === b ? "" : "gone"}" src="${photo(b)}" title="${esc(b.name)}"></div><b>Gana ${esc(w.name)}</b></div>`;
       body().innerHTML = `
         <div class="story-card">
-          <p class="eyebrow">👑 La gran final · lo ves desde el público</p>
-          <h3>${esc(fw.name)} es la ganadora de ${esc(S.season.name)}</h3>
-          <div class="draw">${pair(A[0], A[1], w1)}${pair(B[0], B[1], w2)}</div>
-          <p>Lip sync por la corona: <b>${esc(fw.name)}</b> vence a <b>${esc(fl.name)}</b>.</p>
-          <div class="vs"><img src="${photo(fw)}"><span>👑</span><img class="gone" src="${photo(fl)}"></div>
+          <p class="eyebrow">👑 Súper Lalaparuza · lo ves desde el público</p>
+          <h3>${esc(r.champ.name)} es la ganadora de ${esc(S.season.name)}</h3>
+          ${standingsHTML(r.pool, r.wins, "Duelos ganados")}
+          <div class="lala-log">${r.log.map((x) => `<p>${x.corona ? "👑 Por la corona: " : x.desempate ? "⚖️ Desempate: " : ""}<b>${esc(x.w.name)}</b> gana a ${esc((x.w === x.a ? x.b : x.a).name)}</p>`).join("")}</div>
+          ${pase ? `<p class="muted">🎟️ ${esc(pase.name)} llegaba con el pase directo.</p>` : ""}
+          <div class="vs"><img src="${photo(r.champ)}"><span>👑</span><img class="gone" src="${photo(r.runner)}"></div>
           <button class="btn btn-primary" id="story-next">Track record final</button>
         </div>`;
       Confetti.burst(2500);
       $("#story-next").addEventListener("click", () =>
-        showTrack(() => theEnd(false, fw, false, `Te fuiste en el episodio ${S.flags.outEp || "?"}. La corona se la lleva ${fw.name}.`, S.flags.myPlace || S.out.length + 1), "Resultado final"));
+        showTrack(() => theEnd(false, r.champ, false, `Te fuiste en el episodio ${S.flags.outEp || "?"}. La corona se la lleva ${r.champ.name}.`, S.flags.myPlace || S.out.length + 1), "Resultado final"));
     }, "GRAN FINAL");
   }
 
@@ -3087,7 +3164,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       el.innerHTML = `
         <div class="mg snatch">
           <p class="mg-info">${me.icon} Eres <b>${esc(me.name)}</b> · Pregunta <b id="sg-n">1</b>/${N} · Racha <b id="sg-st">0</b></p>
-          <div class="sg-host"><span>🎤 Supreme pregunta</span><p id="sg-q"></p></div>
+          <div class="sg-host"><span>🎤 Supremme pregunta</span><p id="sg-q"></p></div>
           <div class="sg-bar"><div id="sg-time"></div></div>
           <div class="sg-opts" id="sg-opts"></div>
           <div class="sg-laugh"><span>😂 Risas del público</span><div><i id="sg-lg"></i></div></div>
@@ -3723,13 +3800,13 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     timers.push(setTimeout(spawn, 700));
   }
 
-  // ------------------------- Minireto: flash (capitanas) --------------------
+  // ------------------------- Minirreto: flash (capitanas) --------------------
   function runMiniFlash(el, title, done) {
     const ROUNDS = 3;
     let round = 0, total = 0, state = "wait", tGo = 0, timer = 0;
     el.innerHTML = `
       <div class="mg mini">
-        <p class="eyebrow">Minireto · ${esc(title)}</p>
+        <p class="eyebrow">Minirreto · ${esc(title)}</p>
         <p class="mg-info">Ronda <b id="mn-n">1</b>/${ROUNDS} · <span id="mn-msg">Pulsa en cuanto salte el flash (no antes)</span></p>
         <button class="mini-btn" id="mini-btn">Espera...</button>
       </div>`;
@@ -3794,7 +3871,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     return { attrs: baseAttrs(q, Wardrobe.statsOf(q)), names: ATTR_NAMES, car: RASGOS.car[t.car], fort: RASGOS.fort[t.fort], titles: Nem.titles(q.id) };
   }
   function attrsOf(q) {
-    const st = q === S.queen ? Wardrobe.statsOf(q) : q.stats;
+    const up = q === S.queen ? Wardrobe.statsOf(q) : q.stats;
+    const st = q === S.queen ? Object.fromEntries(Object.keys(q.stats).map((k) => [k, Math.min(up[k], q.stats[k] + 1)])) : q.stats;
     const a = baseAttrs(q, st);
     if (q === S.queen) Object.entries(S.attrGrowth || {}).forEach(([k, v]) => (a[k] = clamp(a[k] + v, 1, 10)));
     return a;
@@ -3804,7 +3882,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     const v = (keys.reduce((a, k) => a + A(k), 0) / keys.length) * 10;
     const p = clamp(0.5 + (v - diff) / 70, 0.08, 0.95);
     const ok = Math.random() < p;
-    return { ok, txt: `🎲 ${keys.map((k) => `${ATTR_NAMES[k]} ${A(k)}`).join(" + ")} · ${Math.round(p * 100)}% → ${ok ? "✅ superado" : "❌ fallado"}` };
+    return { ok, txt: `🎲 ${keys.map((k) => ATTR_NAMES[k]).join(" + ")} → ${ok ? "✅ te sale" : "❌ no te sale"}` };
   }
   const attrChips = (keys) => keys.map((k) => `<span class="attr-chip">${ATTR_NAMES[k]} <b>${A(k)}</b></span>`).join("");
   function growAttr(k) {
@@ -3836,7 +3914,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           const v = clamp(Math.round(st[m]), 0, 100);
           const lab = m === "focus" ? "🔦 Foco" : m === "energy" ? "⚡ Energía" : m;
           const warn = m === "focus" ? (v > 80 ? "hot" : v < 30 ? "cold" : "") : v < 25 ? "cold" : "";
-          return `<div class="dc-meter ${warn}"><span>${lab}</span><div><i style="width:${v}%"></i>${m === "focus" ? `<em style="left:30%"></em><em style="left:80%"></em>` : ""}</div><b>${v}</b></div>`;
+          return `<div class="dc-meter ${warn}"><span>${lab}</span><div><i style="width:${v}%"></i>${m === "focus" ? `<em style="left:30%"></em><em style="left:80%"></em>` : ""}</div></div>`;
         })
         .join("");
     function next() {
@@ -3973,10 +4051,10 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       el.innerHTML = `
         <div class="mg dc">
           <p class="mg-info">🧵 ${esc(title)}</p>
-          <div class="dc-scene"><h4>Reparte 10 puntos de acción</h4><p>Quedan <b>${left}</b> PA · Tu Estilo: <b>${A("estilo")}</b>${diffExtra ? ` · Material difícil: +${diffExtra} de dificultad` : ""}</p></div>
+          <div class="dc-scene"><h4>Reparte 10 puntos de acción</h4><p>Quedan <b>${left}</b> PA · Tu Estilo: <b>${A("estilo")}</b>${diffExtra ? " · Material difícil de coser" : ""}</p></div>
           <div class="pa-grid">${[
             ["mat", "🔎 Búsqueda de materiales", "Sube la Originalidad"],
-            ["pat", "✂️ Patronaje y costura", "Chequeo de Estilo: Pulidez o «Traje descosido» (-20%)"],
+            ["pat", "✂️ Patronaje y costura", "Más patronaje, menos riesgo de que se descosa en la pasarela"],
             ["fin", "✨ Acabados y detalle", "Sube el valor global del look"],
           ]
             .map(([k, n, d]) => `<div class="pa-row"><div><b>${n}</b><small>${d}</small></div><button class="btn btn-ghost pa-b" data-k="${k}" data-d="-1">−</button><em>${pa[k]}</em><button class="btn btn-ghost pa-b" data-k="${k}" data-d="1">+</button></div>`)
@@ -3994,8 +4072,9 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       $("#pa-go").addEventListener("click", sew);
     };
     function sew() {
-      const c = check(["estilo"], 72 - pa.pat * 6 + diffExtra);
-      let score = 18 + pa.mat * 4 + (c.ok ? pa.pat * 6 : 0) + pa.fin * 5;
+      const c = check(["estilo"], 70 - pa.pat * 4 + diffExtra);
+      const gain = (x) => 26 * (1 - Math.exp(-x / 3));
+      let score = 20 + gain(pa.mat) + (c.ok ? gain(pa.pat) : 0) + gain(pa.fin);
       if (!c.ok) score *= 0.8;
       el.innerHTML = `
         <div class="mg dc">
@@ -4100,6 +4179,7 @@ Devuelve JSON {"reinas":[{"id":"...","voz":"cómo habla (acento, registro, ritmo
   };
   // Memoria de lo que pasa en la temporada (para que las escenas tengan continuidad)
   function logEv(t) {
+    t = String(t).replace(/\s*\((?:nota|Nota)\s*\d+\)/g, "").replace(/\.?\s*Nota \d+/g, "");
     S.log = [...(S.log || []), `Ep.${S.ep}: ${t}`].slice(-30);
   }
   const memTxt = () => ((S.log || []).length ? `Lo que ha pasado hasta ahora (más reciente al final):\n${S.log.slice(-14).join("\n")}` : "");
@@ -4114,7 +4194,7 @@ Devuelve JSON {"reinas":[{"id":"...","voz":"cómo habla (acento, registro, ritmo
     const cast = keys.map((k) => {
       const w = who(k, ctx);
       const q = ctx.q && ctx.q[k];
-      return `- ${k} = ${w.name}${q ? `. ${aiProfile(q)} ${idTxt(q)}` : k === "me" ? " (la protagonista, la jugadora)" : k === "host" ? " (Supreme de Luxe, presentadora)" : ""}`;
+      return `- ${k} = ${w.name}${q ? `. ${aiProfile(q)} ${idTxt(q)}` : k === "me" ? " (la protagonista, la jugadora)" : k === "host" ? " (Supremme de Luxe, presentadora)" : ""}`;
     }).join("\n");
     const orig = lines.map(([k, t]) => `${k}: ${fill(t, ctx)}`).join("\n");
     const ch = (choices || []).map((c, i) => `${i + 1}. ${fill(c.txt, ctx)}${c.reply ? ` → responde ${c.reply[0]}: ${fill(c.reply[1], ctx)}` : ""}`).join("\n");
@@ -4197,6 +4277,62 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
     return IA.chat(`Hablas SOLO como ${q.name}. ${aiProfile(q)} ${aiSeason()}`, `${what}. Escribe la primera frase que le dice ${q.name} al verla llegar, según su carácter y su relación. Máximo 20 palabras.`, { max: 60 });
   }
   // Conversación libre: escribes tú y la reina contesta en personaje
+  // Conversación en grupo: varias reinas hablan entre ellas y contigo. Puedes meterte, escuchar o irte
+  function groupTalk(qs, then, where) {
+    const people = shuffle(qs.filter((q) => S.rivals.includes(q))).slice(0, 5);
+    if (people.length < 2) return then();
+    const log = [];
+    let turns = 0, busy = false;
+    const MAX = 4;
+    const castTxt = () => people.map((q) => `${q.name}: ${relLabel(q)} con ${S.queen.name}. ${idTxt(q) || aiProfile(q)}`).join("\n");
+    const transcript = () => log.map((m) => `${m.who}: ${m.t}`).join("\n");
+    const render = (wait) => {
+      body().innerHTML = `
+        <div class="story-card free-talk group-talk">
+          <p class="eyebrow">💬 Conversación en grupo</p>
+          <div class="gt-faces">${people.map((q) => `<span><i style="background-image:url('${photo(q)}')"></i>${esc(q.name)}<small>${esc(relLabel(q))}</small></span>`).join("")}</div>
+          <div class="ft-log">${log.map((m) => `<p class="ft-msg ${m.me ? "me" : ""}"><b>${esc(m.me ? "Tú" : m.who)}</b>${esc(m.t)}</p>`).join("")}${wait ? `<p class="ft-msg"><span class="ia-dots"><i></i><i></i><i></i></span></p>` : ""}</div>
+          ${turns < MAX ? `<form class="ft-form"><input id="ft-in" maxlength="220" autocomplete="off" placeholder="Métete en la conversación..." ${wait ? "disabled" : ""}><button class="btn btn-primary" ${wait ? "disabled" : ""}>Decir</button></form>
+          <div class="row"><button class="btn btn-ghost" id="gt-listen" ${wait ? "disabled" : ""}>👂 Solo escuchar</button><button class="btn btn-ghost" id="ft-end" ${wait ? "disabled" : ""}>Irte</button></div>`
+          : `<p class="muted">Os llaman: se acabó la charla.</p><button class="btn btn-primary" id="ft-end">Continuar</button>`}
+        </div>`;
+      const box = body().querySelector(".ft-log");
+      if (box) box.scrollTop = box.scrollHeight;
+      const inp = $("#ft-in");
+      if (inp && !wait) inp.focus({ preventScroll: true });
+      const form = body().querySelector(".ft-form");
+      if (form) form.addEventListener("submit", (e) => { e.preventDefault(); const v = inp.value.trim(); if (v && !busy) step(v); });
+      const li = $("#gt-listen");
+      if (li) li.addEventListener("click", () => !busy && step(null));
+      $("#ft-end").addEventListener("click", () => !busy && then());
+    };
+    async function step(v) {
+      busy = true;
+      if (v) log.push({ who: S.queen.name, t: v, me: true });
+      turns++;
+      render(true);
+      const r = await IA.chat(
+        `Escribes una conversación en grupo entre concursantes de Drag Race España en ${where}. Cada reina habla SOLO como ella misma, con su carácter, y reaccionan entre ellas: se dan la razón, se pican, cotillean, cambian de tema. Natural y creíble, nada exagerado. Nunca escribas lo que dice ${S.queen.name}. ${aiSeason()} ${memTxt()}`,
+        `Reinas en la conversación:\n${castTxt()}\n${log.length ? `Lo que se ha dicho:\n${transcript()}` : "La conversación empieza ahora: arranca con un tema que tenga que ver con el momento."}\n${v ? `${S.queen.name} acaba de decir: «${v}». Que reaccionen a eso.` : `${S.queen.name} escucha sin decir nada; ellas siguen hablando${turns > 1 ? " y alguna puede preguntarle su opinión" : ""}.`}${turns >= MAX ? " Es el final: alguna cierra la conversación." : ""}
+Devuelve JSON {"lineas":[{"reina":"nombre","t":"lo que dice (máximo 28 palabras)"}],"relaciones":[{"reina":"nombre","cambio":-1|0|1}],"jugadora":"amable|neutral|defiende|provoca"} con 2 a 4 líneas de reinas distintas. En "relaciones" solo las que cambian su opinión de ${S.queen.name} por lo que ha dicho; en "jugadora", cómo se ha portado ${S.queen.name} teniendo en cuenta quién empezó.`,
+        { json: true, max: 600, temp: 1 },
+      );
+      busy = false;
+      const lines = (r && Array.isArray(r.lineas) ? r.lineas : []).filter((x) => x && people.some((q) => q.name === str(x.reina)) && str(x.t).trim()).slice(0, 4);
+      if (!lines.length) lines.push({ reina: pick1(people).name, t: pick1(["Bueno, chicas, que esto no se cose solo.", "Luego seguimos, que me llaman.", "Yo mejor me callo, que me conozco."]) });
+      lines.forEach((x) => log.push({ who: str(x.reina), t: IA.clean(str(x.t)) }));
+      if (r && v) {
+        (Array.isArray(r.relaciones) ? r.relaciones : []).forEach((x) => { const q = people.find((p) => p.name === str(x && x.reina)); const d = clamp(Math.round(+(x && x.cambio) || 0), -1, 1); if (q && d) changeRel(q, d); });
+        const me = String(r.jugadora || "neutral").toLowerCase();
+        if (/amable/.test(me)) persona("kind", 0.5);
+        else if (/provoca/.test(me)) persona("mean", 0.5);
+        else if (/defiende/.test(me)) persona("drama", 0.3);
+      } else if (!v) persona("focus", 0.2);
+      if (typeof logEv === "function") logEv(`Charla en grupo en ${where.split(",")[0]} con ${people.map((q) => q.name).join(", ")}${v ? `; ${S.queen.name} dijo «${v}»` : ""}`);
+      render();
+    }
+    step(null);
+  }
   function freeTalk(q, then, where = "el taller") {
     const hist = [];
     let turns = 0, busy = false;
@@ -4250,8 +4386,8 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
     aiWait("El jurado está deliberando...");
     const lk = S.lastLook;
     const r = await IA.chat(
-      `Escribes las críticas del jurado de Drag Race España. Supreme de Luxe es la presentadora (directa, teatral, cariñosa pero exigente). Ana Locking es jurado (moda, técnica, seria y precisa). ${aiSeason()} ${(() => { const f = fame(); return f ? `En el taller, ${S.queen.name} tiene fama de ser ${FAMA[f].n}.` : ""; })()}`,
-      `Reto de esta semana: ${S.epNames[S.ep] || "reto"}. Nota de ${S.queen.name} en el reto: ${S.lastParts ? S.lastParts.reto : score}/100${S.lastParts && S.lastParts.pasarela != null ? `, pasarela: ${S.lastParts.pasarela}/100` : ""}. ${lk ? `Categoría de pasarela: ${lk.cat}. Su mejor pieza: ${lk.best}. Su peor pieza: ${lk.worst}.${lk.concepto ? ` Concepto que defendió: «${lk.concepto}».` : ""}${lk.critica ? ` Ya le dijeron en la pasarela: ${lk.critica}` : ""}` : ""} Su valoración global es ${label}. Devuelve JSON con "supreme", "ana" y "javis": la crítica de cada uno a ${S.queen.name}, en segunda persona, máximo 30 palabras cada una, coherentes con la nota. Supreme habla sobre todo del reto (aunque puede comentar el look), Ana sobre todo de la pasarela y el look (aunque puede comentar el reto), y los Javis (Javier Ambrossi o Javier Calvo, son jueces) dan su valoración desde la interpretación y la emoción. Son SOLO valoraciones: nunca digas posiciones ni resultados (ni ganadora, ni mejores, ni peores, ni bottom, ni lip sync, ni a salvo, ni en peligro); eso se anuncia después del Untucked.`,
+      `Escribes las críticas del jurado de Drag Race España. Supremme de Luxe es la presentadora (directa, teatral, cariñosa pero exigente). Ana Locking es jurado (moda, técnica, seria y precisa). ${aiSeason()} ${(() => { const f = fame(); return f ? `En el taller, ${S.queen.name} tiene fama de ser ${FAMA[f].n}.` : ""; })()}`,
+      `Reto de esta semana: ${S.epNames[S.ep] || "reto"}. Nota de ${S.queen.name} en el reto: ${S.lastParts ? S.lastParts.reto : score}/100${S.lastParts && S.lastParts.pasarela != null ? `, pasarela: ${S.lastParts.pasarela}/100` : ""}. ${lk ? `Categoría de pasarela: ${lk.cat}. Su mejor pieza: ${lk.best}. Su peor pieza: ${lk.worst}.${lk.concepto ? ` Concepto que defendió: «${lk.concepto}».` : ""}${lk.critica ? ` Ya le dijeron en la pasarela: ${lk.critica}` : ""}` : ""} Su valoración global es ${label}. Devuelve JSON con "supreme", "ana" y "javis": la crítica de cada uno a ${S.queen.name}, en segunda persona, máximo 30 palabras cada una, coherentes con la nota. Supremme habla sobre todo del reto (aunque puede comentar el look), Ana sobre todo de la pasarela y el look (aunque puede comentar el reto), y los Javis (Javier Ambrossi o Javier Calvo, son jueces) dan su valoración desde la interpretación y la emoción. Son SOLO valoraciones: nunca digas posiciones ni resultados (ni ganadora, ni mejores, ni peores, ni bottom, ni lip sync, ni a salvo, ni en peligro); eso se anuncia después del Untucked. Tampoco menciones notas ni números.`,
       { json: true, max: 320, temp: 0.85 },
     );
     if (!r || !r.supreme || !r.ana) return lines;
@@ -4263,11 +4399,11 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
   async function aiJudge(kind, context, text) {
     const r = await IA.chat(
       `Eres el jurado de Drag Race España valorando un ${kind}. Sé justa y exigente: un texto vacío, sin gracia o que no tenga que ver puntúa bajo (10-35); uno correcto, 50-65; uno ingenioso y con remate, 75-95. ${aiSeason()}`,
-      `${context}\nLo que ha dicho ${S.queen.name}: «${text}»\nDevuelve JSON con "nota" (0-100), "publico" (una de: "carcajada", "risas", "silencio", "abucheo") y "reaccion" (lo que dice Supreme justo después, máximo 20 palabras).`,
+      `${context}\nLo que ha dicho ${S.queen.name}: «${text}»\nDevuelve JSON con "nota" (0-100), "publico" (una de: "carcajada", "risas", "silencio", "abucheo") y "reaccion" (lo que dice Supremme justo después, máximo 20 palabras).`,
       { json: true, max: 120, temp: 0.7 },
     );
     if (!r) return null;
-    return { nota: clamp(Math.round(+r.nota || 40), 0, 100), publico: String(r.publico || "risas"), reaccion: IA.clean(r.reaccion || "") };
+    return { nota: clamp(Math.round(Number.isFinite(+r.nota) ? +r.nota : 40), 0, 100), publico: String(r.publico || "risas"), reaccion: IA.clean(r.reaccion || "") };
   }
   // Pantalla común para escribir en directo y ver la reacción
   function liveRounds(el, cfg, done) {
@@ -4301,7 +4437,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       notes.push(nota);
       const pub = j ? j.publico : "risas";
       log.push({ who: "Público", t: { carcajada: "🤣 ¡Carcajada general!", risas: "😄 Risas", silencio: "😶 Silencio...", abucheo: "😬 Uuuuh..." }[pub] || "😄 Risas", cls: "pub" });
-      if (j && j.reaccion) log.push({ who: "Supreme", t: j.reaccion, cls: "host" });
+      if (j && j.reaccion) log.push({ who: "Supremme", t: j.reaccion, cls: "host" });
       if (r.after) { const extra = await r.after(v, nota); if (extra) log.push(extra); }
       round++;
       if (round < cfg.rounds.length) return draw();
@@ -4346,18 +4482,18 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
           return rep ? { who: q.name, t: rep, cls: "rival" } : null;
         },
       })),
-      { prompt: "⚖️ Y ahora... ¡el jurado!", sub: "Supreme, Ana Locking y los Javis te miran. Atrévete.", ctx: "Roast al jurado de Drag Race España: Supreme de Luxe, Ana Locking y los Javis (Javier Ambrossi y Javier Calvo)." },
+      { prompt: "⚖️ Y ahora... ¡el jurado!", sub: "Supremme, Ana Locking y los Javis te miran. Atrévete.", ctx: "Roast al jurado de Drag Race España: Supremme de Luxe, Ana Locking y los Javis (Javier Ambrossi y Javier Calvo)." },
     ];
     liveRounds(el, { title: "El Roast", icon: "🔥", kind: "roast (chiste de humor ácido)", attr: "comedia", rounds, ph: "Tu chiste..." }, done);
   }
-  // Snatch Game en directo: eliges (o inventas) personaje y contestas a Supreme escribiendo
+  // Snatch Game en directo: eliges (o inventas) personaje y contestas a Supremme escribiendo
   function liveSnatch(el, done) {
     const chars = shuffle(SNATCH_PERSONAJES).slice(0, 3);
     el.innerHTML = `
       <div class="story-card">
         <p class="eyebrow">🎭 Snatch Game en directo</p>
         <h3>¿A quién vas a interpretar?</h3>
-        <p class="muted">Escribe el personaje que quieras y responderás a Supreme como si fueras esa persona.</p>
+        <p class="muted">Escribe el personaje que quieras y responderás a Supremme como si fueras esa persona.</p>
         <form class="ft-form"><input id="sn-own" maxlength="80" autocomplete="off" placeholder="Tu personaje..."><button class="btn btn-primary">¡A plató!</button></form>
         <p class="muted">o elige uno de estos:</p>
         <div class="choice-col">${chars.map((c, i) => `<button class="btn btn-ghost" data-c="${i}">${c.icon} ${esc(c.name)} <small>· ${esc(c.tono)}</small></button>`).join("")}</div>
@@ -4369,23 +4505,23 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       const rivals = shuffle(S.rivals).slice(0, 2);
       aiWait("Preparando el plató...", el);
       const plan = await IA.chat(
-        `Eres la guionista del Snatch Game de Drag Race España: Supreme de Luxe hace preguntas absurdas a las concursantes, que imitan personajes. Los personajes son arquetipos y parodias inventadas, nunca personas reales. ${aiSeason()}`,
+        `Eres la guionista del Snatch Game de Drag Race España: Supremme de Luxe hace preguntas absurdas a las concursantes, que imitan personajes. Los personajes son arquetipos y parodias inventadas, nunca personas reales. ${aiSeason()}`,
         `La protagonista ${S.queen.name} imita a: ${name} (tono ${tono}). Las rivales en el plató: ${rivals.map((q) => `${q.name} (${aiProfile(q)} ${idTxt(q)})`).join(" | ")}.
-Elige un personaje-arquetipo gracioso para cada rival según su identidad, y escribe 4 preguntas de Supreme (máximo 20 palabras, absurdas y con chispa). Para cada pregunta, la respuesta de cada rival en personaje (SOLO las rivales, nunca ${S.queen.name}, que contesta la jugadora) (máximo 22 palabras; que alguna falle a veces).
+Elige un personaje-arquetipo gracioso para cada rival según su identidad, y escribe 4 preguntas de Supremme (máximo 20 palabras, absurdas y con chispa). Para cada pregunta, la respuesta de cada rival en personaje (SOLO las rivales, nunca ${S.queen.name}, que contesta la jugadora) (máximo 22 palabras; que alguna falle a veces).
 Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q":"...","respuestas":[{"reina":"nombre","t":"..."}]}]}`,
         { json: true, max: 1600, temp: 1 },
       );
-      const pregs = plan && Array.isArray(plan.preguntas) && plan.preguntas.length >= 3 ? plan.preguntas.slice(0, 4) : shuffle(SNATCH_PREGUNTAS).slice(0, 4).map((q) => ({ q, respuestas: [] }));
+      const pregs = (plan && Array.isArray(plan.preguntas) && plan.preguntas.length >= 3 ? plan.preguntas.slice(0, 4) : shuffle(SNATCH_PREGUNTAS).slice(0, 4).map((q) => ({ q, respuestas: [] }))).map((p) => (typeof p === "string" ? { q: p, respuestas: [] } : p));
       const pj = {};
       ((plan && plan.rivales) || []).forEach((x) => x && x.reina && (pj[x.reina] = str(x.personaje)));
       const rounds = pregs.map((p, i) => ({
-        prompt: `🎤 Supreme: «${IA.clean(str(p.q))}»`,
+        prompt: `🎤 Supremme: «${IA.clean(str(p.q))}»`,
         sub: `Eres ${name}. Contesta como si fueras esa persona.`,
         pre: [
-          ...(i === 0 ? rivals.filter((q) => pj[q.name]).map((q) => ({ who: "Supreme", t: `${q.name} viene como ${pj[q.name]}.`, cls: "host" })) : []),
+          ...(i === 0 ? rivals.filter((q) => pj[q.name]).map((q) => ({ who: "Supremme", t: `${q.name} viene como ${pj[q.name]}.`, cls: "host" })) : []),
           ...((p.respuestas || []).filter((x) => x && x.t && rivals.some((q) => q.name === str(x.reina))).slice(0, 2).map((x) => ({ who: `${str(x.reina)}${pj[str(x.reina)] ? ` (${pj[str(x.reina)]})` : ""}`, t: IA.clean(str(x.t)), cls: "rival" }))),
         ],
-        ctx: `Snatch Game. ${S.queen.name} interpreta a ${name}. Pregunta de Supreme: ${str(p.q)}. Valora la gracia, que se mantenga en el personaje elegido y el remate. En tu reacción no imites ni pongas frases en boca de ese personaje: solo comenta la actuación.`,
+        ctx: `Snatch Game. ${S.queen.name} interpreta a ${name}. Pregunta de Supremme: ${str(p.q)}. Valora la gracia, que se mantenga en el personaje elegido y el remate. En tu reacción no imites ni pongas frases en boca de ese personaje: solo comenta la actuación.`,
       }));
       el.innerHTML = "";
       liveRounds(el, { title: "Snatch Game", icon: "🎭", kind: "Snatch Game (imitación cómica en personaje)", attr: "comedia", rounds, ph: `Lo que dice ${name}...` }, done);
@@ -4405,9 +4541,9 @@ Devuelve JSON {"escena":"premisa en 25 palabras","personajes":[{"reina":"nombre"
     ).then((plan) => {
       if (!plan || !plan.escena) return liveImproSolo(el, done);
       const pj = {};
-      (plan.personajes || []).forEach((x) => x && x.reina && (pj[str(x.reina)] = str(x.personaje)));
+      (Array.isArray(plan.personajes) ? plan.personajes : []).forEach((x) => x && x.reina && (pj[str(x.reina)] = IA.clean(str(x.personaje)).slice(0, 60)));
       mates.forEach((q) => (pj[q.name] = pj[q.name] || "un personaje secundario"));
-      const opts = (Array.isArray(plan.opciones) ? plan.opciones : []).map(str).filter(Boolean).slice(0, 3);
+      const opts = (Array.isArray(plan.opciones) ? plan.opciones : []).map((x) => IA.clean(str(x)).slice(0, 80)).filter(Boolean).slice(0, 3);
       el.innerHTML = `
         <div class="story-card live">
           <p class="eyebrow">📺 Improvisación en grupo</p>
@@ -4465,7 +4601,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre de una rival","t":"lo que dice o hace 
           draw(true);
           const r = await IA.chat(
             `Eres el jurado de Drag Race España valorando una improvisación en grupo. Valora a cada reina por separado: gracia, escucha (si reacciona a las demás), personaje y si hace avanzar la escena. Un aporte vacío o que ignora la escena puntúa bajo (10-35); correcto 50-65; brillante 75-95.`,
-            `Escena: ${scene}\nReparto: ${castTxt()}\nTranscripción:\n${transcript()}\nDevuelve JSON {"notas":[{"reina":"nombre","nota":0-100}],"supreme":"comentario de Supreme sobre la escena (máximo 30 palabras)","mejor":"nombre de la que más ha destacado"}`,
+            `Escena: ${scene}\nReparto: ${castTxt()}\nTranscripción:\n${transcript()}\nDevuelve JSON {"notas":[{"reina":"nombre","nota":0-100}],"supreme":"comentario de Supremme sobre la escena (máximo 30 palabras)","mejor":"nombre de la que más ha destacado"}`,
             { json: true, max: 400, temp: 0.6 },
           );
           const notas = {};
@@ -4478,8 +4614,8 @@ Devuelve JSON {"lineas":[{"reina":"nombre de una rival","t":"lo que dice o hace 
             <div class="story-card live">
               <p class="eyebrow">📺 Improvisación en grupo · resultado</p>
               <div class="live-log">${log.map((m) => `<p class="lv ${m.me ? "me" : "rival"}"><b>${esc(m.who)}</b>${esc(m.t)}</p>`).join("")}</div>
-              ${r && r.supreme ? `<p class="lv host"><b>Supreme</b>${esc(IA.clean(str(r.supreme)))}</p>` : ""}
-              <div class="impro-cast">${[{ q: S.queen, n: myN }, ...mates.map((q) => ({ q, n: notas[q.name] }))].map((x) => `<span><i style="background-image:url('${photo(x.q)}')"></i><b>${esc(x.q === S.queen ? "Tú" : x.q.name)}</b><small>${x.q === S.queen && x.n != null ? x.n : ""}</small></span>`).join("")}</div>
+              ${r && r.supreme ? `<p class="lv host"><b>Supremme</b>${esc(IA.clean(str(r.supreme)))}</p>` : ""}
+              <div class="impro-cast">${[{ q: S.queen, n: myN }, ...mates.map((q) => ({ q, n: notas[q.name] }))].map((x) => `<span><i style="background-image:url('${photo(x.q)}')"></i><b>${esc(x.q === S.queen ? "Tú" : x.q.name)}</b><small></small></span>`).join("")}</div>
               <button class="btn btn-primary" id="lv-done">Continuar</button>
             </div>`;
           el.querySelector("#lv-done").addEventListener("click", () => { if (final >= 80) growAttr(final > 90 ? "comedia" : "carisma"); done(final); });
@@ -4523,14 +4659,18 @@ Devuelve JSON {"titulo":"...","genero":"...","sinopsis":"...","papeles":[{"papel
         // Si pides el protagonista, otra reina con más carisma puede quitártelo
         const rival = mates.find((q) => (q.stats.rate || 3) + (S.form[q.id] || 0) / 4 > A("carisma") / 2 + 1 && Math.random() < 0.3);
         let note = "";
+        let lead = null;
         if (str(mine.peso) === "grande" && rival) {
-          const alt = roles.find((r) => r !== mine);
+          const lines2 = (r) => lines.filter((l) => str(l.papel) === str(r.papel)).length;
+          const alt = roles.filter((r) => r !== mine).sort((a, b) => lines2(b) - lines2(a))[0];
           note = `Los Javis le dan el protagonista a ${rival.name}. Tú haces de ${str(alt.papel)}.`;
+          lead = mine;
           mine = alt;
         }
-        const others = roles.filter((r) => r !== mine);
         const cast = { [str(mine.papel)]: S.queen };
-        mates.forEach((q, i) => others[i] && (cast[str(others[i].papel)] = q));
+        if (lead) cast[str(lead.papel)] = rival;
+        const others = roles.filter((r) => !cast[str(r.papel)]);
+        mates.filter((q) => q !== (lead && rival)).forEach((q, i) => others[i] && (cast[str(others[i].papel)] = q));
         rehearse(g, mine, cast, lines, note);
       }));
     }
@@ -4554,7 +4694,9 @@ Devuelve JSON {"titulo":"...","genero":"...","sinopsis":"...","papeles":[{"papel
       const draw = (phase, line) => {
         const keyWord = IA.clean(str(line.clave));
         const text = IA.clean(str(line.t));
-        const blank = keyWord && norm(text).includes(norm(keyWord)) ? text.replace(new RegExp(keyWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), "_____") : text.replace(/\S+[.!?¡¿]*$/, "_____");
+        const found = keyWord && norm(text).includes(norm(keyWord));
+        if (!found) { const lw = (text.match(/([^\s.!?¡¿,;:]+)[.!?¡¿,;:]*\s*$/) || [])[1]; if (lw) line.clave = lw; }
+        const blank = found ? text.replace(new RegExp(keyWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), "_____") : text.replace(/[^\s.!?¡¿,;:]+([.!?¡¿,;:]*\s*)$/, "_____$1");
         let blankT = blank;
         if (blankT === text) { const ws = text.split(" "); const k = ws.reduce((b, w, i) => (w.replace(/[^\wáéíóúñ]/gi, "").length > ws[b].replace(/[^\wáéíóúñ]/gi, "").length ? i : b), 0); line.clave = ws[k].replace(/[^\wáéíóúñ]/gi, ""); ws[k] = "_____"; blankT = ws.join(" "); }
         el.innerHTML = `
@@ -4620,7 +4762,7 @@ Devuelve JSON {"titulo":"...","genero":"...","sinopsis":"...","papeles":[{"papel
         const c = await IA.chat(
           `Eres los Javis (Javier Ambrossi y Javier Calvo), directores del reto de interpretación en Drag Race España. Cariñosos pero exigentes, hablan de cine y de actuación.`,
           `Película: «${str(g.titulo)}» (${str(g.genero)}). ${S.queen.name} hizo de ${str(mine.papel)} (papel ${peso}): se supo ${mem} de ${n} frases y acertó el tono en ${tone} de ${n}. Nota: ${score}/100. Otras: ${otherNotes.map((o) => `${o.q.name} como ${o.papel}: ${o.n}`).join("; ")}.
-Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","calvo":"comentario sobre el reparto (máximo 30 palabras)"}`,
+Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","calvo":"comentario sobre el reparto (máximo 30 palabras)"}. No menciones notas ni números ni posiciones.`,
           { json: true, max: 300, temp: 0.8 },
         );
         logEv(`Interpretación «${str(g.titulo)}»: ${S.queen.name} hizo de ${str(mine.papel)} (nota ${score})`);
@@ -4670,11 +4812,11 @@ Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","
   };
   // Notas de 0 a 100 (si el modelo contesta de 0 a 10, se escala)
   const nums = (r, keys, d = 50) => {
-    const v = keys.map((k) => +(r && r[k]));
-    const ten = v.every((x) => !x || x <= 10) && v.some((x) => x > 0);
-    return v.map((x) => clamp(Math.round(x ? (ten ? x * 10 : x) : d), 0, 100));
+    const v = keys.map((k) => (r && r[k] != null && Number.isFinite(+r[k]) ? +r[k] : null));
+    const ten = v.every((x) => x == null || x <= 10) && v.some((x) => x > 0);
+    return v.map((x) => clamp(Math.round(x == null ? d : ten ? x * 10 : x), 0, 100));
   };
-  const judgeLines = (r, a = "supreme", b = "ana", na = "Supreme", nb = "Ana Locking") =>
+  const judgeLines = (r, a = "supreme", b = "ana", na = "Supremme", nb = "Ana Locking") =>
     `${r && r[a] ? `<p class="lv host"><b>${na}</b>${esc(IA.clean(str(r[a])))}</p>` : ""}${r && r[b] ? `<p class="lv host"><b>${nb}</b>${esc(IA.clean(str(r[b])))}</p>` : ""}`;
   function liveResult(el, eyebrow, html, score, then) {
     el.innerHTML = `<div class="story-card live"><p class="eyebrow">${eyebrow}</p>${html}<button class="btn btn-primary" id="lv-done">Continuar</button></div>`;
@@ -4685,10 +4827,10 @@ Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","
 
   // Rusical: la IA escribe el musical, eliges papel y completas tus versos
   function liveRusical(el, done, tema) {
-    // Reparte los papeles la ganadora del minireto
+    // Reparte los papeles la ganadora del minirreto
     const iWin = S.miniWin === "me";
     let winQ = !iWin && S.miniWin ? S.rivals.find((q) => q.id === S.miniWin) : null;
-    const mates = [...(winQ ? [winQ] : []), ...shuffle(S.rivals.filter((q) => q !== winQ))].slice(0, 3);
+    const mates = [...(winQ ? [winQ] : []), ...shuffle(S.rivals.filter((q) => q !== winQ))].slice(0, 7);
     if (!iWin && !winQ) winQ = mates[0];
     const fail = () => { mxRusical.classic = true; mxRusical(el, (sc) => { mxRusical.classic = false; done(sc); }); };
     aiWait("Los compositores están terminando la partitura...", el);
@@ -4696,11 +4838,14 @@ Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","
       `Eres la guionista y letrista del Rusical de Drag Race España: un musical paródico, cantado, con humor drag. ${aiSeason()}`,
       `Tema del Rusical: ${tema}. Reparto: ${S.queen.name} (la jugadora) y ${mates.map((q) => q.name).join(", ")} (${mates.length + 1} reinas).
 Los papeles son personajes de ficción con nombres inventados (el campo "papel" es el nombre del personaje, nunca su peso), NUNCA los nombres de las reinas.
-Escribe: título, sinopsis (máximo 25 palabras), ${mates.length + 1} papeles (uno protagonista de peso "grande", el resto "medio" o "pequeño") qué papel quiere cada rival (${mates.map((q) => q.name).join(", ")}) con una frase suya, natural y en su estilo (máximo 20 palabras), en la que se lo cuenta a ${S.queen.name}, y la letra: entre 7 y 9 estrofas en orden, repartidas entre los papeles (el protagonista con 3, el resto con 1 o 2). Cada estrofa son 2 versos cortos (máximo 10 palabras cada uno) que riman entre sí.
+Escribe: título, sinopsis (máximo 25 palabras), ${mates.length + 1} papeles (uno protagonista de peso "grande", el resto "medio" o "pequeño") qué papel quiere cada rival (${mates.map((q) => q.name).join(", ")}) con una frase suya, natural y en su estilo (máximo 20 palabras), en la que se lo cuenta a ${S.queen.name}, y la letra: entre ${Math.max(7, mates.length + 4)} y ${Math.max(9, mates.length + 6)} estrofas en orden, repartidas entre los papeles (el protagonista con 3, cada uno de los demás con al menos 1). Cada estrofa son 2 versos cortos (máximo 10 palabras cada uno) que riman entre sí.
 Devuelve JSON {"titulo":"...","sinopsis":"...","papeles":[{"papel":"...","descripcion":"...","peso":"grande|medio|pequeño"}],"deseos":[{"reina":"nombre","papel":"...","frase":"..."}],"letra":[{"papel":"...","versos":["...","..."]}]}`,
-      { json: true, max: 1800, temp: 1 },
+      { json: true, max: 3200, temp: 1, timeout: 40000 },
     ).then((g) => {
       const roles = g && Array.isArray(g.papeles) ? g.papeles.filter((x) => x && x.papel).slice(0, mates.length + 1) : [];
+      // Si la IA da menos papeles que reinas, el resto hace de coro (nadie se queda sin papel)
+      ["Corista de la izquierda", "Corista de la derecha", "La vedette secundaria", "La acomodadora", "El galán de relleno", "La portera", "La primera bailarina"].forEach((n) => { if (roles.length && roles.length < mates.length + 1) roles.push({ papel: n, descripcion: "Papel de coro, con alguna estrofa suelta", peso: "pequeño" }); });
+      roles.forEach((r) => { r.papel = IA.clean(str(r.papel)).slice(0, 40); r.peso = str(r.peso || "medio").slice(0, 10); });
       // Nombres de papel raros (el peso o el nombre de una reina): se arreglan
       const BAD = /^(grande|medio|peque(ñ|n)o|protagonista|papel)$/i;
       roles.forEach((r, k) => {
@@ -4730,7 +4875,7 @@ Devuelve JSON {"titulo":"...","sinopsis":"...","papeles":[{"papel":"...","descri
           <div class="story-card live">
             <p class="eyebrow">🎭 El Rusical · los papeles</p>
             ${head}
-            <p class="twist-note">Reparte los papeles ${iWin ? "<b>tú</b>, que has ganado el minireto" : `<b>${esc(winQ.name)}</b>, que ha ganado el minireto`}.</p>
+            <p class="twist-note">Reparte los papeles ${iWin ? "<b>tú</b>, que has ganado el minirreto" : `<b>${esc(winQ.name)}</b>, que ha ganado el minirreto`}.</p>
             <p>Habla con tus compañeras para saber qué papel quiere cada una:</p>
             <div class="live-log">${mates.filter((q) => known.has(q.id)).map((q) => `<p class="lv rival"><b>${esc(q.name)} · quiere ${esc(P(want[q.id]))}</b>${esc(said[q.id])}</p>`).join("")}</div>
             <div class="choice-col">${mates.filter((q) => !known.has(q.id)).map((q) => `<button class="btn btn-ghost" data-m="${q.id}">💬 Hablar con ${esc(q.name)}${q === winQ ? " (la que reparte)" : ""}</button>`).join("")}
@@ -4852,7 +4997,7 @@ Devuelve JSON {"titulo":"...","sinopsis":"...","papeles":[{"papel":"...","descri
         async function judge() {
           aiWait("El jurado comenta el número...", el);
           const r = await IA.chat(
-            "Eres el jurado del Rusical en Drag Race España: Supreme de Luxe y Ana Locking. Valoras los versos que ha escrito la reina: si riman con el verso anterior, si se pueden cantar, si tienen gracia y si encajan con su personaje y con la historia. Sé exigente: vacío o sin rima 10-35; correcto 50-65; ingenioso y cantable 75-95.",
+            "Eres el jurado del Rusical en Drag Race España: Supremme de Luxe y Ana Locking. Valoras los versos que ha escrito la reina: si riman con el verso anterior, si se pueden cantar, si tienen gracia y si encajan con su personaje y con la historia. Sé exigente: vacío o sin rima 10-35; correcto 50-65; ingenioso y cantable 75-95.",
             `Rusical «${str(g.titulo)}» (${tema}). ${S.queen.name} hace de ${str(mine.papel)} (${str(mine.descripcion)}). Sus estrofas (el primer verso venía escrito; el segundo, tras la barra, es suyo):\n${mineV.join("\n")}
 Puntúa de 0 a 100. Devuelve JSON {"rima":0,"gracia":0,"personaje":0,"supreme":"comentario (máximo 25 palabras)","ana":"comentario (máximo 25 palabras)"}`,
             { json: true, max: 350, temp: 0.6 },
@@ -4935,9 +5080,9 @@ Devuelve JSON {"titulo":"...","estribillo":["...","...","...","..."],"estrofas":
     async function judge(band, style, title, coro, est, verse, center) {
       aiWait("El jurado escucha el tema...", el);
       const r = await IA.chat(
-        "Eres el jurado de Drag Race España valorando un Girl Group. Valora a cada reina por su estrofa: gracia, ritmo, personalidad y si encaja con el tema. Un texto vacío o sin ritmo 10-35; correcto 50-65; brillante 75-95.",
+        "Eres el jurado de Drag Race España valorando un Girl Group: Supremme de Luxe y los Javis. Valora a cada reina por su estrofa: gracia, ritmo, personalidad y si encaja con el tema. Un texto vacío o sin ritmo 10-35; correcto 50-65; brillante 75-95. Nunca menciones números en los comentarios.",
         `Tema «${title}» de ${band} (${style}). Estribillo: ${coro.join(" / ")}.\n${est.map((x) => `${str(x.reina)}: ${x.versos.map(str).join(" / ")}`).join("\n")}\n${S.queen.name}: ${verse.replace(/\n+/g, " / ")}
-Notas de 0 a 100. Devuelve JSON {"notas":[{"reina":"nombre","nota":0}],"supreme":"comentario sobre el grupo (máximo 25 palabras)","ana":"comentario a ${S.queen.name} (máximo 25 palabras)"}`,
+Notas de 0 a 100. Devuelve JSON {"notas":[{"reina":"nombre","nota":0}],"supreme":"comentario sobre el grupo (máximo 25 palabras)","javis":"comentario de los Javis a ${S.queen.name} (máximo 25 palabras)"}`,
         { json: true, max: 400, temp: 0.6 },
       );
       const notas = {};
@@ -4948,8 +5093,8 @@ Notas de 0 a 100. Devuelve JSON {"notas":[{"reina":"nombre","nota":0}],"supreme"
       const sc = clamp(Math.round(myN + (A("performance") - 5) * 1.5 + (A("carisma") - 5) + (center ? (ok ? 8 : -10) : 0)), 0, 100);
       logEv(`Girl Groups: ${S.queen.name} canta en ${band} el tema «${title}» (nota ${sc})`);
       liveResult(el, `🎤 «${esc(title)}» · el jurado`, `
-        <div class="impro-cast">${[{ q: S.queen, n: myN }, ...mates.map((q) => ({ q, n: notas[q.name] }))].map((x) => `<span><i style="background-image:url('${photo(x.q)}')"></i><b>${esc(x.q === S.queen ? "Tú" : x.q.name)}</b><small>${x.q === S.queen && x.n != null ? x.n : ""}</small></span>`).join("")}</div>
-        ${center ? `<p class="twist-note">${ok ? "⭐ En el centro y clavando cada paso." : "😬 En el centro... y fuera de ritmo."}</p>` : ""}${judgeLines(r)}`, sc, () => done(sc));
+        <div class="impro-cast">${[{ q: S.queen, n: myN }, ...mates.map((q) => ({ q, n: notas[q.name] }))].map((x) => `<span><i style="background-image:url('${photo(x.q)}')"></i><b>${esc(x.q === S.queen ? "Tú" : x.q.name)}</b><small></small></span>`).join("")}</div>
+        ${center ? `<p class="twist-note">${ok ? "⭐ En el centro y clavando cada paso." : "😬 En el centro... y fuera de ritmo."}</p>` : ""}${judgeLines(r, "supreme", "javis", "Supremme", "Los Javis")}`, sc, () => done(sc));
     }
   }
 
@@ -4982,7 +5127,7 @@ Devuelve JSON {"caja":"...","materiales":["...","...","...","...","...","..."],"
     async function judge(box, mats, name, desc, sew, info) {
       aiWait("Ana Locking examina las costuras...", el);
       const r = await IA.chat(
-        "Eres el jurado de Drag Race España en el reto de materiales poco convencionales: Ana Locking (moda, construcción, si es creíble) y Supreme de Luxe (impacto). Exigentes: una descripción vaga, que no usa los materiales o imposible de llevar puntúa bajo.",
+        "Eres el jurado de Drag Race España en el reto de materiales poco convencionales: Ana Locking (moda, construcción, si es creíble) y Supremme de Luxe (impacto). Exigentes: una descripción vaga, que no usa los materiales o imposible de llevar puntúa bajo.",
         `Materiales de la caja: ${mats.join(", ")}. Look de ${S.queen.name}: «${desc}».${info.descosido ? " En la pasarela se le descosió una parte." : ""}
 Valora de 0 a 100: "credible" (si se puede construir y llevar), "moda" (si parece alta costura y no un disfraz) y "uso" (si usa bien los materiales de la caja). En "imagen" describe EN INGLÉS, para un generador de imágenes, una foto del look tal como lo ha descrito (máximo 60 palabras): full-body runway photo of a drag queen wearing..., materiales visibles, colores, silueta${info.descosido ? ", con una costura rota" : ""}.
 Devuelve JSON {"credible":0,"moda":0,"uso":0,"ana":"comentario (máximo 25 palabras)","supreme":"comentario (máximo 25 palabras)","imagen":"..."}`,
@@ -4993,7 +5138,7 @@ Devuelve JSON {"credible":0,"moda":0,"uso":0,"ana":"comentario (máximo 25 palab
       const sc = clamp(Math.round((c1 * 0.35 + c2 * 0.4 + c3 * 0.25) * 0.7 + sew * 0.3 + (A("estilo") - 5)), 0, 100);
       S.lastLook = { cat: "materiales imposibles", best: name, worst: info.descosido ? "traje descosido" : name, concepto: desc.slice(0, 140), critica: r ? `${str(r.ana)} ${str(r.supreme)}` : null };
       logEv(`Materiales imposibles: ${S.queen.name} presenta «${name}» (nota ${sc})`);
-      liveResult(el, `🧰 «${esc(name)}» · el jurado`, `${pic ? `<div class="look-photo"><div class="ia-dots"><i></i><i></i><i></i></div><img alt="${esc(name)}" src="${pic}" onload="this.parentNode.classList.add('ok')" onerror="this.parentNode.classList.add('ko')"><div class="look-sketch">${Doll.svg(sewnSpec("Camp absoluto", { color: pick1(["#ffb800", "#6ad06a", "#ff5fa2", "#6ee7ff"]), pat: info.descosido ? "solid" : "flowers" }))}</div><small>Revelando la foto de la pasarela...</small></div>` : ""}${info.descosido ? `<p class="twist-note">💥 Una costura no aguanta en la pasarela.</p>` : ""}${judgeLines(r, "ana", "supreme", "Ana Locking", "Supreme")}`, sc, () => { if (sc >= 85) growAttr("estilo"); done(sc); });
+      liveResult(el, `🧰 «${esc(name)}» · el jurado`, `${pic ? `<div class="look-photo"><div class="ia-dots"><i></i><i></i><i></i></div><img alt="${esc(name)}" src="${pic}" onload="this.parentNode.classList.add('ok')" onerror="this.parentNode.classList.add('ko')"><div class="look-sketch">${Doll.svg(sewnSpec("Camp absoluto", { color: pick1(["#ffb800", "#6ad06a", "#ff5fa2", "#6ee7ff"]), pat: info.descosido ? "solid" : "flowers" }))}</div><small>Revelando la foto de la pasarela...</small></div>` : ""}${info.descosido ? `<p class="twist-note">💥 Una costura no aguanta en la pasarela.</p>` : ""}${judgeLines(r, "ana", "supreme", "Ana Locking", "Supremme")}`, sc, () => { if (sc >= 85) growAttr("estilo"); done(sc); });
     }
   }
 
@@ -5021,7 +5166,7 @@ Devuelve JSON {"credible":0,"moda":0,"uso":0,"ana":"comentario (máximo 25 palab
     async function finish() {
       aiWait("El jurado repasa los tres looks...", el);
       const r = await IA.chat(
-        "Eres el jurado del Ball de Drag Race España: Supreme de Luxe y Ana Locking. En un Ball las tres pasarelas están conectadas por un tema y tienen que contar una historia. Valoras si los tres looks de la reina cuentan una historia propia y conectada (que se vea la evolución de una a otra) o si son tres looks sueltos o repetidos.",
+        "Eres el jurado del Ball de Drag Race España: Supremme de Luxe y Ana Locking. En un Ball las tres pasarelas están conectadas por un tema y tienen que contar una historia. Valoras si los tres looks de la reina cuentan una historia propia y conectada (que se vea la evolución de una a otra) o si son tres looks sueltos o repetidos.",
         `${B.n}. Categorías: ${B.c.map((x) => `${x[0]} (${x[2]})`).join("; ")}.\nConceptos de ${S.queen.name}:\n${concepts.join("\n")}\nPuntúa de 0 a 100. Devuelve JSON {"coherencia":0,"supreme":"comentario (máximo 25 palabras)","ana":"comentario (máximo 25 palabras)"}`,
         { json: true, max: 300, temp: 0.6 },
       );
@@ -5090,7 +5235,7 @@ Devuelve JSON {"nombre":"...","quien":"...","historia":"...","comodidad":"baja|m
       async function judge(v) {
         aiWait("Salís juntas a la pasarela...", el);
         const r = await IA.chat(
-          "Eres el jurado del makeover en Drag Race España: Supreme de Luxe y Ana Locking. Valoras el parecido de familia (si el look de la modelo se parece al estilo de la reina) y la conexión (si la reina ha escuchado a su modelo y ha adaptado el look a cómo es y a lo cómoda que está).",
+          "Eres el jurado del makeover en Drag Race España: Supremme de Luxe y Ana Locking. Valoras el parecido de familia (si el look de la modelo se parece al estilo de la reina) y la conexión (si la reina ha escuchado a su modelo y ha adaptado el look a cómo es y a lo cómoda que está).",
           `Reina: ${S.queen.name} (estilo ${S.lookTags && S.lookTags.length ? S.lookTags.slice(-3).join(", ") : "propio"}). Modelo: ${who}, ${str(m.quien)}. ${str(m.historia)} Comodidad: ${str(m.comodidad)}.
 Conversación:\n${log.map((x) => `${x.me ? S.queen.name : who}: ${x.t}`).join("\n")}\nDiseño: «${v}»
 Puntúa de 0 a 100. Devuelve JSON {"parecido":0,"conexion":0,"supreme":"comentario (máximo 25 palabras)","ana":"comentario (máximo 25 palabras)","modelo":"lo que dice ${who} al verse en el espejo (máximo 20 palabras)"}`,
@@ -5136,7 +5281,7 @@ Devuelve JSON {"producto":"...","marca":"...","descripcion":"máximo 25 palabras
         const slogan = el.querySelector("#pb-e").value.trim() || "(sin eslogan)";
         aiWait("Montando el anuncio...", el);
         const r = await IA.chat(
-          "Eres el jurado de Drag Race España en el reto de publicidad: Supreme de Luxe y los Javis. Valoras el eslogan (pegadizo y camp), el guion (gracioso, claro, que venda el producto) y el humor drag. Exigentes: sin eslogan o con un guion vacío puntúa bajo.",
+          "Eres el jurado de Drag Race España en el reto de publicidad: Supremme de Luxe y los Javis. Valoras el eslogan (pegadizo y camp), el guion (gracioso, claro, que venda el producto) y el humor drag. Exigentes: sin eslogan o con un guion vacío puntúa bajo.",
           `Producto: ${prod} de ${marca} (${str(p.descripcion)}). Pide el cliente: ${str(p.cliente)}.\n${mate ? `Lo graban en pareja ${S.queen.name} y ${mate.name}${p.idea ? ` (${mate.name} propuso: ${str(p.idea)})` : ""}. ` : ""}Eslogan de ${S.queen.name}: «${slogan}»\nGuion: «${g}»
 Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"comentario (máximo 25 palabras)","javis":"comentario de los Javis (máximo 25 palabras)"}`,
           { json: true, max: 350, temp: 0.6 },
@@ -5144,7 +5289,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
         const [c1, c2, c3] = nums(r, ["eslogan", "guion", "camp"]);
         const sc = clamp(Math.round(c1 * 0.3 + c2 * 0.4 + c3 * 0.3 + (A("carisma") - 5) * 1.5 + (A("comedia") - 5)), 0, 100);
         logEv(`Publicidad: ${S.queen.name} anuncia ${prod} con el eslogan «${slogan}» (nota ${sc})`);
-        liveResult(el, `📺 ${esc(marca)} · el anuncio`, `<p class="rw-quote">«${esc(slogan)}»</p>${judgeLines(r, "supreme", "javis", "Supreme", "Los Javis")}`, sc, () => { if (sc >= 85) growAttr("carisma"); done(sc); });
+        liveResult(el, `📺 ${esc(marca)} · el anuncio`, `<p class="rw-quote">«${esc(slogan)}»</p>${judgeLines(r, "supreme", "javis", "Supremme", "Los Javis")}`, sc, () => { if (sc >= 85) growAttr("carisma"); done(sc); });
       });
     });
   }
@@ -5373,10 +5518,13 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     const second = P_KEYS.filter((k) => k !== best).reduce((m, k) => Math.max(m, p[k] || 0), 0);
     return (p[best] || 0) >= 3 && (p[best] || 0) > second ? best : null;
   }
-  const nemQ = () => (S.nemesis && !S.nemesis.done ? qById(S.nemesis.id) : null);
+  // La némesis está desactivada: era demasiado exagerada. Ahora pesan las conversaciones en grupo.
+  const NEMESIS_ON = false;
+  const nemQ = () => (NEMESIS_ON && S.nemesis && !S.nemesis.done ? qById(S.nemesis.id) : null);
   const nemActive = () => { const q = nemQ(); return q && S.rivals.includes(q) ? q : null; };
-  const isNem = (q) => !!q && !!S.nemesis && !S.nemesis.done && S.nemesis.id === q.id;
+  const isNem = (q) => NEMESIS_ON && !!q && !!S.nemesis && !S.nemesis.done && S.nemesis.id === q.id;
   function makeNemesis(q, origin) {
+    if (!NEMESIS_ON) return;
     if (!q || q === S.queen || !S.rivals.includes(q)) return;
     if (S.nemesis && !S.nemesis.done && S.rivals.some((r) => r.id === S.nemesis.id)) return;
     if (S.nemesis && S.nemesis.done === "tregua" && S.nemesis.id === q.id) return;
@@ -5504,7 +5652,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   const slotMap = {};
   const slotOf = (it) => {
     if (!slotMap.ok) { ["look", "peluca", "acc"].forEach((k) => ARMARIO[k].forEach((x) => (slotMap[x.id] = k))); slotMap.ok = 1; }
-    return slotMap[it.id] || "acc";
+    return slotMap[it.id] || (String(it.id).startsWith("hecho-") ? "look" : "acc");
   };
   const statOf = (it) => (typeof ARMARIO_STATS !== "undefined" && ARMARIO_STATS[it.id]) || [2, 3];
   const priceOf = (it) => PRICE[slotOf(it)][statOf(it)[0]];
@@ -5549,7 +5697,10 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
     if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS;
     const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).filter((t) => ARMARIO.look.filter((x) => x.th === t.id).length >= 6);
-    const pool = [...shuffle(temas.map((t) => t.n)), ...shuffle(CATEGORIAS.filter((c) => !temas.some((t) => t.n === c)))];
+    // Las pasarelas cambian de una temporada a otra: primero las que menos has visto
+    const seen = seenRunways();
+    const fresh = (arr) => shuffle(arr).map((n) => [n, (seen[n] || 0) + Math.random() * 0.9]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
+    const pool = [...fresh(temas.map((t) => t.n)), ...fresh(CATEGORIAS.filter((c) => !temas.some((t) => t.n === c)))];
     const take = () => pool.shift() || pick1(CATEGORIAS);
     const sched = [];
     for (let ep = 1; ep <= seasonEpisodes(); ep++) {
@@ -5557,7 +5708,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       const looks = [];
       if (tipo === "ball") {
         const used = sched.filter((x) => x.ball).map((x) => x.ball);
-        const B = pick1(BALLS.filter((b) => !used.includes(b.id))) || pick1(BALLS);
+        const B = fresh(BALLS.filter((b) => !used.includes(b.id)).map((b) => "ball:" + b.id)).map((k) => BALLS.find((b) => "ball:" + b.id === k))[0] || pick1(BALLS);
         looks.push({ cat: B.c[0][0], kind: "ball" }, { cat: B.c[1][0], kind: "ball" });
         sched.push({ ep, tipo, looks, ball: B.id });
         continue;
@@ -5567,13 +5718,40 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     }
     return sched;
   }
+  function seenRunways() {
+    try { return JSON.parse(localStorage.getItem("dftc-pasarelas-vistas")) || {}; } catch (e) { return {}; }
+  }
+  function markRunways(sched) {
+    const seen = seenRunways();
+    sched.forEach((e) => {
+      if (e.ball) seen["ball:" + e.ball] = (seen["ball:" + e.ball] || 0) + 1;
+      e.looks.filter((l) => l.kind === "runway").forEach((l) => (seen[l.cat] = (seen[l.cat] || 0) + 1));
+    });
+    try { localStorage.setItem("dftc-pasarelas-vistas", JSON.stringify(seen)); } catch (e) {}
+  }
   function buildPlan() {
     S.schedule = buildSchedule();
+    markRunways(S.schedule);
     S.ballPlan = S.schedule.flatMap((e) => e.looks.filter((l) => l.kind === "ball").map((l) => l.cat));
     return S.schedule.flatMap((e) => e.looks.filter((l) => l.kind === "runway").map((l) => l.cat));
   }
   const allPlannedLooks = () => [...(S.runwayPlan || []), ...(S.ballPlan || [])];
   // Lo mínimo para cubrir cada pasarela (look + peluca + toque final más baratos que encajan)
+  // Lo que te falta para cubrir el plan: lo que ya tienes cuenta gratis y una peluca o un toque sirven para varias pasarelas
+  function neededBudget(plan) {
+    let total = 0;
+    const usedL = new Set(), haveWA = { peluca: [], acc: [] };
+    plan.forEach((cat) => {
+      const look = ARMARIO.look.filter((x) => fitsRunway("look", x, cat) && !usedL.has(x.id)).sort((a, b) => (Closet.has(a.id) ? 0 : priceOf(a)) - (Closet.has(b.id) ? 0 : priceOf(b)))[0];
+      if (look) { usedL.add(look.id); if (!Closet.has(look.id)) total += priceOf(look); } else total += PRICE.look[1];
+      ["peluca", "acc"].forEach((k) => {
+        if (haveWA[k].some((x) => fitsRunway(k, x, cat)) || ARMARIO[k].some((x) => Closet.has(x.id) && fitsRunway(k, x, cat))) return;
+        const c = ARMARIO[k].filter((x) => fitsRunway(k, x, cat)).sort((a, b) => priceOf(a) - priceOf(b))[0];
+        if (c) { haveWA[k].push(c); total += priceOf(c); } else total += PRICE[k][1];
+      });
+    });
+    return Math.max(0, Math.ceil((total * 1.15) / 50) * 50 - Closet.money);
+  }
   function basicBudget(plan) {
     // Un look distinto por pasarela (no se pueden repetir) + peluca y toque final
     let total = 0;
@@ -5591,7 +5769,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     header();
     $("#story-ep").textContent = "Antes de empezar";
     const plan = allPlannedLooks();
-    const grant = basicBudget(plan);
+    const grant = S.flags.grant ? 0 : neededBudget(plan);
     const sched = S.schedule || [];
     const nLooks = plan.length;
     const lines = [
@@ -5601,7 +5779,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       ["ambrossi", `Escucha bien, que esto es importante: si llegas a la final serán ${sched.length || "unos cuantos"} episodios y vas a necesitar ${nLooks} looks.`],
       ["ambrossi", "Te decimos las temáticas, pero no en qué orden. Eso es sorpresa."],
       ["calvo", "Y ojo: lo que compres ahora es lo que hay. Durante la temporada no se puede ir de compras, y ningún look se repite."],
-      ["calvo", "Producción te da un presupuesto para lo básico. Lo demás... te lo tendrás que ganar."],
+      ["calvo", "Si no te llega para lo básico, producción te echa una mano. Lo demás... te lo tendrás que ganar."],
       ["ambrossi", pick1(["Y nada de traer lo de siempre, ¿eh? Queremos verte brillar.", "Haz las maletas con cabeza. Y con lentejuelas."])],
     ];
     dialog(lines, ctxWith(pick1(S.rivals)), () => {
@@ -5612,8 +5790,8 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
           <h3>${sched.length} episodios · ${nLooks} looks que preparar</h3>
           <div class="sched">${shuffle(plan.slice()).map((c, i) => { const t = themeOf(c); const ball = (S.ballPlan || []).includes(c) && !(S.runwayPlan || []).includes(c); const bb = ball && BALLS.find((b) => b.c.some((x) => x[0] === c)); const bx = bb && bb.c.find((x) => x[0] === c); return `<div class="sched-ep" style="--i:${i}"><b>${ball ? `🎭 ${bb ? esc(bb.n) : "Look para el Ball"}` : "👠 Pasarela"}</b><span>${esc(c)}</span>${t ? `<small>${esc(t.d)}</small>` : bx ? `<small>${esc(bx[2])}</small>` : ""}</div>`; }).join("")}</div>
           <p class="muted">El orden de los retos y las pasarelas es sorpresa: puede cambiar sobre la marcha. Luego vienen el reencuentro y la gran final. Si te eliminan antes, lo que no uses se queda en tu armario para la próxima temporada.</p>
-          <p class="gold">💶 Producción te ingresa ${euros(grant)} para lo básico. Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
-          <p class="muted">🛑 Solo puedes comprar ahora. Lo que ganes en la temporada (miniretos, retos, corona) te servirá para la siguiente.</p>
+          <p class="gold">${grant ? `💶 Producción te ingresa ${euros(grant)} para lo que te falta.` : "💶 Con tu armario y tus ahorros te llega: producción no pone nada esta vez."} Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
+          <p class="muted">🛑 Solo puedes comprar ahora. Lo que ganes en la temporada (minirretos, retos, corona) te servirá para la siguiente.</p>
           <button class="btn btn-primary" id="story-go">🛍️ Ir de compras</button>
         </div>`;
       $("#story-go").addEventListener("click", () => shopScreen(body(), then, true));
@@ -5623,12 +5801,17 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   function shopScreen(el, onDone, first = false) {
     const plan = [...new Set(allPlannedLooks())];
     let tab = "look", filt = plan.length ? "plan" : "all";
-    const IMG = (id) => `./images/armario/${id}.webp`;
+    const IMG = pieceImg;
     const fitsPlan = (k, it) => plan.filter((c) => fitsRunway(k, it, c));
     const covered = (c) => {
-      // Looks: hace falta uno distinto por cada vez que sale la categoría
-      const need = allPlannedLooks().filter((x) => x === c).length;
-      return ARMARIO.look.filter((x) => Closet.has(x.id) && fitsRunway("look", x, c)).length >= need && ["peluca", "acc"].every((k) => ARMARIO[k].some((x) => Closet.has(x.id) && fitsRunway(k, x, c)));
+      // Looks: se reparten sin repetir entre todas las pasarelas del plan (un look no cuenta dos veces)
+      const used = new Set(), ok = {};
+      allPlannedLooks().forEach((cat, i) => {
+        const l = ARMARIO.look.find((x) => Closet.has(x.id) && !used.has(x.id) && fitsRunway("look", x, cat));
+        if (l) used.add(l.id);
+        ok[cat] = (ok[cat] === undefined ? true : ok[cat]) && !!l;
+      });
+      return ok[c] !== false && ["peluca", "acc"].every((k) => ARMARIO[k].some((x) => Closet.has(x.id) && fitsRunway(k, x, c)));
     };
     function items() {
       let L = ARMARIO[tab].slice();
@@ -5647,6 +5830,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
           <div class="shop-top">
             <h3>🛍️ La tienda</h3>
             <b class="shop-money">💶 <span class="closet-money">${euros(Closet.money)}</span></b>
+            <button class="btn btn-ghost" id="shop-taller">✂️ Taller de costura</button>
             <button class="btn btn-primary" id="shop-done">${first ? "Cerrar maletas: ¡al taller!" : "Cerrar"}</button>
           </div>
           ${plan.length ? `<div class="shop-plan">${plan.map((c, i) => `<button class="plan-chip ${covered(c) ? "ok" : ""} ${filt === c ? "on" : ""}" data-c="${i}">${covered(c) ? "✔" : "✖"} ${esc(c)}</button>`).join("")}</div>` : ""}
@@ -5680,6 +5864,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
         render();
         if (el.querySelector(".shop-grid")) el.querySelector(".shop-grid").scrollTop = y;
       }));
+      $("#shop-taller").addEventListener("click", () => tallerScreen(host, () => { syncHechos(); render(); }));
       $("#shop-done").addEventListener("click", () => {
         const missing = plan.filter((c) => !covered(c));
         if (first && missing.length && !el.dataset.warned) {
@@ -5702,6 +5887,422 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     shopScreen(m, () => m.remove());
   }
 
+  // ------------------------------ Taller de costura (looks hechos por ti) ------------------------------
+  // Compras la tela y los adornos, eliges silueta y color, lo coses y queda en tu armario como un look más
+  const TALLER = {
+    shapes: [
+      { k: "gown", n: "Vestido de baile", m: 6, imp: 1.5, mov: 2, s: { glam: 1 }, dif: 0 },
+      { k: "mermaid", n: "Sirena", m: 5, imp: 1.5, mov: 2, s: { glam: 1.5 }, dif: 8 },
+      { k: "mini", n: "Minivestido", m: 2, imp: 0.5, mov: 5, s: { retro: 1 }, dif: -6 },
+      { k: "jumpsuit", n: "Mono", m: 4, imp: 1, mov: 4, s: { futur: 1 }, dif: 0 },
+      { k: "suit", n: "Traje de chaqueta", m: 4, imp: 1, mov: 4, s: { street: 1 }, dif: 10 },
+      { k: "bodysuit", n: "Body", m: 1.5, imp: 0.5, mov: 5, s: { street: 0.5, futur: 0.5 }, dif: -6 },
+      { k: "cape", n: "Capa de gala", m: 7, imp: 2, mov: 2, s: { glam: 1 }, dif: 4 },
+      { k: "flamenca", n: "Traje de flamenca", m: 7, imp: 1.5, mov: 3, s: { folk: 2 }, dif: 8 },
+    ],
+    telas: [
+      { k: "algodon", n: "algodón", eur: 8, imp: 0, pat: "solid", s: { folk: 1 } },
+      { k: "raso", n: "raso", eur: 18, imp: 1, pat: "solid", s: { glam: 1 } },
+      { k: "tul", n: "tul", eur: 14, imp: 1, pat: "solid", s: { glam: 0.5, retro: 1 } },
+      { k: "encaje", n: "encaje", eur: 22, imp: 1.5, pat: "lace", s: { folk: 1, glam: 0.5 } },
+      { k: "terciopelo", n: "terciopelo", eur: 24, imp: 1.5, pat: "solid", s: { glam: 2 } },
+      { k: "lunares", n: "lunares", eur: 14, imp: 1, pat: "dots", s: { folk: 2 } },
+      { k: "flores", n: "flores bordadas", eur: 24, imp: 1.5, pat: "flowers", s: { folk: 1.5, retro: 0.5 } },
+      { k: "leopardo", n: "leopardo", eur: 18, imp: 1.5, pat: "leopard", s: { street: 1.5, retro: 0.5 } },
+      { k: "rayas", n: "rayas blanco y negro", eur: 16, imp: 1, pat: "stripes", s: { street: 1.5 }, fixed: true },
+      { k: "latex", n: "látex", eur: 27, imp: 2, pat: "metal", s: { street: 2 } },
+      { k: "lame", n: "lamé metalizado", eur: 30, imp: 2, pat: "metal", s: { futur: 2 } },
+      { k: "lentejuela", n: "lentejuela", eur: 34, imp: 2.5, pat: "sequins", s: { glam: 1.5, retro: 0.5 } },
+    ],
+    adornos: [
+      { k: "pedreria", n: "pedrería", eur: 72, imp: 1, mov: 0, s: { glam: 1 } },
+      { k: "plumas", n: "plumas", eur: 88, imp: 1.5, mov: -1, s: { glam: 0.5, retro: 1 } },
+      { k: "flecos", n: "flecos", eur: 40, imp: 0.5, mov: 1, s: { folk: 0.5, retro: 0.5 } },
+      { k: "volantes", n: "volantes", eur: 48, imp: 0.5, mov: 0, s: { folk: 1.5 } },
+      { k: "tachuelas", n: "tachuelas", eur: 48, imp: 0.5, mov: 0, s: { street: 1.5 } },
+      { k: "leds", n: "luces LED", eur: 96, imp: 1.5, mov: 0, s: { futur: 1.5 } },
+      { k: "lazos", n: "lazos", eur: 32, imp: 0.5, mov: 0, s: { retro: 1.5 } },
+      { k: "escamas", n: "escamas", eur: 64, imp: 1, mov: 0, s: { glam: 0.5, futur: 0.5 } },
+    ],
+    colores: [["negro", "#1b1b1b"], ["blanco", "#f4f1ec"], ["rojo", "#c8102e"], ["burdeos", "#7a1530"], ["fucsia", "#ff3d9a"], ["rosa", "#ff9ec7"], ["morado", "#7b3fa0"], ["azul noche", "#1f3a8a"], ["turquesa", "#18b6b0"], ["verde", "#2f9e44"], ["amarillo", "#ffd34d"], ["naranja", "#ff7a1a"], ["dorado", "#d4a93a"], ["plata", "#c0c4cc"]],
+  };
+  const STYLE_OF_TAG = { Glamour: "glam", Camp: "retro", Edgy: "street", Futurista: "futur", Folclórico: "folk" };
+  const isHecho = (it) => !!(it && String(it.id).startsWith("hecho-"));
+  // Mete en el catálogo los looks que has cosido (se guardan con tu armario)
+  function syncHechos() {
+    const c = Closet.get();
+    (c.hechos || []).forEach((h) => {
+      if (!ARMARIO.look.some((x) => x.id === h.id)) ARMARIO.look.push(h);
+      if (typeof ARMARIO_STATS !== "undefined") ARMARIO_STATS[h.id] = h.st;
+      slotMap[h.id] = "look";
+    });
+  }
+  syncHechos();
+  // Peluca y toque que mejor le van a un look tuyo (para verlo puesto)
+  function wornSpec(look, wigIt, accIt) {
+    const tag = TAG_OF_STYLE[look.s] || "Glamour";
+    const pickOwn = (k) => ARMARIO[k].find((x) => Closet.has(x.id) && TAG_OF_STYLE[x.s] === tag) || ARMARIO[k].find((x) => TAG_OF_STYLE[x.s] === tag);
+    const w = wigIt || pickOwn("peluca"), a = accIt || pickOwn("acc");
+    return { skin: skinMe(), look: look.spec, wig: w ? Doll.visualOf(w, "peluca") : undefined, extra: a ? Doll.visualOf(a, "acc") : {} };
+  }
+  const svgUri = (svg) => `data:image/svg+xml;utf8,${encodeURIComponent(svg.replace(/class="doll[^"]*"/, 'class="doll"'))}`;
+  const hechoImg = (it) => svgUri(Doll.svg(wornSpec(it)));
+  // Imagen de una pieza del catálogo (los looks tuyos se dibujan puestos sobre tu reina)
+  const pieceImg = (id) => {
+    const h = String(id).startsWith("hecho-") && ARMARIO.look.find((x) => x.id === id);
+    return h ? photoOf(h.id) || renderOf(h.id) || hechoImg(h) : `./images/armario/${id}.webp`;
+  };
+
+  // Datos del look para el visor 3D
+  const spec3d = (look, tela, s) => ({ shape: look.shape, tela: tela || ({ sequins: "lentejuela", metal: "lame", dots: "lunares", lace: "encaje", flowers: "flores", leopard: "leopardo", stripes: "rayas" }[look.pat] || "raso"), color: look.color, trims: look.trims || [], skin: skinMe(), tag: TAG_OF_STYLE[s] || "Glamour" });
+  const RENDERS_KEY = "dftc-render-looks";
+  const renderOf = (id) => { try { return (JSON.parse(localStorage.getItem(RENDERS_KEY)) || {})[id] || null; } catch (e) { return null; } };
+  function saveRender(id, url) { if (!url) return; try { const m = JSON.parse(localStorage.getItem(RENDERS_KEY)) || {}; m[id] = url; localStorage.setItem(RENDERS_KEY, JSON.stringify(m)); } catch (e) {} }
+  function tallerScreen(host, back0) {
+    let v3 = null, v3busy = false;
+    const kill3d = () => { if (v3) { v3.dispose(); v3 = null; } };
+    const back = () => { kill3d(); cleanup = null; back0(); };
+    cleanup = kill3d;
+    // Monta (o reutiliza) el visor 3D dentro de un hueco
+    function put3d(slot, sp) {
+      if (!slot || typeof Atelier3D === "undefined") return;
+      if (v3) { slot.innerHTML = ""; slot.append(v3.el); v3.set(sp); return; }
+      if (v3busy) return;
+      v3busy = true;
+      Atelier3D.load().then((ok) => {
+        v3busy = false;
+        const cur = host.querySelector(slot.id ? `#${slot.id}` : ".tl-3d");
+        if (!ok || !cur || v3) return;
+        try { cur.innerHTML = ""; v3 = Atelier3D.mount(cur, cur.__spec || sp); } catch (e) { console.warn("3D", e); }
+      });
+    }
+    const plan = [...new Set(allPlannedLooks())];
+    const d = { shape: "gown", tela: "raso", color: "#c8102e", adornos: [], target: plan[0] || null, name: "" };
+    const T = (k) => TALLER.telas.find((x) => x.k === k);
+    const SH = (k) => TALLER.shapes.find((x) => x.k === k);
+    const AD = (k) => TALLER.adornos.find((x) => x.k === k);
+    const colorName = () => (TALLER.colores.find((c) => c[1] === d.color) || ["", ""])[0];
+    function calc() {
+      const sh = SH(d.shape), te = T(d.tela), ads = d.adornos.map(AD);
+      const votes = {};
+      [sh.s, te.s, ...ads.map((a) => a.s)].forEach((o) => Object.entries(o).forEach(([k, v]) => (votes[k] = (votes[k] || 0) + v)));
+      const want = d.target ? STYLE_OF_TAG[CAT_TAG[d.target] || (themeOf(d.target) && themeOf(d.target).tag)] : null;
+      const s = Object.entries(votes).sort((a, b) => b[1] - a[1] || (b[0] === want) - (a[0] === want))[0][0];
+      const imp = sh.imp + te.imp + ads.reduce((t, a) => t + a.imp, 0);
+      const mov = sh.mov + ads.reduce((t, a) => t + a.mov, 0);
+      const cost = Math.round(sh.m * te.eur + ads.reduce((t, a) => t + a.eur, 0));
+      const dif = 50 + sh.dif + ads.length * 6 + (te.k === "latex" || te.k === "lentejuela" ? 6 : 0);
+      const auto = `${sh.n} de ${te.n}${te.fixed ? "" : ` en ${colorName()}`}${ads.length ? ` con ${ads.map((a) => a.n).join(" y ")}` : ""}`;
+      return { s, tag: TAG_OF_STYLE[s], want, imp, mov, cost, dif, auto, look: { shape: sh.k, pat: te.pat, color: te.fixed ? "#1b1b1b" : d.color, trims: d.adornos.slice() } };
+    }
+    const starsOf = (imp) => clamp(Math.round(imp), 1, 5);
+    function fitTxt(r) {
+      if (!d.target) return `<span class="tl-fit">Estilo: <b>${esc(r.tag)}</b></span>`;
+      const TH = themeOf(d.target);
+      if (TH && TH.id === "P05") return `<span class="tl-fit ko">🎁 «${esc(d.target)}» pide un look con reveal: ese búscalo en la tienda</span>`;
+      const need = CAT_TAG[d.target] || (TH && TH.tag) || "Glamour";
+      return r.tag === need
+        ? `<span class="tl-fit ok">🎯 Encaja con «${esc(d.target)}» (${esc(need)})</span>`
+        : `<span class="tl-fit ko">😬 Te sale ${esc(r.tag)} y «${esc(d.target)}» pide ${esc(need)}</span>`;
+    }
+    function render() {
+      const y = host.querySelector(".tl-form") ? host.querySelector(".tl-form").scrollTop : 0;
+      const r = calc();
+      const money = Closet.money;
+      const preview = Doll.svg(wornSpec({ s: r.s, spec: r.look }));
+      const sp3 = spec3d(r.look, d.tela, r.s);
+      host.innerHTML = `
+        <div class="shop taller">
+          <div class="shop-top">
+            <h3>✂️ Taller de costura</h3>
+            <b class="shop-money">💶 <span class="closet-money">${euros(money)}</span></b>
+            <button class="btn btn-ghost" id="tl-back">← Volver a la tienda</button>
+          </div>
+          <div class="tl-grid">
+            <div class="tl-doll tl-boceto">
+              <div class="tl-3d" id="tl-3d">${v3 ? "" : preview}</div>
+              <small class="muted tl-hint">↔ Arrastra para girar</small>
+              <b>${esc(S.queen.name)}</b>
+              <small class="shop-st">${"★".repeat(starsOf(r.imp))}${"☆".repeat(5 - starsOf(r.imp))} · 👣 ${clamp(Math.round(r.mov), 1, 5)}/5</small>
+              ${fitTxt(r)}
+            </div>
+            <div class="tl-right"><div class="tl-form">
+              ${plan.length ? `<div class="tl-row"><h4>🎯 Para qué pasarela</h4><div class="chip-row">${plan.map((c, i) => `<button class="plan-chip ${d.target === c ? "on" : ""}" data-tg="${i}">${esc(c)}</button>`).join("")}</div>${d.target && themeOf(d.target) ? `<small class="muted">${esc(themeOf(d.target).d)}</small>` : ""}</div>` : ""}
+              <div class="tl-row"><h4>👗 Silueta</h4><div class="chip-row">${TALLER.shapes.map((x) => `<button class="plan-chip ${d.shape === x.k ? "on" : ""}" data-sh="${x.k}">${esc(x.n)} <small>${String(x.m).replace(".", ",")} m</small></button>`).join("")}</div></div>
+              <div class="tl-row"><h4>🧵 Tela</h4><div class="chip-row">${TALLER.telas.map((x) => `<button class="plan-chip ${d.tela === x.k ? "on" : ""}" data-te="${x.k}">${esc(x.n)} <small>${x.eur} €/m</small></button>`).join("")}</div></div>
+              ${T(d.tela).fixed ? "" : `<div class="tl-row"><h4>🎨 Color</h4><div class="tl-colors">${TALLER.colores.map(([n, c]) => `<button class="tl-sw ${d.color === c ? "on" : ""}" data-co="${c}" title="${esc(n)}" style="--c:${c}"></button>`).join("")}</div></div>`}
+              <div class="tl-row"><h4>✨ Adornos <small class="muted">(hasta 2)</small></h4><div class="chip-row">${TALLER.adornos.map((x) => `<button class="plan-chip ${d.adornos.includes(x.k) ? "on" : ""}" data-ad="${x.k}">${esc(x.n)} <small>${x.eur} €</small></button>`).join("")}</div></div>
+              <div class="tl-row"><h4>🏷️ Nombre</h4><input class="tl-name" maxlength="48" value="${esc(d.name || r.auto)}"></div>
+              </div>
+              <div class="tl-buy">
+                <b>Materiales: ${euros(r.cost)}</b>
+                <button class="btn ${money >= r.cost ? "btn-primary" : "btn-ghost"}" id="tl-sew" ${money >= r.cost ? "" : "disabled"}>✂️ Comprar y coser</button>
+              </div>
+            </div></div>
+          </div>
+        </div>`;
+      host.querySelector(".tl-form").scrollTop = y;
+      const slot = host.querySelector("#tl-3d"); slot.__spec = sp3; put3d(slot, sp3);
+      host.querySelector("#tl-back").addEventListener("click", back);
+      const nm = host.querySelector(".tl-name");
+      nm.addEventListener("input", () => (d.name = nm.value.trim() === r.auto ? "" : nm.value));
+      const on = (sel, f) => host.querySelectorAll(sel).forEach((b) => b.addEventListener("click", () => { f(b); render(); }));
+      on("[data-tg]", (b) => (d.target = plan[+b.dataset.tg]));
+      on("[data-sh]", (b) => (d.shape = b.dataset.sh));
+      on("[data-te]", (b) => (d.tela = b.dataset.te));
+      on("[data-co]", (b) => (d.color = b.dataset.co));
+      on("[data-ad]", (b) => {
+        const k = b.dataset.ad;
+        d.adornos = d.adornos.includes(k) ? d.adornos.filter((x) => x !== k) : [...d.adornos, k].slice(-2);
+      });
+      host.querySelector("#tl-sew").addEventListener("click", () => sew(calc(), (d.name || "").trim()));
+    }
+    function sew(r, name) {
+      if (Closet.money < r.cost) return;
+      Closet.add(-r.cost);
+      kill3d();
+      sewingGame(host, r, (pul) => {
+        const imp = r.imp + (pul - 0.5) * 2.4;
+        const it = {
+          id: `hecho-${Date.now().toString(36)}`, n: (name || r.auto).slice(0, 48), s: r.s, c: r.look.color, t: [], hecho: true,
+          spec: r.look, st: [starsOf(imp), clamp(Math.round(r.mov), 1, 5)], ok: pul >= 0.55, pul: Math.round(pul * 100) / 100,
+          desc: r.auto, tela: d.tela,
+        };
+        // Si encaja con la temática de la pasarela, cuenta como look de esa temática
+        const TH = d.target && themeOf(d.target);
+        if (TH && TH.id !== "P05" && TAG_OF_STYLE[r.s] === TH.tag) it.th = TH.id;
+        if (d.target && !TH && TAG_OF_STYLE[r.s] === CAT_TAG[d.target]) it.t = [d.target];
+        const c = Closet.get();
+        c.hechos = [...(c.hechos || []), it];
+        c.owned[it.id] = 1;
+        Closet.set(c);
+        syncHechos();
+        Confetti.burst(800);
+        const verdict = pul >= 0.8 ? "🪡 Acabado de alta costura: ni una puntada fuera de sitio." : pul >= 0.55 ? "🧵 Bien rematado. Aguanta la pasarela sin problema." : pul >= 0.35 ? "🧶 Se notan algunas puntadas torcidas. De lejos pasa." : "🩹 Costuras de batalla: rézale a la cinta de doble cara.";
+        host.innerHTML = `
+          <div class="shop taller"><div class="tl-sewing">
+            <div class="tl-result">
+              <div class="tl-3d big" id="tl-3d-res">${Doll.svg(wornSpec(it))}</div>
+              <div class="tl-photo" id="tl-photo"><div class="ia-dots"><i></i><i></i><i></i></div><small>Sesión de fotos...</small></div>
+            </div>
+            <h3>«${esc(it.n)}»</h3>
+            <p class="shop-st">${"★".repeat(it.st[0])}${"☆".repeat(5 - it.st[0])} · 👣 ${it.st[1]}/5</p>
+            <p>${verdict}</p>
+            ${d.target ? `<p>${it.th || (it.t || []).length || (!themeOf(d.target) && TAG_OF_STYLE[it.s] === CAT_TAG[d.target]) ? `🎯 Listo para «${esc(d.target)}»` : `😬 No encaja con «${esc(d.target)}», pero te puede servir para otra pasarela ${esc(TAG_OF_STYLE[it.s])}`}</p>` : ""}
+            <div class="choice-row"><button class="btn btn-ghost" id="tl-more">✂️ Coser otro</button><button class="btn btn-primary" id="tl-done">🛍️ Volver a la tienda</button></div>
+          </div></div>`;
+        host.querySelector("#tl-more").addEventListener("click", () => { kill3d(); d.name = ""; render(); });
+        host.querySelector("#tl-done").addEventListener("click", back);
+        const rs = host.querySelector("#tl-3d-res"), sp3 = spec3d(it.spec, it.tela, it.s);
+        rs.__spec = sp3;
+        put3d(rs, sp3);
+        // Foto de catálogo del look en 3D para el armario y el probador
+        const snapTry = (n) => setTimeout(() => { if (v3 && host.contains(v3.el)) saveRender(it.id, v3.snap()); else if (n > 0) snapTry(n - 1); }, 700);
+        snapTry(8);
+        lookPhoto(it).then((src) => {
+          const box = host.querySelector("#tl-photo");
+          if (!box) return;
+          if (!src) return box.classList.add("ko");
+          const img = new Image();
+          img.alt = it.n;
+          img.onload = () => box.classList.add("ok");
+          img.onerror = () => box.classList.add("ko");
+          img.src = src;
+          box.prepend(img);
+        });
+      });
+    }
+    render();
+  }
+
+  // Minijuego de confección: cortas el patrón siguiendo la línea y luego coses la costura en la máquina.
+  // Lo bien que sigas las líneas decide la pulidez del acabado.
+  function sewingGame(host, r, done) {
+    const W = 760, H = 440;
+    const tol = 9 + A("estilo") * 1.3;
+    host.innerHTML = `
+      <div class="shop taller"><div class="sg">
+        <div class="sg-head"><h3 id="sg-t">📐 1/2 · Corta el patrón</h3><p id="sg-sub">Mantén pulsado y repasa la línea discontinua con las tijeras. Sin prisa: lo que cuenta es la precisión.</p></div>
+        <canvas id="sg-cv" width="${W}" height="${H}"></canvas>
+        <div class="sg-bar"><i id="sg-prog"></i></div>
+      </div></div>`;
+    const cv = host.querySelector("#sg-cv"), g = cv.getContext("2d");
+    const prog = host.querySelector("#sg-prog");
+    const col = r.look.color || "#c8102e";
+    const light = Doll.shade(col, 0.25), dark = Doll.shade(col, -0.35);
+    // Fondo de tela según la tela elegida
+    function fabric(off = 0) {
+      g.fillStyle = "#e9dcc9"; g.fillRect(0, 0, W, H);
+      g.fillStyle = col; g.fillRect(40, 20, W - 80, H - 40);
+      g.save(); g.beginPath(); g.rect(40, 20, W - 80, H - 40); g.clip();
+      const p = r.look.pat;
+      for (let y = -40 + (off % 40); y < H + 40; y += 20) for (let x = 40; x < W; x += 20) {
+        if (p === "sequins") { g.fillStyle = (x + y) % 40 ? light : "#fff"; g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); }
+        else if (p === "dots") { if ((x / 20 + y / 20) % 2 === 0) { g.fillStyle = "#fff"; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); } }
+        else if (p === "stripes") { if ((x / 20) % 2 === 0) { g.fillStyle = "#f4f1ec"; g.fillRect(x, y, 10, 20); } }
+        else if (p === "leopard") { if ((x * 7 + y * 3) % 60 < 20) { g.fillStyle = "#2a1a10"; g.beginPath(); g.ellipse(x, y, 6, 4, 0.6, 0, 7); g.fill(); } }
+        else if (p === "flowers") { if ((x + y) % 60 === 0) { g.fillStyle = "#fff"; for (let k = 0; k < 4; k++) { g.beginPath(); g.arc(x + Math.cos(k * 1.57) * 4, y + Math.sin(k * 1.57) * 4, 3.4, 0, 7); g.fill(); } } }
+        else if (p === "lace") { g.strokeStyle = light; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 6, 0, 7); g.stroke(); }
+        else if (p === "metal") { g.fillStyle = "rgba(255,255,255,.08)"; g.fillRect(x, y, 10, 2); }
+        else { g.fillStyle = "rgba(255,255,255,.05)"; g.fillRect(x, y, 1, 20); }
+      }
+      g.restore();
+    }
+    // ---- Fase 1: corte del patrón (la pieza depende de la silueta)
+    const PIECES = {
+      gown: [[330, 60], [430, 60], [440, 150], [560, 390], [200, 390], [320, 150]],
+      mermaid: [[340, 50], [420, 50], [430, 150], [420, 280], [520, 395], [240, 395], [340, 280], [330, 150]],
+      mini: [[300, 70], [460, 70], [470, 190], [520, 360], [240, 360], [290, 190]],
+      jumpsuit: [[310, 50], [450, 50], [455, 170], [470, 395], [395, 395], [380, 220], [365, 395], [290, 395], [305, 170]],
+      suit: [[270, 70], [490, 70], [520, 120], [480, 140], [470, 370], [290, 370], [280, 140], [240, 120]],
+      bodysuit: [[300, 60], [460, 60], [450, 260], [400, 380], [360, 380], [310, 260]],
+      cape: [[330, 50], [430, 50], [600, 390], [160, 390]],
+      flamenca: [[330, 50], [430, 50], [440, 200], [520, 260], [470, 290], [560, 340], [500, 395], [260, 395], [200, 340], [290, 290], [240, 260], [320, 200]],
+    };
+    const poly = (PIECES[r.look.shape] || PIECES.gown).map(([x, y]) => [x, y]);
+    // Remuestrea el contorno en puntos cada 8 px
+    const path = [];
+    for (let i = 0; i < poly.length; i++) {
+      const [x1, y1] = poly[i], [x2, y2] = poly[(i + 1) % poly.length];
+      const n = Math.max(1, Math.round(Math.hypot(x2 - x1, y2 - y1) / 8));
+      for (let k = 0; k < n; k++) path.push([x1 + ((x2 - x1) * k) / n, y1 + ((y2 - y1) * k) / n]);
+    }
+    const hit = new Array(path.length).fill(false);
+    let down = false, devs = [], trail = [], phase = 1, over = false;
+    const pos = (e) => { const b = cv.getBoundingClientRect(); return [((e.clientX - b.left) / b.width) * W, ((e.clientY - b.top) / b.height) * H]; };
+    const nearest = (x, y) => { let m = 1e9, mi = 0; path.forEach(([px, py], i) => { const d2 = (px - x) ** 2 + (py - y) ** 2; if (d2 < m) { m = d2; mi = i; } }); return [Math.sqrt(m), mi]; };
+    function drawCut() {
+      fabric();
+      g.setLineDash([10, 8]); g.lineWidth = 3; g.strokeStyle = "#fff"; g.beginPath(); path.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.stroke();
+      g.setLineDash([]); g.strokeStyle = "#1b1b1b"; g.lineWidth = 2;
+      g.beginPath(); trail.forEach((pt, i) => { if (pt) (i && trail[i - 1] ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1])); }); g.stroke();
+      g.font = "28px serif"; if (trail.length && trail[trail.length - 1]) { const [x, y] = trail[trail.length - 1]; g.fillText("✂️", x - 6, y + 10); }
+    }
+    let cutStart = Date.now();
+    function cutMove(e) {
+      if (!down || phase !== 1) return;
+      const [x, y] = pos(e);
+      const [dd, i] = nearest(x, y);
+      devs.push(Math.min(dd, 60));
+      trail.push([x, y]);
+      if (dd < tol + 8) for (let k = -1; k <= 1; k++) hit[(i + k + path.length) % path.length] = true;
+      const cov = hit.filter(Boolean).length / path.length;
+      prog.style.width = `${Math.round(cov * 100)}%`;
+      drawCut();
+      if (cov >= 0.92 || Date.now() - cutStart > 45000) endCut();
+    }
+    let cutQ = 0.5;
+    function endCut() {
+      if (phase !== 1) return;
+      phase = 0;
+      const cov = hit.filter(Boolean).length / path.length;
+      const mean = devs.length ? devs.reduce((a, b) => a + b, 0) / devs.length : 40;
+      cutQ = clamp((1 - mean / (tol * 2.6)) * 0.8 + cov * 0.2, 0, 1);
+      host.querySelector("#sg-sub").textContent = cutQ >= 0.7 ? "✂️ Corte limpio. ¡A la máquina!" : cutQ >= 0.45 ? "✂️ Algún mordisco de más, pero sirve. ¡A la máquina!" : "✂️ Uy, ese patrón ha sufrido. Vamos a salvarlo cosiendo bien.";
+      setTimeout(startSew, 1300);
+    }
+    // ---- Fase 2: máquina de coser (la tela avanza y tú guías la aguja por la costura)
+    const NY = 170, LEN = 1500, SPEED = 210;
+    const seed = Math.random() * 10;
+    const seamX = (y) => W / 2 + Math.sin(y / 120 + seed) * 120 + Math.sin(y / 47 + seed * 2) * 34 * (r.dif > 60 ? 1.3 : 1);
+    let off = 0, nx = W / 2, sewDevs = [], stitches = [], last = 0, raf = 0;
+    function startSew() {
+      phase = 2;
+      host.querySelector("#sg-t").textContent = "🧵 2/2 · Cose la costura";
+      host.querySelector("#sg-sub").textContent = "Mantén pulsado para que la máquina cosa y mueve el ratón a los lados para seguir la línea.";
+      prog.style.width = "0%";
+      last = performance.now();
+      raf = requestAnimationFrame(loop);
+    }
+    function drawSew() {
+      fabric(off);
+      g.save(); g.beginPath(); g.rect(40, 20, W - 80, H - 40); g.clip();
+      // costura a seguir
+      g.setLineDash([12, 8]); g.strokeStyle = "#fff"; g.lineWidth = 3; g.beginPath();
+      for (let sy = -20; sy <= H + 20; sy += 6) { const yy = off + (sy - NY); const x = seamX(yy); sy === -20 ? g.moveTo(x, sy) : g.lineTo(x, sy); }
+      g.stroke(); g.setLineDash([]);
+      // puntadas hechas
+      g.strokeStyle = "#ffd34d"; g.lineWidth = 2.5;
+      stitches.forEach(([yy, x]) => { const sy = NY + (yy - off); if (sy <= NY && sy > -10) { g.beginPath(); g.moveTo(x, sy - 3); g.lineTo(x, sy + 3); g.stroke(); } });
+      g.restore();
+      // prensatelas y aguja
+      const mg = g.createLinearGradient(nx - 30, 0, nx + 30, 0); mg.addColorStop(0, "#8d939c"); mg.addColorStop(0.5, "#e9edf2"); mg.addColorStop(1, "#7c828b");
+      g.fillStyle = mg; g.fillRect(nx - 9, NY - 90, 18, 70); g.beginPath(); g.roundRect ? g.roundRect(nx - 32, NY - 10, 64, 14, 5) : g.rect(nx - 32, NY - 10, 64, 14); g.fill();
+      g.strokeStyle = "#cfd5dc"; g.lineWidth = 2; g.beginPath(); g.moveTo(nx, NY - 20); g.lineTo(nx, NY + (down && Math.floor(performance.now() / 60) % 2 ? 8 : 2)); g.stroke();
+      g.fillStyle = "rgba(255,255,255,.9)"; g.font = "bold 13px Poppins, sans-serif"; g.textAlign = "center"; g.fillText(down ? "" : "Mantén pulsado para coser", W / 2, 44); g.textAlign = "start";
+    }
+    function loop(t) {
+      const dt = Math.min(0.05, (t - last) / 1000); last = t;
+      if (down) {
+        off += SPEED * dt;
+        const dx = Math.abs(nx - seamX(off));
+        sewDevs.push(Math.min(dx, 60));
+        if (!stitches.length || off - stitches[stitches.length - 1][0] > 9) stitches.push([off, nx]);
+        prog.style.width = `${Math.round((off / LEN) * 100)}%`;
+      }
+      drawSew();
+      if (off >= LEN) return endSew();
+      raf = requestAnimationFrame(loop);
+    }
+    function endSew() {
+      cancelAnimationFrame(raf);
+      over = true;
+      cleanup = null;
+      const mean = sewDevs.length ? sewDevs.reduce((a, b) => a + b, 0) / sewDevs.length : 40;
+      const sewQ = clamp(1 - mean / (tol * 2.6), 0, 1);
+      done(clamp(cutQ * 0.4 + sewQ * 0.6, 0, 1));
+    }
+    cv.addEventListener("pointerdown", (e) => { down = true; cv.setPointerCapture(e.pointerId); if (phase === 1) { trail.push(null); cutMove(e); } else nx = clamp(pos(e)[0], 40, W - 40); });
+    cv.addEventListener("pointermove", (e) => { if (phase === 2) nx = clamp(pos(e)[0], 40, W - 40); else cutMove(e); });
+    const up = () => { down = false; };
+    cv.addEventListener("pointerup", up);
+    cv.addEventListener("pointercancel", up);
+    cleanup = () => cancelAnimationFrame(raf);
+    drawCut();
+  }
+
+  // Foto realista del look terminado (se guarda para verla en el armario, el probador y la pasarela)
+  const FOTOS_KEY = "dftc-fotos-looks";
+  const photoOf = (id) => { try { return (JSON.parse(localStorage.getItem(FOTOS_KEY)) || {})[id] || null; } catch (e) { return null; } };
+  function savePhoto(id, src) {
+    try { const m = JSON.parse(localStorage.getItem(FOTOS_KEY)) || {}; m[id] = src; localStorage.setItem(FOTOS_KEY, JSON.stringify(m)); return true; } catch (e) { return false; }
+  }
+  // Las fotos en base64 se reducen a un JPEG pequeño para que quepan en el navegador
+  const shrink = (src) => new Promise((res) => {
+    if (!src || !src.startsWith("data:")) return res(src);
+    const im = new Image();
+    im.onload = () => { const w = 384, h = Math.round((im.height / im.width) * w); const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(im, 0, 0, w, h); try { res(c.toDataURL("image/jpeg", 0.72)); } catch (e) { res(src); } };
+    im.onerror = () => res(null);
+    im.src = src;
+  });
+  const EN = {
+    shape: { gown: "voluminous floor-length ball gown", mermaid: "fitted mermaid gown with a flared hem", mini: "structured mini dress", jumpsuit: "sleek tailored jumpsuit", suit: "sharp power suit with strong shoulders", bodysuit: "high-cut bodysuit with sheer tights", cape: "bodysuit under a dramatic floor-length cape", flamenca: "Spanish flamenco dress with tiered ruffled skirt" },
+    tela: { algodon: "cotton", raso: "satin", tul: "layered tulle", encaje: "lace", terciopelo: "velvet", lunares: "polka-dot fabric", flores: "floral embroidered fabric", leopardo: "leopard print fabric", rayas: "black and white striped fabric", latex: "glossy latex", lame: "metallic lamé", lentejuela: "sequined fabric" },
+    adorno: { pedreria: "rhinestone embellishments", plumas: "feather trims", flecos: "fringe", volantes: "ruffles", tachuelas: "metal studs", leds: "glowing LED lights", lazos: "bows", escamas: "iridescent scale appliqués" },
+    color: { negro: "black", blanco: "white", rojo: "red", burdeos: "burgundy", fucsia: "fuchsia", rosa: "pink", morado: "purple", "azul noche": "midnight blue", turquesa: "turquoise", verde: "emerald green", amarillo: "yellow", naranja: "orange", dorado: "gold", plata: "silver" },
+    wig: { Glamour: "long voluminous Hollywood waves wig", Camp: "huge teased colorful wig", Edgy: "sharp asymmetric black bob wig", Futurista: "sleek platinum chrome wig", Folclórico: "dark hair in a flamenco bun with a peineta and red flowers" },
+    skin: ["fair", "light", "medium", "tan", "deep brown", "light olive"],
+  };
+  function lookPrompt(it) {
+    const sp = it.spec || {}, tela = TALLER.telas.find((t) => t.k === it.tela) || TALLER.telas.find((t) => t.pat === sp.pat);
+    const colorName = (TALLER.colores.find((c) => c[1] === sp.color) || [""])[0];
+    const skinIdx = ["#f6d3b3", "#e9b995", "#d39a72", "#b27650", "#8a5436", "#f3c9a8"].indexOf(skinMe());
+    const finish = (it.pul || 0.5) >= 0.8 ? "impeccable couture finish" : (it.pul || 0.5) >= 0.55 ? "clean well-made finish" : (it.pul || 0.5) >= 0.35 ? "slightly uneven handmade seams" : "visibly rough handmade seams";
+    return `Full-body professional fashion runway photograph of a drag queen with ${EN.skin[skinIdx] || "medium"} skin, full glamorous drag makeup and a ${EN.wig[TAG_OF_STYLE[it.s]] || EN.wig.Glamour}, wearing a ${EN.color[colorName] || ""} ${EN.shape[sp.shape] || EN.shape.gown} made of ${tela ? EN.tela[tela.k] : "satin"}${(sp.trims || []).length ? ` with ${(sp.trims || []).map((t) => EN.adorno[t]).join(" and ")}` : ""}, ${finish}. Walking on a TV talent show runway, stage lights, pink and purple background, photorealistic, high fashion editorial, head to toe in frame, no text, no logos.`;
+  }
+  async function lookPhoto(it) {
+    const have = photoOf(it.id);
+    if (have) return have;
+    if (typeof IA === "undefined" || !IA.image) return null;
+    const src = await shrink(await IA.image(lookPrompt(it)).catch(() => null));
+    if (!src) return null;
+    // Solo se guarda si la foto llega de verdad
+    const ok = await new Promise((res) => { const im = new Image(); const t = setTimeout(() => res(false), 90000); im.onload = () => { clearTimeout(t); res(true); }; im.onerror = () => { clearTimeout(t); res(false); }; im.src = src; });
+    if (!ok) return null;
+    savePhoto(it.id, src);
+    return src;
+  }
+
   // ------------------------------ Probador visual ------------------------------
   const skinMe = () => Doll.skinOf(S.queen.id);
   function dressingRoom(el, cat, done, prefix = "") {
@@ -5709,7 +6310,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     const fitsK = (k, it) => fitsRunway(k, it, cat);
     // Puntos de cada pieza: encajar con la temática + lo espectacular que sea (★). Lo prestado puntúa poco
     const fitOf = (k, it) => (it.loan ? (fitsK(k, it) ? 9 : 4) : fitsK(k, it) ? 12 + statOf(it)[0] * 2.6 : 4 + statOf(it)[0] * 0.8);
-    const IMG = (id) => `./images/armario/${id}.webp`;
+    const IMG = pieceImg;
     const SL = [
       { k: "look", n: TH && TH.id === "P05" ? "El look con reveal" : "El look", icon: "👗", items: ARMARIO.look.filter((x) => !x.rv || (TH && TH.id === "P05")), base: "base-maniqui" },
       { k: "peluca", n: "La peluca", icon: "💇", items: ARMARIO.peluca, base: "base-cabeza" },
@@ -5813,6 +6414,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   }
   // Look para retos de costura (sin probador): sale de la categoría
   function sewnSpec(cat, tint) {
+    S.walkMov = 3;
     const main = CAT_TAG[cat] || "Camp";
     const pick = (items) => items.find((x) => TAG_OF_STYLE[x.s] === main) || items[0];
     const sp = { skin: skinMe(), look: Doll.visualOf(pick(ESTILO_PIEZAS.look.items), "look"), wig: Doll.visualOf(pick(ESTILO_PIEZAS.peluca.items), "peluca"), extra: Doll.visualOf(pick(ESTILO_PIEZAS.accesorio.items), "acc") };
@@ -5821,6 +6423,12 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   }
 
   // ------------------------------ Pasarela visual ------------------------------
+  // En la pasarela sale tu reina; si llevas un look cosido por ti, sale también la foto del look
+  function rwFigure(spec) {
+    const p = spec && spec.pieces;
+    const card = p && isHecho(p.look) ? `<div class="rw-lookcard"><img class="${photoOf(p.look.id) || renderOf(p.look.id) ? "" : "sk"}" src="${pieceImg(p.look.id)}" alt=""><b>${esc(p.look.n)}</b></div>` : "";
+    return card +  `<div class="rw-doll rw-queen pos0" id="rw-doll"><img class="doll-fig" src="${sprite(S.queen)}" alt=""></div>`;
+  }
   function runwayWalk(el, cat, lookSpec, lookTag, done) {
     if (IA.ready() && !S.meOut) return conceptRunway(el, cat, lookSpec, lookTag, done);
     return classicWalk(el, cat, lookSpec, lookTag, done);
@@ -5828,6 +6436,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   // Pasarela con concepto: escribes la idea de tu look y eliges tres momentos; el jurado valora concepto y coherencia
   function conceptRunway(el, cat, lookSpec, lookTag, done) {
     const pieces = S.curPieces && S.curPieces.length ? S.curPieces : ["un look cosido en el taller"];
+    let qa = null, anaBonus = 0, anaAnswer = "";
     S.curPieces = null;
     const TH = themeOf(cat);
     const flags = {};
@@ -5838,7 +6447,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       <div class="rw">
         <div class="rw-floor"></div>
         <div class="rw-lights">${"<i></i>".repeat(7)}</div>
-        <div class="rw-doll rw-queen pos0" id="rw-doll"><img class="doll-fig" src="${sprite(S.queen)}" alt=""></div>
+        ${rwFigure(lookSpec)}
         <div class="rw-cat">«${esc(cat)}»</div>
         <div class="rw-panel">${inner}</div>
       </div>`;
@@ -5859,9 +6468,11 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
         "Eres coreógrafa de pasarela de Drag Race España. Propones momentos de desfile concretos y visuales, coherentes con el concepto y las piezas.",
         `Categoría: «${cat}»${TH ? ` (${TH.d})` : ""}.${S.ballCtx ? ` ${S.ballCtx}` : ""} Piezas: ${pieces.join(", ")}. Concepto de la reina: «${concept}».
 Propón 3 opciones para cada momento del desfile: "entrada" (cómo sale), "detalle" (qué enseña a mitad de pasarela) y "final" (cómo remata en la marca). Cada opción en máximo 10 palabras; una de las tres debe encajar mucho mejor con el concepto que las otras.
-Devuelve JSON {"entrada":["...","...","..."],"detalle":["...","...","..."],"final":["...","...","..."]}`,
-        { json: true, max: 500, temp: 0.9 },
+Añade "pregunta": lo que le pregunta Ana Locking sobre una pieza concreta de su look (tejido, construcción, silueta o elección), máximo 15 palabras, y "respuestas": 3 respuestas posibles de la reina (máximo 18 palabras cada una), una con argumento de moda sólido ("buena"), una emocional pero algo vaga ("regular") y una vacía o que se contradice ("mala").
+Devuelve JSON {"entrada":["...","...","..."],"detalle":["...","...","..."],"final":["...","...","..."],"pregunta":"...","respuestas":[{"t":"...","calidad":"buena|regular|mala"}]}`,
+        { json: true, max: 800, temp: 0.9 },
       );
+      qa = r && str(r.pregunta) && Array.isArray(r.respuestas) && r.respuestas.filter((x) => x && str(x.t)).length >= 3 ? { q: ((t) => (/^¿/.test(t) ? t : `¿${t.replace(/[?.]*$/, "")}?`))(IA.clean(str(r.pregunta))), a: shuffle(r.respuestas.filter((x) => x && str(x.t)).slice(0, 3)).map((x) => ({ t: IA.clean(str(x.t)).slice(0, 140), k: str(x.calidad) })) } : null;
       const def = { entrada: ["Paso firme y mirada a cámara", "Entrada lenta y misteriosa", "Salgo bailando"], detalle: ["Giro para enseñar la espalda", "Juego con el accesorio", "Me toco la peluca con descaro"], final: ["Pose congelada", "Guiño al jurado", "Me tiro al suelo con drama"] };
       const M = ["entrada", "detalle", "final"].map((k) => ({ k, opts: (r && Array.isArray(r[k]) && r[k].length >= 2 ? r[k].map(str) : def[k]).slice(0, 3).map(IA.clean) }));
       if (S.revealImg) M[2].opts.push("🎁 ¡Hacer el reveal!");
@@ -5869,7 +6480,7 @@ Devuelve JSON {"entrada":["...","...","..."],"detalle":["...","...","..."],"fina
       const NAMES = { entrada: "🚶 La entrada", detalle: "✨ A mitad de pasarela", final: "📸 En la marca" };
       const CLS = ["pos1", "pos2", "pos2"];
       const step = (i) => {
-        if (i >= M.length) return judge(concept, picks);
+        if (i >= M.length) return qa ? askAna(concept, picks) : judge(concept, picks);
         const m = M[i];
         el.querySelector(".rw-panel").innerHTML = `<h4>${NAMES[m.k]}</h4><div class="choice-col">${m.opts.map((o, j) => `<button class="btn btn-ghost rwc" data-j="${j}">${esc(o)}</button>`).join("")}</div>`;
         el.querySelectorAll("[data-j]").forEach((b) => b.addEventListener("click", () => {
@@ -5895,24 +6506,35 @@ Devuelve JSON {"entrada":["...","...","..."],"detalle":["...","...","..."],"fina
       };
       step(0);
     }
+    // Ana te pregunta por el look: defender bien la moda cuenta
+    function askAna(concept, picks) {
+      el.querySelector(".rw-panel").innerHTML = `<h4>👓 Ana Locking te pregunta</h4><p class="rw-quote">${esc(qa.q)}</p><div class="choice-col">${qa.a.map((x, j) => `<button class="btn btn-ghost rwc" data-qa="${j}">${esc(x.t)}</button>`).join("")}</div>`;
+      el.querySelectorAll("[data-qa]").forEach((b) => b.addEventListener("click", () => {
+        const x = qa.a[+b.dataset.qa];
+        anaBonus = /buena/.test(x.k) ? 6 : /mala/.test(x.k) ? -6 : 0;
+        anaAnswer = `Ana le preguntó «${qa.q}» y respondió: «${x.t}».`;
+        judge(concept, picks);
+      }));
+    }
     async function judge(concept, picks) {
       el.querySelector(".rw-panel").innerHTML = `<h4>El jurado toma nota...</h4><div class="ia-dots"><i></i><i></i><i></i></div>`;
       const r = await IA.chat(
-        "Eres el jurado de Drag Race España valorando una pasarela: Supreme de Luxe (espectáculo y actitud) y Ana Locking (moda, construcción y coherencia). Sois exigentes: un concepto genérico o que no tiene nada que ver con lo que lleva puntúa bajo.",
-        `Categoría: «${cat}»${TH ? ` (${TH.d})` : ""}.${S.ballCtx ? ` ${S.ballCtx}` : ""} Lo que lleva: ${pieces.join(", ")}. Concepto que defiende: «${concept}». Su desfile: ${picks.join("; ")}.${flags.reveal ? " Hace un reveal." : ""}
+        "Eres el jurado de Drag Race España valorando una pasarela: Supremme de Luxe (espectáculo y actitud) y Ana Locking (moda, construcción y coherencia). Sois exigentes: un concepto genérico o que no tiene nada que ver con lo que lleva puntúa bajo.",
+        `Categoría: «${cat}»${TH ? ` (${TH.d})` : ""}.${S.ballCtx ? ` ${S.ballCtx}` : ""} Lo que lleva: ${pieces.join(", ")}. Concepto que defiende: «${concept}». Su desfile: ${picks.join("; ")}.${flags.reveal ? " Hace un reveal." : ""}${anaAnswer ? ` ${anaAnswer} Tenlo en cuenta en la coherencia y en lo que dice Ana.` : ""}
 Valora de 0 a 100: "concepto" (originalidad y fuerza de la idea), "coherencia" (si el concepto encaja con la categoría y con lo que lleva) y "desfile" (si los momentos elegidos cuentan esa historia). Añade "supreme" y "ana": una frase de cada una, máximo 25 palabras, dirigida a la reina.
 Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..."}`,
         { json: true, max: 400, temp: 0.6 },
       );
-      const n = (v, d) => clamp(Math.round(+v || d), 0, 100);
+      const n = (v, d) => clamp(Math.round(v != null && Number.isFinite(+v) ? +v : d), 0, 100);
       const c1 = n(r && r.concepto, 55), c2 = n(r && r.coherencia, 55), c3 = n(r && r.desfile, 55);
       let score = c1 * 0.35 + c2 * 0.4 + c3 * 0.25 + (A("estilo") - 5) + (A("performance") - 5) * 0.5;
       if (flags.reveal && /reveal/i.test(cat)) score += 6;
+      score += anaBonus;
       score = clamp(Math.round(score), 0, 100);
       flags.critica = r ? `${str(r.supreme)} ${str(r.ana)}` : null;
       el.querySelector(".rw-panel").innerHTML = `
         <h4>⚖️ El jurado opina</h4>
-        ${r && r.supreme ? `<p class="lv host"><b>Supreme</b>${esc(IA.clean(str(r.supreme)))}</p>` : ""}
+        ${r && r.supreme ? `<p class="lv host"><b>Supremme</b>${esc(IA.clean(str(r.supreme)))}</p>` : ""}
         ${r && r.ana ? `<p class="lv host"><b>Ana Locking</b>${esc(IA.clean(str(r.ana)))}</p>` : ""}
         <button class="btn btn-primary" id="rw-done">Continuar</button>`;
       logEv(`Pasarela «${cat}»: ${S.queen.name} defiende el concepto «${concept}» (nota ${score})`);
@@ -5930,7 +6552,7 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
       <div class="rw">
         <div class="rw-floor"></div>
         <div class="rw-lights">${"<i></i>".repeat(7)}</div>
-        <div class="rw-doll rw-queen pos0" id="rw-doll"><img class="doll-fig" src="${sprite(S.queen)}" alt=""></div>
+        ${rwFigure(lookSpec)}
         <div class="rw-cat">«${esc(cat)}»</div>
         <div class="rw-sub" id="rw-sub"></div>
         <div class="rw-choices" id="rw-ch"></div>
@@ -6012,11 +6634,13 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
   }
 
   // ------------------------------ Lip sync (energía) ------------------------------
-  const EMOTES = [["revelacion", "🎁 Revelación"], ["caida", "💥 La caída (death drop)"], ["split", "🤸 Split"]];
+  // Cada truco tira de algo distinto: la revelación del look (Estilo), la caída (Performance, difícil) y el split (Performance, más seguro)
+  const EMOTES = [["revelacion", "🎁 Revelación", "estilo", 52, 66], ["caida", "💥 La caída (death drop)", "performance", 56, 76], ["split", "🤸 Split", "performance", 46, 60]];
   function runLipsync(el, rival, done, songPick, bonus = 0) {
     const ra = attrsOf(rival);
     const song = songPick || null;
-    let rival_ = clamp((ra.performance + ra.carisma) * 5 + (S.form[rival.id] || 0) * 2 + rnd(-10, 10), 30, 110) * 1.7;
+    // Escala pensada para que, con atributos iguales, la jugadora gane algo más de la mitad de las veces
+    let rival_ = clamp(40 + (ra.performance + ra.carisma) * 6.5 + clamp(S.form[rival.id] || 0, -6, 6) * 2 + seasonBoost() * 1.5 + rnd(-12, 12), 45, 175);
     const PH = ["Inicio", "Puente", "Clímax"];
     let cfgTop = null;
     const steps = [];
@@ -6024,19 +6648,19 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
       [0, 1].forEach((j) => steps.push((st) => {
         const clim = pi === 2;
         const opts = [
-          ...EMOTES.map(([k, t]) => ({
-            t: `${t}`, d: `Energía −45${clim ? " · ¡Momento perfecto!" : " · Mejor en el clímax"}`, tag: "Emote",
+          ...EMOTES.map(([k, t, at, dif, top]) => ({
+            t: `${t}`, d: `Energía −45 · ${ATTR_NAMES[at]}${clim ? " · ¡Momento perfecto!" : " · Mejor en el clímax"}`, tag: "Emote",
             go: (s) => {
               if (s.energy < 45) { s.energy = Math.max(0, s.energy - 10); s.mine += 4; return { pts: 20, msg: "Sin fuelle: el truco se queda a medias." }; }
               s.energy -= 45;
-              const c = check(["performance"], clim ? 50 : 58);
-              const imp = c.ok ? (clim ? 48 : 22) : 6;
+              const c = check([at], clim ? dif : dif + 8);
+              const imp = c.ok ? (clim ? top : 24) : 6;
               s.mine += imp;
               return { pts: c.ok ? (clim ? 100 : 70) : 20, msg: `${c.txt}<br>${c.ok ? (clim ? "¡El público se levanta!" : "Impresiona... aunque era pronto.") : "¡Uf! Se te va el truco."}` };
             },
           })),
           { t: "💗 Conexión emocional", d: `Energía −10 · Carisma ${A("carisma")}`, tag: "Cara", go: (s) => { if (s.energy < 10) { s.mine += 2; return { pts: 20, msg: "Estás agotada: ni la cara te responde." }; } s.energy -= 10; const imp = 8 + A("carisma") * 1.6; s.mine += imp; return { pts: 55 + A("carisma") * 4, msg: "Cada palabra la sientes. Se te ve en los ojos." }; } },
-          { t: "🌀 Uso del espacio", d: `Energía −20 · Performance ${A("performance")}`, tag: "Escenario", go: (s) => { if (s.energy < 20) { s.mine += 2; return { pts: 20, msg: "Sin energía para moverte." }; } s.energy -= 20; const imp = 10 + A("performance") * 1.8; s.mine += imp; return { pts: 55 + A("performance") * 4, msg: "Te comes el escenario de punta a punta." }; } },
+          { t: "🌀 Uso del espacio", d: `Energía −15 · Performance ${A("performance")}`, tag: "Escenario", go: (s) => { if (s.energy < 15) { s.mine += 2; return { pts: 20, msg: "Sin energía para moverte." }; } s.energy -= 15; const imp = 12 + A("performance") * 2; s.mine += imp; return { pts: 55 + A("performance") * 4, msg: "Te comes el escenario de punta a punta." }; } },
         ];
         // Solo un emote al azar por turno para que haya que pensar
         const em = pick1(opts.slice(0, 3));
@@ -6105,7 +6729,7 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
     const steps = [
       () => ({
         q: "🎭 ¿A quién imitas?",
-        sub: "Elige tu personaje para el plató de Supreme.",
+        sub: "Elige tu personaje para el plató de Supremme.",
         opts: chars.map((c) => ({ t: `${c.icon} ${esc(c.name)}`, d: `Tono ${esc(c.tono)}`, go: (st) => { st.char = c; return {}; } })),
       }),
     ];
@@ -6126,7 +6750,7 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
         const r = pick1(S.rivals);
         const ch = st.char || chars[0];
         return {
-          q: `🎤 Supreme: «${esc(qq)}»`,
+          q: `🎤 Supremme: «${esc(qq)}»`,
           sub: `Eres <b>${esc(ch.name)}</b>. Pregunta ${n + 1}/5.`,
           opts: [
             { t: `😂 «${esc(pick1(ch.frases))}»`, d: "Comedia absurda", tag: "Comedia", go: (s) => { s.focus += 14; return res(check(["comedia"], 52), 90, 30, "¡Carcajada general!", "Nadie lo pilla. Grillos."); } },
@@ -6170,7 +6794,7 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
     const scores = [];
     const home = (k) => intro(k, () => {
       el.innerHTML = "";
-      dressingRoom(el, cats[k], (st) => { scores.push(st.prep); k === 0 ? home(1) : sewn(); }, `${B.n} ${k + 1}/3 · `);
+      runRunwayNew(el, cats[k], (sc) => { scores.push(sc); k === 0 ? home(1) : sewn(); }, `${B.n} ${k + 1}/3 · `);
     });
     const sewn = () => intro(2, () => {
       el.innerHTML = "";
@@ -6226,13 +6850,23 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
       ["«Brilla, brilla, lentejuela, que la noche es pa' la abuela»", "alegre"],
     ];
     const st2 = shuffle(STANZAS).slice(0, 2);
+    // Los papeles los reparte la ganadora del minirreto: si no eres tú, puede no darte el que pides
+    const giver = S.miniWin && S.miniWin !== "me" ? qById(S.miniWin) : null;
+    const askRole = (s, role, msg) => {
+      if (giver && S.rivals.includes(giver) && relOf(giver) < 1 && Math.random() < 0.45) {
+        s.role = pick1(["main", "comic", "sec"].filter((r) => r !== role));
+        return { msg: `${giver.name} reparte y no te da ese papel. Te toca ${{ main: "el principal", comic: "el cómico", sec: "un secundario" }[s.role]}.` };
+      }
+      s.role = role;
+      return { msg: giver ? `${giver.name} te lo da. ${msg}` : msg };
+    };
     const steps = [
       () => ({
         q: `🎬 Reparto de papeles: Rusical sobre ${tema}`,
         opts: [
-          { t: "👑 Papel principal", d: "Alto riesgo, alta recompensa", go: (s) => { s.role = "main"; return { msg: "Toda la presión es tuya." }; } },
-          { t: "🤡 Papel cómico", d: "Tira de Comedia", go: (s) => { s.role = "comic"; return { msg: "A hacer reír." }; } },
-          { t: "🙂 Papel secundario", d: "Poco riesgo, pero con techo", go: (s) => { s.role = "sec"; return { msg: "Discreta, pero segura." }; } },
+          { t: "👑 Pedir el principal", d: "Alto riesgo, alta recompensa", go: (s) => askRole(s, "main", "Toda la presión es tuya.") },
+          { t: "🤡 Pedir el cómico", d: "Tira de Comedia", go: (s) => askRole(s, "comic", "A hacer reír.") },
+          { t: "🙂 Pedir un secundario", d: "Poco riesgo, pero con techo", go: (s) => askRole(s, "sec", "Discreta, pero segura.") },
         ],
       }),
     ];
@@ -6333,8 +6967,8 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
           q: `🎙️ Chiste ${n + 1}/4: ${esc(setup)}`,
           sub: "¿Cuánta caña le das al remate?",
           opts: [
-            { t: `🍬 Suave: «${esc(flat)}»`, d: "No falla, pero no da risa", go: () => ({ pts: 38, msg: "Risas educadas." }) },
-            { t: `🌶️ Picante: «${esc(mid)}»`, d: "Comedia", go: () => res(check(["comedia"], tg.diff - 8), Math.min(tg.cap, 86), 50, "¡Buena risa!", "Tibio.") },
+            { t: `🍬 Suave: «${esc(flat)}»`, d: "No falla, pero no da risa", go: () => ({ pts: 52, msg: "Risas educadas." }) },
+            { t: `🌶️ Picante: «${esc(mid)}»`, d: "Comedia", go: () => res(check(["comedia"], tg.diff - 8), Math.min(tg.cap, 86), 28, "¡Buena risa!", "Tibio. Se oye toser a alguien.") },
             { t: `💣 Salvaje: «${esc(best)}»`, d: "Comedia · si falla, silencio incómodo", go: (s) => { const c = check(["comedia"], tg.diff + 10); if (st.target === "comp" && c.ok) changeRel(pick1(S.rivals), -1); return res(c, tg.cap, 5, "¡El público llora de risa!", "🥶 Silencio incómodo. Se oye una tos al fondo."); } },
           ],
         };
@@ -6378,7 +7012,7 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
         ],
       }),
     ];
-    runSteps(el, { title: `Makeover: ${model.n}`, icon: "💄", steps }, (sc) => done(sc));
+    runSteps(el, { title: `Makeover: ${model.n}`, icon: "💄", steps }, (sc) => { S.lastLook = { cat: "makeover: el look de familia", best: "el look de familia", worst: "el look de familia" }; done(sc); });
   }
 
   function mxImpro(el, done) {
@@ -6458,7 +7092,7 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
         steps: [() => ({
           q: `🥊 Te enfrentas a ${esc(rival.name)}`,
           sub: `Su punto fuerte parece: <b>${SONGS.find((s) => s[0] === profile(rival))[1]}</b>. Tus atributos: ${attrChips(["carisma", "performance"])}`,
-          opts: SONGS.map(([k, t, at]) => ({ t, d: `Tira de ${ATTR_NAMES[at]}`, go: (s) => { s.song = t; s.bonus = (A(at) - 5) * 3 + (k === profile(rival) ? -8 : 6); return { msg: k === profile(rival) ? "Es justo su terreno... valiente." : "Buena elección: le sacas de su zona." }; } })),
+          opts: SONGS.map(([k, t, at]) => ({ t, d: `Tira de ${ATTR_NAMES[at]}`, go: (s) => { s.song = t; s.bonus = (A(at) - 5) * 3 + (k === profile(rival) ? (A(at) >= 7 ? 12 : -8) : 4); return { msg: k === profile(rival) ? "Es justo su terreno... valiente." : "Buena elección: le sacas de su zona." }; } })),
         })],
         finish: () => 0,
       }, (_, st) => {
@@ -6467,10 +7101,10 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
           if (won) {
             r++;
             Toast.show(`🏆 ¡Pasas de ronda!`, `${rival.name}, fuera del torneo`);
-            if (r >= rounds) return done(100);
+            if (r >= rounds) return done(90);
             return round();
           }
-          done([25, 55, 78][r] || 25);
+          done([40, 58, 76][r] || 40);
         }, st.song, st.bonus || 0);
       });
     };

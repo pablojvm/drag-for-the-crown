@@ -5,7 +5,7 @@
 //             {reto} reto de la semana · {temporada} nombre de la temporada
 // ---------------------------------------------------------------------------
 const PRESENTADORAS = {
-  host: { name: "Supreme Deluxe", role: "Presentadora", img: "./images/hosts/supreme.png" },
+  host: { name: "Supremme de Luxe", role: "Presentadora", img: "./images/hosts/supreme.png" },
   judge: { name: "Ana Locking", role: "Jueza", img: "./images/hosts/ana-locking.png" },
   ambrossi: { name: "Javier Ambrossi", role: "Jurado · Los Javis", img: "./images/hosts/javier-ambrossi.png" },
   calvo: { name: "Javier Calvo", role: "Jurado · Los Javis", img: "./images/hosts/javier-calvo.png", side: "right" },
@@ -64,7 +64,7 @@ const DIALOGOS = {
   },
   anuncio: [
     ["host", "Reinas, atención: el reto de esta semana es... ¡{reto}!"],
-    ["judge", "Quiero ver ideas claras y buena ejecución. Sorprendedme."],
+    ["host", "Quiero ver ideas claras y buena ejecución. Sorprendedme."],
   ],
   final: [
     ["host", "Hemos llegado a la gran final. Tres reinas, una corona."],
@@ -262,9 +262,9 @@ const HISTORIA = {
   ],
   // Anuncio del reto
   anuncio: [
-    [["host", "Reinas, atención: el reto de esta semana es... ¡{reto}!"], ["judge", "Quiero ver ideas claras y buena ejecución. Sorprendedme."]],
-    [["host", "¡Chicas! Esta semana os enfrentáis a... ¡{reto}!"], ["judge", "Nada de ir a lo seguro. Quiero riesgo."]],
-    [["host", "Os traigo un reto que va a separar a las reinas de las princesas: ¡{reto}!"], ["judge", "Cuidado con los acabados. Se ve todo."]],
+    [["host", "Reinas, atención: el reto de esta semana es... ¡{reto}!"], ["host", "Quiero ver ideas claras y buena ejecución. Sorprendedme."]],
+    [["host", "¡Chicas! Esta semana os enfrentáis a... ¡{reto}!"], ["host", "Nada de ir a lo seguro. Quiero riesgo."]],
+    [["host", "Os traigo un reto que va a separar a las reinas de las princesas: ¡{reto}!"], ["host", "Cuidado con los acabados, que desde el jurado se ve todo."]],
   ],
   // Críticas según tu resultado
   critica: {
@@ -323,18 +323,18 @@ const HISTORIA = {
 // ===========================================================================
 HISTORIA.tallerHost.push(
   [["host", "¡Buenos días, mis reinas! ¿Quién ha dormido algo? Ya me imaginaba."]],
-  [["host", "Hoy vengo con energía. Espero que vosotras también."], ["judge", "Y con ideas, por favor. Energía sin ideas es solo ruido."]],
+  [["host", "Hoy vengo con energía. Espero que vosotras también. Y con ideas, que energía sin ideas es solo ruido."]],
   [["host", "Reinas, recordad: el taller es vuestro, pero la pasarela es de las valientes."]],
   [["host", "Mirad a vuestro alrededor. Alguna de estas caras no estará la semana que viene."]],
-  [["host", "Hoy quiero ver hambre de corona. ¿Me habéis oído?"], ["r1", "¡Sí, Supreme!"], ["r2", "Alto y claro."]],
+  [["host", "Hoy quiero ver hambre de corona. ¿Me habéis oído?"], ["r1", "¡Sí, Supremme!"], ["r2", "Alto y claro."]],
   [["host", "Os veo cansadas... y eso me encanta. Significa que os lo estáis tomando en serio."]],
-  [["judge", "Antes de nada: la semana pasada vi acabados muy pobres. No quiero verlo otra vez."], ["host", "Ya la habéis oído, reinas."]],
+  [["host", "Antes de nada: Ana se quedó la semana pasada con los acabados. No quiere verlo otra vez, y yo tampoco."]],
 );
 HISTORIA.tallerTrasExpulsion.push(
   [["r1", "Todavía tengo los ojos hinchados por lo de {fuera}."], ["r2", "Pues ponte hielo, que hoy hay que brillar."]],
   [["r2", "¿Soy la única que se ha quedado con la purpurina de {fuera} en la peluca?"], ["r3", "Es un recuerdo, no te la quites."]],
   [["r1", "Hablemos claro: {fuera} se fue porque no arriesgó."], ["r2", "O porque tuvo mala suerte. Esto es muy injusto a veces."], ["r1", "La suerte se trabaja, cariño."]],
-  [["r3", "Anoche le escribí a {fuera}. Dice que nos ve a todas en la final."], ["r1", "A todas no, que solo cabemos tres."]],
+  [["r3", "Anoche le escribí a {fuera}. Dice que nos ve a todas en la final."], ["r1", "A todas no, que a la final solo llegan cuatro."]],
   [["r2", "Yo pensaba que {fuera} llegaba lejísimos."], ["r3", "Aquí nadie tiene nada asegurado. Nadie."]],
   [["r1", "Silencio en el taller... se nota que falta {fuera}."], ["r2", "Y su risa. Madre mía, su risa."]],
   [["r2", "{yo}, ¿tú lo viste venir lo de {fuera}?"], ["r1", "Todas lo vimos venir, cielo."]],
@@ -430,9 +430,9 @@ HISTORIA.eventos.push(
 );
 HISTORIA.anuncio.push(
   [["host", "Os lo digo ya: esta semana alguien va a llorar. El reto es... ¡{reto}!"]],
-  [["host", "Reinas, preparaos para {reto}."], ["judge", "Os estaré mirando. A todas."]],
+  [["host", "Reinas, preparaos para {reto}."], ["host", "Os estaré mirando. A todas."]],
   [["host", "¡Sorpresa! El reto de hoy es {reto}."], ["r1", "Ay, no, justo lo que peor se me da."], ["host", "Pues a trabajar, cariño."]],
-  [["judge", "Esta semana subo el listón: {reto}."], ["host", "Ya la habéis oído. Y sí, lo dice en serio."]],
+  [["host", "Esta semana subo el listón: {reto}. Y sí, lo digo en serio."]],
 );
 HISTORIA.critica.win.push(
   [["judge", "{yo}, has entendido el reto mejor que nadie."], ["host", "{yo}, felicidrages: ganas esta semana."]],
@@ -501,11 +501,11 @@ const MEMORIA = {
       { lines: [["r1", "{yo}, tenemos que hablar."], ["r1", "Yo no era la peor esa semana, y lo sabes. Me votaste porque me tienes miedo."]],
         choices: [
           { txt: "Tienes razón. Fue estrategia y lo siento.", rel: { r1: 1 }, reply: ["r1", "Por lo menos lo reconoces. Pero no se me olvida."] },
-          { txt: "Pues sí, eres una amenaza. Es un cumplido.", rel: { r1: -1 }, bonus: 150, reply: ["r1", "Pues esta amenaza va a por ti, cariño."] },
+          { txt: "Pues sí, eres una amenaza. Es un cumplido.", rel: { r1: -1 }, bonus: 150, reply: ["r1", "Tomo nota. Ya hablaremos en la pasarela."] },
           { txt: "Voté lo que vi. No es nada personal.", rel: {}, reply: ["r1", "Para mí sí lo es. Ya hablaremos en la pasarela."] },
         ] },
       { lines: [["r1", "Qué valiente fuiste votándome a mí, {yo}. Con lo mal que lo hizo la otra..."], ["r1", "Que sepas que me he dado cuenta de tu jugada."]], after: -1 },
-      { lines: [["r1", "Me mandaste al lip sync sin ser la peor, {yo}."], ["r1", "Eso se llama miedo. Y el miedo se huele."]],
+      { lines: [["r1", "Me mandaste al lip sync sin ser la peor, {yo}."], ["r1", "Lo respeto, pero no lo comparto."]],
         choices: [
           { txt: "No era miedo, era una decisión difícil.", rel: {}, reply: ["r1", "Difícil para ti. Para mí fue injusto."] },
           { txt: "Si te molesta, demuéstrame que me equivoqué.", rel: { r1: -1 }, bonus: 100, reply: ["r1", "Eso pienso hacer. Prepárate."] },
@@ -524,8 +524,8 @@ const MEMORIA = {
   despedida: {
     injusta: [
       [["r1", "¿En serio, {yo}? ¿A mí? Si la otra estaba muchísimo peor."], ["r1", "Me echas porque me tienes miedo. Que te vaya bonito."]],
-      [["r1", "Todo el mundo ha visto que no era la peor. Me mandas a casa por estrategia."], ["r1", "Ojalá lo pagues en la final."]],
-      [["r1", "Vale, {yo}. Ya he entendido quién eres de verdad."], ["r1", "Que tengas suerte... la vas a necesitar."]],
+      [["r1", "Todo el mundo ha visto que no era la peor. Me mandas a casa por estrategia."], ["r1", "Respeto tu decisión. No la comparto."]],
+      [["r1", "Vale, {yo}. Ya he entendido quién eres de verdad."], ["r1", "Mucha suerte. De verdad."]],
     ],
     justa: [
       [["r1", "Lo entiendo, {yo}. Esta semana no he estado a la altura."], ["r1", "Gánalo todo, ¿vale? Hazlo por mí."]],
@@ -587,7 +587,7 @@ const JURADO = {
     mid: ["El look de pasarela, bonito pero previsible.", "En pasarela, correcta. Nada más.", "El look lo he visto otras veces, pero te sienta bien."],
     low: ["Y el look de pasarela... mejor no hablemos de la peluca.", "Ese look parecía sacado del fondo del armario.", "En pasarela me has dejado fría."],
   },
-  aperturaAna: ["Voy a ser directa, {yo}.", "{yo}, empecemos por el reto.", "A ver, {yo}...", "{yo}, te he estado observando toda la semana.", "Mira, {yo}, te lo digo con cariño."],
+  aperturaAna: ["Voy a ser directa, {yo}.", "{yo}, vamos con el look.", "A ver, {yo}...", "{yo}, te he estado observando toda la semana.", "Mira, {yo}, te lo digo con cariño."],
   aperturaSupreme: ["{yo}, te toca.", "Vamos contigo, {yo}.", "{yo}, cariño, da un paso al frente.", "Turno de {yo}. Nervios, ¿eh?"],
   veredicto: {
     win: ["¡{yo}, felicidrages! Eres la ganadora del reto.", "{yo}, has ganado esta semana. ¡Enhorabuena!", "La ganadora de la semana es... ¡{yo}!"],
@@ -629,7 +629,7 @@ const ROLES_HISTORIA = {
         choices: [
           { txt: "Sé que has sido tú, {r1}. Devuélvemelas.", rel: { r1: -1 }, bonus: 120, reply: ["r1", "Qué acusación tan fea. Toma, estaban en el suelo. Casualmente."] },
           { txt: "No pasa nada, tengo repuesto.", adv: -2, reply: ["r1", "Qué bien preparada. Me encanta. De verdad."] },
-          { txt: "Supreme, alguien me está saboteando.", rel: { r1: -1 }, adv: 2, reply: ["host", "Reinas, en mi taller se compite limpio. Lo digo una vez."] },
+          { txt: "Supremme, alguien me está saboteando.", rel: { r1: -1 }, adv: 2, reply: ["host", "Reinas, en mi taller se compite limpio. Lo digo una vez."] },
         ] },
       { lines: [["r1", "{yo}, te lo digo como amiga: ese look de ayer no era para ti."], ["r1", "Yo que tú hoy iría a lo seguro. Algo discretito."]],
         choices: [
@@ -863,14 +863,14 @@ const REENCUENTRO = {
 
 // ------------------------------- Final ------------------------------------
 const FINAL_SORTEO = [
-  [["host", "Reinas, así va a ser la final: cuatro reinas, dos lip syncs."], ["host", "El sorteo decide las parejas. Las ganadoras se enfrentarán por la corona."], ["judge", "Suerte. La vais a necesitar."]],
+  [["host", "Reinas, así va a ser la final: cuatro reinas, dos lip syncs."], ["host", "El sorteo decide las parejas. Las ganadoras se enfrentarán por la corona."], ["judge", "Disfrutadlo. Os lo habéis ganado."]],
 ];
 
 // ------------------------------- Capitanas ----------------------------------
 const CAPITANAS = {
   intro: [
-    [["host", "Reinas, esta semana trabajaréis en equipos. Pero antes... ¡minireto!"], ["host", "Las dos ganadoras serán las capitanas y elegirán a su equipo."]],
-    [["host", "¡Minireto! Las dos mejores serán capitanas."], ["r1", "Por favor, que no me toque elegir, que lo paso fatal."]],
+    [["host", "Reinas, esta semana trabajaréis en equipos. Pero antes... ¡minirreto!"], ["host", "Las dos ganadoras serán las capitanas y elegirán a su equipo."]],
+    [["host", "¡Minirreto! Las dos mejores serán capitanas."], ["r1", "Por favor, que no me toque elegir, que lo paso fatal."]],
   ],
   miniTitulos: ["¡Posa con el flash!", "¡Pelucas al aire!", "¡Selfie de lujo!", "¡Rápidas como el rayo!"],
 };
@@ -887,7 +887,7 @@ const COMEDIA = [
   ["Cierra el monólogo por todo lo alto", ["Gracias, sois un público maravilloso. Casi tanto como mi peluca", "Gracias por venir", "Ya está, eso es todo"]],
 ];
 const ROAST = [
-  ["Asa a Supreme por lo bien que se conserva", ["Supreme no envejece: se restaura, como el Prado", "Supreme está muy guapa", "Supreme es mayor"]],
+  ["Asa a Supremme por lo bien que se conserva", ["Supremme no envejece: se restaura, como el Prado", "Supremme está muy guapa", "Supremme es mayor"]],
   ["Asa a Ana Locking por lo exigente que es", ["Ana es tan exigente que devolvió el sol por falta de brillo", "Ana es muy exigente", "Ana es seria"]],
   ["Asa a la reina que siempre llega la última", ["Llega tan tarde que su tarjeta de presentación pone: continuará", "Siempre llega tarde", "Es impuntual"]],
   ["Asa a la compañera más dramática", ["Hace un drama hasta para elegir la pajita del zumo", "Es muy dramática", "Le gusta el drama"]],
@@ -949,7 +949,7 @@ const GRUPOS = {
     { name: "La Cofradía del Tacón", icon: "👠" }, { name: "Las Folclóricas", icon: "🌹" }, { name: "Team Purpurina", icon: "🌸" },
   ],
   formacion: [
-    [["host", "Una semana juntas y ya se han formado bandos en el taller. Lo veo todo, reinas."], ["r1", "Esto no son bandos, Supreme. Son... afinidades."], ["r2", "Afinidades con nombre y todo, sí."]],
+    [["host", "Una semana juntas y ya se han formado bandos en el taller. Lo veo todo, reinas."], ["r1", "Esto no son bandos, Supremme. Son... afinidades."], ["r2", "Afinidades con nombre y todo, sí."]],
     [["r1", "Bueno, que quede claro: nosotras somos {g1} y nos cubrimos las espaldas."], ["r2", "Pues nosotras somos {g2}. Y no necesitamos a nadie."], ["host", "Ay, qué ilusión. Esto se pone interesante."]],
   ],
   invitacion: [
@@ -1013,7 +1013,7 @@ if (typeof JURADO !== "undefined") {
 }
 
 // ===========================================================================
-// LOS JAVIS: visitan el taller, anuncian miniretos y opinan en el jurado.
+// LOS JAVIS: visitan el taller, anuncian minirretos y opinan en el jurado.
 // Hablan como jurado del juego (frases inventadas, no citas reales).
 // ===========================================================================
 const JAVIS = {
@@ -1038,8 +1038,8 @@ const JAVIS = {
       ] },
   ],
   mini: [
-    [["calvo", "Hoy el minireto lo presentamos nosotros. ¡Qué ilusión!"], ["ambrossi", "Y el premio también lo damos nosotros, así que portaos bien."]],
-    [["ambrossi", "¿Preparadas para el minireto? Nosotros no, pero vosotras sí."]],
+    [["calvo", "Hoy el minirreto lo presentamos nosotros. ¡Qué ilusión!"], ["ambrossi", "Y el premio también lo damos nosotros, así que portaos bien."]],
+    [["ambrossi", "¿Preparadas para el minirreto? Nosotros no, pero vosotras sí."]],
   ],
   critica: {
     top: [
@@ -1143,9 +1143,9 @@ const ESTILO_PIEZAS = {
 };
 // Comentarios del jurado sobre el look ({pieza} y {cat} se rellenan)
 const ESTILO_CRITICA = {
-  top: ["Ese {pieza}... es exactamente «{cat}». Ni una pieza fuera de sitio.", "El estilismo es impecable: se nota que lo has pensado de arriba abajo.", "Con ese {pieza} me has ganado antes de llegar al final de la pasarela."],
-  mid: ["La idea de «{cat}» está, pero el {pieza} no termina de encajar.", "Hay piezas muy buenas y otras que parecen de otro armario.", "Bonito, aunque le falta coherencia al conjunto."],
-  low: ["¿{pieza} para «{cat}»? No lo entiendo, y mira que lo intento.", "Cada pieza iba por su lado. Parecía un mercadillo.", "La categoría era «{cat}». Creo que no te llegó el mensaje."],
+  top: ["Lo que llevas es exactamente «{cat}». Ni una pieza fuera de sitio.", "El estilismo es impecable: se nota que lo has pensado de arriba abajo.", "Con lo de {pieza} me has ganado antes de llegar al final de la pasarela."],
+  mid: ["La idea de «{cat}» está, pero lo de {pieza} no termina de encajar.", "Hay piezas muy buenas y otras que parecen de otro armario.", "Bonito, aunque le falta coherencia al conjunto."],
+  low: ["¿{pieza}, para «{cat}»? No lo entiendo, y mira que lo intento.", "Cada pieza iba por su lado. Parecía un mercadillo.", "La categoría era «{cat}». Creo que no te llegó el mensaje."],
 };
 if (typeof JURADO !== "undefined") {
   JURADO.reto.publicidad = {
@@ -1202,13 +1202,13 @@ const FAMA = {
   },
   mean: {
     n: "La villana", icon: "😈",
-    saludo: ["Uy, {yo}... ¿vienes en son de paz o a morder?", "Tranquila, que ya me aparto. No vaya a ser.", "Todas hablan de ti, {yo}. Y no precisamente bien."],
+    saludo: ["Uy, {yo}... ¿vienes en son de paz o a morder?", "Tranquila, que ya me aparto. No vaya a ser.", "Dicen que vienes muy competitiva, {yo}."],
     reaccion: [
-      { lines: [["r1", "{yo}, que sepas que el taller entero está harto de tus comentarios."], ["r2", "Lo dice por todas, eh."]], choices: [
-        { txt: "Pues que me lo digan a la cara.", rel: { r1: -1, r2: -1 }, persona: "mean", bonus: 200, reply: ["r1", "Te lo estamos diciendo, cariño."] },
+      { lines: [["r1", "{yo}, algunas comentan que esta semana te has pasado con tus comentarios."], ["r2", "Te lo decimos para que lo sepas, sin más."]], choices: [
+        { txt: "Pues que me lo digan a la cara.", rel: { r1: -1, r2: -1 }, persona: "mean", bonus: 200, reply: ["r1", "Pues eso hacemos, a la cara."] },
         { txt: "Igual me he pasado. Lo siento.", rel: { r1: 1 }, persona: "kind", reply: ["r1", "Vaya. Eso no me lo esperaba."] },
       ] },
-      { lines: [["r1", "He oído que ahora vas a por mí. ¿Es verdad?"]], choices: [
+      { lines: [["r1", "Dicen que vienes muy competitiva. ¿Es verdad?"]], choices: [
         { txt: "Voy a por la corona. Si te pillo en medio...", persona: "mean", bonus: 150, rel: { r1: -1 }, reply: ["r1", "Muy bien. Que gane la mejor."] },
         { txt: "Qué va, son cosas que se inventan.", reply: ["r1", "Ya... ya veremos."] },
       ] },
@@ -1343,18 +1343,18 @@ const RASGOS = {
 };
 // Lo que te dice una reina al reencontrarse contigo, según lo que pasó entre vosotras
 const CICATRICES = {
-  "elim:me": ["En {s} me mandaste a casa en un lip sync. Hoy vengo a cobrármela, {yo}.", "{s}. Tú y yo en un lip sync. Yo, haciendo la maleta. Todavía lo sueño."],
-  "elim:her": ["¿Te acuerdas de {s}? Yo sí. Te mandé a casa y lo volvería a hacer.", "La última vez que bailamos juntas, en {s}, te fuiste tú. Que no se te olvide."],
-  "vote:me": ["En {s} me echaste con tu decisión. No se me ha olvidado, cariño.", "Tú elegiste que me fuera en {s}. Ahora elijo yo cómo tratarte."],
-  "vote:her": ["Lo de {s} no fue personal... bueno, un poquito sí.", "En {s} decidí que te fueras. Y fíjate, aquí estás otra vez."],
-  "save:me": ["En {s} me salvaste. Te debo una, y yo pago mis deudas.", "Nunca te he dado las gracias por lo de {s}. Gracias, {yo}."],
-  "save:her": ["En {s} te salvé el cuello. Espero que lo recuerdes.", "Te salvé una vez, en {s}. No me hagas arrepentirme."],
-  "humill:me": ["En {s} te reíste de mi punto débil delante de todas. Ahora me río yo.", "Lo que me hiciste en {s} fue muy feo, {yo}. Muy feo."],
-  "humill:her": ["En {s} te di donde más dolía. ¿Sigue doliendo?", "¿Qué tal tu punto débil, {yo}? Lo recuerdo de {s}."],
-  "betray:me": ["Me traicionaste en {s}. Ni te acerques.", "Pactamos en {s} y me la jugaste. No vuelvo a caer."],
-  "betray:her": ["Sí, te traicioné en {s}. La competición es así. ¿Rencor?", "Lo de {s}... era lo que tenía que hacer."],
+  "elim:me": ["En {s} me mandaste a casa en un lip sync. Ya está superado... casi.", "{s}. Tú y yo en un lip sync y yo haciendo la maleta. Esta vez me lo he preparado mejor."],
+  "elim:her": ["¿Te acuerdas de {s}? Aquel lip sync lo gané yo. Hoy empezamos de cero.", "La última vez que bailamos juntas, en {s}, te fuiste tú. Me alegra verte de vuelta."],
+  "vote:me": ["En {s} tu decisión me mandó a casa. Lo entendí... con el tiempo.", "Lo de {s} me dolió, no te voy a mentir. Pero aquí estamos."],
+  "vote:her": ["Lo de {s} no fue personal, de verdad.", "En {s} decidí que te fueras. Y mírate, aquí otra vez. Me alegro."],
+  "save:me": ["En {s} me salvaste. Te debo una.", "Nunca te he dado las gracias por lo de {s}. Gracias, {yo}."],
+  "save:her": ["En {s} te salvé. Espero que te acuerdes.", "Te salvé una vez, en {s}. A ver qué tal esta vez."],
+  "humill:me": ["Lo que me dijiste en {s} delante de todas no estuvo bien, {yo}.", "Lo de {s} todavía lo tengo aquí. Pero bueno, nuevo programa."],
+  "humill:her": ["Lo de {s}... me pasé contigo. Lo sé.", "En {s} te dije cosas feas. Si quieres, lo hablamos."],
+  "betray:me": ["Pactamos en {s} y me dejaste tirada. Esta vez voy a mi aire.", "Lo de {s} me enseñó a no pactar tan rápido."],
+  "betray:her": ["Sí, en {s} rompí el pacto. Era competición. ¿Lo dejamos atrás?", "Lo de {s}... hice lo que creía que tenía que hacer."],
   "pact:me": ["¡{yo}! En {s} fuimos uña y carne. ¿Repetimos?", "Mi aliada de {s}... Qué ganas tenía de verte."],
-  "pact:her": ["¡{yo}! En {s} fuimos uña y carne. ¿Repetimos?", "Mi aliada de {s}... Qué ganas tenía de verte."],
+  "pact:her": ["¡{yo}! Qué alegría. Lo de {s} no se me olvida.", "Mira quién está aquí. Mi compañera de pacto de {s}."],
 };
 // Lo que se cuenta en el taller sobre las demás (también de otras temporadas)
 const RADIO = {
@@ -1368,7 +1368,7 @@ const RADIO = {
 
 // Untucked antes del veredicto: aún no se sabe quién gana ni quién va al bottom
 HISTORIA.untucked.ganadoraPre = [
-  [["me", "{r1}, qué críticas te han hecho. Te veo arriba."], ["r1", "No me lo digas, que me gafas. Hasta que no lo diga Supreme, nada."]],
+  [["me", "{r1}, qué críticas te han hecho. Te veo arriba."], ["r1", "No me lo digas, que me gafas. Hasta que no lo diga Supremme, nada."]],
   [["me", "Al jurado le ha encantado lo tuyo, {r1}."], ["r1", "Eso parecía... pero aquí nunca se sabe."]],
   [["me", "¿Cómo lo llevas? Las críticas han sido muy buenas."], ["r1", "Nerviosa igual. A veces te ponen por las nubes y luego ni ganas."]],
 ];
@@ -1376,4 +1376,8 @@ HISTORIA.untucked.bottomPre = [
   [["me", "{r1}, ¿cómo estás? Las críticas han sido duras."], ["r1", "Fatal. Me veo cantando esta noche."], ["me", "Aún no han decidido nada. Respira."]],
   [["me", "No te comas la cabeza, {r1}. A otras también les han dado caña."], ["r1", "Ya, pero a mí más. Ojalá me equivoque."]],
   [["me", "{r1}, ¿quieres un poco de agua?"], ["r1", "Quiero que acabe esta espera. Gracias, de verdad."]],
+];
+HISTORIA.untucked.charlaPre = [
+  [["me", "¿Cómo lo ves, {r1}?"], ["r1", "Yo ya no sé ni qué pensar. Hasta que no hable Supremme, nada."]],
+  [["me", "Qué tensión, {r1}."], ["r1", "Ni que lo digas. Yo ya solo quiero saber quién canta esta noche."]],
 ];
