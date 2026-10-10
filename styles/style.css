@@ -2146,3 +2146,16 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 .choice-col .btn { white-space: normal; line-height: 1.25; max-width: 100%; text-align: center; }
 .impro-cast small { white-space: normal; }
 .impro-cast span { max-width: 220px; }
+/* All Stars a tu gusto: selector de reparto */
+.cc-modal { position: fixed; inset: 0; z-index: 9000; background: rgba(20,3,31,.7); display: grid; place-items: center; padding: 16px; }
+.cc-box { width: 1100px; max-width: 100%; max-height: 92vh; display: flex; flex-direction: column; gap: 10px; background: #fff; border-radius: 26px; padding: 20px; box-shadow: 0 0 0 5px #ffcf4d, 0 30px 60px -20px rgba(0,0,0,.6); }
+.cc-box h3 { margin: 0; font: 900 28px Poppins, sans-serif; color: #3b0d4f; }
+.cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; overflow-y: auto; padding: 4px; min-height: 0; }
+.cc-q { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border-radius: 16px; border: 2px solid #f0d8e6; background: #fff8fc; cursor: pointer; font: 700 12px Poppins, sans-serif; color: #3b0d4f; }
+.cc-q i { width: 84px; height: 84px; border-radius: 50%; background-size: cover; background-position: center top; }
+.cc-q.on { border-color: #ff3d9a; background: #ffe3f2; }
+.cc-q b { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; background: #ff3d9a; color: #fff; display: grid; place-items: center; font-size: 12px; }
+.cc-bar { display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
+.cc-bar span { flex: 1; font: 800 16px Poppins, sans-serif; color: #3b0d4f; }
+.cc-bar .btn { font-size: 16px; padding: 10px 22px; }
+.franchise-card.locked { filter: grayscale(.6); opacity: .8; }

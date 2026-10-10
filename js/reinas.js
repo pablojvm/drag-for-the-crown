@@ -149,6 +149,24 @@ const TEMPORADAS_ES = [
       "samantha-ballentines",
       "drag-sethlas"
     ]
+  },
+  {
+    "franchise": "esas",
+    "id": "esas2",
+    "name": "All Stars 2",
+    "year": 2026,
+    "enEmision": true,
+    "cast": [
+      "angelita-la-perversa",
+      "chanel-anorex",
+      "dafne-mugler",
+      "denebola-murnau",
+      "jota-carajota",
+      "la-nina-delantro",
+      "megui-yeillow",
+      "vania-vainilla",
+      "venedita-von-dash"
+    ]
   }
 ];
 
@@ -238,7 +256,7 @@ const PORTADAS = {
 };
 
 // Temporadas anunciadas que aún no se pueden jugar (reparto pendiente)
-const PROXIMAS_TEMPORADAS = [{ franchise: "esas", id: "esas2", name: "All Stars 2", year: 2026 }];
+const PROXIMAS_TEMPORADAS = [];
 
 // Looks propios de una temporada (p. ej. All Stars): images/queens/<temporada>/<id>.png y <id>_retrato.jpg
 const LOOKS = {

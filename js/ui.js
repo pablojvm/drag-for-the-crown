@@ -92,9 +92,12 @@ const UI = (() => {
         <span class="f-progress"><span class="progress"><span style="width:${(won / f.seasons.length) * 100}%"></span></span>
         <small>👑 ${won} de ${f.seasons.length} ${f.seasons.length === 1 ? "temporada ganada" : "temporadas ganadas"} ${mode === "story" ? "en historia" : "en arcade"}</small></span>`
         }`;
+      const fLock = mode === "story" && !f.comingSoon && f.seasons.length && !f.seasons.some((x) => storyUnlock({ ...x, franchise: f }).ok) ? storyUnlock({ ...f.seasons[0], franchise: f }).why : null;
+      if (fLock) { card.classList.add("locked"); card.insertAdjacentHTML("beforeend", `<span class="soon-badge">🔒 ${esc(fLock)}</span>`); }
       card.addEventListener("click", () => {
-        if (f.comingSoon) {
+        if (f.comingSoon || fLock) {
           Sound.countdown(false);
+          if (fLock) Toast.show("🔒 Bloqueada", fLock);
           return;
         }
         currentFranchise = f;
@@ -102,6 +105,41 @@ const UI = (() => {
       });
       grid.append(card);
     });
+  }
+
+  // All Stars a tu gusto: eliges hasta 14 reinas de cualquier temporada
+  function customCastPicker() {
+    const ids = ALL_QUEEN_IDS();
+    let sel = (store.get("dftc-custom-cast", []) || []).filter((id) => ids.includes(id));
+    const m = document.createElement("div");
+    m.className = "cc-modal";
+    document.body.append(m);
+    const draw = () => {
+      m.innerHTML = `<div class="cc-box">
+        <h3>✨ All Stars a tu gusto</h3>
+        <p class="muted">Elige entre 5 y 14 reinas. Luego eliges con cuál juegas tú.</p>
+        <div class="cc-grid">${ids.map((id) => { const q = queenById2(id); if (!q) return ""; const on = sel.includes(id); return `<button class="cc-q ${on ? "on" : ""}" data-id="${id}"><i style="background-image:${portraitBg(q)}"></i><span>${esc(q.name)}</span>${on ? `<b>${sel.indexOf(id) + 1}</b>` : ""}</button>`; }).join("")}</div>
+        <div class="cc-bar"><span>${sel.length}/14 reinas</span><button class="btn btn-ghost" id="cc-x">Cancelar</button><button class="btn btn-primary" id="cc-ok" ${sel.length >= 5 ? "" : "disabled"}>Formar el reparto</button></div>
+      </div>`;
+      m.querySelectorAll(".cc-q").forEach((b) => b.addEventListener("click", () => {
+        const id = b.dataset.id;
+        if (sel.includes(id)) sel = sel.filter((x) => x !== id);
+        else if (sel.length < 14) sel.push(id);
+        else return Toast.show("Máximo 14", "Quita alguna para meter otra");
+        const y = m.querySelector(".cc-grid").scrollTop;
+        draw();
+        m.querySelector(".cc-grid").scrollTop = y;
+      }));
+      m.querySelector("#cc-x").addEventListener("click", () => m.remove());
+      m.querySelector("#cc-ok").addEventListener("click", () => {
+        store.set("dftc-custom-cast", sel);
+        m.remove();
+        currentSeason = seasonById("escustom");
+        if (selected && !currentSeason.cast.includes(selected.id)) selected = null;
+        show("select");
+      });
+    };
+    draw();
   }
 
   function renderSeasons() {
@@ -114,9 +152,10 @@ const UI = (() => {
     const grid = $("#season-grid");
     grid.innerHTML = "";
     allSeasons()
-      .filter((s) => s.franchise.id === f.id)
+      .filter((s) => s.franchise.id === f.id && (mode === "story" || !s.special))
       .forEach((s) => {
-        const unlocked = mode === "story" || Progress.isSeasonUnlocked(s);
+        const lock = mode === "story" ? storyUnlock(s) : { ok: Progress.isSeasonUnlocked(s), why: "Gana la anterior" };
+        const unlocked = lock.ok;
         const won = wonIn(s.id);
         const card = document.createElement("button");
         const cover = typeof PORTADAS !== "undefined" && PORTADAS[s.id];
@@ -126,13 +165,16 @@ const UI = (() => {
         card.innerHTML = `
           <span class="s-top"><span class="s-name">${esc(s.name)}</span><span class="s-year">${s.year}</span></span>
           ${cover ? "" : `<span class="faces">${s.cast.slice(0, 7).map((id) => `<i style="background-image:${portraitBg(queenById2(id), s.id)}"></i>`).join("")}${s.cast.length > 7 ? `<b>+${s.cast.length - 7}</b>` : ""}</span>`}
-          <span class="s-cast">${s.cast.length} reinas · ${s.enEmision ? "📺 En emisión" : won ? `Ganadora: ${esc(queenById2(s.winner).name)}` : "¿Quién se llevará la corona?"}</span>
-          <span class="s-state">${won ? "👑 Ganada" : unlocked ? `Dificultad ${"★".repeat(Math.min(5, s.index + 1))}` : "🔒 Gana la anterior"}</span>`;
+          <span class="s-cast">${s.special === "custom" ? (s.cast.length ? `${s.cast.length} reinas elegidas por ti` : "Elige hasta 14 reinas de cualquier temporada") : s.special === "winners" ? `${s.cast.length} reinas con las que has ganado` : `${s.cast.length} reinas · ${s.enEmision ? "📺 En emisión" : won ? `Ganadora: ${esc(queenById2(s.winner).name)}` : "¿Quién se llevará la corona?"}`}</span>
+          <span class="s-state">${won ? "👑 Ganada" : unlocked ? (s.special ? (s.special === "custom" ? "✨ Monta tu reparto" : "🏆 Solo ganadoras") : `Dificultad ${"★".repeat(Math.min(5, s.index + 1))}`) : `🔒 ${esc(lock.why)}`}</span>`;
         card.addEventListener("click", () => {
           if (!unlocked) {
             Sound.countdown(false);
+            Toast.show("🔒 Bloqueada", lock.why);
             return;
           }
+          if (s.special === "custom") return customCastPicker();
+          if (s.special === "winners" && s.cast.length < 4) return Toast.show("Faltan ganadoras", "Necesitas al menos 4 reinas coronadas");
           currentSeason = s;
           if (selected && !s.cast.includes(selected.id)) selected = null;
           show("select");
@@ -148,9 +190,10 @@ const UI = (() => {
         card.className = "season-card soon-season" + (cover ? " has-cover" : "");
         card.style.setProperty("--accent", f.color);
         if (cover) card.style.backgroundImage = `linear-gradient(180deg, rgba(20,3,31,.75) 0%, rgba(20,3,31,.15) 28%, rgba(20,3,31,.45) 60%, rgba(20,3,31,.95) 100%), url('${cover}')`;
+        const tl = mode === "story" ? storyUnlock(t) : { ok: true };
         card.innerHTML = `
           <span class="s-top"><span class="s-name">${esc(t.name)}</span><span class="s-year">${t.year}</span></span>
-          <span class="soon-badge">Próximamente</span>`;
+          <span class="soon-badge">${tl.ok ? "Próximamente" : `🔒 ${esc(tl.why)} · Próximamente`}</span>`;
         card.addEventListener("click", () => Sound.countdown(false));
         grid.append(card);
       });
@@ -365,7 +408,7 @@ const UI = (() => {
     const R = store.get("dftc-reinantes", {});
     const fmtD = (d) => new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
     $("#reign-grid").innerHTML = allSeasons()
-      .filter((s) => s.cast && s.cast.length)
+      .filter((s) => s.cast && s.cast.length && !s.special)
       .map((s, i) => {
         const r = R[s.id];
         const orig = s.enEmision ? null : queenById(s.winner);

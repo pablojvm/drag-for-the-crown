@@ -158,7 +158,40 @@ const TEMPORADAS_HISTORIA = {
       ["judge", "Así que las alianzas valen oro. Y las enemistades, más."],
     ],
   },
+
+  esas2: {
+    twist: "allstars",
+    lema: "All Stars 2: segunda oportunidad, misma corona",
+    intro: [
+      ["host", "¡Bienvenidas a la segunda edición de All Stars! Nueve reinas vuelven a por lo que se les escapó."],
+      ["host", "Las reglas ya las conocéis: las dos mejores hacen lip sync y la ganadora decide quién del bottom se marcha."],
+      ["judge", "Aquí nadie viene a aprender. Venís a demostrar."],
+    ],
+  },
 };
+
+// Temporadas especiales del modo historia
+Object.assign(TEMPORADAS_HISTORIA, {
+  escustom: {
+    twist: "allstars",
+    lema: "All Stars a tu gusto",
+    intro: [
+      ["host", "¡Bienvenidas, All Stars! Este reparto no lo ha elegido producción... lo habéis pedido vosotras."],
+      ["host", "Mismas reglas de siempre: las dos mejores harán lip sync y la ganadora decidirá quién se va de las del bottom."],
+      ["judge", "Aquí nadie viene a hacer amigas. Bueno, alguna sí. Pero pocas."],
+    ],
+  },
+  esaw: {
+    twist: "winners",
+    lema: "All Winners: solo ganadoras",
+    intro: [
+      ["host", "Bienvenidas a All Winners. Mirad a vuestro alrededor: todas las que estáis aquí ya habéis ganado una corona."],
+      ["host", "Y aquí nadie se va a casa. Cada semana, las dos mejores harán lip sync por una estrella."],
+      ["host", "En la gran final estaréis todas, y será a lip sync limpio: la que pierda, queda fuera. Las estrellas os darán ventaja."],
+      ["judge", "Una corona ganada no garantiza nada. Aquí empezáis todas de cero."],
+    ],
+  },
+});
 
 const HISTORIA = {
   // Presentadora al abrir el taller cada semana

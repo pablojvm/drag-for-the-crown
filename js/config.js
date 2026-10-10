@@ -176,8 +176,55 @@ const FRANCHISES = [
   { id: "uk", name: "Drag Race UK", tag: "UK", color: "#53f2ff", comingSoon: true, seasons: [] },
 ];
 
-const allSeasons = () =>
-  FRANCHISES.flatMap((f) => f.seasons.map((s, i) => ({ ...s, franchise: f, index: i, winner: s.cast[s.cast.length - 1] })));
+// ---- Temporadas especiales del modo historia (se calculan con tu progreso)
+// All Winners: las reinas con las que has ganado cada temporada. All Stars a tu gusto: hasta 14 reinas elegidas por ti
+const REGULAR_ES = () => TEMPORADAS_ES.filter((t) => t.franchise === "es");
+const PLAYABLE_AS = () => TEMPORADAS_ES.filter((t) => t.franchise === "esas" && t.cast && t.cast.length);
+function storyCrown(sid) {
+  const C = store.get("dftc-story-crowns", {});
+  if (C[sid]) return C[sid];
+  const R = store.get("dftc-reinantes", {})[sid];
+  return R && R.mine ? { queen: R.queen, runner: null } : null;
+}
+function allWinnersCast() {
+  const used = new Set(), cast = [];
+  [...REGULAR_ES(), ...PLAYABLE_AS()].forEach((t) => {
+    const c = storyCrown(t.id);
+    if (!c) return;
+    // Si la ganadora ya está (p. ej. ganó también una temporada normal), entra su runner-up
+    const pickId = !used.has(c.queen) ? c.queen : c.runner && !used.has(c.runner) ? c.runner : null;
+    if (pickId) { used.add(pickId); cast.push(pickId); }
+  });
+  return cast;
+}
+const ALL_QUEEN_IDS = () => [...new Set(TEMPORADAS_ES.flatMap((t) => t.cast || []))];
+function specialSeasons() {
+  const custom = (store.get("dftc-custom-cast", []) || []).filter((id) => ALL_QUEEN_IDS().includes(id)).slice(0, 14);
+  return [
+    { franchise: "esas", id: "escustom", name: "All Stars a tu gusto", year: "Tú eliges", cast: custom, special: "custom", index: 2 },
+    { franchise: "esas", id: "esaw", name: "All Winners", year: "Solo ganadoras", cast: allWinnersCast(), special: "winners", index: 5 },
+  ];
+}
+// Qué temporadas tienes abiertas en el modo historia y qué te falta para abrir las demás
+function storyUnlock(s) {
+  const wins = store.get("dftc-story-wins", []);
+  const reg = REGULAR_ES();
+  const nameOf = (id) => (TEMPORADAS_ES.find((t) => t.id === id) || {}).name || id;
+  if (s.franchise && (s.franchise.id || s.franchise) === "es") {
+    const i = reg.findIndex((t) => t.id === s.id);
+    if (i <= 0) return { ok: true };
+    return wins.includes(reg[i - 1].id) ? { ok: true } : { ok: false, why: `Gana la ${nameOf(reg[i - 1].id)}` };
+  }
+  const need = { esas1: ["es3"], esas2: ["es5"] }[s.id];
+  if (need) return need.every((x) => wins.includes(x)) ? { ok: true } : { ok: false, why: `Gana la ${nameOf(need[0])}` };
+  if (s.id === "escustom") return reg.every((t) => wins.includes(t.id)) ? { ok: true } : { ok: false, why: "Gana todas las temporadas" };
+  if (s.id === "esaw") return [...reg, ...PLAYABLE_AS()].every((t) => wins.includes(t.id)) ? { ok: true } : { ok: false, why: "Gana todas las temporadas y los All Stars" };
+  return { ok: true };
+}
+const allSeasons = () => [
+  ...FRANCHISES.flatMap((f) => f.seasons.map((s, i) => ({ ...s, franchise: f, index: i, winner: s.cast[s.cast.length - 1] }))),
+  ...(typeof store !== "undefined" ? specialSeasons() : []).map((s) => ({ ...s, franchise: FRANCHISES.find((f) => f.id === s.franchise), winner: s.cast[s.cast.length - 1] })),
+];
 const seasonById = (id) => allSeasons().find((s) => s.id === id);
 // Cada temporada es algo más difícil que la anterior dentro de su franquicia
 const seasonDifficulty = (season) => 1 + season.index * 0.1;
