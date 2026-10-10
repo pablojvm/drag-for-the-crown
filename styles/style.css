@@ -2143,3 +2143,6 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 .at-zapatos.on img { animation: at-glow 1.4s ease-in-out infinite; }
 .at-side .at-peluca img { height: 160px; }
 @media (max-width: 900px) { .at-zapatos img { height: 70px; } }
+.choice-col .btn { white-space: normal; line-height: 1.25; max-width: 100%; text-align: center; }
+.impro-cast small { white-space: normal; }
+.impro-cast span { max-width: 220px; }

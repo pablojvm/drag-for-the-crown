@@ -4440,8 +4440,9 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"lo que dice (máximo 28 palabras
       notes.push(nota);
       const pub = j ? j.publico : "risas";
       log.push({ who: "Público", t: { carcajada: "🤣 ¡Carcajada general!", risas: "😄 Risas", silencio: "😶 Silencio...", abucheo: "😬 Uuuuh..." }[pub] || "😄 Risas", cls: "pub" });
-      if (j && j.reaccion) log.push({ who: "Supremme", t: j.reaccion, cls: "host" });
-      if (r.after) { const extra = await r.after(v, nota); if (extra) log.push(extra); }
+      // En el Snatch Game no hay críticas durante el juego: solo se sigue el juego dentro de los personajes
+      if (j && j.reaccion && !cfg.inCharacter) log.push({ who: "Supremme", t: j.reaccion, cls: "host" });
+      if (r.after) { const extra = await r.after(v, nota); if (extra) log.push(...[].concat(extra).filter(Boolean)); }
       round++;
       if (round < cfg.rounds.length) return draw();
       const avg = notes.reduce((a, b) => a + b, 0) / notes.length;
@@ -4525,10 +4526,33 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
           ...((p.respuestas || []).filter((x) => x && x.t && rivals.some((q) => q.name === str(x.reina))).slice(0, 2).map((x) => ({ who: `${str(x.reina)}${pj[str(x.reina)] ? ` (${pj[str(x.reina)]})` : ""}`, t: IA.clean(str(x.t)), cls: "rival" }))),
         ],
         ctx: `Snatch Game. ${S.queen.name} interpreta a ${name}. Pregunta de Supremme: ${str(p.q)}. Valora la gracia, que se mantenga en el personaje elegido y el remate. En tu reacción no imites ni pongas frases en boca de ese personaje: solo comenta la actuación.`,
+        // Tras cada respuesta: Supremme sigue el juego como presentadora y otra concursante contesta desde su personaje
+        after: async (v) => {
+          const others = rivals.filter((q) => pj[q.name]);
+          const q2 = others.length ? pick1(others) : null;
+          const r2 = await IA.chat(
+            `Eres la guionista del Snatch Game de Drag Race España. Supremme de Luxe presenta el concurso y las reinas están metidas en sus personajes. Nadie critica ni valora a nadie: todo es juego, chistes y pullas dentro del personaje. No pongas frases inventadas en boca de famosos reales: las reinas hablan como su versión cómica del personaje, sin citar frases reales.`,
+            `Pregunta de Supremme: «${str(p.q)}». ${S.queen.name} (haciendo de ${name}) ha contestado: «${v}».${q2 ? ` En el panel también está ${q2.name}, que hace de ${pj[q2.name]}.` : ""}
+Devuelve JSON {"supremme":"lo que dice Supremme como presentadora siguiendo el juego (máximo 18 palabras, sin valorar)"${q2 ? `,"rival":"lo que suelta ${q2.name} metida en su personaje, picando o siguiendo la broma (máximo 18 palabras)"` : ""}}`,
+            { json: true, max: 220, temp: 1, timeout: 15000 },
+          ).catch(() => null);
+          if (!r2) return null;
+          return [
+            r2.supremme ? { who: "Supremme", t: IA.clean(str(r2.supremme)), cls: "host" } : null,
+            q2 && r2.rival ? { who: `${q2.name} (${pj[q2.name]})`, t: IA.clean(str(r2.rival)), cls: "rival" } : null,
+          ];
+        },
       }));
       el.innerHTML = "";
-      liveRounds(el, { title: "Snatch Game", icon: "🎭", kind: "Snatch Game (imitación cómica en personaje)", attr: "comedia", rounds, ph: `Lo que dice ${name}...` }, done);
+      liveRounds(el, { title: "Snatch Game", icon: "🎭", kind: "Snatch Game (imitación cómica en personaje)", attr: "comedia", rounds, ph: `Lo que dice ${name}...`, inCharacter: true }, done);
     }
+  }
+  // Recorta un texto por palabras (sin dejar palabras a medias)
+  function cutWords(t, n) {
+    t = String(t || "").trim();
+    if (t.length <= n) return t;
+    const c = t.slice(0, n), i = c.lastIndexOf(" ");
+    return (i > n * 0.5 ? c.slice(0, i) : c).replace(/[\s,;:.\-]+$/, "") + "…";
   }
   // Improvisación por grupos: se monta una escena, cada una tiene un personaje y todas interactúan
   function liveImpro(el, done) {
@@ -4538,15 +4562,15 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
     IA.chat(
       `Eres la directora del reto de improvisación de Drag Race España: un grupo de reinas improvisa una escena cómica, cada una con un personaje. ${aiSeason()}`,
       `El grupo: ${S.queen.name} (la jugadora) y ${mates.map((q) => `${q.name} (${aiProfile(q)} ${idTxt(q)})`).join(" | ")}.
-Inventa una escena cómica y concreta (lugar y conflicto), un personaje para cada rival que encaje con su identidad, y 3 personajes posibles para ${S.queen.name}.
+Inventa una escena cómica y concreta (lugar y conflicto), un personaje para cada rival que encaje con su identidad, y 3 personajes posibles para ${S.queen.name}. Cada personaje en una frase corta de 12 palabras como máximo.
 Devuelve JSON {"escena":"premisa en 25 palabras","personajes":[{"reina":"nombre","personaje":"..."}],"opciones":["...","...","..."]}`,
       { json: true, max: 700, temp: 1 },
     ).then((plan) => {
       if (!plan || !plan.escena) return liveImproSolo(el, done);
       const pj = {};
-      (Array.isArray(plan.personajes) ? plan.personajes : []).forEach((x) => x && x.reina && (pj[str(x.reina)] = IA.clean(str(x.personaje)).slice(0, 60)));
+      (Array.isArray(plan.personajes) ? plan.personajes : []).forEach((x) => x && x.reina && (pj[str(x.reina)] = cutWords(IA.clean(str(x.personaje)), 110)));
       mates.forEach((q) => (pj[q.name] = pj[q.name] || "un personaje secundario"));
-      const opts = (Array.isArray(plan.opciones) ? plan.opciones : []).map((x) => IA.clean(str(x)).slice(0, 80)).filter(Boolean).slice(0, 3);
+      const opts = (Array.isArray(plan.opciones) ? plan.opciones : []).map((x) => cutWords(IA.clean(str(x)), 150)).filter(Boolean).slice(0, 3);
       el.innerHTML = `
         <div class="story-card live">
           <p class="eyebrow">📺 Improvisación en grupo</p>
@@ -4848,7 +4872,7 @@ Devuelve JSON {"titulo":"...","sinopsis":"...","papeles":[{"papel":"...","descri
       const roles = g && Array.isArray(g.papeles) ? g.papeles.filter((x) => x && x.papel).slice(0, mates.length + 1) : [];
       // Si la IA da menos papeles que reinas, el resto hace de coro (nadie se queda sin papel)
       ["Corista de la izquierda", "Corista de la derecha", "La vedette secundaria", "La acomodadora", "El galán de relleno", "La portera", "La primera bailarina"].forEach((n) => { if (roles.length && roles.length < mates.length + 1) roles.push({ papel: n, descripcion: "Papel de coro, con alguna estrofa suelta", peso: "pequeño" }); });
-      roles.forEach((r) => { r.papel = IA.clean(str(r.papel)).slice(0, 40); r.peso = str(r.peso || "medio").slice(0, 10); });
+      roles.forEach((r) => { r.papel = cutWords(IA.clean(str(r.papel)), 60); r.peso = str(r.peso || "medio").slice(0, 10); });
       // Nombres de papel raros (el peso o el nombre de una reina): se arreglan
       const BAD = /^(grande|medio|peque(ñ|n)o|protagonista|papel)$/i;
       roles.forEach((r, k) => {
