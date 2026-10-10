@@ -2159,3 +2159,9 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 .cc-bar span { flex: 1; font: 800 16px Poppins, sans-serif; color: #3b0d4f; }
 .cc-bar .btn { font-size: 16px; padding: 10px 22px; }
 .franchise-card.locked { filter: grayscale(.6); opacity: .8; }
+.at-edit{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0}
+.at-edit .btn{font-size:.85rem;padding:.4rem .7rem}
+.at-opt.sel{outline:3px solid var(--gold,#f5c542);outline-offset:2px}
+.prep-head{text-align:center;margin-bottom:.4rem}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.shake{animation:shake .25s 2;outline:2px solid #ff4d6d}

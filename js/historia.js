@@ -125,7 +125,7 @@ const Story = (() => {
   };
   // Catálogo del reto semanal (como en el programa)
   RETOS.snatch.titulo = () => "Snatch Game";
-  RETOS.snatch.desc = "La prueba reina de la temporada. Imita a un personaje de la cultura popular y responde con humor e improvisación a las preguntas de Supremme. Cada respuesta tiene que sonar a TU personaje.";
+  RETOS.snatch.desc = "La prueba reina de la temporada. Imita a una celebridad y responde con humor e improvisación a las preguntas de Supremme. Cada respuesta tiene que sonar a TU personaje.";
   RETOS.roast = {
     titulo: () => pick1(["El Roast: el rapapolvos a Supremme", "El Roast: rapapolvos al jurado", "El Roast: homenaje con cuchillo"]),
     desc: "Monólogo de comedia afilado. Elige el remate más punzante (sin pasarte de la raya) para Supremme, el jurado y tus compañeras.",
@@ -310,11 +310,45 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["stars", "memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks", "log", "miniWin", "aggr", "cGroups"];
-  function save() {
+  const PLAIN = ["stars", "memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks", "prepLooks", "gg", "curEpTipo", "log", "miniWin", "aggr", "cGroups"];
+  function snapshot() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
-    store.set(SAVE_KEY, d);
+    return d;
+  }
+  function save() {
+    store.set(SAVE_KEY, snapshot());
+  }
+  // Para poder repetir un episodio: copia de la partida al empezar cada uno (los dos últimos)
+  const REWIND_KEY = "dftc-story-rewind";
+  function markRewind(rw = false) {
+    const d = JSON.parse(JSON.stringify(snapshot()));
+    if (!rw) d.phase = null;
+    const ep = rw ? S.ep : S.ep + 1;
+    const same = (x) => x && x.data && x.data.season === d.season && x.data.queen === d.queen;
+    let list = (store.get(REWIND_KEY, []) || []).filter((x) => same(x) && (x.ep < ep || (x.ep === ep && !x.rw && rw)));
+    list.push({ ep, rw, money: Closet.money, data: d });
+    const eps = list.filter((x) => !x.rw).slice(-2), last = list.filter((x) => x.rw).slice(-1);
+    store.set(REWIND_KEY, [...eps, ...last]);
+  }
+  function rewindTo(ep, rw) {
+    const all = store.get(REWIND_KEY, []) || [];
+    const cur = saved();
+    if (rw && cur && cur.phase && cur.phase.stage === "scored" && cur.ep === ep && !all.some((x) => x.ep === ep && x.rw)) {
+      const ph = cur.phase;
+      cur.phase = { ep, stage: "runway", advice: ph.advice, runwayBonus: ph.runwayBonus, captains: ph.captains, raw: ph.parts.reto, bonus: ph.bonus, titulo: ph.titulo, tipo: ph.tipo, team: ph.team, cGroups: ph.cGroups };
+      cur.runwayIdx = Math.max(0, (cur.runwayIdx || 1) - 1);
+      store.set(SAVE_KEY, cur);
+      return resume();
+    }
+    const r = all.find((x) => x.ep === ep && !!x.rw === rw);
+    if (!r) return;
+    store.set(SAVE_KEY, r.data);
+    const c = Closet.get();
+    c.money = r.money;
+    Closet.set(c);
+    store.set(REWIND_KEY, all.filter((x) => x.ep < ep || (x.ep === ep && !x.rw)));
+    resume();
   }
   const saved = () => {
     const d = store.get(SAVE_KEY, null);
@@ -329,6 +363,7 @@ const Story = (() => {
     UI.show("story");
     Sound.stopAll();
     if (S.ep === 0 && !S.flags.shopped && S.runwayPlan) return javisCall(nextEpisode);
+    if (S.ep === 0 && !S.flags.prepped && S.runwayPlan) return prepAllLooks(nextEpisode);
     if (S.meOut && S.flags.waitRepesca) return repescaStep();
     if (S.meOut && S.flags.aftermath) return S.flags.reunion ? afterFinal() : afterStep();
     if (S.phase && S.phase.ep === S.ep && S.ep > 0) return resumeMid();
@@ -341,6 +376,11 @@ const Story = (() => {
     const d = saved();
     if (!d) return onNew();
     const q = qById(d.queen), se = seasonById(d.season);
+    const rw = (store.get(REWIND_KEY, []) || []).filter((x) => x && x.data && x.data.season === d.season && x.data.queen === d.queen && x.ep <= d.ep && !(x.rw && d.phase && d.phase.stage === "runway" && d.phase.ep === x.ep)).sort((a, b) => b.ep - a.ep || (b.rw ? 1 : 0) - (a.rw ? 1 : 0));
+    // Partida en los resultados (de antes de los puntos de control de pasarela): también se puede repetir la pasarela
+    const ph = d.phase;
+    if (ph && ph.ep === d.ep && ph.stage === "scored" && !ph.paid && ph.parts && ph.parts.pasarela != null && !rw.some((x) => x.rw && x.ep === d.ep))
+      rw.unshift({ ep: d.ep, rw: true, fromScored: true });
     UI.show("story");
     setSet("werkroom");
     $("#story-season").textContent = "Modo historia";
@@ -356,17 +396,19 @@ const Story = (() => {
         <div>
           <p class="eyebrow">${esc(se.franchise.name)} · ${esc(se.name)}</p>
           <h3>${esc(q.name)}</h3>
-          <p>Vas por el episodio ${d.phase && d.phase.ep === d.ep ? `${d.ep} (${d.phase.stage === "mini" ? "después del minirreto" : "en los resultados"})` : d.ep + 1}. Quedan ${d.rivals.length + (d.meOut ? 0 : 1)} reinas en la competición.</p>
+          <p>Vas por el episodio ${d.phase && d.phase.ep === d.ep ? `${d.ep} (${d.phase.stage === "mini" ? "después del minirreto" : d.phase.stage === "runway" ? "antes de la pasarela" : "en los resultados"})` : d.ep + 1}. Quedan ${d.rivals.length + (d.meOut ? 0 : 1)} reinas en la competición.</p>
           <p class="muted">${Math.round(d.points).toLocaleString("es-ES")} puntos · ${d.wins} retos ganados</p>
           <div class="row">
             <button class="btn btn-ghost" id="story-new">Nueva historia</button>
             <button class="btn btn-primary" id="story-continue">Continuar</button>
           </div>
-          <p class="muted small">Si empiezas una nueva, la partida guardada se borrará al comenzar.</p>
+          ${rw.length ? `<div class="row">${rw.map((x) => `<button class="btn btn-ghost" data-rw="${x.ep}" data-rp="${x.rw ? 1 : 0}">${x.rw ? `👠 Repetir solo la pasarela del episodio ${x.ep}` : `⏪ Repetir el episodio ${x.ep}`}</button>`).join("")}</div>` : ""}
+          <p class="muted small">Si empiezas una nueva, la partida guardada se borrará al comenzar.${rw.length ? " Si repites un episodio, se pierde lo que hayas jugado después." : ""}</p>
         </div>
       </div>`;
     $("#story-continue").addEventListener("click", resume);
     $("#story-new").addEventListener("click", onNew);
+    body().querySelectorAll("[data-rw]").forEach((b) => b.addEventListener("click", () => rewindTo(+b.dataset.rw, b.dataset.rp === "1")));
   }
 
   // Salir sin perder la partida (queda guardada desde el inicio del episodio)
@@ -925,8 +967,19 @@ const Story = (() => {
     if (ph.stage === "mini") {
       return Curtain.run(() => hub(() => announce()), `EPISODIO ${S.ep}`);
     }
+    if (ph.stage === "runway") {
+      // Reto hecho: toca la pasarela
+      S.curTipo = ph.tipo;
+      S.curEpTipo = S.ep;
+      S.curTitulo = ph.titulo;
+      S.team = ph.team ? ph.team.map(byKey).filter(Boolean) : null;
+      S.cGroups = ph.cGroups || null;
+      S.lastBonus = ph.bonus;
+      return Curtain.run(() => runway(closeReto(ph.raw, ph.bonus, ph.titulo)), `EPISODIO ${S.ep}`);
+    }
     // Reto y pasarela ya hechos: seguimos en los resultados
     S.curTipo = ph.tipo;
+    S.curEpTipo = S.ep;
     S.lastParts = ph.parts;
     S.lastBonus = ph.bonus;
     S.team = ph.team ? ph.team.map(byKey).filter(Boolean) : null;
@@ -955,6 +1008,7 @@ const Story = (() => {
   }
   function episode() {
     setSet("werkroom");
+    markRewind();
     S.ep++;
     S.advice = 0;
     S.helped = false;
@@ -1277,6 +1331,7 @@ const Story = (() => {
     const titulo = reto.titulo();
     S.epNames[S.ep] = EP_SHORT[tipo] || "Reto";
     S.curTipo = tipo;
+    S.curEpTipo = S.ep;
     S.curTitulo = titulo;
     S.team = null;
     S.cGroups = null;
@@ -1330,6 +1385,16 @@ const Story = (() => {
     pickScreen();
   }
 
+  // Nota de la semana: reto + pasarela
+  function closeReto(raw, bonus, titulo, onScore) {
+    return (walk) => {
+      S.lastParts = { reto: Math.round(raw), pasarela: walk === null ? null : Math.round(walk) };
+      const total = walk === null ? raw : raw * 0.65 + walk * 0.35;
+      const final = Math.round(clamp(total + bonus, 0, 100));
+      if (!onScore) checkpoint("scored", { score: final, titulo, tipo: S.curTipo, parts: S.lastParts, bonus, team: S.team ? S.team.map((q) => q.id) : null, cGroups: S.cGroups || null });
+      (onScore || results)(final, titulo);
+    };
+  }
   function challengeIntro(reto, titulo, tipo, onScore) {
     S.curPieces = null;
     S.ballCtx = null;
@@ -1360,14 +1425,11 @@ const Story = (() => {
         const pactB = S.team ? S.team.filter((q) => S.pacts && S.pacts[q.id]).length * 3 : 0;
         const bonus = clamp(relBonus() + S.advice - (S.helped ? 4 : 0) + pactB, -12, 12);
         S.lastBonus = bonus;
-        const close = (walk) => {
-          S.lastParts = { reto: Math.round(raw), pasarela: walk === null ? null : Math.round(walk) };
-          const total = walk === null ? raw : raw * 0.65 + walk * 0.35;
-          const final = Math.round(clamp(total + bonus, 0, 100));
-          if (!onScore) checkpoint("scored", { score: final, titulo, tipo: S.curTipo, parts: S.lastParts, bonus, team: S.team ? S.team.map((q) => q.id) : null, cGroups: S.cGroups || null });
-          (onScore || results)(final, titulo);
-        };
+        const close = closeReto(raw, bonus, titulo, onScore);
         if (reto.noRunway || onScore) return close(null);
+        // Punto de control antes de la pasarela: se puede repetir solo la pasarela
+        checkpoint("runway", { raw, bonus, titulo, tipo: S.curTipo, team: S.team ? S.team.map((q) => q.id) : null, cGroups: S.cGroups || null });
+        markRewind(true);
         runway(close);
       });
     });
@@ -1399,7 +1461,7 @@ const Story = (() => {
           <p class="eyebrow">👠 Pasarela de la semana</p>
           <h3>${tema ? "Temática" : "Categoría"}: «${esc(cat)}»</h3>
           ${tema ? `<p><i>${esc(tema.d)}</i></p>` : ""}
-          <p>Prepara el look con lo que tienes en tu armario: look, peluca y accesorios o maquillaje. Elige lo que creas que mejor cuenta la temática: el jurado decidirá si encaja. El movimiento (👣) ayuda en el desfile.</p>
+          <p>${(S.prepLooks || {})[cat] ? "Tu look ya está preparado desde casa. Antes de salir podrás revisarlo y cambiar lo que quieras: el jurado decidirá si encaja." : "Prepara el look con lo que tienes en tu armario: look, peluca, tacones y toque final. Elige lo que creas que mejor cuenta la temática: el jurado decidirá si encaja."} El movimiento (👣) ayuda en el desfile.</p>
           <p class="muted">🎮 Clic o teclas 1, 2, 3 y 4 · ${attrChips(["estilo", "performance", "carisma"])}</p>
           <button class="btn btn-primary" id="story-go">¡A la pasarela!</button>
         </div>
@@ -4261,7 +4323,9 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
   }
   // Pasarela completa (de casa): probador + desfile
   function runRunwayNew(el, cat, done, prefix = "") {
-    dressingRoom(el, cat, (st, spec) => {
+    const preset = (S.prepLooks || {})[cat] || null;
+    dressingRoom(el, cat, (st, spec, plain) => {
+      if (preset && plain) S.prepLooks[cat] = plain;
       S.revealImg = st.revealImg || null;
       // El movimiento sale de las piezas; los tacones cuentan el doble
       const wOf = (it) => (slotOf(it) === "zapatos" ? 2 : 1);
@@ -4272,10 +4336,12 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         S.lookTags = [...(S.lookTags || []), st.lookTag || "Glamour"].slice(-6);
         S.revealImg = null;
         S.lastLook = { cat, best: st.pieces[0] ? st.pieces[0].n : "look", worst: st.pieces.slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: flags.atascado, voiceGood: flags.voiceGood, concepto: flags.concepto || null, critica: flags.critica || null };
+        // Con concepto, la temática es abierta: manda la interpretación (jurado) y la espectacularidad de las piezas
+        if (flags.concepto) return done(walk * 0.75 + (st.impact || 50) * 0.25);
         const prep = st.aiFit != null ? st.prep * 0.5 + st.aiFit * 0.5 : st.prep;
         done(prep * 0.5 + walk * 0.5);
       });
-    }, prefix);
+    }, prefix, { preset });
   }
 
 
@@ -4396,7 +4462,14 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       idTxt(q),
     ].filter(Boolean).join(" ");
   }
-  const aiSeason = () => `Temporada: ${S.season.name}. Episodio ${S.ep}. Quedan ${S.rivals.length + 1} reinas. La protagonista (la jugadora) es ${S.queen.name}. Resultados de ${S.queen.name}: ${Object.values(S.track.me || {}).join(", ") || "aún ninguno"}. ${nemStory()}`;
+  const aiSeason = () => `Temporada: ${S.season.name}. Episodio ${S.ep}. Quedan ${S.rivals.length + 1} reinas. La protagonista (la jugadora) es ${S.queen.name}. Resultados de ${S.queen.name}: ${Object.values(S.track.me || {}).join(", ") || "aún ninguno"}. ${nemStory()} ${ggNote()}`;
+  // Girl Groups: que nadie se invente el nombre del grupo ni de la canción
+  function ggNote() {
+    if (S.curTipo !== "equipos" || S.curEpTipo !== S.ep) return "";
+    const g = S.gg && S.gg.ep === S.ep ? S.gg : null;
+    if (!g) return "Esta semana es el reto Girl Groups: el grupo de la protagonista todavía no tiene nombre ni canción. No inventes nombres de grupos ni títulos de canciones.";
+    return `Esta semana es el reto Girl Groups: el grupo de ${S.queen.name} se llama «${g.band}»${g.title ? ` y su tema es «${g.title}»` : ""}. Usa exactamente esos nombres y no inventes otros.`;
+  }
   function aiWait(txt = "✍️ Escribiendo...", target = null) {
     (target || body()).innerHTML = `<div class="story-card ia-wait"><p class="eyebrow">🎬 En directo</p><h3>${esc(txt)}</h3><div class="ia-dots"><i></i><i></i><i></i></div></div>`;
   }
@@ -4619,27 +4692,27 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"lo que dice (máximo 28 palabras
   }
   // Snatch Game en directo: eliges (o inventas) personaje y contestas a Supremme escribiendo
   function liveSnatch(el, done) {
-    const chars = shuffle(SNATCH_PERSONAJES).slice(0, 3);
+    const chars = shuffle(SNATCH_FAMOSOS).slice(0, 4);
     el.innerHTML = `
       <div class="story-card">
         <p class="eyebrow">🎭 Snatch Game en directo</p>
-        <h3>¿A quién vas a interpretar?</h3>
-        <p class="muted">Escribe el personaje que quieras y responderás a Supremme como si fueras esa persona.</p>
-        <form class="ft-form"><input id="sn-own" maxlength="80" autocomplete="off" placeholder="Tu personaje..."><button class="btn btn-primary">¡A plató!</button></form>
+        <h3>¿Qué celebridad vas a imitar?</h3>
+        <p class="muted">Escribe la celebridad que quieras (cantante, actriz, presentadora, icono pop...) y responderás a Supremme como si fueras ella.</p>
+        <form class="ft-form"><input id="sn-own" maxlength="80" autocomplete="off" placeholder="Tu celebridad..."><button class="btn btn-primary">¡A plató!</button></form>
         <p class="muted">o elige uno de estos:</p>
         <div class="choice-col">${chars.map((c, i) => `<button class="btn btn-ghost" data-c="${i}">${c.icon} ${esc(c.name)} <small>· ${esc(c.tono)}</small></button>`).join("")}</div>
       </div>`;
     const go = (name, tono) => start(name, tono);
     el.querySelectorAll("[data-c]").forEach((b) => b.addEventListener("click", () => { const c = chars[+b.dataset.c]; go(c.name, c.tono); }));
-    el.querySelector(".ft-form").addEventListener("submit", (e) => { e.preventDefault(); const v = el.querySelector("#sn-own").value.trim(); if (v) go(v, "el de ese personaje"); });
+    el.querySelector(".ft-form").addEventListener("submit", (e) => { e.preventDefault(); const v = el.querySelector("#sn-own").value.trim(); if (v) go(v, "su forma de hablar y sus manías más reconocibles"); });
     async function start(name, tono) {
       const rivals = shuffle(S.rivals).slice(0, 2);
       aiWait("Preparando el plató...", el);
       const plan = await IA.chat(
-        `Eres la guionista del Snatch Game de Drag Race España: Supremme de Luxe hace preguntas absurdas a las concursantes, que imitan personajes. Los personajes son arquetipos y parodias inventadas, nunca personas reales. ${aiSeason()}`,
+        `Eres la guionista del Snatch Game de Drag Race España: Supremme de Luxe hace preguntas absurdas a las concursantes, que imitan a celebridades famosas (cantantes, actrices, presentadoras, iconos pop o personajes de ficción muy conocidos; nunca políticos). Es una parodia cariñosa: se exagera su estilo, su forma de hablar y sus muletillas, sin inventar escándalos ni datos de su vida privada y sin nada ofensivo. ${aiSeason()}`,
         `La protagonista ${S.queen.name} imita a: ${name} (tono ${tono}). Las rivales en el plató: ${rivals.map((q) => `${q.name} (${aiProfile(q)} ${idTxt(q)})`).join(" | ")}.
-Elige un personaje-arquetipo gracioso para cada rival según su identidad, y escribe 4 preguntas de Supremme (máximo 20 palabras, absurdas y con chispa). Para cada pregunta, la respuesta de cada rival en personaje (SOLO las rivales, nunca ${S.queen.name}, que contesta la jugadora) (máximo 22 palabras; que alguna falle a veces).
-Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q":"...","respuestas":[{"reina":"nombre","t":"..."}]}]}`,
+Elige para cada rival una celebridad famosa distinta (española o internacional, reconocible por el público) que le pegue según su identidad, y escribe 4 preguntas de Supremme (máximo 20 palabras, absurdas y con chispa). Para cada pregunta, la respuesta de cada rival en personaje (SOLO las rivales, nunca ${S.queen.name}, que contesta la jugadora) (máximo 22 palabras; que alguna falle a veces).
+Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"nombre de la celebridad"}],"preguntas":[{"q":"...","respuestas":[{"reina":"nombre","t":"..."}]}]}`,
         { json: true, max: 1600, temp: 1 },
       );
       const pregs = (plan && Array.isArray(plan.preguntas) && plan.preguntas.length >= 3 ? plan.preguntas.slice(0, 4) : shuffle(SNATCH_PREGUNTAS).slice(0, 4).map((q) => ({ q, respuestas: [] }))).map((p) => (typeof p === "string" ? { q: p, respuestas: [] } : p));
@@ -4658,7 +4731,7 @@ Devuelve JSON {"rivales":[{"reina":"nombre","personaje":"..."}],"preguntas":[{"q
           const others = rivals.filter((q) => pj[q.name]);
           const q2 = others.length ? pick1(others) : null;
           const r2 = await IA.chat(
-            `Eres la guionista del Snatch Game de Drag Race España. Supremme de Luxe presenta el concurso y las reinas están metidas en sus personajes. Nadie critica ni valora a nadie: todo es juego, chistes y pullas dentro del personaje. No pongas frases inventadas en boca de famosos reales: las reinas hablan como su versión cómica del personaje, sin citar frases reales.`,
+            `Eres la guionista del Snatch Game de Drag Race España. Supremme de Luxe presenta el concurso y las reinas están metidas en sus personajes. Nadie critica ni valora a nadie: todo es juego, chistes y pullas dentro del personaje. Las reinas imitan a celebridades en clave de parodia cariñosa: exageran su estilo y su forma de hablar, sin citar frases reales, sin inventar escándalos de su vida privada y sin nada ofensivo.`,
             `Pregunta de Supremme: «${str(p.q)}». ${S.queen.name} (haciendo de ${name}) ha contestado: «${v}».${q2 ? ` En el panel también está ${q2.name}, que hace de ${pj[q2.name]}.` : ""}
 Devuelve JSON {"supremme":"lo que dice Supremme como presentadora siguiendo el juego (máximo 18 palabras, sin valorar)"${q2 ? `,"rival":"lo que suelta ${q2.name} metida en su personaje, picando o siguiendo la broma (máximo 18 palabras)"` : ""}}`,
             { json: true, max: 220, temp: 1, timeout: 15000 },
@@ -5192,13 +5265,18 @@ Puntúa de 0 a 100. Devuelve JSON {"rima":0,"gracia":0,"personaje":0,"supreme":"
     const inp = el.querySelector("#gg-n");
     el.querySelector(".ft-form").addEventListener("submit", (e) => e.preventDefault());
     el.querySelectorAll("[data-n]").forEach((b) => b.addEventListener("click", () => (inp.value = b.dataset.n)));
-    el.querySelectorAll("[data-st]").forEach((b) => b.addEventListener("click", () => compose(inp.value.trim() || SUG[0], STY.find((s) => s[0] === b.dataset.st)[1].slice(3))));
+    el.querySelectorAll("[data-st]").forEach((b) => b.addEventListener("click", () => {
+      const band = inp.value.trim();
+      if (!band) { inp.classList.add("shake"); inp.focus(); setTimeout(() => inp.classList.remove("shake"), 500); return Toast.show("✍️ Falta el nombre", "Escribe el nombre de la banda o elige uno de los propuestos"); }
+      compose(band, STY.find((s) => s[0] === b.dataset.st)[1].slice(3));
+    }));
     async function compose(band, style) {
       aiWait("La productora está montando la base...", el);
+      S.gg = { ep: S.ep, band };
       const r = await IA.chat(
         `Eres la productora musical del reto Girl Groups de Drag Race España. Escribes letras de himno drag, pegadizas y con humor. ${aiSeason()}`,
         `Banda: «${band}», estilo ${style}. Integrantes: ${S.queen.name} (la jugadora) y ${mates.map((q) => `${q.name} (${idTxt(q) || aiProfile(q)})`).join(" | ")}.
-Escribe el título del tema, el estribillo (4 versos) y una estrofa de 4 versos para cada rival, con la voz y el carácter de cada una. NO escribas la estrofa de ${S.queen.name}: la escribe la jugadora.
+Si alguna letra nombra al grupo, el nombre es exactamente «${band}». Escribe el título del tema, el estribillo (4 versos) y una estrofa de 4 versos para cada rival, con la voz y el carácter de cada una. NO escribas la estrofa de ${S.queen.name}: la escribe la jugadora.
 Devuelve JSON {"titulo":"...","estribillo":["...","...","...","..."],"estrofas":[{"reina":"nombre","versos":["...","...","...","..."]}]}`,
         { json: true, max: 1200, temp: 1 },
       );
@@ -5206,6 +5284,7 @@ Devuelve JSON {"titulo":"...","estribillo":["...","...","...","..."],"estrofas":
       const coro = r.estribillo.slice(0, 4).map((v) => IA.clean(str(v)));
       const est = (Array.isArray(r.estrofas) ? r.estrofas : []).filter((x) => x && mates.some((q) => q.name === str(x.reina)) && Array.isArray(x.versos));
       const title = IA.clean(str(r.titulo)) || band;
+      S.gg = { ep: S.ep, band, title };
       el.innerHTML = `
         <div class="story-card live">
           <p class="eyebrow">🎤 «${esc(title)}» · ${esc(band)}</p>
@@ -5947,6 +6026,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       ["me", pick1(["¡¿QUÉ?! ¡No me lo creo!", "Ay, que me da algo. ¡Que me da algo!", "Esperad, que grito... ¡AAAH!"])],
       ["ambrossi", `Escucha bien, que esto es importante: si llegas a la final serán ${sched.length || "unos cuantos"} episodios y vas a necesitar ${nLooks} looks.`],
       ["ambrossi", "Te decimos las temáticas, pero no en qué orden. Eso es sorpresa."],
+      ["calvo", "Y las temáticas son un punto de partida: cada una la interpreta a su manera. Lo que cuenta es que tu idea se entienda y la defiendas."],
       ["calvo", "Y ojo: lo que compres ahora es lo que hay. Durante la temporada no se puede ir de compras, y ningún look se repite."],
       ["calvo", "Si no te llega para lo básico, producción te echa una mano. Lo demás... te lo tendrás que ganar."],
       ["ambrossi", pick1(["Y nada de traer lo de siempre, ¿eh? Queremos verte brillar.", "Haz las maletas con cabeza. Y con lentejuelas."])],
@@ -5958,13 +6038,47 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
           <p class="eyebrow">📞 Los Javis · tus pasarelas de ${esc(S.season.name)}</p>
           <h3>${sched.length} episodios · ${nLooks} looks que preparar</h3>
           <div class="sched">${shuffle(plan.slice()).map((c, i) => { const t = themeOf(c); const ball = (S.ballPlan || []).includes(c) && !(S.runwayPlan || []).includes(c); const bb = ball && BALLS.find((b) => b.c.some((x) => x[0] === c)); const bx = bb && bb.c.find((x) => x[0] === c); return `<div class="sched-ep" style="--i:${i}"><b>${ball ? `🎭 ${bb ? esc(bb.n) : "Look para el Ball"}` : "👠 Pasarela"}</b><span>${esc(c)}</span>${t ? `<small>${esc(t.d)}</small>` : bx ? `<small>${esc(bx[2])}</small>` : ""}</div>`; }).join("")}</div>
+          <p class="gold">💡 Cada temática está abierta: interprétala a tu manera y defiéndela en la pasarela.</p>
           <p class="muted">El orden de los retos y las pasarelas es sorpresa: puede cambiar sobre la marcha. Luego vienen el reencuentro y la gran final. Si te eliminan antes, lo que no uses se queda en tu armario para la próxima temporada.</p>
           <p class="gold">${grant ? `💶 Producción te ingresa ${euros(grant)} para lo que te falta.` : "💶 Con tu armario y tus ahorros te llega: producción no pone nada esta vez."} Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
           <p class="muted">🛑 Solo puedes comprar ahora. Lo que ganes en la temporada (minirretos, retos, corona) te servirá para la siguiente.</p>
           <button class="btn btn-primary" id="story-go">🛍️ Ir de compras</button>
         </div>`;
-      $("#story-go").addEventListener("click", () => shopScreen(body(), then, true));
+      $("#story-go").addEventListener("click", () => shopScreen(body(), () => prepAllLooks(then), true));
     });
+  }
+  // Después de las compras: preparas en el maniquí todos los looks de la temporada, uno por pasarela
+  function prepAllLooks(then) {
+    setSet("lounge");
+    header();
+    $("#story-ep").textContent = "Antes de empezar";
+    const cats = [...new Set(allPlannedLooks())];
+    S.prepLooks = S.prepLooks || {};
+    const ballOf = (c) => (S.ballPlan || []).includes(c) && !(S.runwayPlan || []).includes(c) ? BALLS.find((b) => b.c.some((x) => x[0] === c)) : null;
+    const next = () => {
+      const i = cats.findIndex((c) => !S.prepLooks[c]);
+      if (i < 0) {
+        S.flags.prepped = 1;
+        save();
+        body().innerHTML = `
+          <div class="story-card intro">
+            <img class="story-queen" src="${sprite(S.queen)}" alt="">
+            <div>
+              <p class="eyebrow">🧳 Maletas hechas</p>
+              <h3>${cats.length} looks preparados</h3>
+              <p>Antes de cada pasarela te enseñarán el look que preparaste y podrás cambiar lo que quieras.</p>
+              <button class="btn btn-primary" id="story-go">🚪 Entrar en la casa</button>
+            </div>
+          </div>`;
+        $("#story-go").addEventListener("click", then);
+        return;
+      }
+      const c = cats[i], b = ballOf(c);
+      $("#story-ep").textContent = `Maletas · ${i + 1}/${cats.length}`;
+      body().innerHTML = `<div id="story-play" class="prep-play"></div>`;
+      dressingRoom($("#story-play"), c, (plain) => { S.prepLooks[c] = plain; save(); next(); }, b ? `🎭 ${b.n} · ` : "👠 Pasarela · ", { plan: true, next: i + 1 < cats.length ? "Siguiente look" : "Terminar" });
+    };
+    next();
   }
   // La tienda: todo el armario, con precio y estadísticas
   function shopScreen(el, onDone, first = false) {
@@ -6481,13 +6595,13 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     const TH = themeOf(cat);
     IA.chat(
       "Eres el jurado de un concurso drag. Valoras con criterio de moda si un look encaja con la temática de la pasarela.",
-      `Temática: «${cat}»${TH ? ` (${TH.d})` : ""}. Piezas del look: ${st.pieces.map((p) => p.n).join("; ")}. Devuelve JSON {"encaje": número de 0 a 100, "motivo": "una frase"}. 100 = lo clava; 50 = se entiende a medias; 0 = no tiene nada que ver.`,
+      `Temática: «${cat}»${TH ? ` (${TH.d})` : ""}. Piezas del look: ${st.pieces.map((p) => p.n).join("; ")}. La temática está abierta a interpretaciones: no busques los ejemplos de la descripción, valora si el look puede contar la temática de alguna forma reconocible. Devuelve JSON {"encaje": número de 0 a 100, "motivo": "una frase"}. 100 = una lectura clara y potente; 50 = se entiende a medias; 0 = no tiene nada que ver.`,
       { json: true, max: 200, temp: 0.4, timeout: 12000 },
     ).then((r) => { const v = r && Number(r.encaje); if (Number.isFinite(v)) { st.aiFit = clamp(v <= 10 ? v * 10 : v, 0, 100); st.aiWhy = r.motivo || ""; } }).catch(() => {});
   }
-  function dressingRoom(el, cat, done, prefix = "") {
+  // Probador. o.plan: preparar el look antes de la temporada · o.preset: look ya preparado (se revisa y se puede cambiar)
+  function dressingRoom(el, cat, done, prefix = "", o = {}) {
     const TH = themeOf(cat);
-    const fitsK = (k, it) => fitsRunway(k, it, cat);
     // Puntos de cada pieza: lo que encaje con la temática (interno) y lo espectacular que sea. Lo prestado puntúa poco
     const fitOf = (k, it) => { const f = fitScore(k, it, cat); return it.loan ? 4 + f * 5 : 4 + f * (10 + statOf(it)[0] * 2.6); };
     const IMG = pieceImg;
@@ -6497,21 +6611,31 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       { k: "zapatos", n: "Los tacones", icon: "👠", items: ARMARIO.zapatos, base: "base-peana" },
       { k: "acc", n: "El toque final", icon: "💄", items: ARMARIO.acc, base: "base-bandeja" },
     ];
+    const pre = o.preset || {};
+    const mine = pre.look && !pre.look.loan ? pre.look.id : null;
+    const used = (id) => id !== mine && (S.usedLooks || []).includes(id);
     // Opciones: todo lo que tienes en tu armario (sin pistas de qué encaja) + un básico prestado por producción
     const opts = SL.map((sl) => {
-      const own = sl.items.filter((x) => Closet.has(x.id) && !(sl.k === "look" && (S.usedLooks || []).includes(x.id)));
+      const own = sl.items.filter((x) => Closet.has(x.id) && !(sl.k === "look" && used(x.id)));
       const list = own.slice(0, 24);
-      const loanPool = sl.items.filter((x) => !Closet.has(x.id) && !(S.usedLooks || []).includes(x.id) && statOf(x)[0] <= 2);
-      const loan = pick1(loanPool.length ? loanPool : sl.items.filter((x) => !Closet.has(x.id)));
+      const p = pre[sl.k];
+      if (p && !p.loan && Closet.has(p.id) && !list.some((x) => x.id === p.id)) list.unshift(ARMARIO[sl.k].find((x) => x.id === p.id) || p);
+      let loan = p && p.loan ? ARMARIO[sl.k].find((x) => x.id === p.id) : null;
+      if (!loan) {
+        const loanPool = sl.items.filter((x) => !Closet.has(x.id) && !used(x.id) && statOf(x)[0] <= 2);
+        loan = pick1(loanPool.length ? loanPool : sl.items.filter((x) => !Closet.has(x.id)));
+      }
       if (loan) list.push({ ...loan, loan: true });
       return list;
     });
-    const chosen = {}, st = { pieces: [], prepRaw: 0 };
-    let slot = 0, over = false;
+    const chosen = {};
+    SL.forEach((sl, i) => { const p = pre[sl.k]; if (p) chosen[sl.k] = opts[i].find((x) => x.id === p.id && !!x.loan === !!p.loan) || null; if (!chosen[sl.k]) delete chosen[sl.k]; });
+    const st = { pieces: [], prepRaw: 0 };
+    let slot = 0, over = false, editing = false;
     const station = (k, tryIt) => {
       const sl = SL.find((x) => x.k === k);
       const it = tryIt || chosen[k];
-      if (!tryIt && it && it.rv) return IMG(it.rv);
+      if (!tryIt && it && it.rv && !o.plan) return IMG(it.rv);
       return IMG(it ? it.id : sl.base);
     };
     function setStation(k, it) {
@@ -6530,14 +6654,15 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
         <div class="at-cat">${esc(prefix)}«${esc(cat)}»</div>
       </div>`;
     function render() {
+      over = false;
       const sl = SL[slot];
       el.innerHTML = `
         <div class="at">
           ${atelier()}
           <div class="at-rack">
-            <div class="dr-steps">${SL.map((s2, i) => `<span class="${i < slot ? "done" : i === slot ? "on" : ""}">${s2.icon}</span>`).join("")}</div>
+            ${editing ? `<p class="muted">Cambiando ${sl.n.toLowerCase()}</p>` : `<div class="dr-steps">${SL.map((s2, i) => `<span class="${i < slot ? "done" : i === slot ? "on" : ""}">${s2.icon}</span>`).join("")}</div>`}
             <h4>${sl.icon} ${sl.n}</h4>
-            <div class="at-opts ${opts[slot].length > 4 ? "many" : opts[slot].length > 3 ? "four" : ""}">${opts[slot].map((it, i) => `<button class="dr-opt at-opt ${it.rv ? "has-rv" : ""} ${it.loan ? "loan" : ""}" data-i="${i}" style="--i:${i}"><img src="${IMG(it.id)}" alt="">${it.rv ? `<img class="at-rv" src="${IMG(it.rv)}" alt="">` : ""}<span>${esc(it.n)}</span><small class="at-st">${it.loan ? "🔁 Prestado" : `👣${statOf(it)[1]}`}</small></button>`).join("")}</div>
+            <div class="at-opts ${opts[slot].length > 4 ? "many" : opts[slot].length > 3 ? "four" : ""}">${opts[slot].map((it, i) => `<button class="dr-opt at-opt ${it.rv ? "has-rv" : ""} ${it.loan ? "loan" : ""} ${chosen[sl.k] === it ? "sel" : ""}" data-i="${i}" style="--i:${i}"><img src="${IMG(it.id)}" alt="">${it.rv ? `<img class="at-rv" src="${IMG(it.rv)}" alt="">` : ""}<span>${esc(it.n)}</span><small class="at-st">${it.loan ? "🔁 Prestado" : `👣${statOf(it)[1]}`}</small></button>`).join("")}</div>
           </div>
         </div>`;
       el.querySelectorAll(".at-opt").forEach((b) => {
@@ -6552,12 +6677,8 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       const it = opts[slot][i];
       if (!it) return;
       chosen[SL[slot].k] = it;
-      if (SL[slot].k === "look" && !it.loan) S.usedLooks = [...(S.usedLooks || []), it.id];
-      st.pieces.push(it);
-      st.prepRaw += fitOf(SL[slot].k, it);
-      if (SL[slot].k === "look") st.onTheme = fitScore("look", it, cat) >= 0.6;
-      st.revealImg = SL[slot].k === "look" && it.rv ? IMG(it.rv) : st.revealImg || null;
-      if (SL[slot].k === "look" && it.rv) {
+      if (editing) { editing = false; return review(); }
+      if (SL[slot].k === "look" && it.rv && !o.plan) {
         // Prueba del reveal en el maniquí: antes → después
         slot++;
         render();
@@ -6568,13 +6689,68 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       Sound.countdown(false);
       slot++;
       if (slot < SL.length) return render();
-      finish();
+      o.preset ? review() : finish();
+    }
+    // Reserva el look (ningún look se repite en la temporada)
+    function reserve() {
+      const ids = (S.usedLooks || []).filter((x) => x !== mine);
+      if (chosen.look && !chosen.look.loan) ids.push(chosen.look.id);
+      S.usedLooks = ids;
+    }
+    const plain = () => { const r = {}; SL.forEach((sl) => { const it = chosen[sl.k]; if (it) r[sl.k] = { id: it.id, loan: !!it.loan }; }); return r; };
+    function build() {
+      st.pieces = SL.map((sl) => chosen[sl.k]).filter(Boolean);
+      st.prepRaw = SL.reduce((t, sl) => t + (chosen[sl.k] ? fitOf(sl.k, chosen[sl.k]) : 0), 0) * (3 / Math.max(3, st.pieces.length));
+      st.onTheme = chosen.look ? fitScore("look", chosen.look, cat) >= 0.6 : false;
+      st.revealImg = chosen.look && chosen.look.rv ? IMG(chosen.look.rv) : null;
+      closeHome(st);
+      // Espectacularidad de las piezas (sin mirar si encajan con la temática)
+      const own = st.pieces.filter((it) => !it.loan);
+      st.impact = clamp(((own.reduce((t, it) => t + statOf(it)[0], 0) + (st.pieces.length - own.length) * 1.5) / Math.max(1, st.pieces.length)) * 16 + (st.cohesion > 1 ? 12 : 0), 0, 100);
+    }
+    // Look ya preparado: te lo enseñan y puedes cambiar lo que quieras
+    function review() {
+      over = true;
+      el.innerHTML = `
+        <div class="at done">
+          ${atelier()}
+          <div class="at-rack">
+            <h4>👗 Tu look es este</h4>
+            <p class="dr-msg">«${esc(cat)}»: ${SL.map((sl) => (chosen[sl.k] ? esc(chosen[sl.k].n) : "")).filter(Boolean).join(" · ")}</p>
+            <p class="muted">¿Quieres cambiar algo antes de salir?</p>
+            <div class="at-edit">${SL.map((sl, i) => `<button class="btn btn-ghost at-chg" data-i="${i}">${sl.icon} ${sl.n}</button>`).join("")}</div>
+            <button class="btn btn-primary" id="dr-go">${o.plan ? "✅ Listo" : "👠 ¡A la pasarela!"}</button>
+          </div>
+        </div>`;
+      el.querySelectorAll(".at-chg").forEach((b) => b.addEventListener("click", () => { slot = +b.dataset.i; editing = true; render(); }));
+      $("#dr-go").addEventListener("click", () => {
+        document.removeEventListener("keydown", onKey);
+        reserve();
+        if (o.plan) return done(plain());
+        build();
+        judgeFit(st, cat);
+        done(st, { pieces: { ...chosen } }, plain());
+      });
     }
     function finish() {
       over = true;
       document.removeEventListener("keydown", onKey);
-      st.prepRaw *= 3 / Math.max(3, st.pieces.length);
-      closeHome(st);
+      reserve();
+      if (o.plan) {
+        el.innerHTML = `
+          <div class="at done">
+            ${atelier()}
+            <div class="at-rack">
+              <h4>¡Look preparado!</h4>
+              <p class="dr-msg">«${esc(cat)}»: ${SL.map((sl) => (chosen[sl.k] ? esc(chosen[sl.k].n) : "")).filter(Boolean).join(" · ")}</p>
+              <button class="btn btn-primary" id="dr-go">${esc(o.next || "Siguiente")}</button>
+            </div>
+          </div>`;
+        Confetti.burst(600);
+        $("#dr-go").addEventListener("click", () => done(plain()));
+        return;
+      }
+      build();
       judgeFit(st, cat);
       const msg = `«${esc(cat)}»: ${st.pieces.map((p) => esc(p.n)).join(" · ")}<br><small class="muted">Ahora le toca al jurado decidir si cuenta la temática.</small>`;
       el.innerHTML = `
@@ -6587,12 +6763,13 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
           </div>
         </div>`;
       Confetti.burst(900);
-      $("#dr-go").addEventListener("click", () => done(st, { pieces: { ...chosen } }));
+      $("#dr-go").addEventListener("click", () => done(st, { pieces: { ...chosen } }, plain()));
     }
     const onKey = (e) => { const m = /^Digit([1-8])$/.exec(e.code); if (m) choose(+m[1] - 1); };
     document.addEventListener("keydown", onKey);
     cleanup = () => document.removeEventListener("keydown", onKey);
-    render();
+    if (o.preset && SL.every((sl) => chosen[sl.k])) review();
+    else { o.preset = null; render(); }
   }
   // Look para retos de costura (sin probador): sale de la categoría
   function sewnSpec(cat, tint) {
@@ -6701,9 +6878,10 @@ Devuelve JSON {"entrada":["...","...","..."],"detalle":["...","...","..."],"fina
     async function judge(concept, picks) {
       el.querySelector(".rw-panel").innerHTML = `<h4>El jurado toma nota...</h4><div class="ia-dots"><i></i><i></i><i></i></div>`;
       const r = await IA.chat(
-        "Eres el jurado de Drag Race España valorando una pasarela: Supremme de Luxe (espectáculo y actitud) y Ana Locking (moda, construcción y coherencia). Sois exigentes: un concepto genérico o que no tiene nada que ver con lo que lleva puntúa bajo.",
+        "Eres el jurado de Drag Race España valorando una pasarela: Supremme de Luxe (espectáculo y actitud) y Ana Locking (moda, construcción y coherencia). Sois exigentes: un concepto genérico o que no tiene nada que ver con lo que lleva puntúa bajo. Pero la temática es un punto de partida, no una lista de requisitos: cada reina la interpreta a su manera.",
         `Categoría: «${cat}»${TH ? ` (${TH.d})` : ""}.${S.ballCtx ? ` ${S.ballCtx}` : ""} Lo que lleva: ${pieces.join(", ")}. Concepto que defiende: «${concept}». Su desfile: ${picks.join("; ")}.${flags.reveal ? " Hace un reveal." : ""}${anaAnswer ? ` ${anaAnswer} Tenlo en cuenta en la coherencia y en lo que dice Ana.` : ""}
-Valora de 0 a 100: "concepto" (originalidad y fuerza de la idea), "coherencia" (si el concepto encaja con la categoría y con lo que lleva) y "desfile" (si los momentos elegidos cuentan esa historia). Añade "supreme" y "ana": una frase de cada una, máximo 25 palabras, dirigida a la reina.
+La temática está abierta a interpretaciones: cualquier lectura vale si el concepto la justifica y el look la cuenta. No penalices por no usar los ejemplos de la descripción; premia las interpretaciones propias y bien defendidas.
+Valora de 0 a 100: "concepto" (originalidad y fuerza de la idea), "coherencia" (si el concepto es una interpretación defendible de la temática y si lo que lleva lo cuenta) y "desfile" (si los momentos elegidos cuentan esa historia). Añade "supreme" y "ana": una frase de cada una, máximo 25 palabras, dirigida a la reina.
 Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..."}`,
         { json: true, max: 400, temp: 0.6 },
       );
