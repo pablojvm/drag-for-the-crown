@@ -2133,3 +2133,13 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 .taller .tl-result .tl-photo { width: 200px; height: 290px; }
 .taller .tl-result .tl-photo.ko { display: none; }
 .taller .tl-boceto { background: radial-gradient(circle at 50% 35%, #ffffff, #f6e6f0 70%); border-style: solid; border-color: #f0d8e6; }
+.taller .tl-body { display: flex; gap: 4px; margin-top: 2px; }
+.taller .tl-bt { font: 600 11px Poppins, sans-serif; padding: 3px 9px; border-radius: 99px; border: 1px solid #e3c8d8; background: #fff; color: #6b3a5c; cursor: pointer; }
+.taller .tl-bt.on { background: #3b0d4f; color: #fff; border-color: #3b0d4f; }
+.at-opts.many { max-height: 560px; overflow-y: auto; padding-right: 4px; }
+.shop-plan .plan-chip { cursor: help; }
+.at-zapatos { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+.at-zapatos img { height: 110px; width: auto; max-width: 100%; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(59,13,79,.3)); }
+.at-zapatos.on img { animation: at-glow 1.4s ease-in-out infinite; }
+.at-side .at-peluca img { height: 160px; }
+@media (max-width: 900px) { .at-zapatos img { height: 70px; } }

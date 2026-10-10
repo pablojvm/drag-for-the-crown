@@ -1369,7 +1369,7 @@ const Story = (() => {
   function runway(then) {
     setSet("stage");
     // Pasarela temática (si hay fotos para ella)
-    const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).filter((t) => ARMARIO.look.filter((x) => x.th === t.id).length >= 6);
+    const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []);
     S.usedThemes = S.usedThemes || [];
     let tema = null;
     const planned = S.runwayPlan && S.runwayPlan[S.runwayIdx || 0];
@@ -1392,7 +1392,7 @@ const Story = (() => {
           <p class="eyebrow">👠 Pasarela de la semana</p>
           <h3>${tema ? "Temática" : "Categoría"}: «${esc(cat)}»</h3>
           ${tema ? `<p><i>${esc(tema.d)}</i></p>` : ""}
-          <p>Prepara el look con lo que tienes en tu armario: ${tema ? "el look que mejor encaje con la temática, " : "outfit, "}peluca y accesorios/maquillaje. Cuanto más espectacular (★), más puntúa; el movimiento (👣) ayuda en el desfile. Cada pieza tiene una etiqueta oculta (Glamour, Camp, Edgy, Folclórico, Futurista): si las tres coinciden, x1,5. Después, el desfile: paso, final y frase de cierre.${S.runwayBonus ? ` <b class="gold">Ventaja del minirreto: +${S.runwayBonus}</b>` : ""}</p>
+          <p>Prepara el look con lo que tienes en tu armario: look, peluca y accesorios o maquillaje. Elige lo que creas que mejor cuenta la temática: el jurado decidirá si encaja. El movimiento (👣) ayuda en el desfile.</p>
           <p class="muted">🎮 Clic o teclas 1, 2, 3 y 4 · ${attrChips(["estilo", "performance", "carisma"])}</p>
           <button class="btn btn-primary" id="story-go">¡A la pasarela!</button>
         </div>
@@ -4136,14 +4136,17 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
   function runRunwayNew(el, cat, done, prefix = "") {
     dressingRoom(el, cat, (st, spec) => {
       S.revealImg = st.revealImg || null;
-      S.walkMov = st.pieces.length ? st.pieces.reduce((t, it) => t + (it.loan ? 3 : statOf(it)[1]), 0) / st.pieces.length : 3;
+      // El movimiento sale de las piezas; los tacones cuentan el doble
+      const wOf = (it) => (slotOf(it) === "zapatos" ? 2 : 1);
+      S.walkMov = st.pieces.length ? st.pieces.reduce((t, it) => t + (it.loan ? 3 : statOf(it)[1]) * wOf(it), 0) / st.pieces.reduce((t, it) => t + wOf(it), 0) : 3;
       S.curPieces = st.pieces.map((it) => `${it.n}${it.loan ? " (prestado)" : ""}`);
       runwayWalk(el, cat, spec, st.lookTag || "Glamour", (walk, flags, finalSpec) => {
         S.lastOutfit = finalSpec;
         S.lookTags = [...(S.lookTags || []), st.lookTag || "Glamour"].slice(-6);
         S.revealImg = null;
         S.lastLook = { cat, best: st.pieces[0] ? st.pieces[0].n : "look", worst: st.pieces.slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: flags.atascado, voiceGood: flags.voiceGood, concepto: flags.concepto || null, critica: flags.critica || null };
-        done(st.prep * 0.5 + walk * 0.5);
+        const prep = st.aiFit != null ? st.prep * 0.5 + st.aiFit * 0.5 : st.prep;
+        done(prep * 0.5 + walk * 0.5);
       });
     }, prefix);
   }
@@ -5647,11 +5650,12 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   // ------------------------------ Armario personal y tienda ------------------------------
   // Tu armario (y tu dinero) se guarda entre temporadas
   const CLOSET_KEY = "dftc-closet";
-  const PRICE = { look: [0, 60, 110, 180, 280, 420], peluca: [0, 30, 55, 90, 140, 210], acc: [0, 20, 35, 60, 90, 140] };
-  const SLOT_NAMES = { look: "Looks", peluca: "Pelucas", acc: "Toque final" };
+  const PRICE = { look: [0, 60, 110, 180, 280, 420], peluca: [0, 30, 55, 90, 140, 210], acc: [0, 20, 35, 60, 90, 140] , zapatos: [0, 25, 45, 75, 115, 170] };
+  const SLOT_NAMES = { look: "Looks", peluca: "Pelucas", zapatos: "Tacones", acc: "Toque final" };
+  if (!ARMARIO.zapatos) ARMARIO.zapatos = [];
   const slotMap = {};
   const slotOf = (it) => {
-    if (!slotMap.ok) { ["look", "peluca", "acc"].forEach((k) => ARMARIO[k].forEach((x) => (slotMap[x.id] = k))); slotMap.ok = 1; }
+    if (!slotMap.ok) { ["look", "peluca", "zapatos", "acc"].forEach((k) => ARMARIO[k].forEach((x) => (slotMap[x.id] = k))); slotMap.ok = 1; }
     return slotMap[it.id] || (String(it.id).startsWith("hecho-") ? "look" : "acc");
   };
   const statOf = (it) => (typeof ARMARIO_STATS !== "undefined" && ARMARIO_STATS[it.id]) || [2, 3];
@@ -5678,16 +5682,25 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   }
   const themeOf = (cat) => (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).find((t) => t.n === cat) || null;
   // ¿Esta pieza encaja con esta pasarela?
-  function fitsRunway(k, it, cat) {
+  // Cuánto encaja una pieza con una pasarela (0 a 1). Es interno: al jugador no se le dice; lo valoran los jueces
+  const normTxt = (x) => String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  function fitScore(k, it, cat) {
     const TH = themeOf(cat);
     const main = CAT_TAG[cat] || (TH && TH.tag) || "Glamour";
-    const tagFit = TAG_OF_STYLE[it.s] === main || (it.t || []).includes(cat);
-    const noTheme = !it.th || (Array.isArray(it.th) && !it.th.length);
-    if (!TH) return !it.rv && tagFit;
-    if (k === "look") return it.th === TH.id;
-    if (k === "peluca") return (Array.isArray(it.th) && it.th.includes(TH.id)) || (noTheme && tagFit);
-    return tagFit;
+    const style = TAG_OF_STYLE[it.s] === main;
+    if (!TH) return !it.rv && (it.t || []).includes(cat) ? 1 : !it.rv && style ? 0.6 : 0.15;
+    if (k === "look" && TH.rv) return it.rv ? 1 : 0.05;
+    if (k === "look" && it.rv) return 0.2;
+    let sc = 0;
+    if (it.th && (TH.from || []).includes(it.th)) sc = 1;
+    if ((it.t || []).some((x) => (TH.t || []).includes(x))) sc = Math.max(sc, 0.8);
+    const txt = normTxt(`${it.n} ${it.desc || ""}`);
+    const hits = (TH.kw || []).filter((w) => txt.includes(normTxt(w))).length;
+    if (hits) sc = Math.max(sc, Math.min(1, 0.6 + 0.2 * hits));
+    if (style) sc = Math.max(sc, 0.45);
+    return sc || 0.1;
   }
+  const fitsRunway = (k, it, cat) => fitScore(k, it, cat) >= 0.6;
   // Calendario de la temporada: cuántos episodios habrá y qué looks necesitarás en cada uno
   function seasonEpisodes() {
     // Una eliminación por episodio hasta quedar 4 (+1 si hay Segunda Oportunidrag)
@@ -5696,7 +5709,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   function buildSchedule() {
     let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
     if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS;
-    const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).filter((t) => ARMARIO.look.filter((x) => x.th === t.id).length >= 6);
+    const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []);
     // Las pasarelas cambian de una temporada a otra: primero las que menos has visto
     const seen = seenRunways();
     const fresh = (arr) => shuffle(arr).map((n) => [n, (seen[n] || 0) + Math.random() * 0.9]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
@@ -5740,11 +5753,11 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   // Lo que te falta para cubrir el plan: lo que ya tienes cuenta gratis y una peluca o un toque sirven para varias pasarelas
   function neededBudget(plan) {
     let total = 0;
-    const usedL = new Set(), haveWA = { peluca: [], acc: [] };
+    const usedL = new Set(), haveWA = { peluca: [], zapatos: [], acc: [] };
     plan.forEach((cat) => {
       const look = ARMARIO.look.filter((x) => fitsRunway("look", x, cat) && !usedL.has(x.id)).sort((a, b) => (Closet.has(a.id) ? 0 : priceOf(a)) - (Closet.has(b.id) ? 0 : priceOf(b)))[0];
       if (look) { usedL.add(look.id); if (!Closet.has(look.id)) total += priceOf(look); } else total += PRICE.look[1];
-      ["peluca", "acc"].forEach((k) => {
+      ["peluca", "zapatos", "acc"].forEach((k) => {
         if (haveWA[k].some((x) => fitsRunway(k, x, cat)) || ARMARIO[k].some((x) => Closet.has(x.id) && fitsRunway(k, x, cat))) return;
         const c = ARMARIO[k].filter((x) => fitsRunway(k, x, cat)).sort((a, b) => priceOf(a) - priceOf(b))[0];
         if (c) { haveWA[k].push(c); total += priceOf(c); } else total += PRICE[k][1];
@@ -5756,7 +5769,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     // Un look distinto por pasarela (no se pueden repetir) + peluca y toque final
     let total = 0;
     const usedL = new Set();
-    plan.forEach((cat) => ["look", "peluca", "acc"].forEach((k) => {
+    plan.forEach((cat) => ["look", "peluca", "zapatos", "acc"].forEach((k) => {
       const c = ARMARIO[k].filter((x) => fitsRunway(k, x, cat) && !(k === "look" && usedL.has(x.id))).sort((a, b) => priceOf(a) - priceOf(b))[0];
       if (c && k === "look") usedL.add(c.id);
       total += c ? priceOf(c) : PRICE[k][1];
@@ -5800,7 +5813,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   // La tienda: todo el armario, con precio y estadísticas
   function shopScreen(el, onDone, first = false) {
     const plan = [...new Set(allPlannedLooks())];
-    let tab = "look", filt = plan.length ? "plan" : "all";
+    let tab = "look", filt = "all";
     const IMG = pieceImg;
     const fitsPlan = (k, it) => plan.filter((c) => fitsRunway(k, it, c));
     const covered = (c) => {
@@ -5833,30 +5846,26 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
             <button class="btn btn-ghost" id="shop-taller">✂️ Taller de costura</button>
             <button class="btn btn-primary" id="shop-done">${first ? "Cerrar maletas: ¡al taller!" : "Cerrar"}</button>
           </div>
-          ${plan.length ? `<div class="shop-plan">${plan.map((c, i) => `<button class="plan-chip ${covered(c) ? "ok" : ""} ${filt === c ? "on" : ""}" data-c="${i}">${covered(c) ? "✔" : "✖"} ${esc(c)}</button>`).join("")}</div>` : ""}
+          ${plan.length ? `<div class="shop-plan"><small class="muted">Tus pasarelas:</small> ${plan.map((c) => { const t = themeOf(c); return `<span class="plan-chip" title="${esc(t ? t.d : "")}">${esc(c)}</span>`; }).join("")}</div>` : ""}
           <div class="shop-tabs">
-            ${["look", "peluca", "acc"].map((k) => `<button class="shop-tab ${tab === k ? "on" : ""}" data-t="${k}">${SLOT_NAMES[k]}</button>`).join("")}
+            ${["look", "peluca", "zapatos", "acc"].map((k) => `<button class="shop-tab ${tab === k ? "on" : ""}" data-t="${k}">${SLOT_NAMES[k]}</button>`).join("")}
             <span class="shop-sep"></span>
-            ${plan.length ? `<button class="shop-f ${filt === "plan" ? "on" : ""}" data-f="plan">Para mis pasarelas</button>` : ""}
             <button class="shop-f ${filt === "all" ? "on" : ""}" data-f="all">Todo</button>
             <button class="shop-f ${filt === "mine" ? "on" : ""}" data-f="mine">Mi armario</button>
           </div>
           <div class="shop-grid">${L.length ? L.map((it) => {
             const own = Closet.has(it.id), p = priceOf(it), [imp, mov] = statOf(it);
-            const fp = fitsPlan(tab, it);
             return `<div class="shop-card ${own ? "own" : ""}">
               <div class="shop-img"><img loading="lazy" src="${IMG(it.id)}" alt="">${it.rv ? `<img loading="lazy" class="at-rv" src="${IMG(it.rv)}" alt="">` : ""}</div>
               <b>${esc(it.n)}</b>
-              <small class="shop-st"><span title="Impacto">${"★".repeat(imp)}${"☆".repeat(5 - imp)}</span> <span title="Movimiento">👣 ${mov}/5</span></small>
-              <small class="shop-tag">${esc(TAG_OF_STYLE[it.s] || "")}${fp.length ? ` · ${fp.map((c) => esc(c)).join(", ")}` : ""}</small>
+              <small class="shop-st"><span title="Movimiento">👣 ${mov}/5</span></small>
               ${own ? `<span class="shop-own">✔ En tu armario</span>` : `<button class="btn ${Closet.money >= p ? "btn-primary" : "btn-ghost"} shop-buy" data-id="${it.id}" ${Closet.money >= p ? "" : "disabled"}>${euros(p)}</button>`}
             </div>`;
           }).join("") : `<p class="muted">No hay nada aquí todavía.</p>`}</div>
-          <p class="muted shop-legend">★ Impacto: cuanto más espectacular, más puntúa en la pasarela · 👣 Movimiento: ayuda a desfilar y a que el reveal salga bien</p>
+          <p class="muted shop-legend">👣 Movimiento: ayuda a desfilar y a que el reveal salga bien. Qué encaja con cada pasarela lo decide el jurado.</p>
         </div>`;
       el.querySelectorAll(".shop-tab").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.t; render(); }));
       el.querySelectorAll(".shop-f").forEach((b) => b.addEventListener("click", () => { filt = b.dataset.f; render(); }));
-      el.querySelectorAll(".plan-chip").forEach((b) => b.addEventListener("click", () => { filt = plan[+b.dataset.c]; render(); }));
       el.querySelectorAll(".shop-buy").forEach((b) => b.addEventListener("click", () => {
         const it = ARMARIO[tab].find((x) => x.id === b.dataset.id);
         const y = el.querySelector(".shop-grid") ? el.querySelector(".shop-grid").scrollTop : 0;
@@ -5866,10 +5875,10 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       }));
       $("#shop-taller").addEventListener("click", () => tallerScreen(host, () => { syncHechos(); render(); }));
       $("#shop-done").addEventListener("click", () => {
-        const missing = plan.filter((c) => !covered(c));
-        if (first && missing.length && !el.dataset.warned) {
+        const nLooks = ARMARIO.look.filter((x) => Closet.has(x.id)).length;
+        if (first && nLooks < plan.length && !el.dataset.warned) {
           el.dataset.warned = 1;
-          return Toast.show("⚠️ Te faltan piezas", `Sin nada para: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "..." : ""}. Después ya no podrás comprar: producción te prestará algo básico. Pulsa otra vez para entrar igualmente.`);
+          return Toast.show("⚠️ ¿Cerrar maletas?", `Tienes ${nLooks} looks para ${plan.length} pasarelas. Después ya no podrás comprar: producción te prestará algo básico. Pulsa otra vez para entrar igualmente.`);
         }
         if (first) { S.flags.shopped = 1; save(); }
         onDone();
@@ -5953,8 +5962,18 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     return h ? photoOf(h.id) || renderOf(h.id) || hechoImg(h) : `./images/armario/${id}.webp`;
   };
 
+  // Tipo de cuerpo de cada reina en el taller 3D (se puede cambiar y se recuerda)
+  const CUERPOS_KEY = "dftc-cuerpos";
+  function bodyTypeOf(id) {
+    const m = store.get(CUERPOS_KEY, {}) || {};
+    if (m[id]) return m[id];
+    let h = 0;
+    for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return ["alta", "alta", "alta", "bajita", "grande"][h % 5];
+  }
+  function setBodyType(id, t) { const m = store.get(CUERPOS_KEY, {}) || {}; m[id] = t; store.set(CUERPOS_KEY, m); }
   // Datos del look para el visor 3D
-  const spec3d = (look, tela, s) => ({ shape: look.shape, tela: tela || ({ sequins: "lentejuela", metal: "lame", dots: "lunares", lace: "encaje", flowers: "flores", leopard: "leopardo", stripes: "rayas" }[look.pat] || "raso"), color: look.color, trims: look.trims || [], skin: skinMe(), tag: TAG_OF_STYLE[s] || "Glamour" });
+  const spec3d = (look, tela, s) => ({ cuerpo: bodyTypeOf(S.queen.id), shape: look.shape, tela: tela || ({ sequins: "lentejuela", metal: "lame", dots: "lunares", lace: "encaje", flowers: "flores", leopard: "leopardo", stripes: "rayas" }[look.pat] || "raso"), color: look.color, trims: look.trims || [], skin: skinMe(), tag: TAG_OF_STYLE[s] || "Glamour" });
   const RENDERS_KEY = "dftc-render-looks";
   const renderOf = (id) => { try { return (JSON.parse(localStorage.getItem(RENDERS_KEY)) || {})[id] || null; } catch (e) { return null; } };
   function saveRender(id, url) { if (!url) return; try { const m = JSON.parse(localStorage.getItem(RENDERS_KEY)) || {}; m[id] = url; localStorage.setItem(RENDERS_KEY, JSON.stringify(m)); } catch (e) {} }
@@ -5977,7 +5996,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       });
     }
     const plan = [...new Set(allPlannedLooks())];
-    const d = { shape: "gown", tela: "raso", color: "#c8102e", adornos: [], target: plan[0] || null, name: "" };
+    const d = { shape: "gown", tela: "raso", color: "#c8102e", adornos: [], target: null, name: "" };
     const T = (k) => TALLER.telas.find((x) => x.k === k);
     const SH = (k) => TALLER.shapes.find((x) => x.k === k);
     const AD = (k) => TALLER.adornos.find((x) => x.k === k);
@@ -6022,12 +6041,12 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
             <div class="tl-doll tl-boceto">
               <div class="tl-3d" id="tl-3d">${v3 ? "" : preview}</div>
               <small class="muted tl-hint">↔ Arrastra para girar</small>
+              <div class="tl-body">${["alta", "bajita", "grande"].map((t) => `<button class="tl-bt ${bodyTypeOf(S.queen.id) === t ? "on" : ""}" data-bt="${t}">${{ alta: "Alta", bajita: "Bajita", grande: "Grande" }[t]}</button>`).join("")}</div>
               <b>${esc(S.queen.name)}</b>
-              <small class="shop-st">${"★".repeat(starsOf(r.imp))}${"☆".repeat(5 - starsOf(r.imp))} · 👣 ${clamp(Math.round(r.mov), 1, 5)}/5</small>
-              ${fitTxt(r)}
+              <small class="shop-st">👣 ${clamp(Math.round(r.mov), 1, 5)}/5</small>
             </div>
             <div class="tl-right"><div class="tl-form">
-              ${plan.length ? `<div class="tl-row"><h4>🎯 Para qué pasarela</h4><div class="chip-row">${plan.map((c, i) => `<button class="plan-chip ${d.target === c ? "on" : ""}" data-tg="${i}">${esc(c)}</button>`).join("")}</div>${d.target && themeOf(d.target) ? `<small class="muted">${esc(themeOf(d.target).d)}</small>` : ""}</div>` : ""}
+              ${plan.length ? `<div class="tl-row"><h4>👠 Tus pasarelas</h4><div class="chip-row">${plan.map((c) => `<span class="plan-chip" title="${esc((themeOf(c) || {}).d || "")}">${esc(c)}</span>`).join("")}</div></div>` : ""}
               <div class="tl-row"><h4>👗 Silueta</h4><div class="chip-row">${TALLER.shapes.map((x) => `<button class="plan-chip ${d.shape === x.k ? "on" : ""}" data-sh="${x.k}">${esc(x.n)} <small>${String(x.m).replace(".", ",")} m</small></button>`).join("")}</div></div>
               <div class="tl-row"><h4>🧵 Tela</h4><div class="chip-row">${TALLER.telas.map((x) => `<button class="plan-chip ${d.tela === x.k ? "on" : ""}" data-te="${x.k}">${esc(x.n)} <small>${x.eur} €/m</small></button>`).join("")}</div></div>
               ${T(d.tela).fixed ? "" : `<div class="tl-row"><h4>🎨 Color</h4><div class="tl-colors">${TALLER.colores.map(([n, c]) => `<button class="tl-sw ${d.color === c ? "on" : ""}" data-co="${c}" title="${esc(n)}" style="--c:${c}"></button>`).join("")}</div></div>`}
@@ -6047,7 +6066,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       const nm = host.querySelector(".tl-name");
       nm.addEventListener("input", () => (d.name = nm.value.trim() === r.auto ? "" : nm.value));
       const on = (sel, f) => host.querySelectorAll(sel).forEach((b) => b.addEventListener("click", () => { f(b); render(); }));
-      on("[data-tg]", (b) => (d.target = plan[+b.dataset.tg]));
+      on("[data-bt]", (b) => setBodyType(S.queen.id, b.dataset.bt));
       on("[data-sh]", (b) => (d.shape = b.dataset.sh));
       on("[data-te]", (b) => (d.tela = b.dataset.te));
       on("[data-co]", (b) => (d.color = b.dataset.co));
@@ -6068,10 +6087,6 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
           spec: r.look, st: [starsOf(imp), clamp(Math.round(r.mov), 1, 5)], ok: pul >= 0.55, pul: Math.round(pul * 100) / 100,
           desc: r.auto, tela: d.tela,
         };
-        // Si encaja con la temática de la pasarela, cuenta como look de esa temática
-        const TH = d.target && themeOf(d.target);
-        if (TH && TH.id !== "P05" && TAG_OF_STYLE[r.s] === TH.tag) it.th = TH.id;
-        if (d.target && !TH && TAG_OF_STYLE[r.s] === CAT_TAG[d.target]) it.t = [d.target];
         const c = Closet.get();
         c.hechos = [...(c.hechos || []), it];
         c.owned[it.id] = 1;
@@ -6086,9 +6101,8 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
               <div class="tl-photo" id="tl-photo"><div class="ia-dots"><i></i><i></i><i></i></div><small>Sesión de fotos...</small></div>
             </div>
             <h3>«${esc(it.n)}»</h3>
-            <p class="shop-st">${"★".repeat(it.st[0])}${"☆".repeat(5 - it.st[0])} · 👣 ${it.st[1]}/5</p>
+            <p class="shop-st">👣 ${it.st[1]}/5</p>
             <p>${verdict}</p>
-            ${d.target ? `<p>${it.th || (it.t || []).length || (!themeOf(d.target) && TAG_OF_STYLE[it.s] === CAT_TAG[d.target]) ? `🎯 Listo para «${esc(d.target)}»` : `😬 No encaja con «${esc(d.target)}», pero te puede servir para otra pasarela ${esc(TAG_OF_STYLE[it.s])}`}</p>` : ""}
             <div class="choice-row"><button class="btn btn-ghost" id="tl-more">✂️ Coser otro</button><button class="btn btn-primary" id="tl-done">🛍️ Volver a la tienda</button></div>
           </div></div>`;
         host.querySelector("#tl-more").addEventListener("click", () => { kill3d(); d.name = ""; render(); });
@@ -6305,24 +6319,34 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
 
   // ------------------------------ Probador visual ------------------------------
   const skinMe = () => Doll.skinOf(S.queen.id);
+  // El jurado (IA) valora si el look cuenta la temática; si no hay IA, se usa la valoración interna
+  function judgeFit(st, cat) {
+    if (typeof IA === "undefined" || !IA.ready()) return;
+    const TH = themeOf(cat);
+    IA.chat(
+      "Eres el jurado de un concurso drag. Valoras con criterio de moda si un look encaja con la temática de la pasarela.",
+      `Temática: «${cat}»${TH ? ` (${TH.d})` : ""}. Piezas del look: ${st.pieces.map((p) => p.n).join("; ")}. Devuelve JSON {"encaje": número de 0 a 100, "motivo": "una frase"}. 100 = lo clava; 50 = se entiende a medias; 0 = no tiene nada que ver.`,
+      { json: true, max: 200, temp: 0.4, timeout: 12000 },
+    ).then((r) => { const v = r && Number(r.encaje); if (Number.isFinite(v)) { st.aiFit = clamp(v <= 10 ? v * 10 : v, 0, 100); st.aiWhy = r.motivo || ""; } }).catch(() => {});
+  }
   function dressingRoom(el, cat, done, prefix = "") {
     const TH = themeOf(cat);
     const fitsK = (k, it) => fitsRunway(k, it, cat);
-    // Puntos de cada pieza: encajar con la temática + lo espectacular que sea (★). Lo prestado puntúa poco
-    const fitOf = (k, it) => (it.loan ? (fitsK(k, it) ? 9 : 4) : fitsK(k, it) ? 12 + statOf(it)[0] * 2.6 : 4 + statOf(it)[0] * 0.8);
+    // Puntos de cada pieza: lo que encaje con la temática (interno) y lo espectacular que sea. Lo prestado puntúa poco
+    const fitOf = (k, it) => { const f = fitScore(k, it, cat); return it.loan ? 4 + f * 5 : 4 + f * (10 + statOf(it)[0] * 2.6); };
     const IMG = pieceImg;
     const SL = [
-      { k: "look", n: TH && TH.id === "P05" ? "El look con reveal" : "El look", icon: "👗", items: ARMARIO.look.filter((x) => !x.rv || (TH && TH.id === "P05")), base: "base-maniqui" },
+      { k: "look", n: "El look", icon: "👗", items: ARMARIO.look.filter((x) => !x.rv || (TH && TH.rv)), base: "base-maniqui" },
       { k: "peluca", n: "La peluca", icon: "💇", items: ARMARIO.peluca, base: "base-cabeza" },
+      { k: "zapatos", n: "Los tacones", icon: "👠", items: ARMARIO.zapatos, base: "base-peana" },
       { k: "acc", n: "El toque final", icon: "💄", items: ARMARIO.acc, base: "base-bandeja" },
     ];
-    // Opciones: lo que tienes en tu armario (lo que encaja primero) + un básico prestado por producción
+    // Opciones: todo lo que tienes en tu armario (sin pistas de qué encaja) + un básico prestado por producción
     const opts = SL.map((sl) => {
       const own = sl.items.filter((x) => Closet.has(x.id) && !(sl.k === "look" && (S.usedLooks || []).includes(x.id)));
-      const byStar = (a, b) => statOf(b)[0] - statOf(a)[0];
-      const list = [...own.filter((x) => fitsK(sl.k, x)).sort(byStar), ...own.filter((x) => !fitsK(sl.k, x)).sort(byStar)].slice(0, 7);
-      const loanPool = sl.items.filter((x) => fitsK(sl.k, x) && !Closet.has(x.id) && !(S.usedLooks || []).includes(x.id)).sort((a, b) => statOf(a)[0] - statOf(b)[0]);
-      const loan = loanPool[0] || sl.items.find((x) => !Closet.has(x.id));
+      const list = own.slice(0, 24);
+      const loanPool = sl.items.filter((x) => !Closet.has(x.id) && !(S.usedLooks || []).includes(x.id) && statOf(x)[0] <= 2);
+      const loan = pick1(loanPool.length ? loanPool : sl.items.filter((x) => !Closet.has(x.id)));
       if (loan) list.push({ ...loan, loan: true });
       return list;
     });
@@ -6344,7 +6368,8 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
         <div class="at-look ${slot === 0 && !over ? "on" : ""}"><img src="${station("look")}" alt=""></div>
         <div class="at-side">
           <div class="at-peluca ${slot === 1 && !over ? "on" : ""}"><img src="${station("peluca")}" alt=""></div>
-          <div class="at-acc ${slot === 2 && !over ? "on" : ""}"><img src="${station("acc")}" alt=""></div>
+          <div class="at-zapatos ${slot === 2 && !over ? "on" : ""}"><img src="${station("zapatos")}" alt=""></div>
+          <div class="at-acc ${slot === 3 && !over ? "on" : ""}"><img src="${station("acc")}" alt=""></div>
         </div>
         <div class="at-cat">${esc(prefix)}«${esc(cat)}»</div>
       </div>`;
@@ -6356,7 +6381,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
           <div class="at-rack">
             <div class="dr-steps">${SL.map((s2, i) => `<span class="${i < slot ? "done" : i === slot ? "on" : ""}">${s2.icon}</span>`).join("")}</div>
             <h4>${sl.icon} ${sl.n}</h4>
-            <div class="at-opts ${opts[slot].length > 4 ? "many" : opts[slot].length > 3 ? "four" : ""}">${opts[slot].map((it, i) => `<button class="dr-opt at-opt ${it.rv ? "has-rv" : ""} ${it.loan ? "loan" : ""}" data-i="${i}" style="--i:${i}"><img src="${IMG(it.id)}" alt="">${it.rv ? `<img class="at-rv" src="${IMG(it.rv)}" alt="">` : ""}<span>${esc(it.n)}</span><small class="at-st">${it.loan ? "🔁 Prestado" : `${"★".repeat(statOf(it)[0])} · 👣${statOf(it)[1]}`}</small></button>`).join("")}</div>
+            <div class="at-opts ${opts[slot].length > 4 ? "many" : opts[slot].length > 3 ? "four" : ""}">${opts[slot].map((it, i) => `<button class="dr-opt at-opt ${it.rv ? "has-rv" : ""} ${it.loan ? "loan" : ""}" data-i="${i}" style="--i:${i}"><img src="${IMG(it.id)}" alt="">${it.rv ? `<img class="at-rv" src="${IMG(it.rv)}" alt="">` : ""}<span>${esc(it.n)}</span><small class="at-st">${it.loan ? "🔁 Prestado" : `👣${statOf(it)[1]}`}</small></button>`).join("")}</div>
           </div>
         </div>`;
       el.querySelectorAll(".at-opt").forEach((b) => {
@@ -6374,7 +6399,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       if (SL[slot].k === "look" && !it.loan) S.usedLooks = [...(S.usedLooks || []), it.id];
       st.pieces.push(it);
       st.prepRaw += fitOf(SL[slot].k, it);
-      if (TH && SL[slot].k === "look") st.onTheme = it.th === TH.id;
+      if (SL[slot].k === "look") st.onTheme = fitScore("look", it, cat) >= 0.6;
       st.revealImg = SL[slot].k === "look" && it.rv ? IMG(it.rv) : st.revealImg || null;
       if (SL[slot].k === "look" && it.rv) {
         // Prueba del reveal en el maniquí: antes → después
@@ -6392,14 +6417,15 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     function finish() {
       over = true;
       document.removeEventListener("keydown", onKey);
-      const msg = closeHome(st) + (TH ? `<br>${st.onTheme ? `🎯 El look clava «${esc(TH.n)}»` : `😬 Ese look no tiene nada que ver con «${esc(TH.n)}»`}` : "");
-      const stars = Math.round((st.prep / 100) * 5);
+      st.prepRaw *= 3 / Math.max(3, st.pieces.length);
+      closeHome(st);
+      judgeFit(st, cat);
+      const msg = `«${esc(cat)}»: ${st.pieces.map((p) => esc(p.n)).join(" · ")}<br><small class="muted">Ahora le toca al jurado decidir si cuenta la temática.</small>`;
       el.innerHTML = `
         <div class="at done">
           ${atelier()}
           <div class="at-rack">
             <h4>¡Look listo!</h4>
-            <p class="dr-stars">${"★".repeat(stars)}${"☆".repeat(5 - stars)}</p>
             <p class="dr-msg">${msg}</p>
             <button class="btn btn-primary" id="dr-go">👠 ¡A la pasarela!</button>
           </div>
