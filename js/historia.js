@@ -16,7 +16,16 @@ const Story = (() => {
 
   // Elige una variante evitando repetir las usadas recientemente en esta partida
   const recent = [];
+  // Frases que hablan de coser solo cuando el reto de la semana es de costura
+  const SEW_RX = /\bcos(e|er|ido|iendo|amos|es)\b|costur|dobladillo|enhebr|descos|patr[oó]n/i;
+  const weekOk = (x) => {
+    if (!S || typeof RETO_CAT === "undefined") return true;
+    if (!SEW_RX.test(JSON.stringify(x))) return true;
+    return S.curEpTipo === S.ep && RETO_CAT[S.curTipo] === "costura";
+  };
   const pickFresh = (arr) => {
+    const okArr = arr.filter(weekOk);
+    if (okArr.length) arr = okArr;
     const fresh = arr.filter((x) => !recent.includes(x));
     const v = pick1(fresh.length ? fresh : arr);
     recent.push(v);
@@ -119,6 +128,14 @@ const Story = (() => {
     run: (el, done) => runFotos(el, done),
   };
   RETOS.equipos.team = true;
+  // Segunda Oportunidrag (T3): stand-up en parejas con las eliminadas
+  RETOS.repescaStand = {
+    titulo: () => "Segunda Oportunidrag: stand-up en parejas",
+    desc: "Las eliminadas vuelven al taller. Cada reina en competición hace un monólogo a dúo con una de ellas. La eliminada de la pareja ganadora vuelve a la competición... y las tres peores parejas van a un lip sync a tres bandas: se salva una y se van dos.",
+    ctrl: "Clic o teclas 1, 2 y 3",
+    attrs: ["comedia", "carisma"],
+    run: (el, done) => (IA.ready() ? liveStandPair(el, done) : RETOS.comedia.run(el, done)),
+  };
   const MATERIALES_RAROS = {
     good: [["🥔", 12], ["🧸", 10], ["🪴", 10], ["🔩", 14], ["🎈", 10], ["📰", 8], ["🧽", 10]],
     bad: [["✂️", -15], ["🩹", -10], ["💧", -8]],
@@ -310,7 +327,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["stars", "memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks", "prepLooks", "gg", "curEpTipo", "log", "miniWin", "aggr", "cGroups"];
+  const PLAIN = ["stars", "memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks", "prepLooks", "gg", "curEpTipo", "rp", "log", "miniWin", "aggr", "cGroups"];
   function snapshot() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -318,37 +335,6 @@ const Story = (() => {
   }
   function save() {
     store.set(SAVE_KEY, snapshot());
-  }
-  // Para poder repetir un episodio: copia de la partida al empezar cada uno (los dos últimos)
-  const REWIND_KEY = "dftc-story-rewind";
-  function markRewind(rw = false) {
-    const d = JSON.parse(JSON.stringify(snapshot()));
-    if (!rw) d.phase = null;
-    const ep = rw ? S.ep : S.ep + 1;
-    const same = (x) => x && x.data && x.data.season === d.season && x.data.queen === d.queen;
-    let list = (store.get(REWIND_KEY, []) || []).filter((x) => same(x) && (x.ep < ep || (x.ep === ep && !x.rw && rw)));
-    list.push({ ep, rw, money: Closet.money, data: d });
-    const eps = list.filter((x) => !x.rw).slice(-2), last = list.filter((x) => x.rw).slice(-1);
-    store.set(REWIND_KEY, [...eps, ...last]);
-  }
-  function rewindTo(ep, rw) {
-    const all = store.get(REWIND_KEY, []) || [];
-    const cur = saved();
-    if (rw && cur && cur.phase && cur.phase.stage === "scored" && cur.ep === ep && !all.some((x) => x.ep === ep && x.rw)) {
-      const ph = cur.phase;
-      cur.phase = { ep, stage: "runway", advice: ph.advice, runwayBonus: ph.runwayBonus, captains: ph.captains, raw: ph.parts.reto, bonus: ph.bonus, titulo: ph.titulo, tipo: ph.tipo, team: ph.team, cGroups: ph.cGroups };
-      cur.runwayIdx = Math.max(0, (cur.runwayIdx || 1) - 1);
-      store.set(SAVE_KEY, cur);
-      return resume();
-    }
-    const r = all.find((x) => x.ep === ep && !!x.rw === rw);
-    if (!r) return;
-    store.set(SAVE_KEY, r.data);
-    const c = Closet.get();
-    c.money = r.money;
-    Closet.set(c);
-    store.set(REWIND_KEY, all.filter((x) => x.ep < ep || (x.ep === ep && !x.rw)));
-    resume();
   }
   const saved = () => {
     const d = store.get(SAVE_KEY, null);
@@ -376,11 +362,6 @@ const Story = (() => {
     const d = saved();
     if (!d) return onNew();
     const q = qById(d.queen), se = seasonById(d.season);
-    const rw = (store.get(REWIND_KEY, []) || []).filter((x) => x && x.data && x.data.season === d.season && x.data.queen === d.queen && x.ep <= d.ep && !(x.rw && d.phase && d.phase.stage === "runway" && d.phase.ep === x.ep)).sort((a, b) => b.ep - a.ep || (b.rw ? 1 : 0) - (a.rw ? 1 : 0));
-    // Partida en los resultados (de antes de los puntos de control de pasarela): también se puede repetir la pasarela
-    const ph = d.phase;
-    if (ph && ph.ep === d.ep && ph.stage === "scored" && !ph.paid && ph.parts && ph.parts.pasarela != null && !rw.some((x) => x.rw && x.ep === d.ep))
-      rw.unshift({ ep: d.ep, rw: true, fromScored: true });
     UI.show("story");
     setSet("werkroom");
     $("#story-season").textContent = "Modo historia";
@@ -402,13 +383,11 @@ const Story = (() => {
             <button class="btn btn-ghost" id="story-new">Nueva historia</button>
             <button class="btn btn-primary" id="story-continue">Continuar</button>
           </div>
-          ${rw.length ? `<div class="row">${rw.map((x) => `<button class="btn btn-ghost" data-rw="${x.ep}" data-rp="${x.rw ? 1 : 0}">${x.rw ? `👠 Repetir solo la pasarela del episodio ${x.ep}` : `⏪ Repetir el episodio ${x.ep}`}</button>`).join("")}</div>` : ""}
-          <p class="muted small">Si empiezas una nueva, la partida guardada se borrará al comenzar.${rw.length ? " Si repites un episodio, se pierde lo que hayas jugado después." : ""}</p>
+          <p class="muted small">Si empiezas una nueva, la partida guardada se borrará al comenzar.</p>
         </div>
       </div>`;
     $("#story-continue").addEventListener("click", resume);
     $("#story-new").addEventListener("click", onNew);
-    body().querySelectorAll("[data-rw]").forEach((b) => b.addEventListener("click", () => rewindTo(+b.dataset.rw, b.dataset.rp === "1")));
   }
 
   // Salir sin perder la partida (queda guardada desde el inicio del episodio)
@@ -895,13 +874,14 @@ const Story = (() => {
   EP_SHORT.publicidad = "Publicidad";
   EP_SHORT.lalaparuza = "Lalaparuza";
   EP_SHORT.equipos = "Girl Groups";
+  EP_SHORT.repescaStand = "Segunda Oportunidrag";
   function mark(q, lab) {
     const k = keyOf(q);
     (S.track[k] = S.track[k] || {})[S.ep] = lab;
   }
   const TRACK_CLASS = (l) =>
-    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : "t-none";
-  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", MISSC: "MISS CONGENIALITY" };
+    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : l === "RTRN" ? "t-rtrn" : "t-none";
+  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", MISSC: "MISS CONGENIALITY", RTRN: "RTRN" };
   function trackHTML() {
     const eps = Object.keys(S.epNames).map(Number).sort((a, b) => a - b);
     const everyone = [S.queen, ...S.rivals, ...S.out];
@@ -928,11 +908,21 @@ const Story = (() => {
       const v = eps.map((e) => V[(S.track[k] || {})[e]]).filter((x) => x !== undefined);
       return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) : "–";
     };
+    // Las que se van en el mismo episodio (doble eliminación) comparten puesto: 7º/8º
+    const elimAt = (r) => r.out && (S.track[r.k] || {})[r.last] === "ELIM" ? r.last : null;
+    const rk = rows.map((r, i) => {
+      const e = elimAt(r);
+      if (e == null) return `${i + 1}º`;
+      let a = i, b = i;
+      while (a > 0 && elimAt(rows[a - 1]) === e) a--;
+      while (b < rows.length - 1 && elimAt(rows[b + 1]) === e) b++;
+      return a === b ? `${i + 1}º` : `${a + 1}º/${b + 1}º`;
+    });
     return `
       <div class="track-wrap"><table class="track">
         <thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(S.epNames[e])}</small></th>`).join("")}${twistOf() === "corazon" ? "<th>❤️</th>" : ""}<th>PPE</th></tr></thead>
         <tbody>${rows
-          .map((r, i) => `<tr class="${r.q === S.queen ? "me" : ""} ${r.out ? "out" : ""}" style="--i:${i}"><td class="rk">${i + 1}º</td>
+          .map((r, i) => `<tr class="${r.q === S.queen ? "me" : ""} ${r.out ? "out" : ""}" style="--i:${i}"><td class="rk">${rk[i]}</td>
             <td class="qn"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${r.q === S.queen ? " <b>(tú)</b>" : roleKnown(r.q) ? ` <small title="${esc(roleOf(r.q).name)}">${roleOf(r.q).icon}</small>` : ""}</span></td>
             ${eps.map((e) => { const l = (S.track[r.k] || {})[e]; return `<td class="${l ? TRACK_CLASS(l) : r.last && e > r.last && S.epNames[e] !== "Reencuentro" ? "t-gone" : "t-none"}">${l ? LAB_ES[l] || l : ""}</td>`; }).join("")}
             ${twistOf() === "corazon" ? `<td class="hearts">${r.out ? "–" : heartsTxt(r.k)}</td>` : ""}<td class="ppe">${ppe(r.k)}</td></tr>`)
@@ -949,7 +939,7 @@ const Story = (() => {
         ${trackHTML()}
         <button class="btn btn-primary" id="track-next">${label}</button>
       </div>`;
-    $("#track-next").addEventListener("click", then);
+    $("#track-next").addEventListener("click", then, { once: true });
   }
 
   // Puntos de control dentro del episodio: tras el minirreto y tras reto + pasarela
@@ -965,7 +955,8 @@ const Story = (() => {
     S.captains = ph.captains ? ph.captains.map(byKey).filter(Boolean) : null;
     header();
     if (ph.stage === "mini") {
-      return Curtain.run(() => hub(() => announce()), `EPISODIO ${S.ep}`);
+      setReto();
+      return Curtain.run(() => afterMini(), `EPISODIO ${S.ep}`);
     }
     if (ph.stage === "runway") {
       // Reto hecho: toca la pasarela
@@ -1008,15 +999,11 @@ const Story = (() => {
   }
   function episode() {
     setSet("werkroom");
-    markRewind();
     S.ep++;
     S.advice = 0;
     S.helped = false;
     header();
     const tw = twistOf();
-    if (tw === "repesca" && !S.flags.repesca && S.out.length >= 2 && S.rivals.length + 1 <= Math.ceil(S.season.cast.length / 2)) {
-      return repesca(() => (isFinal() ? episodeFinal() : workroom()));
-    }
     if (twistOf() === "winners" && S.ep > winnersWeeks()) return winnersFinal();
     if (isFinal()) return episodeFinal();
     workroom();
@@ -1038,13 +1025,22 @@ const Story = (() => {
       if (S.groups && r < 0.4) return groupEvent(then);
       return (r < 0.72 ? roleScene : maybeEvent)(then);
     };
-    const go = () => (ensureIdentities(), historyScene(() => memoryTalk(() => pactScene(() => nemesisScene(() => fameScene(() => rolePassives(() => (S.ep >= 2 && !S.flags.groups && S.rivals.length >= 5 ? formGroups : wscene)(() => directorScene(() => miniChallenge(() => hub(() => announce())))))))))));
-    if (S.ep === 1 && twistOf() === "suerte" && S.luck === undefined) {
-      return dialog(seasonInfo().intro, ctx, () => pickLuckBox(() => dialog(pickFresh(HISTORIA.tallerPrimerDia), ctxWith(pick1(S.rivals)), go)));
-    }
-    if (S.ep === 1) lines = [...seasonInfo().intro, ...pickFresh(HISTORIA.tallerPrimerDia)];
-    else lines = [...pickFresh(HISTORIA.tallerHost), ...(S.out.length ? pickFresh(HISTORIA.tallerTrasExpulsion) : [])];
+    // Orden del episodio: charla en el taller, suena la sirena y Supremme anuncia el maxirreto, minirreto y después el trabajo en el taller
+    const go = () => (ensureIdentities(), historyScene(() => memoryTalk(() => announce(() => miniChallenge(() => afterMini())))));
+    // Las reinas charlan solas en el taller hasta que suena la sirena
+    if (S.ep === 1) lines = [...pickFresh(HISTORIA.tallerPrimerDia)];
+    else lines = S.out.length && Math.random() < 0.7 ? [...pickFresh(HISTORIA.tallerTrasExpulsion)] : [...pickFresh(HISTORIA.tallerCharla)];
     scene("workroom", lines, ctx, go);
+  }
+  // Tras el minirreto: el taller ya sabe cuál es el reto de la semana
+  function afterMini() {
+    const wscene = (then) => {
+      const r = Math.random();
+      if (r < 0.12) { const c = pickFresh(JAVIS.consejo); return dialog(c.lines, ctxWith(pick1(S.rivals)), then, c.choices); }
+      if (S.groups && r < 0.4) return groupEvent(then);
+      return (r < 0.72 ? roleScene : maybeEvent)(then);
+    };
+    pactScene(() => nemesisScene(() => fameScene(() => rolePassives(() => (S.ep >= 2 && !S.flags.groups && S.rivals.length >= 5 ? formGroups : wscene)(() => directorScene(() => hub(() => beginChallenge())))))));
   }
   // Evento aleatorio del taller: varias reinas y tú eliges bando
   function maybeEvent(then) {
@@ -1253,6 +1249,7 @@ const Story = (() => {
 
   // ------------------------------- Reto ------------------------------------
   function pickReto() {
+    if (twistOf() === "repesca" && !S.flags.repesca && !S.meOut && S.rivals.length + 1 <= REPESCA_AT && S.out.length) return "repescaStand";
     let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
     if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS; // partidas guardadas con el formato antiguo
     return ord[(S.ep - 1) % ord.length];
@@ -1270,15 +1267,17 @@ const Story = (() => {
     setSet("werkroom");
     S.runwayBonus = 0;
     S.captains = null;
-    const maxi = pickReto();
+    const maxi = S.curEpTipo === S.ep && S.curTipo ? S.curTipo : pickReto();
     const team = RETOS[maxi].team && S.rivals.length >= 3;
     if (!S.miniOrder || S.miniOrder.some((k) => !MINIRETOS[k])) S.miniOrder = shuffle(ORDEN_MINI);
     const tipo = S.miniOrder[(S.ep - 1) % S.miniOrder.length];
     const mini = MINIRETOS[tipo];
     const titulo = mini.titulo();
-    const premio = team ? { id: "capitana", txt: "ser capitana y elegir equipo para el reto de esta semana" } : VENTAJAS[(S.ep + S.season.cast.length) % VENTAJAS.length];
+    // Premios que tengan sentido con el maxirreto anunciado
+    const okV = VENTAJAS.filter((v) => (v.id !== "pasarela" || !RETOS[maxi].noRunway) && (v.id !== "eleccion" || RETO_CAT[maxi] === "costura"));
+    const premio = team ? { id: "capitana", txt: "ser capitana y elegir equipo para el reto de esta semana" } : okV[(S.ep + S.season.cast.length) % okV.length];
     const javis = Math.random() < 0.35;
-    const intro = javis ? [...pickFresh(JAVIS.mini), ["calvo", `Hoy: ${titulo.replace("Minirreto: ", "")}. La ganadora se lleva ${premio.txt}.`]] : [["host", pick1(["¡Reinas, empezamos con un minirreto!", "Antes del gran reto... ¡minirreto!", "Quitaos las batas, que hay minirreto."])], ["host", `Hoy: ${titulo.replace("Minirreto: ", "")}. La ganadora se lleva ${premio.txt}.`]];
+    const intro = javis ? [...pickFresh(JAVIS.mini), ["calvo", `Hoy: ${titulo.replace("Minirreto: ", "")}. La ganadora se lleva ${premio.txt}.`]] : [["host", pick1(["Pero antes del maxirreto... ¡minirreto!", "Antes de poneros con el reto... ¡minirreto!", "Y para calentar... ¡minirreto!"])], ["host", `Hoy: ${titulo.replace("Minirreto: ", "")}. La ganadora se lleva ${premio.txt}.`]];
     dialog(intro, ctxWith(pick1(S.rivals)), () => {
       body().innerHTML = `
         <div class="story-card intro">
@@ -1325,14 +1324,35 @@ const Story = (() => {
       });
     });
   }
-  function announce() {
+  // El reto de la semana (se decide al empezar el episodio)
+  function setReto() {
     const tipo = pickReto();
-    const reto = RETOS[tipo];
-    const titulo = reto.titulo();
     S.epNames[S.ep] = EP_SHORT[tipo] || "Reto";
     S.curTipo = tipo;
     S.curEpTipo = S.ep;
-    S.curTitulo = titulo;
+    S.curTitulo = RETOS[tipo].titulo();
+    return tipo;
+  }
+  // ¡Suena la sirena! Supremme entra al taller y anuncia el maxirreto
+  function announce(then) {
+    setReto();
+    const sirena = [
+      ["r1", pick1(["🚨 ¡Suena la sirena! ¡Que viene, que viene!", "🚨 ¡La sirena! ¡Todas a sus puestos!", "🚨 ¡Ay, la sirena! ¡Callaos, que entra!"])],
+      ["host", pick1(["¡Agárrate las bragas, marichocho!", "¡Hola, hola, mis reinas! ¡Agárrate las bragas, marichocho!"])],
+    ];
+    const ctx = ctxWith(pick1(S.rivals), { reto: S.curTitulo });
+    const anuncio = () => S.curTipo === "repescaStand"
+      ? dialog([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", `Esta semana: ${S.curTitulo}. Cada una de vosotras hará un monólogo con una de ellas.`], ["host", "La eliminada de la pareja ganadora... vuelve a la competición. Y las reinas de las tres peores parejas harán un lip sync a tres bandas: solo se salva una."]], ctx, then)
+      : dialog(pickFresh(HISTORIA.anuncio), ctx, then);
+    if (S.ep !== 1) return dialog([...sirena, ...pickFresh(HISTORIA.tallerHost)], ctx, anuncio);
+    // Primer día: bienvenida de la temporada (y la caja de la suerte si toca)
+    dialog([...sirena, ...seasonInfo().intro], ctx, () => (twistOf() === "suerte" && S.luck === undefined ? pickLuckBox(anuncio) : anuncio()));
+  }
+  // Después del taller: equipos (si toca) y a por el reto
+  function beginChallenge() {
+    const tipo = S.curEpTipo === S.ep && S.curTipo ? S.curTipo : setReto();
+    const reto = RETOS[tipo];
+    const titulo = S.curTitulo || reto.titulo();
     S.team = null;
     S.cGroups = null;
     const go = () => challengeIntro(reto, titulo, tipo);
@@ -1340,8 +1360,11 @@ const Story = (() => {
       const c = S.captains || [S.queen, ...S.rivals].sort((a, b) => (b === S.queen ? 70 : skillOf(b)) - (a === S.queen ? 70 : skillOf(a))).slice(0, 2);
       draft(c[0], c[1], go);
     };
+    if (tipo === "repescaStand") return repescaPairs(go);
     const grouped = reto.groups && S.rivals.length + 1 >= reto.groups * 2;
-    dialog(pickFresh(HISTORIA.anuncio), ctxWith(pick1(S.rivals), { reto: titulo }), () => (grouped ? formChallengeGroups(reto.groups, go) : reto.team && S.rivals.length >= 3 ? caps() : go()));
+    if (grouped) return formChallengeGroups(reto.groups, go);
+    if (reto.team && S.rivals.length >= 3) return caps();
+    go();
   }
 
   // Parejas o grupos para el reto. Si has ganado el minirreto, eliges tú a tus compañeras; si no, las reparte Supremme
@@ -1429,7 +1452,6 @@ const Story = (() => {
         if (reto.noRunway || onScore) return close(null);
         // Punto de control antes de la pasarela: se puede repetir solo la pasarela
         checkpoint("runway", { raw, bonus, titulo, tipo: S.curTipo, team: S.team ? S.team.map((q) => q.id) : null, cGroups: S.cGroups || null });
-        markRewind(true);
         runway(close);
       });
     });
@@ -1484,6 +1506,14 @@ const Story = (() => {
     let sc = {};
     if (S.phase && S.phase.ep === S.ep && S.phase.sc) sc = { ...S.phase.sc };
     S.rivals.forEach((q) => { if (sc[q.id] == null) sc[q.id] = rivalScore(q); });
+    // Segunda Oportunidrag: la nota es de la pareja (la reina y su eliminada)
+    if (S.curTipo === "repescaStand" && S.rp && S.rp.ep === S.ep && !sc.__rp) {
+      sc.__rp = 1;
+      S.rivals.forEach((q) => { const o = S.rp.pairs[q.id]; if (o && S.rp.ps[o] != null) sc[q.id] = Math.round(sc[q.id] * 0.6 + S.rp.ps[o] * 0.4); });
+      const mo = S.rp.pairs.me;
+      if (mo && S.rp.ps[mo] != null) sc.__me = Math.round(myScore * 0.65 + S.rp.ps[mo] * 0.35);
+    }
+    if (sc.__me != null) myScore = sc.__me;
     if (S.phase && S.phase.ep === S.ep && !S.phase.sc) { S.phase.sc = { ...sc }; save(); }
     let teamLine = "";
     let winTeam = null;
@@ -1523,9 +1553,17 @@ const Story = (() => {
     const tw = twistOf();
     // T6: bottom de tres (luego decide la moneda)
     let nb = tw === "moneda" && n >= 6 ? 3 : 2;
+    // Segunda Oportunidrag: bottom de tres y lip sync a tres bandas
+    if (S.curTipo === "repescaStand" && repescaNow() && n >= 5) nb = 3;
     if (groupOf) { const lastSize = rows.filter((r) => groupOf.get(r) === nGroups - 1).length; nb = Math.max(1, Math.min(nb, lastSize)); }
     let bottomRows = rows.slice(n - nb);
     const notes = [];
+    // El reto anterior a la Segunda Oportunidrag da inmunidad para esa semana
+    if (tw === "repesca" && !S.flags.repesca && !S.meOut && n === REPESCA_AT + 1 && S.flags.immuneEp !== S.ep) {
+      S.flags.immune = winner.me ? "me" : winner.q.id;
+      S.flags.immuneEp = S.ep;
+    }
+    if (tw === "repesca" && S.flags.immuneEp === S.ep) notes.push(`🛡️ ${winner.me ? "<b>Ganas la inmunidad</b>" : `<b>${esc(winner.q.name)}</b> gana la inmunidad`} para la semana que viene: si cae en el bottom, se salva del lip sync.`);
     // Salvar a una del bottom: entra la siguiente peor que no esté ya dentro
     const saveRow = (row, how) => {
       const next = rows.slice(0, n - 1).reverse().find((r) => !bottomRows.includes(r) && r !== winner && !r.protected);
@@ -1691,7 +1729,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       const toLipSync = () =>
         luckMoment(() =>
           (tw === "moneda" && bottomRows.length === 3 ? coinFlip : (x, cb) => cb(x.bottomRows))({ winner, bottomRows }, (pair) =>
-            elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2) }),
+            elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2), rows }),
           ),
         );
       const ut = (then, pre) => untucked({ winner, bottomRows, savedBy: S.savedBy, pre, labOf }, then);
@@ -2155,16 +2193,18 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
   }
 
   // Quién se va esta semana
-  function elimination({ winner, bottomRows, top2 }) {
+  function elimination({ winner, bottomRows, top2, rows }) {
     setSet("stage");
     const meBottom = bottomRows.some((r) => r.me);
     const others = bottomRows.filter((r) => !r.me).map((r) => r.q);
     if (twistOf() === "allstars") return topLipSync(top2, (dec) => allStarsDecision(dec, bottomRows));
     if (twistOf() === "winners") return topLipSync(top2, (dec) => winnersStar(dec));
+    // Segunda Oportunidrag: con siete reinas se van dos de golpe... y vuelve una por sorpresa
+    if (repescaNow()) return tripleLipSync(bottomRows, winner, rows);
     if (meBottom) return lipSync(others[0], false);
     const [a, b] = others;
     // Doble sashay (muy raro)
-    if (!S.flags.dsashay && S.rivals.length >= 7 && Math.random() < 0.08) {
+    if (!S.flags.dsashay && twistOf() !== "repesca" && S.rivals.length >= 7 && Math.random() < 0.08) {
       S.flags.dsashay = true;
       eliminate(a);
       eliminate(b);
@@ -2423,6 +2463,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
   function goHomeRepesca(by) {
     S.meOut = true;
     S.flags.waitRepesca = 1;
+    S.flags.myPlace = S.rivals.length + 1;
     if (S.track.me && S.track.me[S.ep]) mark(S.queen, "ELIM");
     S.phase = null;
     save();
@@ -2432,66 +2473,259 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         <p class="eyebrow">Te vas a casa... de momento</p>
         <h3>Sashay away, ${esc(S.queen.name)}</h3>
         ${by ? `<div class="vs"><img class="gone" src="${photo(S.queen)}"><span>💔</span><img src="${photo(by)}"></div>` : ""}
-        <p>Pero esta temporada hay <b>Segunda Oportunidrag</b>. Mientras esperas en casa, la competición sigue: verás cómo cae cada reina semana a semana.</p>
+        <p>Pero esta temporada hay <b>Segunda Oportunidrag</b>. Mientras esperas en casa, la competición sigue. Cuando queden siete reinas, las eliminadas volveréis al taller para un stand-up en parejas: si tu pareja gana, vuelves.</p>
         <button class="btn btn-primary" id="story-next">Ver cómo sigue</button>
       </div>`;
     $("#story-next").addEventListener("click", repescaStep);
   }
-  // Semanas sin ti hasta la mitad de la temporada, y entonces llega la Segunda Oportunidrag
-  function repescaStep() {
-    const pending = () => S.rivals.length > Math.ceil(S.season.cast.length / 2) - 1 && S.rivals.length > 3;
-    if (!pending()) {
-      S.flags.waitRepesca = 0;
-      save();
-      return Curtain.run(() => repesca(() => nextEpisode()), "SEGUNDA OPORTUNIDRAG");
-    }
-    const r = simWeek();
-    S.phase = null;
-    save();
-    const face = (q) => `<i class="tn-face" style="background-image:url('${photo(q)}')"></i>`;
-    showTrack(repescaStep, pending() ? "Siguiente semana" : "¡Llega la Segunda Oportunidrag!",
-      `${face(r.win)} 👑 Gana <b>${esc(r.win.name)}</b> · ${face(r.go)} 💔 <b>${esc(r.go.name)}</b> pierde el lip sync contra <b>${esc(r.stay.name)}</b> y se va a casa.`);
+  // ¿Toca la Segunda Oportunidrag? Cuando quedan siete reinas en competición
+  const REPESCA_AT = 7;
+  const repescaNow = () => twistOf() === "repesca" && !S.flags.repesca && !S.meOut && S.rivals.length + 1 <= REPESCA_AT;
+  // Lip sync a tres bandas: se salva una y se van dos (la inmune, si está en el bottom, se salva siempre)
+  const immuneQ = () => (S.flags.immune === "me" ? S.queen : S.flags.immune ? qById(S.flags.immune) : null);
+  function tripleVerdict(three, meWon) {
+    const imm = immuneQ();
+    if (imm && three.includes(imm)) return imm;
+    if (meWon === true) return S.queen;
+    const pool = three.filter((q) => q !== S.queen || meWon == null);
+    return pool.slice(1).reduce((best, q) => simLS(best, q)[0], pool[0]);
   }
-  function repesca(then) {
-    S.flags.repesca = true;
-    header();
-    const pool = S.out.slice();
-    if (S.meOut) {
-      const rival = pick1(pool);
-      return dialog(
-        [["host", "¡Reinas eliminadas, bienvenidas a la Segunda Oportunidrag! Solo una vuelve a la competición."], ["r1", "{yo}, no te lo voy a poner fácil."]],
-        { ...ctxWith(rival), tension: true },
-        () =>
-          lipSync(rival, false, () => {
-            S.meOut = false;
-            Toast.show("🔁 ¡Has vuelto!", "Segunda oportunidad");
-            header();
-            body().innerHTML = `
-              <div class="story-card">
-                <p class="eyebrow">🔁 Segunda Oportunidrag</p>
-                <h3>¡${esc(S.queen.name)} vuelve a la competición!</h3>
-                <p>Las demás no se lo esperaban. Ahora vas con todo.</p>
-                <button class="btn btn-primary" id="story-next">Volver al taller</button>
-              </div>`;
-            endEpisodeBtn();
-          }),
-      );
+  function tripleLipSync(bottomRows, winner, rows) {
+    // Vuelve la eliminada de la mejor pareja que tenga una (si la ganadora iba sola, la siguiente)
+    const pairKey = (r) => (r.me ? "me" : r.q.id);
+    const bestPair = (rows || [winner]).find((r) => S.rp && S.rp.ep === S.ep && S.rp.pairs[pairKey(r)]) || winner;
+    const back = S.rp && S.rp.ep === S.ep && bestPair ? qById(S.rp.pairs[pairKey(bestPair)]) : null;
+    if (!S.flags.rpRanked) {
+      // 1) Ranking por parejas  2) vuelve la eliminada de la pareja ganadora (RTRN)  3) lip sync a tres
+      S.flags.rpRanked = 1;
+      const list = rows || [winner, ...bottomRows];
+      const partner = (r) => { const id = S.rp && S.rp.pairs[r.me ? "me" : r.q.id]; return id ? qById(id) : null; };
+      const nmR = (r) => esc(r.me ? "Tú" : r.q.name);
+      header();
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">🔁 Segunda Oportunidrag · ranking por parejas</p>
+          <h3>${winner.me ? "¡Vuestra pareja gana el reto! 👑" : partner(winner) ? `Ganan ${nmR(winner)} y ${esc(partner(winner).name)}` : `Gana ${nmR(winner)}, que iba sola`}</h3>
+          <ol class="ranking">${list.map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${nmR(r)}${partner(r) ? ` + ${esc(partner(r).name)}` : ""}</span>${k === 0 ? `<b class="tag win">Ganadoras</b>` : bottomRows.includes(r) ? `<b class="tag">Bottom</b>` : ""}</li>`).join("")}</ol>
+          <button class="btn btn-primary" id="story-next">Continuar</button>
+        </div>`;
+      return $("#story-next").addEventListener("click", () => {
+        if (!back || !S.out.includes(back)) return tripleLipSync(bottomRows, winner, rows);
+        S.flags.repesca = true;
+        S.out = S.out.filter((q) => q !== back);
+        S.rivals.push(back);
+        mark(back, "RTRN");
+        logEv(`${back.name} vuelve a la competición con la Segunda Oportunidrag`);
+        save();
+        header();
+        dialog(
+          [["host", `${back.name}, ${bestPair === winner ? "tu pareja ha ganado el reto" : "tu pareja es la mejor de las que teníais una eliminada"}... así que te has ganado tu SEGUNDA OPORTUNIDRAG.`], ["host", "¡Vuelves a la competición!"], ...HISTORIA.regresoVuelve],
+          ctxWith(back),
+          () => tripleLipSync(bottomRows, winner, rows),
+          S.meOut ? undefined : [
+            { txt: "¡Bienvenida de nuevo, {r1}!", rel: { r1: 1 }, reply: ["r1", "¡Gracias, reina! Esta vez voy a por todas."] },
+            { txt: "Pues ya somos una más para echar...", rel: { r1: -1 }, bonus: 80, reply: ["r1", "Tranquila, que empiezo por ti."] },
+          ],
+        );
+      });
     }
-    const back = pool.sort((a, b) => skillOf(b) + rnd(-12, 12) - skillOf(a))[0];
+    S.flags.rpRanked = 0;
+    S.flags.repesca = true;
+    const three = bottomRows.map((r) => (r.me ? S.queen : r.q));
+    const imm = immuneQ();
+    const finish = (stay) => {
+      S.flags.immune = null;
+      const gone = three.filter((q) => q !== stay);
+      const meGone = gone.includes(S.queen);
+      gone.filter((q) => q !== S.queen).forEach((q) => { nemEvent("elim", stay, q); eliminate(q); });
+      const place = S.rivals.length + 1;
+      header();
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💄 Lip sync a tres bandas</p>
+          <h3>${esc(stay === S.queen ? "Tú" : stay.name)}, shantay you stay</h3>
+          <div class="vs">${three.map((q) => `<img class="${q === stay ? "" : "gone"}" src="${photo(q)}">`).join("<span>·</span>")}</div>
+          <p>${imm === stay ? `🛡️ ${esc(stay === S.queen ? "Tenías" : `${stay.name} tenía`)} la inmunidad: se salva. ` : ""}<b>${gone.map((q) => esc(q === S.queen ? "Tú" : q.name)).join("</b> y <b>")}</b>, sashay away. Se van dos de golpe.</p>
+          <button class="btn btn-primary" id="story-next">Continuar</button>
+        </div>`;
+      if (meGone) return $("#story-next").addEventListener("click", () => aftermath(stay === S.queen ? null : stay, "El lip sync a tres bandas te ha mandado a casa.", `${place}º/${place + 1}º`));
+      $("#story-next").textContent = "Siguiente episodio";
+      endEpisodeBtn();
+    };
+    const others = three.filter((q) => q !== S.queen);
+    if (!three.includes(S.queen)) {
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💄 Lip sync a tres bandas</p>
+          <h3>${three.map((q) => esc(q.name)).join(", ")}</h3>
+          <div class="vs">${three.map((q) => `<img src="${photo(q)}">`).join("<span>·</span>")}</div>
+          <p>Las tres lo dan todo. Solo una se queda${imm && three.includes(imm) ? ` (y ${esc(imm.name)} tiene la inmunidad)` : ""}.</p>
+          <button class="btn btn-primary" id="story-ls">Ver el veredicto</button>
+        </div>`;
+      return $("#story-ls").addEventListener("click", () => finish(tripleVerdict(three)));
+    }
+    if (imm === S.queen) {
+      Toast.show("🛡️ Tienes la inmunidad", "Haces el lip sync, pero te salvas pase lo que pase");
+    }
+    const strong = others.slice().sort((a, b) => skillOf(b) - skillOf(a))[0];
+    playLS(strong, {
+      eyebrow: "💄 Lip sync a tres bandas",
+      text: `Contra ${others.map((q) => esc(q.name)).join(" y ")}. Solo se queda una: las otras dos se van.${imm && imm !== S.queen && three.includes(imm) ? ` Ojo: ${esc(imm.name)} tiene la inmunidad.` : ""}`,
+      curtain: "LIP SYNC A TRES BANDAS",
+    }, (won) => finish(tripleVerdict(three, won)));
+  }
+  // Al final del episodio, por sorpresa, vuelve una de las eliminadas
+  function surpriseReturn(exclude, forced, then) {
+    S.flags.repesca = true;
+    const pool = S.out.filter((q) => !exclude.includes(q));
+    if (!pool.length) return then();
+    const back = forced && pool.includes(forced) ? forced : pool.slice().sort((a, b) => skillOf(b) + rnd(-12, 12) - skillOf(a))[0];
     S.out = S.out.filter((q) => q !== back);
     S.rivals.push(back);
+    logEv(`${back.name} vuelve a la competición con la Segunda Oportunidrag`);
     header();
     dialog(
-      [["host", "Reinas, antes de empezar... ¡ha llegado la Segunda Oportunidrag!"], ["host", "Las eliminadas se han batido en un lip sync y una vuelve a la competición."], ...HISTORIA.regresoVuelve],
+      [["host", "Un momento, reinas... que esto no ha terminado."], ["host", forced === back ? "La eliminada de la pareja ganadora se ha ganado su SEGUNDA OPORTUNIDRAG... ¡y vuelve a la competición!" : "Las eliminadas se han batido en la SEGUNDA OPORTUNIDRAG. Y una de ellas... ¡vuelve a la competición!"], ...HISTORIA.regresoVuelve],
       ctxWith(back),
       then,
-      [
+      S.meOut || exclude.includes(S.queen) ? undefined : [
         { txt: "¡Bienvenida de nuevo, {r1}!", rel: { r1: 1 }, reply: ["r1", "¡Gracias, reina! Esta vez voy a por todas."] },
         { txt: "Pues ya somos una más para echar...", rel: { r1: -1 }, bonus: 80, reply: ["r1", "Tranquila, que empiezo por ti."] },
       ],
     );
   }
-
+  // Parejas de la Segunda Oportunidrag: cada reina en competición con una eliminada
+  function repescaPairs(then) {
+    const comp = [S.queen, ...S.rivals];
+    const pool = shuffle(S.out.slice());
+    const pairs = {};
+    const ps = {};
+    const assign = (myPick) => {
+      const rest = pool.filter((q) => q !== myPick);
+      if (myPick) pairs.me = myPick.id;
+      // Tú siempre vas con pareja; si faltan eliminadas, alguna rival va sola
+      // (si sobra una, va sola la que tiene la inmunidad)
+      const imm = S.flags.immune && S.flags.immune !== "me" ? qById(S.flags.immune) : null;
+      [...(myPick ? [] : [S.queen]), ...shuffle(S.rivals.filter((q) => q !== imm)), ...(imm && S.rivals.includes(imm) ? [imm] : [])].forEach((q) => { const o = rest.shift(); if (o) pairs[q === S.queen ? "me" : q.id] = o.id; });
+      Object.values(pairs).forEach((id) => { const q = qById(id); if (q) ps[id] = clamp(Math.round(rivalScore(q) + rnd(-8, 8)), 0, 99); });
+      S.rp = { ep: S.ep, pairs, ps };
+      const nm = (k) => (k === "me" ? "Tú" : (qById(k) || {}).name || k);
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">🔁 Segunda Oportunidrag · las parejas</p>
+          <h3>${pairs.me ? `Tu pareja: ${esc(qById(pairs.me).name)}` : "Te toca ir sola"}</h3>
+          <div class="rp-pairs">${Object.entries(pairs).map(([k, o]) => `<div class="rp-pair ${k === "me" ? "me" : ""}"><span><i style="background-image:url('${photo(k === "me" ? S.queen : qById(k))}')"></i>${esc(nm(k))}</span><b>+</b><span><i style="background-image:url('${photo(qById(o))}')"></i>${esc(qById(o).name)}</span></div>`).join("")}</div>
+          <p class="muted">Si vuestra pareja gana, ${pairs.me ? esc(qById(pairs.me).name) : "tu compañera"} vuelve a la competición. Si quedáis entre las tres peores, lip sync a tres bandas: solo se salva una.</p>
+          <button class="btn btn-primary" id="story-next">¡Al escenario!</button>
+        </div>`;
+      $("#story-next").addEventListener("click", then);
+    };
+    if (S.miniWin !== "me" || pool.length < 2) return assign(null);
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">Has ganado el minirreto</p>
+        <h3>Elige a tu pareja de comedia</h3>
+        <div class="hub-grid">${pool.map((q, i) => `<button class="hub-q" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>Eliminada</small></button>`).join("")}</div>
+      </div>`;
+    body().querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => assign(qById(b.dataset.id))));
+  }
+  // Stand-up a dúo en directo
+  function liveStandPair(el, done) {
+    const mate = S.rp && S.rp.pairs.me ? qById(S.rp.pairs.me) : null;
+    const who = mate ? `con ${mate.name}` : "en solitario";
+    const after = mate ? async (v) => {
+      const rep = await IA.chat(`Hablas SOLO como ${mate.name}, ${S.meOut ? "reina en competición que hace pareja con una eliminada" : "reina eliminada que vuelve al taller"} en la Segunda Oportunidrag. ${aiProfile(mate)}`, `En el monólogo a dúo, ${S.queen.name} acaba de decir: «${v}». Sigue tú el chiste en una frase muy corta (máximo 18 palabras), con tu carácter y con gracia.`, { max: 60 }).catch(() => null);
+      return rep ? { who: mate.name, t: rep, cls: "rival" } : null;
+    } : undefined;
+    const rounds = [
+      { prompt: `🎙️ Arrancáis el monólogo ${who}`, sub: "Presenta el número y engancha al público.", ctx: `Stand-up a dúo de la Segunda Oportunidrag. ${S.queen.name} actúa ${who}. Valora la gracia y el ritmo.`, after },
+      { prompt: "😂 El chiste sobre volver al taller", sub: S.meOut ? "Haz gracia con tu vuelta al taller." : mate ? `Haz gracia con la vuelta de ${mate.name} a la competición.` : "Haz gracia con la vuelta de las eliminadas.", ctx: "Chiste sobre las eliminadas que vuelven al taller de Drag Race España.", after },
+      { prompt: "🎤 El remate final", sub: "Cerrad por todo lo alto.", ctx: "Remate final del monólogo a dúo.", after },
+    ];
+    liveRounds(el, { title: "Stand-up en parejas", icon: "🎙️", kind: "stand-up (monólogo de humor a dúo)", attr: "comedia", rounds, ph: "Tu chiste..." }, done);
+  }
+  // Semanas sin ti hasta que quedan siete reinas: doble eliminación y te juegas volver en un lip sync
+  function repescaStep() {
+    if (S.rivals.length <= REPESCA_AT) return Curtain.run(() => homeRepesca(), "SEGUNDA OPORTUNIDRAG");
+    const r = simWeek();
+    S.phase = null;
+    save();
+    const face = (q) => `<i class="tn-face" style="background-image:url('${photo(q)}')"></i>`;
+    showTrack(repescaStep, S.rivals.length > REPESCA_AT ? "Siguiente semana" : "Siguiente semana: ¡quedan siete!",
+      `${face(r.win)} 👑 Gana <b>${esc(r.win.name)}</b> · ${face(r.go)} 💔 <b>${esc(r.go.name)}</b> pierde el lip sync contra <b>${esc(r.stay.name)}</b> y se va a casa.`);
+  }
+  // Desde casa: vuelves al taller para el stand-up en parejas con una reina en competición
+  function homeRepesca() {
+    if (S.flags.repesca) return;
+    S.ep++;
+    S.epNames[S.ep] = "Segunda Oportunidrag";
+    S.flags.repesca = true;
+    S.flags.waitRepesca = 0;
+    setSet("werkroom");
+    header();
+    const comp = shuffle(S.rivals.slice());
+    const outs = shuffle(S.out.slice());
+    const mate = comp[0];
+    const pairs = [{ c: mate, o: null, me: true }, ...comp.slice(1).map((c) => ({ c, o: outs.shift() || null }))];
+    S.rp = { ep: S.ep, pairs: { me: mate.id }, ps: {}, home: true };
+    dialog(
+      [["host", "¡Reinas eliminadas, volvéis al taller! Ha llegado la SEGUNDA OPORTUNIDRAG."], ["host", "Cada una hará un monólogo a dúo con una reina en competición. La eliminada de la pareja ganadora... vuelve."], ["r1", "{yo}, me ha tocado contigo. Vamos a matarlas de risa."]],
+      ctxWith(mate),
+      () => {
+        body().innerHTML = `
+          <div class="story-card intro">
+            <img class="story-queen" src="${sprite(S.queen)}" alt="">
+            <div>
+              <p class="eyebrow">🔁 Segunda Oportunidrag · tu pareja: ${esc(mate.name)}</p>
+              <h3>${esc(RETOS.repescaStand.titulo())}</h3>
+              <p>Si vuestra pareja gana, vuelves a la competición. Si quedáis entre las tres peores, ${esc(mate.name)} irá al lip sync a tres bandas.</p>
+              <button class="btn btn-primary" id="story-go">¡Al escenario!</button>
+            </div>
+          </div>`;
+        $("#story-go").addEventListener("click", () => {
+          body().innerHTML = `<div id="story-play"></div>`;
+          Music.play("reto");
+          RETOS.repescaStand.run($("#story-play"), (raw) => {
+            cleanup = null;
+            if (typeof window.__forceScore === "number") raw = window.__forceScore;
+            Music.stop();
+            pairs.forEach((p) => (p.s = p.me ? raw * 0.6 + rivalScore(p.c) * 0.4 : p.o ? rivalScore(p.c) * 0.6 + rivalScore(p.o) * 0.4 : rivalScore(p.c)));
+            pairs.sort((a, b) => b.s - a.s);
+            const n = pairs.length;
+            const nb = n >= 5 ? 3 : 2;
+            const top = pairs[0], btm = pairs.slice(-nb);
+            const three = btm.map((p) => p.c);
+            const stayQ = nb === 3 ? tripleVerdict(three) : null;
+            const low = btm.filter((p) => p.c !== stayQ);
+            S.flags.immune = null;
+            pairs.forEach((p, k) => mark(p.c, k === 0 ? "WIN" : k >= n - nb ? `BTM${nb}` : "SAFE"));
+            low.forEach((p) => eliminate(p.c));
+            const meBack = top.me;
+            const back = meBack ? null : top.o;
+            if (back) { S.out = S.out.filter((q) => q !== back); S.rivals.push(back); mark(back, "RTRN"); logEv(`${back.name} vuelve con la Segunda Oportunidrag`); }
+            if (meBack) mark(S.queen, "RTRN");
+            const nm = (p) => `${esc(p.c.name)} + ${p.me ? "tú" : p.o ? esc(p.o.name) : "sola"}`;
+            header();
+            body().innerHTML = `
+              <div class="story-card">
+                <p class="eyebrow">🔁 Segunda Oportunidrag · resultados</p>
+                <h3>${meBack ? `¡${esc(S.queen.name)} vuelve a la competición!` : `${esc(back ? back.name : top.c.name)} ${back ? "vuelve a la competición" : "gana el reto"}`}</h3>
+                <ol class="ranking">${pairs.map((p, k) => `<li style="--i:${k}" class="${p.me ? "me" : ""}"><span>${nm(p)}</span>${k === 0 ? `<b class="tag win">Ganadoras</b>` : k >= n - nb ? `<b class="tag">Bottom</b>` : ""}</li>`).join("")}</ol>
+                <p>💄 Lip sync a tres bandas${stayQ ? `: se salva <b>${esc(stayQ.name)}</b>` : ""}. <b>${low.map((p) => esc(p.c.name)).join("</b> y <b>")}</b> se van a casa.</p>
+                <button class="btn btn-primary" id="story-next">${meBack ? "Volver al taller" : "Continuar"}</button>
+              </div>`;
+            if (meBack) {
+              S.meOut = false;
+              Confetti.burst(2000);
+              Toast.show("🔁 ¡Has vuelto!", "Segunda oportunidad");
+              return endEpisodeBtn();
+            }
+            $("#story-next").addEventListener("click", () => aftermath(null, "La Segunda Oportunidrag no ha salido bien.", S.flags.myPlace));
+          });
+        });
+      },
+    );
+  }
   // ------------------------- Capitanas y equipos ---------------------------
   // Minirreto previo: las dos mejores son capitanas y eligen equipo por turnos
   function captains(then) {
@@ -2948,10 +3182,11 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
 
   // ------------------- Si te eliminan: la temporada sigue sin ti -------------------
   // Se ve semana a semana en el track record, luego el reencuentro (Miss Simpatía) y la final
-  function aftermath(by, reason = "") {
+  const placeTxt = (p) => (typeof p === "string" ? p : `${p}º`);
+  function aftermath(by, reason = "", place = null) {
     S.meOut = true;
     S.flags.aftermath = 1;
-    S.flags.myPlace = S.rivals.length + 1;
+    S.flags.myPlace = place || S.rivals.length + 1;
     S.flags.outEp = S.ep;
     if (S.track.me && S.track.me[S.ep]) mark(S.queen, "ELIM");
     S.phase = null;
@@ -2961,7 +3196,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">Sashay away</p>
-        <h3>${esc(S.queen.name)}, te vas a casa... puesto ${S.flags.myPlace}º</h3>
+        <h3>${esc(S.queen.name)}, te vas a casa... puesto ${placeTxt(S.flags.myPlace)}</h3>
         ${by ? `<div class="vs"><img class="gone" src="${photo(S.queen)}"><span>💔</span><img src="${photo(by)}"></div>` : ""}
         <p>${reason || (by ? `${esc(by.name)} se queda en la competición.` : "")}</p>
         <p class="muted">Pero la temporada sigue: verás cómo va cayendo cada reina hasta el reencuentro, donde aún puedes ganar Miss Simpatía, y la gran final.</p>
@@ -2983,6 +3218,20 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       S.record[key] = (S.record[key] || 0) + (k === 0 ? 3 : k >= n - 2 ? 0 : 1);
       S.form[r.q.id] = clamp((S.form[r.q.id] || 0) + (k === 0 ? 2 : k >= n - 2 ? 3 : 0) + rnd(-2, 2), -10, 10);
     });
+    if (twistOf() === "repesca" && !S.flags.repesca && S.rivals.length === REPESCA_AT + 1) S.flags.immune = rows[0].q.id;
+    if (twistOf() === "repesca" && !S.flags.repesca && S.rivals.length <= REPESCA_AT) {
+      const gone = [rows[n - 2].q, rows[n - 1].q];
+      gone.forEach((q) => eliminate(q));
+      // Si no estás esperando la repesca, vuelve una por sorpresa
+      if (!S.flags.waitRepesca) {
+        S.flags.repesca = true;
+        const pool = S.out.filter((q) => !gone.includes(q));
+        const back = pool.sort((a, b) => skillOf(b) + rnd(-12, 12) - skillOf(a))[0];
+        if (back) { S.out = S.out.filter((q) => q !== back); S.rivals.push(back); logEv(`${back.name} vuelve con la Segunda Oportunidrag`); }
+        return { win: rows[0].q, gone, back };
+      }
+      return { win: rows[0].q, gone };
+    }
     const [stay, go] = simLS(rows[n - 2].q, rows[n - 1].q);
     nemEvent("elim", stay, go);
     eliminate(go);
@@ -2994,6 +3243,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     S.phase = null;
     save();
     const face = (q) => `<i class="tn-face" style="background-image:url('${photo(q)}')"></i>`;
+    if (r.gone) return showTrack(afterStep, S.rivals.length <= 4 ? "Al reencuentro" : "Siguiente semana",
+      `${face(r.win)} 👑 Gana <b>${esc(r.win.name)}</b> · 💥 Doble eliminación: ${r.gone.map((q) => `<b>${esc(q.name)}</b>`).join(" y ")} se van de golpe${r.back ? ` · 🔁 Sorpresa: <b>${esc(r.back.name)}</b> vuelve con la Segunda Oportunidrag` : ""}.`);
     showTrack(afterStep, S.rivals.length <= 4 ? "Al reencuentro" : "Siguiente semana",
       `${face(r.win)} 👑 Gana <b>${esc(r.win.name)}</b> · ${face(r.go)} 💔 <b>${esc(r.go.name)}</b> pierde el lip sync contra <b>${esc(r.stay.name)}</b> y se va a casa.`);
   }
@@ -3108,7 +3359,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         <img class="story-queen" src="${sprite(S.queen)}" alt="">
         <div>
           <p class="eyebrow">${esc(S.season.name)} · resultado final</p>
-          <h3>${won ? `¡${esc(S.queen.name)}, eres la ganadora! 👑` : `Sashay away... puesto ${place}º`}</h3>
+          <h3>${won ? `¡${esc(S.queen.name)}, eres la ganadora! 👑` : `Sashay away... puesto ${placeTxt(place)}`}</h3>
           <p>${won ? "La corona es tuya. Felicidrages." : reason || `${esc(rival.name)} te ha ganado el lip sync.`}</p>
           <p class="story-pts">${entry.score.toLocaleString("es-ES")} puntos · +${earned} ✨ · 💶 +${prize.toLocaleString("es-ES")} € para tu armario</p>
           <p class="muted">Retos ganados: ${S.wins} · Veces en el bottom: ${S.bottoms} · Lip syncs ganados: ${S.lipsyncs} · Aliadas: ${allies().length}</p>
@@ -4462,7 +4713,11 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       idTxt(q),
     ].filter(Boolean).join(" ");
   }
-  const aiSeason = () => `Temporada: ${S.season.name}. Episodio ${S.ep}. Quedan ${S.rivals.length + 1} reinas. La protagonista (la jugadora) es ${S.queen.name}. Resultados de ${S.queen.name}: ${Object.values(S.track.me || {}).join(", ") || "aún ninguno"}. ${nemStory()} ${ggNote()}`;
+  const aiSeason = () => `Temporada: ${S.season.name}. Episodio ${S.ep}. Quedan ${S.rivals.length + 1} reinas. La protagonista (la jugadora) es ${S.queen.name}. Resultados de ${S.queen.name}: ${Object.values(S.track.me || {}).join(", ") || "aún ninguno"}. ${nemStory()} ${weekNote()} ${ggNote()}`;
+  function weekNote() {
+    if (S.curEpTipo !== S.ep || !S.curTipo || !RETOS[S.curTipo]) return "Todavía no se sabe cuál es el reto de esta semana: no habléis de él como si lo conocierais.";
+    return `Reto de esta semana: «${S.curTitulo}» (${String(RETOS[S.curTipo].desc || "").replace(/<[^>]+>/g, "")}). Si se habla del reto, es este y no otro.`;
+  }
   // Girl Groups: que nadie se invente el nombre del grupo ni de la canción
   function ggNote() {
     if (S.curTipo !== "equipos" || S.curEpTipo !== S.ep) return "";
@@ -5577,7 +5832,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     if (RASGOS.deb[deb].cat === fort) deb = "provocable";
     return { fort, deb, car: pick(RASGOS.car, 11) };
   }
-  const RETO_CAT = { snatch: "comedia", roast: "comedia", impro: "comedia", publicidad: "comedia", rusical: "baile", equipos: "baile", lalaparuza: "baile", diseno: "costura", ball: "costura", makeover: "costura", actuacion: "comedia" };
+  const RETO_CAT = { repescaStand: "comedia", snatch: "comedia", roast: "comedia", impro: "comedia", publicidad: "comedia", rusical: "baile", equipos: "baile", lalaparuza: "baile", diseno: "costura", ball: "costura", makeover: "costura", actuacion: "comedia" };
   // Efecto de los rasgos y del poder en la nota de una reina
   function traitMod(q) {
     const t = traitsOf(q), cat = RETO_CAT[S.curTipo];
@@ -5935,7 +6190,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
   function seasonEpisodes() {
     // Una eliminación por episodio hasta quedar 4 (+1 si hay Segunda Oportunidrag)
     if (twistOf() === "winners") return winnersWeeks();
-    return S.season.cast.length - 4 + (twistOf() === "repesca" ? 1 : 0);
+    return S.season.cast.length - 4;
   }
   function buildSchedule() {
     let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));

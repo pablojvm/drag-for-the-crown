@@ -458,7 +458,7 @@ const UI = (() => {
       .map((e, i) => {
         const q = queenById(e.queen);
         const date = new Date(e.date).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
-        const res = story ? (e.won ? "👑 Ganadora" : `Puesto ${e.place}º`) : e.won ? "👑" : `${e.rounds}/${e.totalRounds || "?"}`;
+        const res = story ? (e.won ? "👑 Ganadora" : `Puesto ${typeof e.place === "string" ? e.place : e.place + "º"}`) : e.won ? "👑" : `${e.rounds}/${e.totalRounds || "?"}`;
         const pic = q ? (story ? lookOf(q, e.season).portrait : q.portrait) : "";
         return `<tr class="${e.id === mine ? "me" : ""}${story && e.track ? " has-track" : ""}" data-n="${i}" ${story && e.track ? 'title="Ver su track record"' : ""}>
           <td>${i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</td>

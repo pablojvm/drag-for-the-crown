@@ -115,7 +115,7 @@ const TEMPORADAS_HISTORIA = {
     lema: "La temporada de la Segunda Oportunidrag",
     intro: [
       ["host", "Bienvenidas a la tercera temporada. Y os aviso: esta vez, que te vayas no significa que se acabe."],
-      ["host", "A mitad de temporada llegará la SEGUNDA OPORTUNIDRAG. Las eliminadas se jugarán volver a la competición."],
+      ["host", "Esta temporada hay SEGUNDA OPORTUNIDRAG. No os digo cuándo: solo que alguna que se vaya... puede volver."],
       ["judge", "Así que ni las que se van pueden relajarse... ni las que se quedan."],
     ],
   },
@@ -363,6 +363,17 @@ HISTORIA.tallerHost.push(
   [["host", "Os veo cansadas... y eso me encanta. Significa que os lo estáis tomando en serio."]],
   [["host", "Antes de nada: Ana se quedó la semana pasada con los acabados. No quiere verlo otra vez, y yo tampoco."]],
 );
+// Charla entre reinas al empezar el día (antes de que suene la sirena)
+HISTORIA.tallerCharla = [
+  [["r1", "Buenos días, reinas. ¿Alguien ha dormido algo?"], ["r2", "Yo tres horas. Y se nota en las ojeras."]],
+  [["r2", "¿Qué creéis que nos toca hoy?"], ["r1", "Con nuestra suerte, algo de bailar a las nueve de la mañana."], ["r3", "Calla, calla, que lo atraes."]],
+  [["r1", "{yo}, ¿me prestas un pañuelo? Me he dejado el mío en el hotel."], ["r2", "Empezamos el día pidiendo, qué bonito."]],
+  [["r3", "Hoy vengo con la energía a tope. Que nadie me la baje."], ["r1", "Eso dijiste la semana pasada."]],
+  [["r2", "¿Habéis visto la cara de {r1}? Viene a por todas."], ["r1", "Siempre, cariño. Siempre."]],
+  [["r1", "Yo hoy no hablo hasta tomarme el café."], ["r3", "Pues llevas cinco minutos hablando."]],
+  [["r2", "Os juro que anoche soñé con la pasarela."], ["r1", "¿Y ganabas?"], ["r2", "No me acuerdo. Me desperté antes del veredicto."]],
+  [["r3", "Silencio, que me estoy concentrando."], ["r1", "¿En qué, si no sabemos ni qué toca?"]],
+];
 HISTORIA.tallerTrasExpulsion.push(
   [["r1", "Todavía tengo los ojos hinchados por lo de {fuera}."], ["r2", "Pues ponte hielo, que hoy hay que brillar."]],
   [["r2", "¿Soy la única que se ha quedado con la purpurina de {fuera} en la peluca?"], ["r3", "Es un recuerdo, no te la quites."]],
@@ -1122,7 +1133,7 @@ const JAVIS = {
   ],
 };
 // Los Javis también pasan por el taller algunas semanas
-HISTORIA.tallerHost.push(...JAVIS.taller);
+// (Los Javis ya no abren el taller: entra Supremme tras la sirena)
 
 // Untucked: das las gracias a quien te salvó con su corazón
 const GRACIAS_CORAZON = [
