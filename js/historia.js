@@ -786,10 +786,10 @@ const Story = (() => {
     return clamp(allies().length * 4 - enemies().length * 4, -10, 12);
   }
   // Nivel de cada rival: sale de sus estadísticas, su racha y el azar del día
-  const skillOf = (q) => 48 + Object.values(q.stats).reduce((a, b) => a + b, 0) * 2.2;
+  const skillOf = (q) => 40 + Object.values(q.stats).reduce((a, b) => a + b, 0) * 2;
   // Cada temporada de la franquicia es algo más dura que la anterior
   const seasonBoost = () => Math.min(10, ((S.season && S.season.index) || 0) * 2);
-  const rivalScore = (q) => clamp(skillOf(q) + seasonBoost() + clamp(S.form[q.id] || 0, -8, 8) + traitMod(q) + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) : 0) + rnd(-22, 14), 5, 99);
+  const rivalScore = (q) => clamp(skillOf(q) + seasonBoost() + clamp(S.form[q.id] || 0, -8, 8) + traitMod(q) + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) : 0) + rnd(-18, 8), 5, 97);
 
   function header() {
     $("#story-season").textContent = `Modo historia · ${S.season.name} · ${seasonInfo().lema || S.season.franchise.name}`;
@@ -1678,6 +1678,7 @@ const Story = (() => {
             `Escribes las críticas del jurado de Drag Race España a cada reina. Supremme de Luxe (teatral, cariñosa pero exigente) habla sobre todo del reto, Ana Locking (moda, técnica, directa) sobre todo de la pasarela y el look, aunque las dos pueden comentar las dos cosas. Los Javis (Javier Ambrossi y Javier Calvo) también son jueces y a veces dan su valoración. Son SOLO valoraciones: nunca digas posiciones ni resultados (ni ganadora, ni mejores, ni peores, ni bottom, ni lip sync, ni a salvo). ${aiSeason()}`,
             `Reto de esta semana: ${S.curTitulo || S.epNames[S.ep] || "reto"}. ${runwayCat ? `Pasarela: «${runwayCat}».` : "Esta semana no hay pasarela aparte: habla del look con el que presentó el reto."}
 Reinas (valoración global de cada una): ${others.map((r) => `${r.q.name} (${lvl(r)})`).join("; ")}.
+Orden real de esta semana, de mejor a peor (no lo digas, pero que el tono sea coherente: la de arriba suena claramente mejor que las de abajo): ${rows.map((r) => (r.me ? S.queen.name : r.q.name)).join(" > ")}.
 Para cada una escribe "reto" (lo que le dice Supremme sobre su reto, concreto, máximo 22 palabras), "pasarela" (lo que le dice Ana sobre su look, inventa un look concreto que encaje con la categoría, máximo 22 palabras) y, solo en algunas, "javis" (un comentario de los Javis, máximo 18 palabras). Dirígete a ella por su nombre. Que cada crítica sea distinta.
 Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javis":"..."}]}`,
             { json: true, max: 1600, temp: 0.85, timeout: 30000 },
