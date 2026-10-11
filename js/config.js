@@ -127,20 +127,19 @@ function placeholderSVG(name, portrait) {
   Object.entries(REINAS_ES).forEach(([id, r]) => {
     const p = bestPlacement[id] || 0;
     const h = hashStr(id);
-    // Reparte entre 12 y 15 puntos de estadística, de 1 a 5 cada una (cada reina destaca en cosas distintas)
-    const total = 12 + Math.round(p * 3);
-    const stats = { speed: 1, rate: 1, power: 1, lives: 1 };
-    const keys = Object.keys(stats);
-    let left = total - 4;
-    let k = h;
-    while (left > 0) {
-      const key = keys[(k >>> 16) % 4];
-      if (stats[key] < 5) {
-        stats[key]++;
-        left--;
-      }
+    // Todas tienen los mismos puntos (14), repartidos de forma distinta: cada una destaca en cosas diferentes
+    const PATRONES = [[5, 4, 3, 2], [5, 5, 2, 2], [4, 4, 3, 3], [5, 4, 4, 1], [5, 3, 3, 3], [4, 4, 4, 2], [5, 5, 3, 1], [5, 4, 2, 3]];
+    const pat = PATRONES[h % PATRONES.length].slice();
+    // Orden propio de cada reina (barajado con su nombre)
+    let k = h >>> 3;
+    for (let i = pat.length - 1; i > 0; i--) {
+      const j = k % (i + 1);
+      [pat[i], pat[j]] = [pat[j], pat[i]];
       k = (Math.imul(k, 1103515245) + 12345) >>> 0;
+      k = k >>> 8;
     }
+    const keys = ["speed", "rate", "power", "lives"];
+    const stats = Object.fromEntries(keys.map((key, i) => [key, pat[i]]));
     const isWinner = TEMPORADAS_ES.some((t) => !t.enEmision && t.cast[t.cast.length - 1] === id);
     QUEENS.push({
       id,
