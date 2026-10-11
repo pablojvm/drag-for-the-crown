@@ -348,8 +348,7 @@ const Story = (() => {
     PLAIN.forEach((k) => d[k] !== undefined && (S[k] = d[k]));
     UI.show("story");
     Sound.stopAll();
-    if (S.ep === 0 && !S.flags.shopped && S.runwayPlan) return javisCall(nextEpisode);
-    if (S.ep === 0 && !S.flags.prepped && S.runwayPlan) return prepAllLooks(nextEpisode);
+    if (S.ep === 0 && !S.flags.prepped && S.runwayPlan) return S.flags.grant ? prepAllLooks(nextEpisode) : javisCall(nextEpisode);
     if (S.meOut && S.flags.waitRepesca) return repescaStep();
     if (S.meOut && S.flags.aftermath) return S.flags.reunion ? afterFinal() : afterStep();
     if (S.phase && S.phase.ep === S.ep && S.ep > 0) return resumeMid();
@@ -6387,9 +6386,9 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
           <p class="muted">El orden de los retos y las pasarelas es sorpresa: puede cambiar sobre la marcha. Luego vienen el reencuentro y la gran final. Si te eliminan antes, lo que no uses se queda en tu armario para la próxima temporada.</p>
           <p class="gold">${grant ? `💶 Producción te ingresa ${euros(grant)} para lo que te falta.` : "💶 Con tu armario y tus ahorros te llega: producción no pone nada esta vez."} Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
           <p class="muted">🛑 Solo puedes comprar ahora. Lo que ganes en la temporada (minirretos, retos, corona) te servirá para la siguiente.</p>
-          <button class="btn btn-primary" id="story-go">🛍️ Ir de compras</button>
+          <button class="btn btn-primary" id="story-go">👗 Preparar mis looks</button>
         </div>`;
-      $("#story-go").addEventListener("click", () => shopScreen(body(), () => prepAllLooks(then), true));
+      $("#story-go").addEventListener("click", () => prepAllLooks(then));
     });
   }
   // Después de las compras: preparas en el maniquí todos los looks de la temporada, uno por pasarela
@@ -6400,10 +6399,12 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     const cats = [...new Set(allPlannedLooks())];
     S.prepLooks = S.prepLooks || {};
     const ballOf = (c) => (S.ballPlan || []).includes(c) && !(S.runwayPlan || []).includes(c) ? BALLS.find((b) => b.c.some((x) => x[0] === c)) : null;
-    const next = () => {
-      const i = cats.findIndex((c) => !S.prepLooks[c]);
+    const next = (at) => {
+      const i = at != null ? at : cats.findIndex((c) => !S.prepLooks[c]);
       if (i < 0) {
         S.flags.prepped = 1;
+        S.flags.shopped = 1;
+        S.usedLooks = [...new Set(Object.values(S.prepLooks).map((x) => x.look && !x.look.loan && x.look.id).filter(Boolean))];
         save();
         body().innerHTML = `
           <div class="story-card intro">
@@ -6420,10 +6421,116 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       }
       const c = cats[i], b = ballOf(c);
       $("#story-ep").textContent = `Maletas · ${i + 1}/${cats.length}`;
-      body().innerHTML = `<div id="story-play" class="prep-play"></div>`;
-      dressingRoom($("#story-play"), c, (plain) => { S.prepLooks[c] = plain; save(); next(); }, b ? `🎭 ${b.n} · ` : "👠 Pasarela · ", { plan: true, next: i + 1 < cats.length ? "Siguiente look" : "Terminar" });
+      lookStudio(c, i, cats, b, (plain) => { S.prepLooks[c] = plain; save(); const j = cats.findIndex((x, n) => n > i && !S.prepLooks[x]); next(j >= 0 ? j : cats.findIndex((x) => !S.prepLooks[x])); }, i > 0 ? () => next(i - 1) : null);
     };
     next();
+  }
+  // Estudio de looks: a la izquierda la temática y el maniquí; a la derecha la tienda y tu armario
+  function lookStudio(cat, idx, cats, ball, done, back) {
+    const TH = themeOf(cat);
+    const bx = ball && ball.c.find((x) => x[0] === cat);
+    const desc = TH ? TH.d : bx ? bx[2] : "";
+    const K = ["look", "peluca", "zapatos", "acc"];
+    const BASE = { look: "base-maniqui", peluca: "base-cabeza", zapatos: "base-peana", acc: "base-bandeja" };
+    const ICON = { look: "👗", peluca: "💇", zapatos: "👠", acc: "💄" };
+    const ONE = { look: "Look", peluca: "Peluca", zapatos: "Tacones", acc: "Toque final" };
+    const chosen = {};
+    let tab = "look", filt = "all";
+    // Looks ya reservados para otras pasarelas (no se repiten)
+    const taken = () => new Map(Object.entries(S.prepLooks || {}).filter(([c, x]) => c !== cat && x.look && !x.look.loan).map(([c, x]) => [x.look.id, c]));
+    const items = () => {
+      let L = ARMARIO[tab].filter((x) => tab !== "look" || !x.rv || (TH && TH.rv));
+      if (filt === "mine") L = L.filter((x) => Closet.has(x.id));
+      return L.slice().sort((a, b) => (Closet.has(b.id) ? 1 : 0) - (Closet.has(a.id) ? 1 : 0) || priceOf(a) - priceOf(b));
+    };
+    const host = body();
+    function render() {
+      const tk = taken();
+      const L = items();
+      const y = host.querySelector(".ls-grid") ? host.querySelector(".ls-grid").scrollTop : 0;
+      const img = (k) => pieceImg(chosen[k] ? chosen[k].id : BASE[k]);
+      const all = K.every((k) => chosen[k]);
+      host.innerHTML = `
+        <div class="ls">
+          <div class="ls-left">
+            <p class="eyebrow">${ball ? `🎭 ${esc(ball.n)}` : "👠 Pasarela"} · ${idx + 1} de ${cats.length}</p>
+            <h3>«${esc(cat)}»</h3>
+            ${desc ? `<p class="ls-desc">${esc(desc)}</p>` : ""}
+            <div class="ls-room">
+              <button class="ls-st ls-look ${tab === "look" ? "on" : ""}" data-k="look"><img src="${img("look")}" alt=""></button>
+              <div class="ls-side">
+                ${["peluca", "zapatos", "acc"].map((k) => `<button class="ls-st ls-${k} ${tab === k ? "on" : ""}" data-k="${k}"><img src="${img(k)}" alt=""></button>`).join("")}
+              </div>
+            </div>
+            <ul class="ls-sel">${K.map((k) => `<li class="${chosen[k] ? "ok" : ""}" data-k="${k}">${ICON[k]} <b>${ONE[k]}:</b> ${chosen[k] ? `${esc(chosen[k].n)}${chosen[k].loan ? " <small>(prestado)</small>" : ""}` : `<i>sin elegir</i>`}</li>`).join("")}</ul>
+            <div class="ls-actions">
+              ${back ? `<button class="btn btn-ghost" id="ls-back">← Anterior</button>` : ""}
+              <button class="btn btn-primary" id="ls-next" ${all ? "" : "disabled"}>${idx + 1 < cats.length ? "Siguiente pasarela →" : "✅ Terminar"}</button>
+            </div>
+          </div>
+          <div class="ls-right">
+            <div class="ls-top">
+              <b class="shop-money">💶 <span class="closet-money">${euros(Closet.money)}</span></b>
+              <button class="btn btn-ghost small-btn" id="ls-loan">🔁 Préstamo de producción</button>
+              <button class="btn btn-ghost small-btn" id="ls-taller">✂️ Taller</button>
+            </div>
+            <div class="shop-tabs">
+              ${K.map((k) => `<button class="shop-tab ${tab === k ? "on" : ""}" data-t="${k}">${ICON[k]} ${SLOT_NAMES[k]}</button>`).join("")}
+              <span class="shop-sep"></span>
+              <button class="shop-f ${filt === "all" ? "on" : ""}" data-f="all">Todo</button>
+              <button class="shop-f ${filt === "mine" ? "on" : ""}" data-f="mine">Mi armario</button>
+            </div>
+            <div class="shop-grid ls-grid">${L.map((it) => {
+              const own = Closet.has(it.id), p = priceOf(it), mov = statOf(it)[1];
+              const sel = chosen[tab] && chosen[tab].id === it.id;
+              const busy = tab === "look" && tk.get(it.id);
+              const btn = sel ? `<span class="shop-own">✔ Puesto</span>`
+                : busy ? `<span class="shop-busy">En «${esc(busy)}»</span>`
+                : own ? `<button class="btn btn-primary shop-buy ls-put" data-id="${it.id}">Ponérmelo</button>`
+                : `<button class="btn ${Closet.money >= p ? "btn-primary" : "btn-ghost"} shop-buy ls-buy" data-id="${it.id}" ${Closet.money >= p ? "" : "disabled"}>Comprar · ${euros(p)}</button>`;
+              return `<div class="shop-card ${own ? "own" : ""} ${sel ? "sel" : ""} ${busy ? "busy" : ""}">
+                <div class="shop-img"><img loading="lazy" src="${pieceImg(it.id)}" alt="">${it.rv ? `<img loading="lazy" class="at-rv" src="${pieceImg(it.rv)}" alt="">` : ""}</div>
+                <b>${esc(it.n)}</b>
+                <small class="shop-st">👣 ${mov}/5${own ? " · ✔ tuyo" : ""}</small>
+                ${btn}
+              </div>`;
+            }).join("") || `<p class="muted">Aún no tienes nada aquí.</p>`}</div>
+            <p class="muted shop-legend">Lo que compres es tuyo para siempre. Los tacones, pelucas y toques puedes repetirlos; los looks no. 👣 ayuda a desfilar. Si encaja con la temática lo decide el jurado.</p>
+          </div>
+        </div>`;
+      const g = host.querySelector(".ls-grid");
+      if (g) g.scrollTop = y;
+      const pick = (it, loan) => { chosen[tab] = loan ? { ...it, loan: true } : it; const nx = K.find((k) => !chosen[k]); if (nx && !loan) { tab = nx; filt = "all"; host.querySelector(".ls-grid") && (host.querySelector(".ls-grid").scrollTop = 0); } render(); if (nx && !loan) { const g2 = host.querySelector(".ls-grid"); if (g2) g2.scrollTop = 0; } };
+      host.querySelectorAll(".shop-tab").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.t; render(); host.querySelector(".ls-grid").scrollTop = 0; }));
+      host.querySelectorAll(".ls-st, .ls-sel li").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.k; render(); host.querySelector(".ls-grid").scrollTop = 0; }));
+      host.querySelectorAll(".shop-f").forEach((b) => b.addEventListener("click", () => { filt = b.dataset.f; render(); }));
+      host.querySelectorAll(".ls-put").forEach((b) => b.addEventListener("click", () => pick(ARMARIO[tab].find((x) => x.id === b.dataset.id))));
+      host.querySelectorAll(".ls-buy").forEach((b) => b.addEventListener("click", () => {
+        const it = ARMARIO[tab].find((x) => x.id === b.dataset.id);
+        if (it && Closet.buy(it)) { Sound.countdown && Sound.countdown(false); Toast.show("🛍️ ¡Comprado!", it.n); pick(it); }
+      }));
+      $("#ls-loan").addEventListener("click", () => {
+        const tk2 = taken();
+        const pool = ARMARIO[tab].filter((x) => !Closet.has(x.id) && !tk2.has(x.id) && statOf(x)[0] <= 2 && (tab !== "look" || !x.rv));
+        const it = pick1(pool.length ? pool : ARMARIO[tab].filter((x) => !Closet.has(x.id) && !tk2.has(x.id)));
+        if (!it) return;
+        Toast.show("🔁 Préstamo de producción", `${it.n}: básico y sin gastar, pero puntúa poco`);
+        pick(it, true);
+      });
+      $("#ls-taller").addEventListener("click", () => tallerScreen(host, () => { syncHechos(); render(); }));
+      if ($("#ls-back")) $("#ls-back").addEventListener("click", back);
+      $("#ls-next").addEventListener("click", () => {
+        if (!K.every((k) => chosen[k])) return;
+        const plain = {};
+        K.forEach((k) => (plain[k] = { id: chosen[k].id, loan: !!chosen[k].loan }));
+        Confetti.burst(500);
+        done(plain);
+      });
+    }
+    // Si ya estaba preparado (al volver atrás), se recupera
+    const pre = (S.prepLooks || {})[cat];
+    if (pre) K.forEach((k) => { const it = pre[k] && ARMARIO[k].find((x) => x.id === pre[k].id); if (it) chosen[k] = pre[k].loan ? { ...it, loan: true } : it; });
+    render();
   }
   // La tienda: todo el armario, con precio y estadísticas
   function shopScreen(el, onDone, first = false) {
@@ -6459,7 +6566,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
             <h3>🛍️ La tienda</h3>
             <b class="shop-money">💶 <span class="closet-money">${euros(Closet.money)}</span></b>
             <button class="btn btn-ghost" id="shop-taller">✂️ Taller de costura</button>
-            <button class="btn btn-primary" id="shop-done">${first ? "Cerrar maletas: ¡al taller!" : "Cerrar"}</button>
+            <button class="btn btn-primary" id="shop-done">${first ? "Terminar compras: preparar los looks 👗" : "Cerrar"}</button>
           </div>
           ${plan.length ? `<div class="shop-plan"><small class="muted">Tus pasarelas:</small> ${plan.map((c) => { const t = themeOf(c); return `<span class="plan-chip" title="${esc(t ? t.d : "")}">${esc(c)}</span>`; }).join("")}</div>` : ""}
           <div class="shop-tabs">
@@ -6493,7 +6600,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
         const nLooks = ARMARIO.look.filter((x) => Closet.has(x.id)).length;
         if (first && nLooks < plan.length && !el.dataset.warned) {
           el.dataset.warned = 1;
-          return Toast.show("⚠️ ¿Cerrar maletas?", `Tienes ${nLooks} looks para ${plan.length} pasarelas. Después ya no podrás comprar: producción te prestará algo básico. Pulsa otra vez para entrar igualmente.`);
+          return Toast.show("⚠️ ¿Terminar las compras?", `Tienes ${nLooks} looks para ${plan.length} pasarelas. Después ya no podrás comprar: producción te prestará algo básico. Pulsa otra vez para ir a preparar los looks.`);
         }
         if (first) { S.flags.shopped = 1; save(); }
         onDone();

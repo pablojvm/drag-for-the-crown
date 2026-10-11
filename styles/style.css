@@ -2188,3 +2188,31 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 .rp-res{font-weight:800;font-size:.85rem;white-space:nowrap;text-align:right}
 .rp-rank li.win .rp-res{color:#2f6fe0}.rp-rank li.btm .rp-res{color:#e8132f}.rp-rank li.safe .rp-res{color:#666}
 @media (max-width:640px){.rp-rank li{grid-template-columns:2.2rem 1fr auto 1fr;}.rp-res{grid-column:1/-1;text-align:left}}
+/* Estudio de looks (antes de la temporada): temática + maniquí + tienda */
+.ls { width: 1240px; max-width: 100%; display: grid; grid-template-columns: 420px 1fr; gap: 18px; align-items: stretch; }
+.ls-left { background: rgba(255,255,255,.95); border-radius: 28px; padding: 16px 18px; box-shadow: 0 0 0 5px #ffcf4d, 0 30px 60px -20px rgba(59,13,79,.55); display: flex; flex-direction: column; gap: 8px; }
+.ls-left h3 { margin: 0; font-size: 26px; color: var(--ink); }
+.ls-desc { margin: 0; font-size: 14px; line-height: 1.4; color: #5a3d6b; background: #fff4fa; border-radius: 14px; padding: 8px 12px; }
+.ls-room { position: relative; height: 330px; border-radius: 22px; overflow: hidden; background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,210,235,.4)), url('../images/sets/werkroom2.jpg') center / cover; display: grid; grid-template-columns: 1.3fr 1fr; align-items: end; padding: 10px; gap: 6px; }
+.ls-st { background: none; border: 0; padding: 0; cursor: pointer; display: flex; align-items: flex-end; justify-content: center; border-radius: 16px; transition: transform .2s; }
+.ls-st:hover { transform: translateY(-3px); }
+.ls-st.on { box-shadow: 0 0 0 3px var(--gold, #ffcf4d); background: rgba(255,255,255,.35); }
+.ls-st img { object-fit: contain; filter: drop-shadow(0 10px 12px rgba(59,13,79,.4)); max-width: 100%; }
+.ls-look img { height: 300px; }
+.ls-side { display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: flex-end; height: 100%; }
+.ls-peluca img { height: 120px; } .ls-zapatos img { height: 70px; } .ls-acc img { height: 70px; }
+.ls-sel { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.ls-sel li { padding: 5px 10px; border-radius: 10px; background: #f4f0f7; cursor: pointer; }
+.ls-sel li.ok { background: #eafff2; }
+.ls-sel li i { color: #a07; }
+.ls-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: auto; }
+.ls-actions .btn[disabled] { opacity: .45; cursor: not-allowed; }
+.ls-right { background: rgba(255,255,255,.95); border-radius: 28px; padding: 14px 16px; box-shadow: 0 0 0 5px #ffcf4d, 0 30px 60px -20px rgba(59,13,79,.55); display: flex; flex-direction: column; gap: 8px; max-height: 720px; min-height: 0; }
+.ls-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ls-grid { flex: 1; min-height: 0; }
+.shop-card.sel { box-shadow: 0 0 0 3px var(--gold, #ffcf4d); background: #fffbe8; }
+.shop-card.busy { opacity: .5; }
+.shop-busy { font-size: 11px; font-weight: 700; color: #8a6d9a; }
+@media (max-width: 900px) { .ls { grid-template-columns: 1fr; } .ls-room { height: 260px; } .ls-look img { height: 230px; } .ls-right { max-height: none; } .ls-grid { max-height: 520px; } }
+.ls-actions .btn { font-size: 15px; padding: 10px 18px; }
+.ls .shop-buy { font-size: 12px; padding: 6px 8px; white-space: nowrap; }
