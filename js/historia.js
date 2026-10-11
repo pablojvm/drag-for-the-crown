@@ -795,7 +795,32 @@ const Story = (() => {
     const v = keys.reduce((t, k) => t + (a[k] || 5), 0) / keys.length;
     return r.noRunway || !r.attrs ? v : v * 0.7 + (a.estilo || 5) * 0.3;
   };
-  const rivalScore = (q) => clamp(28 + retoAttrOf(q) * 6 + seasonBoost() + clamp(S.form[q.id] || 0, -8, 8) + traitMod(q) + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) : 0) + rnd(-12, 6), 5, 97);
+  // Detrás de cámaras: cada semana cada reina "tira el dado". Sus atributos del reto marcan las probabilidades
+  // de que le salga brillante, buena, normal, floja o un desastre; la nota sale de ese resultado.
+  const DADO = { low: [3, 10, 30, 32, 25], mid: [10, 22, 38, 20, 10], high: [30, 35, 25, 8, 2] };
+  const DADO_NOTA = [[90, 99], [78, 89], [62, 77], [45, 61], [20, 44]];
+  function dadoProbs(a) {
+    const t = clamp((a - 2.5) / 7, 0, 1);
+    const [A, B, u] = t < 0.5 ? [DADO.low, DADO.mid, t / 0.5] : [DADO.mid, DADO.high, (t - 0.5) / 0.5];
+    return A.map((x, i) => x + (B[i] - x) * u);
+  }
+  function tirarDado(a) {
+    const p = dadoProbs(a);
+    let r = Math.random() * p.reduce((x, y) => x + y, 0), i = 0;
+    for (; i < 4; i++) { r -= p[i]; if (r < 0) break; }
+    return i;
+  }
+  const notaDe = (cat, pos) => { const [lo, hi] = DADO_NOTA[clamp(cat, 0, 4)]; return Math.round(lo + (hi - lo) * clamp(pos, 0, 1)); };
+  // Rachas, rasgos, némesis y temporadas más duras mueven un poco el dado (en puntos de atributo)
+  const dadoExtra = (q) => (seasonBoost() / 5) + clamp(S.form[q.id] || 0, -8, 8) / 6 + traitMod(q) / 6 + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) / 6 : 0);
+  const rivalScore = (q) => clamp(notaDe(tirarDado(retoAttrOf(q) + dadoExtra(q)), Math.random()), 5, 99);
+  // Tu nota: tu juego mueve tu dado (bordarlo sube escalones, hacerlo mal los baja), pero no lo asegura
+  function myDado(played) {
+    const steps = played >= 90 ? (Math.random() < 0.35 ? 2 : 1) : played >= 75 ? 1 : played >= 55 ? 0 : played >= 35 ? -1 : -2;
+    const a = retoAttrOf(S.queen) + seasonBoost() / 10;
+    const cat = clamp(tirarDado(a) - steps, 0, 4);
+    return notaDe(cat, 0.35 + clamp((played - 40) / 60, 0, 1) * 0.65);
+  }
 
   function header() {
     $("#story-season").textContent = `Modo historia · ${S.season.name} · ${seasonInfo().lema || S.season.franchise.name}`;
@@ -1513,6 +1538,8 @@ const Story = (() => {
     let sc = {};
     if (S.phase && S.phase.ep === S.ep && S.phase.sc) sc = { ...S.phase.sc };
     S.rivals.forEach((q) => { if (sc[q.id] == null) sc[q.id] = rivalScore(q); });
+    if (sc.__dado == null && typeof window.__forceScore !== "number") sc.__dado = myDado(myScore);
+    if (sc.__dado != null) myScore = sc.__dado;
     // Segunda Oportunidrag: la nota es de la pareja (la reina y su eliminada)
     if (S.curTipo === "repescaStand" && S.rp && S.rp.ep === S.ep && !sc.__rp) {
       sc.__rp = 1;
