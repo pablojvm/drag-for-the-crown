@@ -2171,3 +2171,4 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 .rp-pair span{display:flex;align-items:center;gap:.3rem;flex:1;min-width:0}
 .rp-pair i{width:30px;height:30px;border-radius:50%;background-size:cover;background-position:top;flex:none}
 .t-rtrn { background: #9b5de5; color: #fff; }
+.t-mc { background: #f5c542; color: #3a2a00; }

@@ -880,14 +880,14 @@ const Story = (() => {
     (S.track[k] = S.track[k] || {})[S.ep] = lab;
   }
   const TRACK_CLASS = (l) =>
-    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : l === "RTRN" ? "t-rtrn" : "t-none";
-  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", MISSC: "MISS CONGENIALITY", RTRN: "RTRN" };
+    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : l === "RTRN" ? "t-rtrn" : l === "MC" ? "t-mc" : "t-none";
+  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", MISSC: "MISS CONGENIALITY", RTRN: "RTRN", MC: "MC" };
   function trackHTML() {
     const eps = Object.keys(S.epNames).map(Number).sort((a, b) => a - b);
     const everyone = [S.queen, ...S.rivals, ...S.out];
     const count = (k, test) => eps.filter((e) => test((S.track[k] || {})[e] || "")).length;
     // Orden de las que siguen: cómo quedaron en el último episodio con resultados
-    const ORDER = { WINNER: 0, WIN: 1, "RUNNER-UP": 2, TOP2: 3, FINAL: 3, HIGH: 4, "3ª": 5, SAFE: 6, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9 };
+    const ORDER = { WINNER: 0, WIN: 1, "RUNNER-UP": 2, TOP2: 3, FINAL: 3, HIGH: 4, "3ª": 5, SAFE: 6, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9, MC: 6, RTRN: 6.5 };
     const lastScored = [...eps].reverse().find((e) => everyone.some((q) => ORDER[(S.track[keyOf(q)] || {})[e]] !== undefined));
     const lastRank = (k) => { const l = lastScored && (S.track[k] || {})[lastScored]; return ORDER[l] !== undefined ? ORDER[l] : 7.5; };
     const lastEp = (k) => Math.max(0, ...eps.filter((e) => (S.track[k] || {})[e] && S.track[k][e] !== "MISSC"));
@@ -1342,7 +1342,7 @@ const Story = (() => {
     ];
     const ctx = ctxWith(pick1(S.rivals), { reto: S.curTitulo });
     const anuncio = () => S.curTipo === "repescaStand"
-      ? dialog([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", `Esta semana: ${S.curTitulo}. Cada una de vosotras hará un monólogo con una de ellas.`], ["host", "La eliminada de la pareja ganadora... vuelve a la competición. Y las reinas de las tres peores parejas harán un lip sync a tres bandas: solo se salva una."]], ctx, then)
+      ? dialog([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", `Esta semana: ${S.curTitulo}. Cada una de vosotras hará un monólogo con una de ellas.`], ["host", "La eliminada de la pareja ganadora... vuelve a la competición. Y las reinas de las tres peores parejas harán un lip sync a tres bandas: solo se salva una."], ...(S.flags.immune ? [["host", `${S.flags.immune === "me" ? "{yo}" : (qById(S.flags.immune) || {}).name}, tú ganaste la semana pasada: esta semana no compites. Serás nuestra maestra de ceremonias.`]] : [])], ctx, then)
       : dialog(pickFresh(HISTORIA.anuncio), ctx, then);
     if (S.ep !== 1) return dialog([...sirena, ...pickFresh(HISTORIA.tallerHost)], ctx, anuncio);
     // Primer día: bienvenida de la temporada (y la caja de la suerte si toca)
@@ -1360,6 +1360,7 @@ const Story = (() => {
       const c = S.captains || [S.queen, ...S.rivals].sort((a, b) => (b === S.queen ? 70 : skillOf(b)) - (a === S.queen ? 70 : skillOf(a))).slice(0, 2);
       draft(c[0], c[1], go);
     };
+    if (tipo === "repescaStand" && S.flags.immune === "me") return mcEpisode();
     if (tipo === "repescaStand") return repescaPairs(go);
     const grouped = reto.groups && S.rivals.length + 1 >= reto.groups * 2;
     if (grouped) return formChallengeGroups(reto.groups, go);
@@ -1531,7 +1532,10 @@ const Story = (() => {
       teamLine = `<p class="gold">${aWins ? "🏆 ¡Tu equipo (Rosa) gana el reto por equipos! +8" : "El equipo Oro gana el reto por equipos."}</p>`;
     }
     // Retos por equipos: el jurado salva y nomina por bloques (ganan las del equipo ganador, el bottom sale del perdedor)
-    let rows = [{ q: S.queen, s: myScore, me: true }, ...S.rivals.map((q) => ({ q, s: sc[q.id] }))].sort((a, b) => (winTeam ? (winTeam.has(b.q) ? 1 : 0) - (winTeam.has(a.q) ? 1 : 0) : 0) || b.s - a.s);
+    // Segunda Oportunidrag: la maestra de ceremonias no compite
+    const mcQ = S.curTipo === "repescaStand" && S.flags.immune && S.flags.immune !== "me" ? qById(S.flags.immune) : null;
+    if (mcQ) mark(mcQ, "MC");
+    let rows = [{ q: S.queen, s: myScore, me: true }, ...S.rivals.filter((q) => q !== mcQ).map((q) => ({ q, s: sc[q.id] }))].sort((a, b) => (winTeam ? (winTeam.has(b.q) ? 1 : 0) - (winTeam.has(a.q) ? 1 : 0) : 0) || b.s - a.s);
     // Reto por grupos: se ordena por la media de cada grupo; dentro, por la nota de cada una
     let groupOf = null, nGroups = 0;
     if (S.cGroups) {
@@ -1563,7 +1567,7 @@ const Story = (() => {
       S.flags.immune = winner.me ? "me" : winner.q.id;
       S.flags.immuneEp = S.ep;
     }
-    if (tw === "repesca" && S.flags.immuneEp === S.ep) notes.push(`🛡️ ${winner.me ? "<b>Ganas la inmunidad</b>" : `<b>${esc(winner.q.name)}</b> gana la inmunidad`} para la semana que viene: si cae en el bottom, se salva del lip sync.`);
+    if (tw === "repesca" && S.flags.immuneEp === S.ep) notes.push(winner.me ? "🎤 <b>Ganas la inmunidad</b>: la semana que viene no compites, serás la <b>maestra de ceremonias</b>." : `🎤 <b>${esc(winner.q.name)}</b> gana la inmunidad: la semana que viene no compite, será la <b>maestra de ceremonias</b>.`);
     // Salvar a una del bottom: entra la siguiente peor que no esté ya dentro
     const saveRow = (row, how) => {
       const next = rows.slice(0, n - 1).reverse().find((r) => !bottomRows.includes(r) && r !== winner && !r.protected);
@@ -2594,6 +2598,66 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       ],
     );
   }
+  // Tú eres la maestra de ceremonias: presentas el show, no compites y estás a salvo
+  function mcEpisode() {
+    const comp = shuffle(S.rivals.slice());
+    const outs = shuffle(S.out.slice());
+    const pairs = comp.map((c) => ({ c, o: outs.shift() || null }));
+    S.rp = { ep: S.ep, pairs: Object.fromEntries(pairs.filter((p) => p.o).map((p) => [p.c.id, p.o.id])), ps: {} };
+    mark(S.queen, "MC");
+    dialog(
+      [["host", "{yo}, esta noche el escenario es tuyo: presenta a cada pareja y que no decaiga."], ["r1", "Nos dejas en buenas manos... o eso espero."]],
+      ctxWith(pick1(S.rivals)),
+      () => {
+        body().innerHTML = `
+          <div class="story-card intro">
+            <img class="story-queen" src="${sprite(S.queen)}" alt="">
+            <div>
+              <p class="eyebrow">🎤 Maestra de ceremonias</p>
+              <h3>Presentas la Segunda Oportunidrag</h3>
+              <div class="rp-pairs">${pairs.map((p) => `<div class="rp-pair"><span><i style="background-image:url('${photo(p.c)}')"></i>${esc(p.c.name)}</span><b>+</b><span>${p.o ? `<i style="background-image:url('${photo(p.o)}')"></i>${esc(p.o.name)}` : "sola"}</span></div>`).join("")}</div>
+              <p>No compites esta semana y estás a salvo. Si presentas con gracia, el jurado lo tendrá en cuenta.</p>
+              <button class="btn btn-primary" id="story-go">¡Al escenario!</button>
+            </div>
+          </div>`;
+        $("#story-go").addEventListener("click", () => {
+          body().innerHTML = `<div id="story-play"></div>`;
+          Music.play("reto");
+          runSnatch($("#story-play"), (raw) => {
+            cleanup = null;
+            if (typeof window.__forceScore === "number") raw = window.__forceScore;
+            Music.stop();
+            S.points += Math.round(raw) * 5;
+            if (raw >= 70) { S.advice += 4; Toast.show("🎤 ¡Qué maestra de ceremonias!", "+4 en el próximo reto"); }
+            pairs.forEach((p) => (p.s = p.o ? rivalScore(p.c) * 0.6 + rivalScore(p.o) * 0.4 + rnd(-6, 6) : rivalScore(p.c) + rnd(-6, 6)));
+            pairs.sort((a, b) => b.s - a.s);
+            const n = pairs.length, nb = n >= 5 ? 3 : 2;
+            const top = pairs[0], btm = pairs.slice(-nb);
+            const bestO = pairs.find((p) => p.o);
+            const back = bestO ? bestO.o : null;
+            pairs.forEach((p, k) => mark(p.c, k === 0 ? "WIN" : k >= n - nb ? `BTM${nb}` : k <= 1 ? "HIGH" : "SAFE"));
+            if (back) { S.out = S.out.filter((q) => q !== back); S.rivals.push(back); mark(back, "RTRN"); logEv(`${back.name} vuelve con la Segunda Oportunidrag`); }
+            const three = btm.map((p) => p.c);
+            const stay = three.slice(1).reduce((b, q) => simLS(b, q)[0], three[0]);
+            const gone = three.filter((q) => q !== stay);
+            gone.forEach((q) => eliminate(q));
+            S.flags.repesca = true;
+            S.flags.immune = null;
+            header();
+            body().innerHTML = `
+              <div class="story-card">
+                <p class="eyebrow">🔁 Segunda Oportunidrag · resultados</p>
+                <h3>${esc(top.c.name)} gana el reto${back ? ` y ${esc(back.name)} vuelve a la competición` : ""}</h3>
+                <ol class="ranking">${pairs.map((p, k) => `<li style="--i:${k}"><i style="background-image:url('${photo(p.c)}')"></i><span>${esc(p.c.name)}${p.o ? ` + ${esc(p.o.name)}` : ""}</span>${k === 0 ? `<b class="tag win">Ganadoras</b>` : k >= n - nb ? `<b class="tag">Bottom</b>` : ""}</li>`).join("")}</ol>
+                <p>💄 Lip sync a tres bandas: se salva <b>${esc(stay.name)}</b>. <b>${gone.map((q) => esc(q.name)).join("</b> y <b>")}</b> se van a casa.</p>
+                <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
+              </div>`;
+            endEpisodeBtn();
+          }, PREGUNTAS, "🎤 Presentas el show", "Presentación", 4);
+        });
+      },
+    );
+  }
   // Parejas de la Segunda Oportunidrag: cada reina en competición con una eliminada
   function repescaPairs(then) {
     const comp = [S.queen, ...S.rivals];
@@ -2606,7 +2670,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       // Tú siempre vas con pareja; si faltan eliminadas, alguna rival va sola
       // (si sobra una, va sola la que tiene la inmunidad)
       const imm = S.flags.immune && S.flags.immune !== "me" ? qById(S.flags.immune) : null;
-      [...(myPick ? [] : [S.queen]), ...shuffle(S.rivals.filter((q) => q !== imm)), ...(imm && S.rivals.includes(imm) ? [imm] : [])].forEach((q) => { const o = rest.shift(); if (o) pairs[q === S.queen ? "me" : q.id] = o.id; });
+      [...(myPick ? [] : [S.queen]), ...shuffle(S.rivals.filter((q) => q !== imm))].forEach((q) => { const o = rest.shift(); if (o) pairs[q === S.queen ? "me" : q.id] = o.id; });
       Object.values(pairs).forEach((id) => { const q = qById(id); if (q) ps[id] = clamp(Math.round(rivalScore(q) + rnd(-8, 8)), 0, 99); });
       S.rp = { ep: S.ep, pairs, ps };
       const nm = (k) => (k === "me" ? "Tú" : (qById(k) || {}).name || k);
@@ -2614,6 +2678,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         <div class="story-card">
           <p class="eyebrow">🔁 Segunda Oportunidrag · las parejas</p>
           <h3>${pairs.me ? `Tu pareja: ${esc(qById(pairs.me).name)}` : "Te toca ir sola"}</h3>
+          ${imm ? `<p class="twist-note">🎤 ${esc(imm.name)} es la maestra de ceremonias: no compite esta semana.</p>` : ""}
           <div class="rp-pairs">${Object.entries(pairs).map(([k, o]) => `<div class="rp-pair ${k === "me" ? "me" : ""}"><span><i style="background-image:url('${photo(k === "me" ? S.queen : qById(k))}')"></i>${esc(nm(k))}</span><b>+</b><span><i style="background-image:url('${photo(qById(o))}')"></i>${esc(qById(o).name)}</span></div>`).join("")}</div>
           <p class="muted">Si vuestra pareja gana, ${pairs.me ? esc(qById(pairs.me).name) : "tu compañera"} vuelve a la competición. Si quedáis entre las tres peores, lip sync a tres bandas: solo se salva una.</p>
           <button class="btn btn-primary" id="story-next">¡Al escenario!</button>
@@ -2663,7 +2728,9 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     S.flags.waitRepesca = 0;
     setSet("werkroom");
     header();
-    const comp = shuffle(S.rivals.slice());
+    const mcQ = S.flags.immune ? qById(S.flags.immune) : null;
+    if (mcQ) mark(mcQ, "MC");
+    const comp = shuffle(S.rivals.filter((q) => q !== mcQ));
     const outs = shuffle(S.out.slice());
     const mate = comp[0];
     const pairs = [{ c: mate, o: null, me: true }, ...comp.slice(1).map((c) => ({ c, o: outs.shift() || null }))];
