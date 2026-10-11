@@ -789,7 +789,14 @@ const Story = (() => {
   const skillOf = (q) => 40 + Object.values(q.stats).reduce((a, b) => a + b, 0) * 2;
   // Cada temporada de la franquicia es algo más dura que la anterior
   const seasonBoost = () => Math.min(10, ((S.season && S.season.index) || 0) * 2);
-  const rivalScore = (q) => clamp(skillOf(q) + seasonBoost() + clamp(S.form[q.id] || 0, -8, 8) + traitMod(q) + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) : 0) + rnd(-18, 8), 5, 97);
+  // Lo que cuenta en el reto de la semana: los atributos que pide (y el estilo si hay pasarela)
+  const retoAttrOf = (q) => {
+    const a = attrsOf(q), r = RETOS[S.curTipo] || {};
+    const keys = r.attrs && r.attrs.length ? r.attrs : Object.keys(ATTR_NAMES);
+    const v = keys.reduce((t, k) => t + (a[k] || 5), 0) / keys.length;
+    return r.noRunway || !r.attrs ? v : v * 0.7 + (a.estilo || 5) * 0.3;
+  };
+  const rivalScore = (q) => clamp(28 + retoAttrOf(q) * 6 + seasonBoost() + clamp(S.form[q.id] || 0, -8, 8) + traitMod(q) + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) : 0) + rnd(-12, 6), 5, 97);
 
   function header() {
     $("#story-season").textContent = `Modo historia · ${S.season.name} · ${seasonInfo().lema || S.season.franchise.name}`;
@@ -3288,6 +3295,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
   function simWeek() {
     S.ep++;
     const tipo = pickReto();
+    S.curTipo = tipo;
+    S.curEpTipo = S.ep;
     S.epNames[S.ep] = EP_SHORT[tipo] || "Reto";
     const rows = S.rivals.map((q) => ({ q, s: rivalScore(q) + rnd(-10, 10) })).sort((a, b) => b.s - a.s);
     const n = rows.length;

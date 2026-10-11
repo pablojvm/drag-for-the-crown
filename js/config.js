@@ -127,8 +127,8 @@ function placeholderSVG(name, portrait) {
   Object.entries(REINAS_ES).forEach(([id, r]) => {
     const p = bestPlacement[id] || 0;
     const h = hashStr(id);
-    // Reparte entre 11 y 16 puntos de estadística, de 1 a 5 cada una
-    const total = 11 + Math.round(p * 5);
+    // Reparte entre 12 y 15 puntos de estadística, de 1 a 5 cada una (cada reina destaca en cosas distintas)
+    const total = 12 + Math.round(p * 3);
     const stats = { speed: 1, rate: 1, power: 1, lives: 1 };
     const keys = Object.keys(stats);
     let left = total - 4;
