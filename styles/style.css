@@ -2172,3 +2172,19 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 .rp-pair i{width:30px;height:30px;border-radius:50%;background-size:cover;background-position:top;flex:none}
 .t-rtrn { background: #9b5de5; color: #fff; }
 .t-mc { background: #f5c542; color: #3a2a00; }
+/* Ranking por parejas (Segunda Oportunidrag) */
+.rp-rank{list-style:none;margin:.8rem auto;padding:0;display:flex;flex-direction:column;gap:.35rem;max-width:760px}
+.rp-rank li{display:grid;grid-template-columns:3rem 1fr auto 1fr auto;align-items:center;gap:.5rem;background:rgba(255,255,255,.85);border-radius:14px;padding:.45rem .8rem;animation:rpIn .35s both;animation-delay:calc(var(--i)*70ms);border-left:6px solid #c9c9d6}
+@keyframes rpIn{from{opacity:0;transform:translateY(8px)}}
+.rp-rank li.win{border-left-color:#2f6fe0;background:#eaf1ff}
+.rp-rank li.btm{border-left-color:#e8132f;background:#ffecee}
+.rp-rank li.me{outline:2px solid var(--gold,#f5c542)}
+.rp-pos{font-family:var(--font-display,inherit);font-size:1.3rem;color:#5b2a86;text-align:center}
+.rp-q{display:flex;align-items:center;gap:.45rem;min-width:0}
+.rp-q i{width:38px;height:38px;border-radius:50%;background-size:cover;background-position:top;flex:none;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.rp-q i.none{background:#ddd}
+.rp-q em{font-style:normal;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rp-plus{font-weight:800;color:#b03a8c}
+.rp-res{font-weight:800;font-size:.85rem;white-space:nowrap;text-align:right}
+.rp-rank li.win .rp-res{color:#2f6fe0}.rp-rank li.btm .rp-res{color:#e8132f}.rp-rank li.safe .rp-res{color:#666}
+@media (max-width:640px){.rp-rank li{grid-template-columns:2.2rem 1fr auto 1fr;}.rp-res{grid-column:1/-1;text-align:left}}

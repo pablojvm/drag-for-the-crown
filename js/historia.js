@@ -2485,6 +2485,18 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
   // ¿Toca la Segunda Oportunidrag? Cuando quedan siete reinas en competición
   const REPESCA_AT = 7;
   const repescaNow = () => twistOf() === "repesca" && !S.flags.repesca && !S.meOut && S.rivals.length + 1 <= REPESCA_AT;
+  // Ranking de parejas en una sola columna, con puesto, las dos caras y su resultado
+  function pairRankHTML(items) {
+    // items: [{c, o, me, res: "win"|"safe"|"btm"}]
+    const face = (q) => (q ? `<i style="background-image:url('${photo(q)}')"></i>` : `<i class="none"></i>`);
+    const RES = { win: ["👑 Ganan", "win"], safe: ["A salvo", "safe"], btm: ["💔 Bottom", "btm"] };
+    return `<ol class="rp-rank">${items.map((x, k) => `<li class="${x.me ? "me" : ""} ${RES[x.res][1]}" style="--i:${k}">
+      <b class="rp-pos">${k + 1}º</b>
+      <span class="rp-q">${face(x.c)}<em>${esc(x.me ? "Tú" : x.c.name)}</em></span>
+      <span class="rp-plus">+</span>
+      <span class="rp-q">${face(x.o)}<em>${x.o ? esc(x.o.name) : "sola"}</em></span>
+      <span class="rp-res">${RES[x.res][0]}${x.back ? ` · 🔁 vuelve ${esc(x.o.name)}` : ""}</span></li>`).join("")}</ol>`;
+  }
   // Lip sync a tres bandas: se salva una y se van dos (la inmune, si está en el bottom, se salva siempre)
   const immuneQ = () => (S.flags.immune === "me" ? S.queen : S.flags.immune ? qById(S.flags.immune) : null);
   function tripleVerdict(three, meWon) {
@@ -2510,7 +2522,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         <div class="story-card">
           <p class="eyebrow">🔁 Segunda Oportunidrag · ranking por parejas</p>
           <h3>${winner.me ? "¡Vuestra pareja gana el reto! 👑" : partner(winner) ? `Ganan ${nmR(winner)} y ${esc(partner(winner).name)}` : `Gana ${nmR(winner)}, que iba sola`}</h3>
-          <ol class="ranking">${list.map((r, k) => `<li style="--i:${k}" class="${r.me ? "me" : ""}"><i style="background-image:url('${photo(r.q)}')"></i><span>${nmR(r)}${partner(r) ? ` + ${esc(partner(r).name)}` : ""}</span>${k === 0 ? `<b class="tag win">Ganadoras</b>` : bottomRows.includes(r) ? `<b class="tag">Bottom</b>` : ""}</li>`).join("")}</ol>
+          ${pairRankHTML(list.map((r, k) => ({ c: r.me ? S.queen : r.q, o: partner(r), me: r.me, res: k === 0 ? "win" : bottomRows.includes(r) ? "btm" : "safe", back: r === bestPair && back })))}
+          <p class="muted">Las reinas de las tres peores parejas van al lip sync a tres bandas: se salva una y se van dos.</p>
           <button class="btn btn-primary" id="story-next">Continuar</button>
         </div>`;
       return $("#story-next").addEventListener("click", () => {
@@ -2523,7 +2536,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         save();
         header();
         dialog(
-          [["host", `${back.name}, ${bestPair === winner ? "tu pareja ha ganado el reto" : "tu pareja es la mejor de las que teníais una eliminada"}... así que te has ganado tu SEGUNDA OPORTUNIDRAG.`], ["host", "¡Vuelves a la competición!"], ...HISTORIA.regresoVuelve],
+          [["host", bestPair === winner ? `${winner.me ? "{yo}" : winner.q.name} y ${back.name}: ¡habéis ganado el reto las dos!` : `${back.name}, vuestra pareja es la mejor de las que teníais una eliminada.`], ["host", `${back.name}, te has ganado tu SEGUNDA OPORTUNIDRAG... ¡vuelves a la competición!`], ...HISTORIA.regresoVuelve],
           ctxWith(back),
           () => tripleLipSync(bottomRows, winner, rows),
           S.meOut ? undefined : [
@@ -2648,7 +2661,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
               <div class="story-card">
                 <p class="eyebrow">🔁 Segunda Oportunidrag · resultados</p>
                 <h3>${esc(top.c.name)} gana el reto${back ? ` y ${esc(back.name)} vuelve a la competición` : ""}</h3>
-                <ol class="ranking">${pairs.map((p, k) => `<li style="--i:${k}"><i style="background-image:url('${photo(p.c)}')"></i><span>${esc(p.c.name)}${p.o ? ` + ${esc(p.o.name)}` : ""}</span>${k === 0 ? `<b class="tag win">Ganadoras</b>` : k >= n - nb ? `<b class="tag">Bottom</b>` : ""}</li>`).join("")}</ol>
+                ${pairRankHTML(pairs.map((p, k) => ({ c: p.c, o: p.o, res: k === 0 ? "win" : k >= n - nb ? "btm" : "safe", back: p.o && p.o === back })))}
                 <p>💄 Lip sync a tres bandas: se salva <b>${esc(stay.name)}</b>. <b>${gone.map((q) => esc(q.name)).join("</b> y <b>")}</b> se van a casa.</p>
                 <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
               </div>`;
@@ -2777,7 +2790,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
               <div class="story-card">
                 <p class="eyebrow">🔁 Segunda Oportunidrag · resultados</p>
                 <h3>${meBack ? `¡${esc(S.queen.name)} vuelve a la competición!` : `${esc(back ? back.name : top.c.name)} ${back ? "vuelve a la competición" : "gana el reto"}`}</h3>
-                <ol class="ranking">${pairs.map((p, k) => `<li style="--i:${k}" class="${p.me ? "me" : ""}"><span>${nm(p)}</span>${k === 0 ? `<b class="tag win">Ganadoras</b>` : k >= n - nb ? `<b class="tag">Bottom</b>` : ""}</li>`).join("")}</ol>
+                ${pairRankHTML(pairs.map((p, k) => ({ c: p.c, o: p.me ? S.queen : p.o, res: k === 0 ? "win" : k >= n - nb ? "btm" : "safe", back: k === 0 && (p.me || p.o) ? true : false })))}
                 <p>💄 Lip sync a tres bandas${stayQ ? `: se salva <b>${esc(stayQ.name)}</b>` : ""}. <b>${low.map((p) => esc(p.c.name)).join("</b> y <b>")}</b> se van a casa.</p>
                 <button class="btn btn-primary" id="story-next">${meBack ? "Volver al taller" : "Continuar"}</button>
               </div>`;
@@ -5739,15 +5752,15 @@ Devuelve JSON {"credible":0,"moda":0,"uso":0,"ana":"comentario (máximo 25 palab
   function liveMakeover(el, done, kind) {
     aiWait("Están llegando las invitadas...", el);
     IA.chat(
-      "Creas personajes de ficción para el reto makeover de Drag Race España: personas que nunca han hecho drag y a las que una reina convierte en su familia drag.",
-      `El makeover es: ${kind}. Inventa la persona que le toca a ${S.queen.name}: nombre inventado, quién es (oficio o relación), una historia breve (máximo 30 palabras), lo cómoda que está con el drag (baja, media o alta), su personalidad y lo primero que le dice a ${S.queen.name} (máximo 20 palabras).
+      "Creas personajes de ficción para el reto makeover de Drag Race España: familiares y amigos de la reina que nunca han hecho drag y vienen al programa encantados, con muchas ganas de dragearse. Saben a lo que vienen y les hace ilusión: nada de excusas, prisas ni pegas (ni que se tienen que ir pronto, ni que mañana trabajan).",
+      `El makeover es: ${kind}. Inventa la persona que le toca a ${S.queen.name}: un familiar o amigo suyo con nombre inventado, quién es (su relación con ${S.queen.name} y a qué se dedica), una historia breve (máximo 30 palabras), lo cómoda que se siente con el drag (puede estar nerviosa, pero viene con ilusión: media o alta), su personalidad y lo primero que le dice a ${S.queen.name} (máximo 20 palabras).
 Devuelve JSON {"nombre":"...","quien":"...","historia":"...","comodidad":"baja|media|alta","personalidad":"...","saludo":"..."}`,
       { json: true, max: 400, temp: 1 },
     ).then((m) => {
       if (!m || !m.nombre) { mxMakeover.classic = true; return mxMakeover(el, (sc) => { mxMakeover.classic = false; done(sc); }); }
       const who = IA.clean(str(m.nombre));
-      const sys = `Hablas SOLO como ${who}, ${str(m.quien)}, que va a hacer un makeover drag con ${S.queen.name} en Drag Race España. Tu historia: ${str(m.historia)}. Personalidad: ${str(m.personalidad)}. Comodidad con el drag: ${str(m.comodidad)}. Contestas con naturalidad, máximo 25 palabras, y te vas abriendo si te tratan bien.`;
-      const log = [{ who, t: IA.clean(str(m.saludo)) || "Hola... yo nunca he hecho esto." }];
+      const sys = `Hablas SOLO como ${who}, ${str(m.quien)}, que va a hacer un makeover drag con ${S.queen.name} en Drag Race España. Tu historia: ${str(m.historia)}. Personalidad: ${str(m.personalidad)}. Comodidad con el drag: ${str(m.comodidad)}. Has venido porque te hace muchísima ilusión dragearte con ${S.queen.name}: sabes a lo que vienes y estás entregada, aunque te den nervios. Nunca pongas excusas ni digas que te tienes que ir, que estás cansada o que mañana trabajas. Contestas con naturalidad, máximo 25 palabras.`;
+      const log = [{ who, t: IA.clean(str(m.saludo)) || "¡Qué ilusión! Nunca lo he hecho, pero vengo a por todas." }];
       let turns = 0;
       const draw = (wait) => {
         el.innerHTML = `
