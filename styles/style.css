@@ -2216,3 +2216,7 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 @media (max-width: 900px) { .ls { grid-template-columns: 1fr; } .ls-room { height: 260px; } .ls-look img { height: 230px; } .ls-right { max-height: none; } .ls-grid { max-height: 520px; } }
 .ls-actions .btn { font-size: 15px; padding: 10px 18px; }
 .ls .shop-buy { font-size: 12px; padding: 6px 8px; white-space: nowrap; }
+.as-tag { display: block; margin-top: 4px; font-style: normal; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+.as-tag.worst { background: #ffe1e5; color: #c0112b; }
+.as-tag.ok { background: #e9f7ee; color: #1f8a4c; }
+.as-tag.strong { background: #fff1c9; color: #8a5a00; }
