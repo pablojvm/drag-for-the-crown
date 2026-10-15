@@ -327,7 +327,7 @@ const Story = (() => {
   }
 
   // Guardado: se guarda al empezar cada episodio (si sales a mitad de un reto, lo repites)
-  const PLAIN = ["stars", "memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks", "prepLooks", "gg", "curEpTipo", "rp", "log", "miniWin", "aggr", "cGroups"];
+  const PLAIN = ["stars", "memories", "track", "epNames", "ep", "wins", "bottoms", "points", "lipsyncs", "rel", "streak", "record", "form", "hearts", "luck", "flags", "meOut", "roles", "known", "order", "missC", "groups", "myGroup", "pendingHearts", "runwayBonus", "phase", "attrGrowth", "miniOrder", "runwayPlan", "runwayIdx", "persona", "nemesis", "lookTags", "pacts", "schedule", "ballPlan", "ballIdx", "usedLooks", "prepLooks", "gg", "curEpTipo", "rp", "miniRank", "log", "miniWin", "aggr", "cGroups"];
   function snapshot() {
     const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 2 };
     PLAIN.forEach((k) => (d[k] = S[k]));
@@ -1332,6 +1332,7 @@ const Story = (() => {
           const sc = [{ q: S.queen, s: Math.round(clamp(raw, 0, 100)), me: true }, ...S.rivals.map((q) => ({ q, s: Math.round(clamp(rivalScore(q) + rnd(-12, 8), 0, 99)) }))].sort((a, b) => b.s - a.s);
           const win = sc[0];
           S.miniWin = win.me ? "me" : win.q.id;
+          S.miniRank = sc.map((r) => (r.me ? "me" : r.q.id));
           if (team) S.captains = [sc[0].q, sc[1].q];
           else if (win.me) premio.apply();
           if (win.me) earn(100, "Premio del minirreto");
@@ -1367,17 +1368,29 @@ const Story = (() => {
   // ¡Suena la sirena! Supremme entra al taller y anuncia el maxirreto
   function announce(then) {
     setReto();
+    // La sirena suena con el mensaje grabado; luego las reinas reaccionan y entra Supremme
     const sirena = [
-      ["r1", pick1(["🚨 ¡Suena la sirena! ¡Que viene, que viene!", "🚨 ¡La sirena! ¡Todas a sus puestos!", "🚨 ¡Ay, la sirena! ¡Callaos, que entra!"])],
-      ["host", pick1(["¡Agárrate las bragas, marichocho!", "¡Hola, hola, mis reinas! ¡Agárrate las bragas, marichocho!"])],
+      ["r1", pick1(["¡Que viene, que viene!", "¡Todas a sus puestos!", "¡Callaos, que entra!"])],
+      ["host", pick1(["¡Hola, hola, mis reinas!", "¡Buenos días, reinas!", "¡Hola, mis niñas!"])],
     ];
+    const siren = (next) => {
+      body().innerHTML = `
+        <div class="story-card siren-card">
+          <div class="siren-light">🚨</div>
+          <p class="siren-msg">📢 «¡Agárrate las bragas, marichocho!»</p>
+          <p class="muted">Suena la sirena del taller...</p>
+          <button class="btn btn-primary" id="story-go">Continuar</button>
+        </div>`;
+      Sound.countdown && Sound.countdown(true);
+      $("#story-go").addEventListener("click", next);
+    };
     const ctx = ctxWith(pick1(S.rivals), { reto: S.curTitulo });
     const anuncio = () => S.curTipo === "repescaStand"
       ? dialog([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", `Esta semana: ${S.curTitulo}. Cada una de vosotras hará un monólogo con una de ellas.`], ["host", "La eliminada de la pareja ganadora... vuelve a la competición. Y las reinas de las tres peores parejas harán un lip sync a tres bandas: solo se salva una."], ...(S.flags.immune ? [["host", `${S.flags.immune === "me" ? "{yo}" : (qById(S.flags.immune) || {}).name}, tú ganaste la semana pasada: esta semana no compites. Serás nuestra maestra de ceremonias.`]] : [])], ctx, then)
       : dialog(pickFresh(HISTORIA.anuncio), ctx, then);
-    if (S.ep !== 1) return dialog([...sirena, ...pickFresh(HISTORIA.tallerHost)], ctx, anuncio);
+    if (S.ep !== 1) return siren(() => dialog([...sirena, ...pickFresh(HISTORIA.tallerHost)], ctx, anuncio));
     // Primer día: bienvenida de la temporada (y la caja de la suerte si toca)
-    dialog([...sirena, ...seasonInfo().intro], ctx, () => (twistOf() === "suerte" && S.luck === undefined ? pickLuckBox(anuncio) : anuncio()));
+    siren(() => dialog([...sirena, ...seasonInfo().intro], ctx, () => (twistOf() === "suerte" && S.luck === undefined ? pickLuckBox(anuncio) : anuncio())));
   }
   // Después del taller: equipos (si toca) y a por el reto
   function beginChallenge() {
@@ -1404,13 +1417,8 @@ const Story = (() => {
   const groupWord = (size) => (size === 2 ? "Pareja" : "Grupo");
   function formChallengeGroups(size, then) {
     const all = [S.queen, ...S.rivals];
-    const finish = (mine) => {
-      const rest = shuffle(all.filter((q) => !mine.includes(q)));
-      const groups = [mine];
-      while (rest.length) groups.push(rest.splice(0, size));
-      const last = groups[groups.length - 1];
-      if (groups.length > 1 && last.length === 1) { groups.pop(); groups[groups.length - 1].push(last[0]); }
-      const order = shuffle(groups);
+    const finishGroups = (groups, mine) => {
+      const order = groups.slice();
       S.cGroups = order.map((g) => g.map(keyOf));
       S.team = mine.filter((q) => q !== S.queen);
       logEv(`Reto por ${size === 2 ? "parejas" : "grupos"}: ${S.queen.name} va con ${S.team.map((q) => q.name).join(" y ")}`);
@@ -1424,22 +1432,63 @@ const Story = (() => {
         </div>`;
       $("#story-next").addEventListener("click", then);
     };
-    if (S.miniWin !== "me") return finish([S.queen, ...shuffle(S.rivals).slice(0, size - 1)]);
-    // Has ganado el minirreto: eliges tú
-    const mine = [S.queen];
-    const pickScreen = () => {
-      if (mine.length >= size) return finish(mine);
+    // Elección por turnos: las mejores del minirreto son capitanas y van eligiendo de una en una (ronda tras ronda)
+    const byKey = (k) => (k === "me" ? S.queen : qById(k));
+    const nG = Math.max(2, Math.floor(all.length / size));
+    const rank = (S.miniRank || []).map(byKey).filter((q) => q && all.includes(q));
+    const caps = [...rank, ...shuffle(all.filter((q) => !rank.includes(q)))].slice(0, nG);
+    const groups = caps.map((c) => [c]);
+    const pool = all.filter((q) => !caps.includes(q));
+    const log = [];
+    const nm = (q) => (q === S.queen ? "Tú" : q.name);
+    // Lo que valora una capitana rival al elegir: lo buena que es para este reto y si se llevan bien
+    const wantOf = (cap, q) => retoAttrOf(q) * 2 + groupAff(cap, q) * 3 + (q === S.queen ? relOf(cap) * 2 : 0) + rnd(-3, 3);
+    let turn = 0;
+    const full = () => groups.every((g) => g.length >= size) || !pool.length;
+    const board = (myTurn) => {
       body().innerHTML = `
         <div class="story-card">
-          <p class="eyebrow">Has ganado el minirreto</p>
-          <h3>${size === 2 ? "Elige a tu pareja" : `Elige a tu grupo (${mine.length}/${size})`}</h3>
-          <div class="hub-grid">${S.rivals.filter((q) => !mine.includes(q)).map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}</button>`).join("")}</div>
+          <p class="eyebrow">${size === 2 ? "Reto por parejas" : "Reto por grupos"} · eligen las capitanas</p>
+          <h3>${myTurn ? "Te toca elegir" : "Las capitanas eligen por turnos"}</h3>
+          <p class="muted">Capitanas por orden del minirreto: ${caps.map((c) => `<b>${esc(nm(c))}</b>`).join(", ")}. Cada una elige a una por turno.</p>
+          <div class="groups-grid">${groups.map((g, i) => `<div class="group-col ${g.includes(S.queen) ? "mine" : ""} ${i === turn % nG && !full() ? "on" : ""}" style="--i:${i}"><b>${groupWord(size)} ${GROUP_NAMES[i % GROUP_NAMES.length]}</b>${g.map((q) => `<span><i style="background-image:url('${photo(q)}')"></i>${esc(nm(q))}${q === caps[i] ? " 👑" : ""}</span>`).join("")}</div>`).join("")}</div>
+          ${log.length ? `<p class="muted">${esc(log[log.length - 1])}</p>` : ""}
+          ${myTurn ? `<div class="hub-grid">${pool.map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}</button>`).join("")}</div>` : `<div class="ia-dots"><i></i><i></i><i></i></div>`}
         </div>`;
-      body().querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => { const q = qById(b.dataset.id); mine.push(q); changeRel(q, 1); pickScreen(); }));
     };
-    pickScreen();
+    const step = () => {
+      if (full()) {
+        // Las que sobren van a los grupos más pequeños
+        pool.splice(0).forEach((q) => groups.slice().sort((a, b) => a.length - b.length)[0].push(q));
+        const mine = groups.find((g) => g.includes(S.queen));
+        return finishGroups(groups, mine);
+      }
+      const i = turn % nG, cap = caps[i];
+      if (groups[i].length >= size) { turn++; return step(); }
+      if (cap === S.queen) {
+        board(true);
+        body().querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => {
+          const q = qById(b.dataset.id);
+          pool.splice(pool.indexOf(q), 1);
+          groups[i].push(q);
+          changeRel(q, 1);
+          log.push(`Eliges a ${q.name}.`);
+          turn++;
+          step();
+        }));
+        return;
+      }
+      const q = pool.slice().sort((a, b) => wantOf(cap, b) - wantOf(cap, a))[0];
+      pool.splice(pool.indexOf(q), 1);
+      groups[i].push(q);
+      if (q === S.queen) changeRel(cap, 1);
+      log.push(`${cap.name} elige a ${nm(q) === "Tú" ? "ti" : q.name}.`);
+      turn++;
+      board(false);
+      setTimeout(step, 700);
+    };
+    step();
   }
-
   // Nota de la semana: reto + pasarela
   function closeReto(raw, bonus, titulo, onScore) {
     return (walk) => {
