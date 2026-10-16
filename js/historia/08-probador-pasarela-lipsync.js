@@ -17,7 +17,7 @@
     const fitOf = (k, it) => { const f = fitScore(k, it, cat); return it.loan ? 4 + f * 5 : 4 + f * (10 + statOf(it)[0] * 2.6); };
     const IMG = pieceImg;
     const SL = [
-      { k: "look", n: "El look", icon: "👗", items: ARMARIO.look.filter((x) => !x.rv || (TH && TH.rv)), base: "base-maniqui" },
+      { k: "look", n: "El look", icon: "👗", items: TH && TH.rv ? ARMARIO.look.filter((x) => x.rv) : ARMARIO.look.filter((x) => !x.rv), base: "base-maniqui" },
       { k: "peluca", n: "La peluca", icon: "💇", items: ARMARIO.peluca, base: "base-cabeza" },
       { k: "zapatos", n: "Los tacones", icon: "👠", items: ARMARIO.zapatos, base: "base-peana" },
       { k: "acc", n: "El toque final", icon: "💄", items: ARMARIO.acc, base: "base-bandeja" },
@@ -131,6 +131,7 @@
           <div class="at-rack">
             <h4>👗 Tu look es este</h4>
             <p class="dr-msg">«${esc(cat)}»: ${SL.map((sl) => (chosen[sl.k] ? esc(chosen[sl.k].n) : "")).filter(Boolean).join(" · ")}</p>
+            ${TH && TH.rv && chosen.look && !chosen.look.rv ? `<p class="twist-note">🎁 Esta pasarela pide un reveal y tu look no se transforma. Cambia el look para tener tu momento.</p>` : TH && TH.rv && chosen.look ? `<p class="gold">🎁 Reveal preparado: ${esc(chosen.look.n)}</p>` : ""}
             <p class="muted">¿Quieres cambiar algo antes de salir?</p>
             <div class="at-edit">${SL.map((sl, i) => `<button class="btn btn-ghost at-chg" data-i="${i}">${sl.icon} ${sl.n}</button>`).join("")}</div>
             <button class="btn btn-primary" id="dr-go">${o.plan ? "✅ Listo" : "👠 ¡A la pasarela!"}</button>

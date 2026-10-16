@@ -6714,6 +6714,8 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     const tk = new Map(Object.entries(S.prepLooks || {}).filter(([c, x]) => c !== cat && x.look && !x.look.loan).map(([c, x]) => [x.look.id, c]));
     const items = (k) => {
       let L = ARMARIO[k].filter((x) => k !== "look" || !x.rv || (TH && TH.rv));
+      // Pasarela de reveal: en Looks solo salen los que se transforman
+      if (k === "look" && TH && TH.rv) L = L.filter((x) => x.rv);
       if (filt === "mine") L = L.filter((x) => Closet.has(x.id));
       return L.slice().sort((a, b) => (Closet.has(b.id) ? 1 : 0) - (Closet.has(a.id) ? 1 : 0) || priceOf(a) - priceOf(b));
     };
@@ -6732,7 +6734,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       return `<div class="shop-card ${own ? "own" : ""} ${sel ? "sel" : ""} ${busy ? "busy" : ""}" data-card="${it.id}">
         <div class="shop-img"><img loading="lazy" decoding="async" src="${pieceImg(it.id)}" alt="">${it.rv ? `<img loading="lazy" decoding="async" class="at-rv" src="${pieceImg(it.rv)}" alt="">` : ""}</div>
         <b>${esc(it.n)}</b>
-        <small class="shop-st">👣 ${statOf(it)[1]}/5${own ? " · ✔ tuyo" : ""}</small>
+        <small class="shop-st">${it.rv ? "🎁 Reveal · " : ""}👣 ${statOf(it)[1]}/5${own ? " · ✔ tuyo" : ""}</small>
         <span class="ls-slot">${btnHTML(k, it)}</span>
       </div>`;
     };
@@ -6748,7 +6750,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
       c.classList.toggle("sel", !!sel);
       c.querySelector(".ls-slot").innerHTML = btnHTML(k, it);
       const st = c.querySelector(".shop-st");
-      if (st) st.textContent = `👣 ${statOf(it)[1]}/5${own ? " · ✔ tuyo" : ""}`;
+      if (st) st.textContent = `${it.rv ? "🎁 Reveal · " : ""}👣 ${statOf(it)[1]}/5${own ? " · ✔ tuyo" : ""}`;
     }
     // Al gastar dinero cambian los botones de compra de todas las rejillas
     const refreshMoney = () => Object.values(grids).forEach((g) => g.querySelectorAll(".ls-buy").forEach((b) => {
@@ -6791,6 +6793,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
             <p class="eyebrow">${ball ? `🎭 ${esc(ball.n)}` : "👠 Pasarela"} · ${idx + 1} de ${cats.length}</p>
             <h3>«${esc(cat)}»</h3>
             ${desc ? `<p class="ls-desc">${esc(desc)}</p>` : ""}
+            ${TH && TH.rv ? `<p class="twist-note ls-rvnote">🎁 Pasarela de reveal: en Looks solo verás los que se transforman en mitad del desfile (antes → después).</p>` : ""}
             <div class="ls-room">
               <button class="ls-st ls-look ${tab === "look" ? "on" : ""}" data-k="look" aria-label="Look"><img src="${img("look")}" alt=""></button>
               <div class="ls-side">
@@ -6856,8 +6859,9 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     host.querySelectorAll(".shop-tab").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.t)));
     host.querySelectorAll(".shop-f").forEach((b) => b.addEventListener("click", () => { filt = b.dataset.f; renderTabs(); }));
     $("#ls-loan").addEventListener("click", () => {
-      const pool = ARMARIO[tab].filter((x) => !Closet.has(x.id) && !tk.has(x.id) && statOf(x)[0] <= 2 && (tab !== "look" || !x.rv));
-      const it = pick1(pool.length ? pool : ARMARIO[tab].filter((x) => !Closet.has(x.id) && !tk.has(x.id)));
+      const rvT = tab === "look" && TH && TH.rv;
+      const pool = rvT ? ARMARIO.look.filter((x) => x.rv && !Closet.has(x.id) && !tk.has(x.id)) : ARMARIO[tab].filter((x) => !Closet.has(x.id) && !tk.has(x.id) && statOf(x)[0] <= 2 && (tab !== "look" || !x.rv));
+      const it = pick1(pool.length ? pool : ARMARIO[tab].filter((x) => !Closet.has(x.id) && !tk.has(x.id) && (!rvT || x.rv)));
       if (!it) return;
       Toast.show("🔁 Préstamo de producción", `${it.n}: básico y sin gastar, pero puntúa poco`);
       pick(tab, it, true);
@@ -7399,7 +7403,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
     const fitOf = (k, it) => { const f = fitScore(k, it, cat); return it.loan ? 4 + f * 5 : 4 + f * (10 + statOf(it)[0] * 2.6); };
     const IMG = pieceImg;
     const SL = [
-      { k: "look", n: "El look", icon: "👗", items: ARMARIO.look.filter((x) => !x.rv || (TH && TH.rv)), base: "base-maniqui" },
+      { k: "look", n: "El look", icon: "👗", items: TH && TH.rv ? ARMARIO.look.filter((x) => x.rv) : ARMARIO.look.filter((x) => !x.rv), base: "base-maniqui" },
       { k: "peluca", n: "La peluca", icon: "💇", items: ARMARIO.peluca, base: "base-cabeza" },
       { k: "zapatos", n: "Los tacones", icon: "👠", items: ARMARIO.zapatos, base: "base-peana" },
       { k: "acc", n: "El toque final", icon: "💄", items: ARMARIO.acc, base: "base-bandeja" },
@@ -7513,6 +7517,7 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
           <div class="at-rack">
             <h4>👗 Tu look es este</h4>
             <p class="dr-msg">«${esc(cat)}»: ${SL.map((sl) => (chosen[sl.k] ? esc(chosen[sl.k].n) : "")).filter(Boolean).join(" · ")}</p>
+            ${TH && TH.rv && chosen.look && !chosen.look.rv ? `<p class="twist-note">🎁 Esta pasarela pide un reveal y tu look no se transforma. Cambia el look para tener tu momento.</p>` : TH && TH.rv && chosen.look ? `<p class="gold">🎁 Reveal preparado: ${esc(chosen.look.n)}</p>` : ""}
             <p class="muted">¿Quieres cambiar algo antes de salir?</p>
             <div class="at-edit">${SL.map((sl, i) => `<button class="btn btn-ghost at-chg" data-i="${i}">${sl.icon} ${sl.n}</button>`).join("")}</div>
             <button class="btn btn-primary" id="dr-go">${o.plan ? "✅ Listo" : "👠 ¡A la pasarela!"}</button>
