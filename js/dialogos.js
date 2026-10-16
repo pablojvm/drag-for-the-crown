@@ -27,7 +27,7 @@ const DIALOGOS = {
   ],
   // rel: cómo cambia tu relación con cada compañera (+ aliada, - rival)
   respuestas: [
-    { txt: "He venido a por la corona, cariño.", reply: ["r2", "Uy, qué segura se la ve. Ya veremos en la pasarela."], bonus: 150, rel: { r2: -1 } },
+    { txt: "He venido a por la corona.", reply: ["r2", "Uy, qué segura se la ve. Ya veremos en la pasarela."], bonus: 150, rel: { r2: -1 } },
     { txt: "Estoy nerviosa, pero con muchas ganas.", reply: ["r1", "Normal, reina. Los nervios se quitan con la primera pose."], bonus: 100, rel: { r1: 1 } },
     { txt: "Yo he venido a pasármelo bien.", reply: ["r2", "Eso es lo más importante... aunque ganar tampoco está mal."], bonus: 80, rel: { r1: 1, r2: 1 } },
   ],
@@ -125,7 +125,7 @@ const TEMPORADAS_HISTORIA = {
     intro: [
       ["host", "¡Bienvenidas a la cuarta temporada! Hoy empezamos con un regalo... o no."],
       ["host", "Cada una va a elegir una cajita. En una de ellas está LA REINA DE LA SUERTE."],
-      ["judge", "Quien la tenga podrá sacarla cuando quiera para salvarse, o salvar a una compañera, del lip sync."],
+      ["host", "Quien la tenga podrá sacarla cuando quiera para salvarse, o salvar a una compañera, del lip sync."],
     ],
   },
 
@@ -135,7 +135,7 @@ const TEMPORADAS_HISTORIA = {
     intro: [
       ["host", "Bienvenidas a la temporada de los corazones."],
       ["host", "Cada reina que se vaya dejará MEDIO CORAZÓN a una compañera antes de salir del taller."],
-      ["judge", "Con un corazón entero podréis libraros del bottom. Así que cuidad a las que se van... porque deciden a quién ayudar."],
+      ["host", "Con un corazón entero podréis libraros del bottom. Así que cuidad a las que se van... porque deciden a quién ayudar."],
     ],
   },
 
@@ -256,7 +256,7 @@ const HISTORIA = {
   // Eventos aleatorios del taller (varias reinas, eliges bando)
   eventos: [
     {
-      lines: [["r1", "¡{r2}, me has quitado el espejo otra vez!"], ["r2", "Estaba libre, cariño. Haber madrugado."], ["r1", "{yo}, dile algo, que tú lo has visto."]],
+      lines: [["r1", "¡{r2}, me has quitado el espejo otra vez!"], ["r2", "Estaba libre. Haber madrugado."], ["r1", "{yo}, dile algo, que tú lo has visto."]],
       choices: [
         { txt: "Tiene razón {r1}, el espejo era suyo.", rel: { r1: 1, r2: -1 }, reply: ["r2", "Genial, ahora sois un equipo. Qué miedo."] },
         { txt: "Yo he visto el espejo libre, lo siento.", rel: { r1: -1, r2: 1 }, reply: ["r1", "Ah, muy bien. Me lo apunto, {yo}."] },
@@ -377,8 +377,8 @@ HISTORIA.tallerCharla = [
 HISTORIA.tallerTrasExpulsion.push(
   [["r1", "Todavía tengo los ojos hinchados por lo de {fuera}."], ["r2", "Pues ponte hielo, que hoy hay que brillar."]],
   [["r2", "¿Soy la única que se ha quedado con la purpurina de {fuera} en la peluca?"], ["r3", "Es un recuerdo, no te la quites."]],
-  [["r1", "Hablemos claro: {fuera} se fue porque no arriesgó."], ["r2", "O porque tuvo mala suerte. Esto es muy injusto a veces."], ["r1", "La suerte se trabaja, cariño."]],
-  [["r3", "Anoche le escribí a {fuera}. Dice que nos ve a todas en la final."], ["r1", "A todas no, que a la final solo llegan cuatro."]],
+  [["r1", "Hablemos claro: {fuera} se fue porque no arriesgó."], ["r2", "O porque tuvo mala suerte. Esto es muy injusto a veces."], ["r1", "La suerte se trabaja."]],
+  [["r3", "Anoche le escribí a {fuera}. Dice que nos ve a todas en la final."], ["r1", "A todas no, que a la final no llegamos todas."]],
   [["r2", "Yo pensaba que {fuera} llegaba lejísimos."], ["r3", "Aquí nadie tiene nada asegurado. Nadie."]],
   [["r1", "Silencio en el taller... se nota que falta {fuera}."], ["r2", "Y su risa. Madre mía, su risa."]],
   [["r2", "{yo}, ¿tú lo viste venir lo de {fuera}?"], ["r1", "Todas lo vimos venir, cielo."]],
@@ -438,7 +438,7 @@ HISTORIA.eventos.push(
     choices: [
       { txt: "Yo no apuesto contra mis compañeras.", rel: { r3: 1, r1: -1 }, reply: ["r3", "Gracias, {yo}. Al menos alguien tiene corazón."] },
       { txt: "Yo apuesto por {r1}.", rel: { r1: -2 }, bonus: 120, reply: ["r1", "Muy graciosa. Ya verás el viernes."] },
-      { txt: "Apuesto a que me voy yo, así no pierdo.", rel: { r1: 1, r2: 1 }, reply: ["r2", "Jajaja, qué pesimista."] },
+      { txt: "Apuesto a que me voy yo, así no pierdo.", rel: { r1: 1, r2: 1 }, reply: ["r2", "(Se ríe) Qué pesimista."] },
     ],
   },
   {
@@ -467,7 +467,7 @@ HISTORIA.eventos.push(
     lines: [["r1", "{r2} y yo hemos hecho una alianza. ¿Te unes, {yo}?"], ["r2", "Somos buenas, pero con tres somos imparables."]],
     choices: [
       { txt: "¡Me apunto!", rel: { r1: 1, r2: 1, r3: -1 }, reply: ["r1", "Bienvenida al club, reina."] },
-      { txt: "Gracias, pero voy con {r3}.", rel: { r3: 2, r1: -1, r2: -1 }, reply: ["r3", "¡Esa es mi chica!"] },
+      { txt: "Gracias, pero voy con {r3}.", rel: { r3: 2, r1: -1, r2: -1 }, reply: ["r3", "¡Así me gusta!"] },
       { txt: "Paso de alianzas, cada una lo suyo.", rel: {}, bonus: 60, reply: ["r2", "Tú misma. Luego no llores."] },
     ],
   },
@@ -475,7 +475,7 @@ HISTORIA.eventos.push(
 HISTORIA.anuncio.push(
   [["host", "Os lo digo ya: esta semana alguien va a llorar. El reto es... ¡{reto}!"]],
   [["host", "Reinas, preparaos para {reto}."], ["host", "Os estaré mirando. A todas."]],
-  [["host", "¡Sorpresa! El reto de hoy es {reto}."], ["r1", "Ay, no, justo lo que peor se me da."], ["host", "Pues a trabajar, cariño."]],
+  [["host", "¡Sorpresa! El reto de hoy es {reto}."], ["r1", "Ay, no, justo lo que peor se me da."], ["host", "Pues a trabajar."]],
   [["host", "Esta semana subo el listón: {reto}. Y sí, lo digo en serio."]],
 );
 HISTORIA.critica.win.push(
@@ -495,7 +495,7 @@ HISTORIA.critica.bottom.push(
 );
 HISTORIA.untucked.ganadora.push(
   [["me", "Te lo mereces, {r1}. De verdad."], ["r1", "Gracias... la semana que viene te toca a ti, ya verás."]],
-  [["me", "Menudo look, {r1}. Me muero de envidia."], ["r1", "Envidia sana, espero. Jajaja."]],
+  [["me", "Menudo look, {r1}. Me muero de envidia."], ["r1", "Envidia sana, espero."]],
 );
 HISTORIA.untucked.bottom.push(
   [["me", "{r1}, ¿necesitas algo? ¿Agua, un abrazo?"], ["r1", "Un abrazo. Y que sea largo."]],
@@ -525,7 +525,7 @@ const MEMORIA = {
       { lines: [["r1", "{yo}, quería darte las gracias por salvarme el otro día."], ["r1", "Sé que había otras opciones. No lo olvidaré."]],
         choices: [
           { txt: "Te lo merecías, no hay nada que agradecer.", rel: { r1: 1 }, reply: ["r1", "Pues aquí tienes una amiga para lo que haga falta."] },
-          { txt: "Ahora me debes una, eh.", rel: {}, bonus: 60, reply: ["r1", "Jajaja, apuntado. Te la devolveré."] },
+          { txt: "Ahora me debes una, eh.", rel: {}, bonus: 60, reply: ["r1", "Apuntado. Te la devolveré."] },
         ] },
       { lines: [["r1", "Oye, {yo}... lo de la votación. Gracias de verdad."]], after: 1 },
       { lines: [["r1", "Me salvaste delante de todas. Eso tiene mucho valor, {yo}."], ["r1", "Si algún día puedo hacer lo mismo por ti, cuenta con ello."]], after: 1 },
@@ -546,7 +546,7 @@ const MEMORIA = {
         choices: [
           { txt: "Tienes razón. Fue estrategia y lo siento.", rel: { r1: 1 }, reply: ["r1", "Por lo menos lo reconoces. Pero no se me olvida."] },
           { txt: "Pues sí, eres una amenaza. Es un cumplido.", rel: { r1: -1 }, bonus: 150, reply: ["r1", "Tomo nota. Ya hablaremos en la pasarela."] },
-          { txt: "Voté lo que vi. No es nada personal.", rel: {}, reply: ["r1", "Para mí sí lo es. Ya hablaremos en la pasarela."] },
+          { txt: "Voté lo que vi. No es nada personal.", rel: {}, reply: ["r1", "Para mí sí. Y eso no se olvida."] },
         ] },
       { lines: [["r1", "Qué valiente fuiste votándome a mí, {yo}. Con lo mal que lo hizo la otra..."], ["r1", "Que sepas que me he dado cuenta de tu jugada."]], after: -1 },
       { lines: [["r1", "Me mandaste al lip sync sin ser la peor, {yo}."], ["r1", "Lo respeto, pero no lo comparto."]],
@@ -627,7 +627,7 @@ const JURADO = {
     },
   },
   pasarela: {
-    top: ["Y en la pasarela, un look de otro planeta.", "El look de pasarela: diez sobre diez.", "Por cierto, ese look de pasarela es de lo mejor de la temporada."],
+    top: ["Y en la pasarela, un look de otro planeta.", "El look de pasarela, impecable de arriba abajo.", "Por cierto, ese look de pasarela es de lo mejor de la temporada."],
     mid: ["El look de pasarela, bonito pero previsible.", "En pasarela, correcta. Nada más.", "El look lo he visto otras veces, pero te sienta bien."],
     low: ["Y el look de pasarela... mejor no hablemos de la peluca.", "Ese look parecía sacado del fondo del armario.", "En pasarela me has dejado fría."],
   },
@@ -661,11 +661,11 @@ const SNATCH_FAMOSOS = [
   { icon: "🌹", name: "Sara Montiel", tono: "glamour de cine antiguo" },
   { icon: "🐆", name: "Mónica Naranjo", tono: "intensa y operística" },
   { icon: "🖤", name: "Alaska", tono: "moderna, seca y con ironía" },
-  { icon: "📺", name: "Belén Esteban", tono: "televisión y corazón" },
+  { icon: "🎤", name: "Rosa López", tono: "dulce, emotiva y de Eurovisión" },
   { icon: "🔮", name: "Rappel", tono: "vidente con túnica" },
   { icon: "🥁", name: "Chiquito de la Calzada", tono: "chistes imposibles y palabras inventadas" },
   { icon: "🎤", name: "Massiel", tono: "festivalera y sin filtro" },
-  { icon: "🏄", name: "Paz Padilla", tono: "gaditana y con mucha guasa" },
+  { icon: "🔥", name: "Lola Índigo", tono: "pop, baile y actitud" },
   { icon: "💿", name: "Rosalía", tono: "motomami y flamenco urbano" },
   { icon: "💋", name: "Marilyn Monroe", tono: "susurrante y coqueta" },
   { icon: "🪩", name: "Cher", tono: "diva eterna" },
@@ -675,9 +675,9 @@ const SNATCH_FAMOSOS = [
 const SNATCH_PREGUNTAS = [
   "¿Cuál es tu secreto de belleza?", "¿Qué harías con un millón de euros?", "¿Cómo te preparas para una cita?", "¿Qué opinas del amor?",
   "¿Qué llevarías a una isla desierta?", "¿Cuál es tu plato favorito?", "¿Qué consejo le darías a las concursantes?", "¿Cómo te enfrentas a una ruptura?",
-  "¿Qué opinas del gimnasio?", "¿Qué es lo primero que haces al levantarte?", "¿Cómo celebras tu cumpleaños?", "¿Qué harías si fueras presidenta del país?",
+  "¿Qué opinas del gimnasio?", "¿Qué es lo primero que haces al levantarte?", "¿Cómo celebras tu cumpleaños?", "¿Qué harías con un programa propio en la tele?",
 ];
-const SNATCH_PLANAS = ["Pues no sé, la verdad.", "Bien, supongo.", "Eso es muy personal.", "Mmm... siguiente pregunta.", "Lo normal, como todo el mundo.", "Ni idea, cariño."];
+const SNATCH_PLANAS = ["Pues no sé, la verdad.", "Bien, supongo.", "Eso es muy personal.", "Mmm... siguiente pregunta.", "Lo normal, como todo el mundo.", "Ni idea."];
 
 // ===========================================================================
 // ROLES DETRÁS DE CÁMARAS: a cada reina se le asigna uno al empezar la
@@ -702,7 +702,7 @@ const ROLES_HISTORIA = {
         ] },
       { lines: [["r1", "¿Sabéis qué? Esta semana alguien se va a casa y no voy a ser yo."], ["r2", "Qué intensa te pones por las mañanas."], ["r1", "Intensa no. Realista. {yo}, ¿tú qué opinas?"]],
         choices: [
-          { txt: "Opino que te vas a atragantar con tus palabras.", rel: { r1: -1 }, bonus: 120, reply: ["r1", "Ya veremos quién se atraganta, cariño."] },
+          { txt: "Opino que te vas a atragantar con tus palabras.", rel: { r1: -1 }, bonus: 120, reply: ["r1", "Ya veremos quién se atraganta."] },
           { txt: "Opino que hoy toca trabajar, no hablar.", adv: 2, reply: ["r2", "Amén."] },
         ] },
     ],
@@ -723,7 +723,7 @@ const ROLES_HISTORIA = {
         ] },
       { lines: [["r1", "{yo}, te veo muy tensa. ¿Quieres que te cuente un chiste?"], ["r1", "¿Qué le dice una peluca a otra? Nos vemos en la cabeza de alguien."]],
         choices: [
-          { txt: "Es malísimo. Cuéntame otro.", rel: { r1: 1 }, adv: 3, reply: ["r1", "¡Esa es mi chica! Ya estás más suelta."] },
+          { txt: "Es malísimo. Cuéntame otro.", rel: { r1: 1 }, adv: 3, reply: ["r1", "¡Así me gusta! Ya estás más suelta."] },
           { txt: "Ahora no, {r1}, que me concentro.", adv: 1, reply: ["r1", "Vale, señora seria. Luego no me pidas risas."] },
         ] },
       { lines: [["r1", "He hecho un ranking de las peores pelucas del taller."], ["r2", "No te atrevas."], ["r1", "Número uno: la de {r2}. Número dos... uy, {yo}, tú mejor no mires."]],
@@ -769,7 +769,7 @@ const ROLES_HISTORIA = {
   madre: {
     icon: "🫶", name: "La madre del grupo", desc: "Cuida de todas. Sus consejos siempre funcionan.", voto: 1,
     escenas: [
-      { lines: [["r1", "{yo}, cariño, ¿has comido algo? Te traigo un bocadillo, que así no se cose."], ["r2", "¿Y para mí no hay?"], ["r1", "Para ti también, pesada. Aquí no se queda nadie sin comer."]],
+      { lines: [["r1", "{yo}, ¿has comido algo? Te traigo un bocadillo, que así no se cose."], ["r2", "¿Y para mí no hay?"], ["r1", "Para ti también, pesada. Aquí no se queda nadie sin comer."]],
         choices: [
           { txt: "Gracias, mamá {r1}. Te lo debo.", rel: { r1: 1 }, adv: 3, reply: ["r1", "Nada de deber. Tú gana, que me pongo muy contenta."] },
           { txt: "No tengo hambre, estoy muy nerviosa.", adv: -1, reply: ["r1", "Pues nerviosa y sin comer, peor. Te lo dejo aquí."] },
@@ -801,7 +801,7 @@ const ROLES_HISTORIA = {
           { txt: "No. Llegué yo primero.", rel: { r1: -1 }, adv: 1, reply: ["r1", "Increíble. En mi otra vida esto no pasaba."] },
           { txt: "Compartimos, ¿vale? Tú la izquierda, yo la derecha.", rel: { r1: 1 }, reply: ["r1", "Vale. Pero mi lado bueno es el izquierdo, que lo sepas."] },
         ] },
-      { lines: [["r1", "Reinas, os lo digo ya para que no os llevéis sorpresas: esta corona es mía."], ["r2", "Qué humilde."], ["r1", "La humildad no gana coronas, cariño."]],
+      { lines: [["r1", "Reinas, os lo digo ya para que no os llevéis sorpresas: esta corona es mía."], ["r2", "Qué humilde."], ["r1", "La humildad no gana coronas."]],
         choices: [
           { txt: "La corona se gana, no se reserva.", rel: { r1: -1 }, bonus: 150, reply: ["r1", "Qué frase tan bonita. Enmárcala."] },
           { txt: "Si te lo crees tú, algo es.", rel: { r1: 1 }, reply: ["r1", "¡Exacto! Tú lo entiendes. Por eso me caes bien."] },
@@ -1021,8 +1021,8 @@ const GRUPOS = {
   ],
   choque: [
     { lines: [["r1", "¿Otra vez {g2} ocupando todos los espejos? Qué casualidad."], ["r2", "Llegamos antes. Si {g1} no madruga, no es culpa nuestra."], ["r1", "Madrugar para copiar looks, eso sí sabéis."]] },
-    { lines: [["r2", "He oído a {g1} criticar mi look del otro día. Que lo digan a la cara."], ["r1", "Te lo digo a la cara: parecía un mantel de boda."], ["host", "Uy, uy. Esto no me lo pierdo."]] },
-    { lines: [["r1", "Ayer en el Untucked {g2} votaba en bloque. Eso es jugar sucio."], ["r2", "Eso es tener amigas, cariño. Búscate unas."]] },
+    { lines: [["r2", "He oído a {g1} criticar mi look del otro día. Que lo digan a la cara."], ["r1", "Te lo digo a la cara: parecía la cortina de un hotel de los noventa."], ["host", "Uy, uy. Esto no me lo pierdo."]] },
+    { lines: [["r1", "Ayer en el Untucked {g2} votaba en bloque. Eso es jugar sucio."], ["r2", "Eso es tener amigas. Búscate unas."]] },
     { lines: [["r2", "Mira, {g1} se cree que manda en el taller."], ["r1", "No lo creemos. Lo sabemos."], ["r2", "Pues a ver cuánto os dura cuando os toque el lip sync."]] },
   ],
   apoyo: [
@@ -1082,7 +1082,7 @@ if (typeof JURADO !== "undefined") {
 const JAVIS = {
   taller: [
     [["host", "Reinas, hoy tenemos visita en el taller..."], ["ambrossi", "¡Hola, hola! ¿Se puede? Venimos a cotillear."], ["calvo", "A cotillear y a ayudar. Sobre todo a cotillear."]],
-    [["calvo", "¡Pero qué taller más bonito! Esto huele a laca y a nervios."], ["ambrossi", "Y a pegamento de pestañas. Mucho pegamento."], ["r1", "¡Los Javis! Me tiemblan las piernas."]],
+    [["calvo", "¡Pero qué taller más bonito! Esto parece un camerino de verdad."], ["ambrossi", "Y a pegamento de pestañas. Mucho pegamento."], ["r1", "¡Los Javis! Me tiemblan las piernas."]],
     [["ambrossi", "Venimos a ver cómo lo lleváis. {yo}, cuéntame qué estás preparando."], ["me", "Algo que os va a encantar... espero."], ["calvo", "Con ese 'espero' ya me has conquistado."]],
     [["calvo", "¿Sabéis qué nos gusta más de esta temporada? Que no os parecéis a nadie."], ["ambrossi", "Así que no empecéis a copiaros ahora, ¿eh?"]],
     [["ambrossi", "{r1}, ¿eso es lo que vas a llevar?"], ["r1", "Eh... ¿sí?"], ["calvo", "No es una crítica, es curiosidad. Mucha curiosidad."], ["r2", "(Eso era una crítica)"]],
@@ -1297,7 +1297,7 @@ const FAMA = {
     reaccion: [
       { lines: [["r1", "{yo}, eres un poco sosa fuera del escenario, ¿no? Nunca te mojas."]], choices: [
         { txt: "Me mojo en la pasarela, que es lo que cuenta.", persona: "focus", adv: 2, reply: ["r1", "Touché."] },
-        { txt: "¿Sosa yo? Prepárate.", persona: "drama", bonus: 150, reply: ["r1", "¡Uy, que despierta!"] },
+        { txt: "¿Sosa yo? Prepárate.", persona: "drama", bonus: 150, reply: ["r1", "¡Uy, qué despierta!"] },
       ] },
       { lines: [["r1", "Te he visto ensayar a las tantas. ¿No descansas nunca?"]], choices: [
         { txt: "Descansaré con la corona puesta.", persona: "focus", adv: 2, reply: ["r1", "Qué miedo me das."] },
@@ -1310,7 +1310,7 @@ const FAMA = {
 const NEMESIS = {
   nace: {
     choque: [
-      ["r1", "(Confesionario) Lo de {yo} ya no es una pelea de un día. Es personal."],
+      ["r1", "(Confesionario) Lo de {yo} ya no es una pelea de un día. Me tiene un poco cansada, la verdad."],
       ["r1", "(Confesionario) Ha venido a por mí. Pues que sepa que yo también voy a por ella."],
     ],
     historia: [
@@ -1321,7 +1321,7 @@ const NEMESIS = {
       ["r1", "(Confesionario) Sí, le he roto el pacto a {yo}. Y ahora va a por mí. Que venga."],
     ],
     competencia: [
-      ["r1", "(Confesionario) {yo} y yo siempre acabamos peleando por lo mismo. Solo puede quedar una."],
+      ["r1", "(Confesionario) {yo} y yo siempre acabamos peleando por lo mismo. Ya veremos quién llega más lejos."],
       ["r1", "(Confesionario) Cada semana mirándonos de reojo. Me pone de los nervios y me motiva a la vez."],
     ],
   },
@@ -1332,7 +1332,7 @@ const NEMESIS = {
     ],
     wins: [
       [["r1", "Disfruta tus victorias, {yo}. Las caídas desde arriba duelen más."]],
-      [["r1", "Muy bien lo de ganar, cariño. Pero aquí la corona no se gana en una semana."]],
+      [["r1", "Muy bien lo de ganar. Pero aquí la corona no se gana en una semana."]],
     ],
     mean: [
       [["r1", "Tú y yo somos iguales, {yo}. Por eso no nos soportamos."]],
@@ -1365,7 +1365,7 @@ const NEMESIS = {
     envidiaPre: [["r1", "Muy contenta te veo con lo que te han dicho. No cantes victoria, que aún no han decidido nada."], ["me", "No canto nada. Espero, como todas."]],
   },
   lipsync: [
-    ["host", "Esto es lo que todas estaban esperando: {yo} contra {r1}. Némesis contra némesis."],
+    ["host", "Esto es lo que todas estaban esperando: {yo} y {r1}. Esto venía de lejos."],
     ["r1", "Por fin. Sin jurado de por medio. Solo tú y yo."],
   ],
   adios: [["r1", "Esto no se acaba aquí, {yo}. Nos veremos en el reencuentro."]],

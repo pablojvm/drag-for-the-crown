@@ -113,6 +113,8 @@ const Toast = {
     if (!box) {
       box = document.createElement("div");
       box.id = "toasts";
+      box.setAttribute("role", "status");
+      box.setAttribute("aria-live", "polite");
       document.body.append(box);
     }
     const t = document.createElement("div");
@@ -120,7 +122,10 @@ const Toast = {
     t.innerHTML = `<b></b><span></span>`;
     t.querySelector("b").textContent = title;
     t.querySelector("span").textContent = sub;
+    // Si se repite el mismo aviso, se renueva en vez de apilarse; nunca más de 3 a la vez
+    [...box.children].filter((x) => x.querySelector("b").textContent === title && x.querySelector("span").textContent === sub).forEach((x) => x.remove());
     box.append(t);
+    while (box.children.length > 3) box.firstElementChild.remove();
     setTimeout(() => t.classList.add("out"), 3200);
     setTimeout(() => t.remove(), 3700);
   },
@@ -136,7 +141,8 @@ const Confetti = {
     document.body.append(cv);
     const ctx = cv.getContext("2d");
     const cols = ["#ff4fd8", "#ffd84d", "#4fd8ff", "#9dff4f", "#ffffff", "#b23cff"];
-    const ps = Array.from({ length: 220 }, () => ({
+    const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const ps = Array.from({ length: calm ? 40 : 220 }, () => ({
       x: Math.random() * cv.width,
       y: -20 - Math.random() * cv.height * 0.6,
       vx: (Math.random() - 0.5) * 3,
@@ -147,12 +153,16 @@ const Confetti = {
       c: cols[Math.floor(Math.random() * cols.length)],
     }));
     const t0 = performance.now();
+    let last = t0;
     (function tick(t) {
+      // Velocidad por tiempo real: igual en pantallas de 60 y de 120 Hz
+      const k = Math.min(3, Math.max(0, (t - last) / 16.67));
+      last = t;
       ctx.clearRect(0, 0, cv.width, cv.height);
       ps.forEach((p) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.r += p.vr;
+        p.x += p.vx * k;
+        p.y += p.vy * k;
+        p.r += p.vr * k;
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.r);

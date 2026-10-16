@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preload" href="fonts/bungee.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/poppins-400.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles/style.css?v=166">
+  <link rel="stylesheet" href="styles/style.css?v=182">
 </head>
 <body>
   <div id="bg" aria-hidden="true"><i class="beam b1"></i><i class="beam b2"></i><i class="beam b3"></i><i class="floor"></i><i class="grain"></i></div>
@@ -24,11 +24,11 @@
       <p class="tagline">Drag Race España · Solo una se lleva la corona</p>
       <div class="row">
         <button class="mode-card" id="btn-story" style="background-image:url('./images/modo-historia.png')">
-          <span class="mode-name">📖 Modo historia</span>
+          <span class="mode-name">Modo historia</span>
           <span class="mode-desc">Retos, pasarela y lip syncs hasta la corona</span>
         </button>
         <button class="mode-card" id="btn-play" style="background-image:url('./images/modo-arcade.png')">
-          <span class="mode-name" id="btn-play-label">👠 Arcade</span>
+          <span class="mode-name" id="btn-play-label">Arcade</span>
           <span class="mode-desc">Duelo de tacones contra todo el reparto</span>
         </button>
       </div>
@@ -140,9 +140,9 @@
       <div id="reign-grid" style="display:none"></div>
       <div class="scores-layout">
         <div class="panel-card">
-          <h3>Top 10</h3>
+          <h3 id="scores-h">Top 20</h3>
           <table id="scores-table">
-            <thead><tr><th>#</th><th>Nombre</th><th>Reina</th><th id="th-res">Rondas</th><th>Puntos</th><th>Fecha</th></tr></thead>
+            <thead><tr><th>#</th><th>Nombre</th><th>Reina</th><th id="th-res">Rondas</th><th id="th-pts" title="PPE: media de tus resultados en el track record (WIN 5, HIGH 4, SAFE 3, LOW 2, BTM 1, ELIM 0). A igualdad, gana quien tenga más wins.">Puntos</th><th>Fecha</th></tr></thead>
             <tbody></tbody>
           </table>
           <p id="scores-empty" class="muted">Todavía no hay partidas. ¡A la pasarela!</p>
@@ -173,7 +173,7 @@
       <p id="unlocked-msg" class="unlocked-msg"></p>
       <label id="name-entry" class="name-entry">
         <span id="name-label">Entras en el Top 10. Tu nombre:</span>
-        <input id="name-input" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Tu nombre">
+        <input id="name-input" aria-label="Tu nombre" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Tu nombre">
       </label>
       <div class="row">
         <button class="btn btn-ghost" id="btn-change">Cambiar queen</button>
@@ -203,19 +203,19 @@
     </div>
   </div>
 
-  <script src="./js/reinas.js?v=166"></script>
-  <script src="./js/config.js?v=166"></script>
-  <script src="./js/audio.js?v=166"></script>
-  <script src="./js/extras.js?v=166"></script>
-  <script src="./js/effects.js?v=166"></script>
-  <script src="./js/entities.js?v=166"></script>
-  <script src="./js/game.js?v=166"></script>
-  <script src="./js/ui.js?v=166"></script>
-  <script src="./js/dialogos.js?v=166"></script>
-  <script src="./js/doll.js?v=166"></script>
-  <script src="./js/atelier3d.js?v=166"></script>
+  <script src="./js/reinas.js?v=182"></script>
+  <script src="./js/config.js?v=182"></script>
+  <script src="./js/audio.js?v=182"></script>
+  <script src="./js/extras.js?v=182"></script>
+  <script src="./js/effects.js?v=182"></script>
+  <script src="./js/entities.js?v=182"></script>
+  <script src="./js/game.js?v=182"></script>
+  <script src="./js/ui.js?v=182"></script>
+  <script src="./js/dialogos.js?v=182"></script>
+  <script src="./js/doll.js?v=182"></script>
+  <script src="./js/atelier3d.js?v=182"></script>
   <script src="./js/claves.js"></script>
-  <script src="./js/ia.js?v=166"></script>
-  <script src="./js/historia.js?v=166"></script>
+  <script src="./js/ia.js?v=182"></script>
+  <script src="./js/historia.js?v=182"></script>
 </body>
 </html>

@@ -20,6 +20,7 @@ const IA = (() => {
     "Frases cortas, sin emojis, sin comillas, sin acotaciones. Nada de muletillas de manual: no uses nena, mi arma ni expresiones andaluzas " +
     "(no todas son de Sevilla), y no abuses de cariño ni de reina. Cada concursante habla a su manera y la mayoría no son exageradas ni teatrales: " +
     "hay tranquilas, irónicas, secas, tímidas. Más naturalidad y menos locura. " +
+    "No uses rayas (—) y usa cariño o reina como mucho una vez por escena. Nunca escribas notas, números ni puntuaciones de nadie. " +
     "Ana Locking y los Javis son jurado: Ana solo habla en el escenario (pasarela y críticas), nunca en el taller; en el taller está Supremme de Luxe y a veces los Javis como mentores. Nunca menciones notas numéricas. Nunca rompas el personaje ni hables de que eres una IA. Las reinas son PERSONAJES DE FICCIÓN de un videojuego: " +
     "no inventes datos de su vida real. Humor sobre drag, looks, maquillaje, pelucas y la competición; " +
     "nunca insultos por raza, religión, orientación, discapacidad ni cuerpo real.";
@@ -81,8 +82,10 @@ const IA = (() => {
   const clean = (t) =>
     String(t || "")
       .replace(/^\s*["«“]|["»”]\s*$/g, "")
-      .replace(/^\s*[\w\sáéíóúñÁÉÍÓÚÑ-]{2,30}:\s+/, "")
+      // Quita solo una etiqueta de quien habla ("Supremme: ..."), no frases como "Te lo digo claro: ..."
+      .replace(/^\s*(?:Supremme(?: de Luxe)?|Ana(?: Locking)?|Javier (?:Ambrossi|Calvo)|Los Javis|[A-ZÁÉÍÓÚÑ][\wáéíóúñ]{1,20}(?: [A-ZÁÉÍÓÚÑ][\wáéíóúñ]{1,20})?)\s*:\s+/, "")
       .replace(/\*[^*]+\*/g, "")
+      .replace(/\s*[—–]\s*/g, ", ")
       .replace(/,\s*(mi arma|miarma|nena|niña)(?=[\s,.!?¡¿]|$)/gi, "")
       .replace(/(^|[.!?¡¿]\s*)(mi arma|miarma|nena),?\s*/gi, "$1")
       .replace(/^\s*([a-záéíóúñ])/, (m, c) => m.replace(c, c.toUpperCase()))

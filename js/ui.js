@@ -50,6 +50,7 @@ const UI = (() => {
     Object.entries(screens).forEach(([k, el]) => el.classList.toggle("active", k === name));
     btnPause.style.visibility = name === "game" ? "visible" : "hidden";
     touch.classList.toggle("active", name === "game");
+    if (window.__fitStage) window.__fitStage();
     showPause(false);
     if (name === "menu") {
       $("#menu-best").textContent = fmt(store.get("dftc-best", 0));
@@ -452,6 +453,7 @@ const UI = (() => {
     const story = scoresTab === "story";
     document.querySelectorAll("#scores-tabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === scoresTab));
     $("#th-res").textContent = story ? "Resultado" : "Rondas";
+    $("#th-pts").textContent = story ? "Track record" : "Puntos";
     const board = story ? StoryBoard.board : Progress.board;
     const mine = story ? Story.lastEntryId : lastEntryId;
     $("#scores-table tbody").innerHTML = board
@@ -465,7 +467,7 @@ const UI = (() => {
           <td>${esc(e.name || "Anónima")}</td>
           <td><span class="mini" style="background-image:url('${pic}')"></span>${esc(q ? q.name : e.queen)}</td>
           <td>${seasonTag(e.season)}${res}${story && e.track ? ' <span class="trk-ico">📊</span>' : ""}</td>
-          <td class="pts">${fmt(e.score)}</td>
+          <td class="pts">${story ? (() => { const m = storyMetrics(e); return `<b>${m.ppe.toFixed(2)}</b> PPE · ${m.wins} ${m.wins === 1 ? "win" : "wins"}`; })() : fmt(e.score)}</td>
           <td class="muted">${date}</td>
         </tr>`;
       })
@@ -595,10 +597,28 @@ const UI = (() => {
 
   // ------------------------------ Escalado ---------------------------------
   const stage = $("#stage");
+  // En móvil vertical el escenario se hace más estrecho y alto (720 px de ancho) para que el texto se lea;
+  // el arcade (lienzo de 1440) sigue en horizontal
   function fit() {
-    const s = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+    const w = window.innerWidth, h = window.innerHeight;
+    const arcade = !!document.querySelector("#screen-game.active");
+    const portrait = w / h < 0.85 && !arcade;
+    const SW = portrait ? 720 : STAGE_W;
+    const SH = portrait ? Math.max(STAGE_H, Math.round((SW * h) / w)) : STAGE_H;
+    stage.style.width = SW + "px";
+    stage.style.height = SH + "px";
+    document.body.classList.toggle("portrait", portrait);
+    const s = Math.min(w / SW, h / SH);
     stage.style.transform = `translate(-50%, -50%) scale(${s})`;
   }
+  window.__fitStage = fit;
+  // Accesibilidad: todo campo de texto sin etiqueta usa su placeholder como nombre accesible
+  const labelFields = (root) => root.querySelectorAll("input:not([aria-label]):not([id='name-input']), textarea:not([aria-label])").forEach((el) => {
+    const ph = el.getAttribute("placeholder");
+    if (ph && !(el.id && document.querySelector(`label[for="${el.id}"]`))) el.setAttribute("aria-label", ph.replace(/\.\.\.$|…$/, ""));
+  });
+  labelFields(document);
+  new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => n.nodeType === 1 && labelFields(n)))).observe(stage, { childList: true, subtree: true });
   window.addEventListener("resize", fit);
   fit();
 
@@ -611,7 +631,7 @@ const UI = (() => {
   Game.ready.then(() => {
     $("#btn-play").disabled = false;
     $("#btn-story").disabled = false;
-    $("#btn-play-label").textContent = "👠 Arcade";
+    $("#btn-play-label").textContent = "Arcade";
   });
   show("menu");
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("./sw.js").catch(() => {});

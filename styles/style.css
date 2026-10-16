@@ -1594,7 +1594,7 @@ td.hearts { font-weight: 800; color: #d6204f; white-space: nowrap; }
 /* ---------------- Pasarela: estilismo ---------------- */
 .mg.estilo { width: 1000px; max-width: 100%; }
 .es-look { display: flex; gap: 12px; justify-content: center; margin: 12px 0 18px; }
-.es-slot { --c: transparent; width: 170px; min-height: 96px; padding: 10px; border-radius: 18px; border: 2px dashed var(--line); background: rgba(255,255,255,.6); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; transition: all .3s var(--ease-spring); }
+.es-slot { --c: transparent; width: 170px; min-height: 96px; padding: 10px; border-radius: 18px; border: 2px dashed var(--line); background: rgba(255,255,255,.6); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; transition: transform .3s var(--ease-spring), border-color .3s, background-color .3s; }
 .es-slot em { font-style: normal; font-size: 30px; }
 .es-slot small { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
 .es-slot.on { border-style: solid; border-color: var(--c); background: linear-gradient(160deg, #fff 55%, color-mix(in srgb, var(--c) 35%, #fff)); transform: translateY(-4px); box-shadow: var(--shadow); }
@@ -2227,3 +2227,130 @@ td.t-miss { font-size: 9.5px !important; line-height: 1.1; white-space: normal; 
 @keyframes siren-spin { from { transform: rotate(-12deg) scale(1); } to { transform: rotate(12deg) scale(1.12); } }
 .siren-msg { font: 900 26px/1.2 var(--font-display, inherit); color: #e8132f; margin: 10px 0; text-shadow: 0 0 12px rgba(255,255,255,.8); animation: siren-blink .5s steps(2) 6; }
 @keyframes siren-blink { 50% { opacity: .35; } }
+
+/* ================================================================
+   Auditoría de diseño (pulido general)
+   ================================================================ */
+/* Logros y reinas reinantes: listas largas con scroll propio (antes se salían de pantalla) */
+#ach-grid, #reign-grid { max-height: 600px; overflow-y: auto; padding: 6px 10px 12px; scrollbar-width: thin; }
+#ach-grid .ach { animation-delay: 0ms !important; }
+/* Tarjetas de modo: el texto siempre sobre una base clara y legible */
+.mode-card::before { background: linear-gradient(90deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.82) 42%, rgba(255,255,255,.25) 62%, rgba(255,255,255,0) 78%) !important; }
+.mode-card .mode-desc { max-width: 190px !important; line-height: 1.35; }
+.mode-card .mode-name { text-shadow: 2px 2px 0 #fff, 3px 3px 0 var(--pink) !important; }
+/* Portadas de temporada: velo arriba para que el título no se pise con el logo de la foto */
+.season-card.has-cover { box-shadow: inset 0 92px 50px -40px rgba(30,4,45,.88), var(--shadow, 0 18px 40px -18px rgba(0,0,0,.4)) !important; }
+.season-card.locked.has-cover { box-shadow: inset 0 92px 50px -40px rgba(30,4,45,.6) !important; }
+/* Ficha de reina: etiquetas de atributos sin pisarse con los puntos */
+#det-stats .stat-row.story-stat { grid-template-columns: 118px 1fr 28px !important; }
+/* Foco visible en todo lo interactivo (teclado) */
+button:focus-visible, [role="button"]:focus-visible, input:focus-visible, textarea:focus-visible, .hub-q:focus-visible, .shop-card button:focus-visible {
+  outline: 3px solid var(--gold, #ffd84d) !important; outline-offset: 3px !important;
+}
+/* Tablas: números alineados */
+#scores-table td.pts, .track td.ppe { font-variant-numeric: tabular-nums; }
+/* Botones deshabilitados: que se note */
+.btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; filter: saturate(.6); }
+/* Respeta a quien prefiere menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  #bg .beam { display: none; }
+}
+
+/* ---------- Móvil en vertical: escenario de 720 px de ancho ---------- */
+body.portrait #stage { overflow: hidden; }
+body.portrait .screen { padding-left: 18px; padding-right: 18px; }
+body.portrait .menu-logo { width: 360px !important; height: auto; }
+body.portrait #screen-menu .row { flex-direction: column; align-items: center; gap: 18px; }
+body.portrait .mode-card { width: 640px !important; height: 230px !important; }
+body.portrait .controls-help { display: none; }
+body.portrait #franchise-grid, body.portrait #season-grid { flex-wrap: wrap; justify-content: center; max-width: 690px; }
+body.portrait #season-grid .season-card { width: 320px; flex: 0 0 320px; }
+body.portrait .select-layout { flex-direction: column; align-items: center; }
+body.portrait #queen-grid { grid-template-columns: repeat(4, 1fr) !important; max-width: 680px; }
+body.portrait #queen-details { width: 660px !important; max-width: 660px !important; }
+body.portrait .scores-layout { flex-direction: column; width: 680px !important; }
+body.portrait #ach-grid { width: 680px !important; grid-template-columns: 1fr !important; max-height: 1100px; }
+body.portrait #reign-grid { width: 680px !important; max-height: 1100px; }
+body.portrait .story-top { flex-direction: column; align-items: stretch; gap: 8px; }
+body.portrait .story-card, body.portrait .at, body.portrait .ls, body.portrait .shop { width: 690px !important; max-width: 690px !important; }
+body.portrait .at, body.portrait .ls { grid-template-columns: 1fr !important; }
+body.portrait .ls-right { max-height: 760px; }
+body.portrait .rw { width: 690px !important; }
+body:not(.portrait) .mode-card { width: 500px !important; }
+body:not(.portrait) #btn-story.mode-card { background-position: right -75px bottom, center !important; }
+body:not(.portrait) #btn-play.mode-card { background-position: right 0 bottom, center !important; }
+.mode-card .mode-name { font-size: 25px !important; }
+body.portrait .story-top { width: 690px !important; grid-template-columns: 1fr !important; }
+body.portrait .story-right { align-items: stretch; }
+body.portrait #story-season { font-size: 12px; }
+body.portrait .story-top h2 { font-size: 32px; }
+body.portrait #screen-story { padding-top: 70px; }
+.story-card .siren-msg { font: 900 28px/1.2 "Bungee", "Poppins", sans-serif !important; color: #e8132f !important; margin: 12px 0 6px; text-shadow: 0 2px 0 #fff, 0 0 18px rgba(255,255,255,.9); animation: siren-blink .5s steps(2) 6; }
+
+/* Guías de interfaz: campos escribibles y seleccionables, foco visible también con ratón, toques rápidos */
+input, textarea { user-select: text; -webkit-user-select: text; }
+.ft-form input:focus, .ta-form textarea:focus, .ls input:focus { border-color: var(--pink) !important; box-shadow: 0 0 0 3px rgba(255,61,154,.25); }
+button, a, .hub-q, .shop-card, .season-card, .franchise-card, .queen-card, .mode-card { touch-action: manipulation; }
+#toasts { pointer-events: none; }
+/* Plan de pasarelas: las temáticas se leen sin forzar la vista */
+.sched { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important; max-height: 360px; }
+.sched-ep { padding: 12px 14px !important; gap: 5px !important; }
+.sched-ep b { font-size: 12px !important; letter-spacing: .02em !important; text-transform: none !important; }
+.sched-ep > span { font-size: 16px !important; }
+.sched-ep small { color: #6e5a7d !important; font-size: 13.5px !important; line-height: 1.4; }
+/* Dorado legible sobre blanco (contraste AA) */
+.story-card .gold, .gold { color: #9a5f00 !important; }
+/* Avisos abajo a la derecha: no tapan la barra de la partida */
+#toasts { top: auto !important; bottom: 20px !important; right: 20px !important; }
+body.portrait #toasts { right: 50% !important; transform: translateX(50%) !important; align-items: center !important; }
+.call-plan .sched { max-height: 290px !important; }
+.call-plan > p { font-size: 15px !important; margin: 6px 0 !important; line-height: 1.45; }
+.call-plan h3 { margin: 6px 0 !important; }
+.ls-gridslot { flex: 1; min-height: 0; display: flex; }
+.ls-gridslot > .ls-grid { flex: 1; }
+.ls-slot { display: block; }
+
+/* ---------- Auditoría v182: móvil en vertical y pulido ---------- */
+/* Los minijuegos y paneles de decisiones caben en el escenario vertical (720 px) */
+body.portrait .mg, body.portrait .mg.estilo, body.portrait .mg.dc { width: 690px !important; max-width: 690px !important; min-height: 0; padding: 20px; }
+body.portrait .dc-opts, body.portrait .dc-scene, body.portrait .dc-top { max-width: 100%; }
+body.portrait .es-opt { width: 200px; }
+body.portrait .ranking { width: 100% !important; max-width: 620px; grid-template-columns: 1fr 1fr !important; gap: 8px 12px; }
+body.portrait .ranking li { font-size: 15px; min-width: 0; }
+body.portrait .ranking li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* El botón de sonido no tapa la línea de temporada */
+body.portrait #story-season { padding-right: 96px; }
+/* Avisos más discretos en móvil: pequeños y como mucho dos a la vista */
+body.portrait .toast { max-width: 86vw; padding: 8px 14px; border-radius: 12px; }
+body.portrait .toast b { font-size: 14px; }
+body.portrait .toast span { font-size: 12px; }
+body.portrait #toasts .toast:nth-last-child(n+3) { display: none; }
+/* Menú: las dos tarjetas alinean su texto igual */
+#btn-play.mode-card { padding: 22px 24px !important; }
+/* Entradas desde escala 0 → desde 0,6 con fundido (menos brusco) */
+@keyframes pop { from { transform: scale(0.6) rotate(-20deg); opacity: 0; } }
+/* Números alineados en tablas de puntuación y track record */
+#scores-table td, table.track td { font-variant-numeric: tabular-nums; }
+/* Cuerpo de la historia en vertical: todo cabe en 690 px */
+body.portrait #story-body { width: 690px !important; max-width: 690px; }
+body.portrait #story-body :is(.pz-track, .sg-host, .sg-bar, .sg-opts, .sg-chars, .sg-laugh, .dr, .rw-floor, .cc-box, .story-card, .ranking) { max-width: 100% !important; }
+body.portrait .sg-host p { font-size: 22px; }
+body.portrait .sg-opt { font-size: 17px; padding: 12px 16px; }
+body.portrait .sg-chars { grid-template-columns: 1fr !important; }
+body.portrait canvas { max-width: 100%; height: auto; }
+body.portrait .dr { grid-template-columns: 1fr !important; }
+/* Diálogos en vertical: personajes más pequeños y caja a todo el ancho */
+body.portrait .dlg { width: 690px !important; height: 1040px; }
+body.portrait .dlg-char { height: 520px; max-width: 330px; bottom: 300px; }
+body.portrait .dlg-char.left { left: 0; }
+body.portrait .dlg-char.right { right: 0; }
+body.portrait .dlg-box { min-height: 260px; padding: 20px 22px; }
+body.portrait .dlg-text { font-size: 24px; }
+body.portrait .dlg-choices .btn { font-size: 18px; padding: 12px 16px; }
+body.portrait .dlg-skip { top: -44px; }
+/* Avisos en vertical: arriba, pequeños, sin tapar las opciones del diálogo */
+body.portrait #toasts { top: 6px !important; bottom: auto !important; }
+body.portrait #toasts .toast { padding: 6px 12px !important; max-width: 78vw; }
+body.portrait #toasts .toast b { font-size: 13px !important; }
+body.portrait #toasts .toast span { font-size: 11px !important; }

@@ -338,11 +338,47 @@ const store = {
   set(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      return true;
     } catch {
-      /* sin almacenamiento disponible */
+      return false; // sin almacenamiento disponible o lleno
     }
   },
 };
+
+// Imágenes grandes (fotos de looks, renders 3D) en IndexedDB: localStorage solo aguanta ~5 MB y se llenaba.
+// Se cargan en memoria al arrancar (lectura síncrona) y se escriben en segundo plano.
+const ImgDB = (() => {
+  const KEYS = ["dftc-render-looks", "dftc-fotos-looks"];
+  const cache = Object.fromEntries(KEYS.map((k) => [k, {}]));
+  let db = null;
+  const open = () => new Promise((res) => {
+    try {
+      const r = indexedDB.open("dftc", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("img");
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+    } catch (e) { res(null); }
+  });
+  const read = (k) => new Promise((res) => {
+    try { const q = db.transaction("img").objectStore("img").get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); } catch (e) { res(null); }
+  });
+  function persist(k) {
+    if (!db) return store.set(k, cache[k]);
+    try { db.transaction("img", "readwrite").objectStore("img").put(cache[k], k); return true; } catch (e) { return false; }
+  }
+  const ready = (async () => {
+    db = await open();
+    for (const k of KEYS) {
+      const old = store.get(k, null);
+      if (db) { const v = await read(k); if (v) Object.assign(cache[k], v); }
+      if (old) {
+        cache[k] = { ...old, ...cache[k] };
+        if (db) { persist(k); try { localStorage.removeItem(k); } catch (e) {} }
+      }
+    }
+  })();
+  return { ready, get: (k, id) => cache[k][id] || null, set: (k, id, v) => { cache[k][id] = v; return persist(k); } };
+})();
 
 const rand = (min, max) => Math.random() * (max - min) + min;
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -356,9 +392,20 @@ function lookOf(q, seasonId) {
 }
 
 // Puntuaciones del modo historia (tabla y carrera aparte del arcade)
+// Clasificación del modo historia: por la puntuación del track record (PPE) y, a igualdad, por número de wins
+function storyMetrics(e) {
+  if (e.ppe != null) return { ppe: e.ppe, wins: e.winsT != null ? e.winsT : e.wins || 0 };
+  // Partidas antiguas: se saca de la tabla del track record guardada
+  const m = /<tr class="me[^"]*"[\s\S]*?<\/tr>/.exec(e.track || "");
+  const row = m ? m[0] : "";
+  const ppe = parseFloat((/<td class="ppe">([\d.]+)<\/td>/.exec(row) || [])[1]) || 0;
+  const wins = (row.match(/>WIN</g) || []).length || e.wins || 0;
+  return { ppe, wins };
+}
+const storyRank = (a, b) => { const A = storyMetrics(a), B = storyMetrics(b); return B.ppe - A.ppe || B.wins - A.wins || (b.won ? 1 : 0) - (a.won ? 1 : 0) || b.score - a.score; };
 const StoryBoard = {
   get board() {
-    return store.get("dftc-story-board", []);
+    return store.get("dftc-story-board", []).slice().sort(storyRank);
   },
   get stats() {
     return store.get("dftc-story-stats", { games: 0, crowns: 0, challengeWins: 0, lipsyncs: 0, total: 0 });
@@ -373,9 +420,9 @@ const StoryBoard = {
     store.set("dftc-story-stats", s);
     const board = this.board;
     board.push(entry);
-    board.sort((a, b) => b.score - a.score);
-    store.set("dftc-story-board", board.slice(0, 10));
-    return board.slice(0, 10).findIndex((e) => e.id === entry.id);
+    board.sort(storyRank);
+    store.set("dftc-story-board", board.slice(0, 20));
+    return board.slice(0, 20).findIndex((e) => e.id === entry.id);
   },
   rename(id, name) {
     const board = this.board;
