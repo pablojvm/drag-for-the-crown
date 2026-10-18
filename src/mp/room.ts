@@ -1,6 +1,6 @@
 // Controlador de la sala: la anfitriona lleva el reloj y aplica las reglas; todas reciben el mismo estado.
 // Si la anfitriona se cae, la siguiente que entró toma el relevo con el último estado.
-import { newRoom, startSeason, tick, applySubmit, type RoomState, type Engine, type Ritmo, type Phase, type Sub, type Player } from "./model";
+import { newRoom, startSeason, tick, advance, applySubmit, type RoomState, type Engine, type Ritmo, type Phase, type Sub, type Player } from "./model";
 import { LocalBus, OnlineBus, type Bus } from "./bus";
 
 const myId = () => {
@@ -52,6 +52,8 @@ export class Room {
     const n = f(this.state);
     if (n !== this.state) { this.state = n; this.broadcast(); this.onChange(n); }
   }
+  /** Sin límite de tiempo: la anfitriona puede seguir sin esperar a las que faltan. */
+  skip() { this.hostDo((s) => (s.phase === "lobby" || s.phase === "corona" ? s : advance(s, Date.now(), this.engine()))); }
   private broadcast() { if (this.state && this.bus) this.bus.send("state", { s: this.state, now: Date.now() }); }
 
   private heartbeat() {
@@ -68,7 +70,7 @@ export class Room {
       if (present.has(this.state.host)) return; // sigue conectada: solo va lenta
       const candidates = this.state.players.filter((p) => p.id !== this.state!.host && present.has(p.id)).sort((a, b) => a.joined - b.joined);
       if (candidates[0] && candidates[0].id === this.me) {
-        const extra = this.state.phase === "lobby" ? 0 : 10000;
+        const extra = this.state.phase === "lobby" || !this.state.deadline ? 0 : 10000;
         this.state = { ...this.state, host: this.me, deadline: this.state.deadline + extra, v: this.state.v + 1 };
         this.offset = 0;
         this.onChange(this.state);

@@ -53,8 +53,10 @@ const UI = (() => {
     if (window.__fitStage) window.__fitStage();
     showPause(false);
     if (name === "menu") {
-      $("#menu-best").textContent = fmt(store.get("dftc-best", 0));
-      $("#menu-total").textContent = fmt(Progress.total);
+      // (El menú ya no enseña récord ni puntos; si vuelven, se rellenan aquí)
+      const mb = $("#menu-best"), mt = $("#menu-total");
+      if (mb) mb.textContent = fmt(store.get("dftc-best", 0));
+      if (mt) mt.textContent = fmt(Progress.total);
     }
     if (name === "franchise") renderFranchises();
     if (name === "season") renderSeasons();

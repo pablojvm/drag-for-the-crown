@@ -20,31 +20,67 @@
 
     <!-- ============ INICIO ============ -->
     <section id="screen-menu" class="screen">
+      <header class="menu-top">
+        <div class="user-wrap">
+          <button class="user-chip" id="user-chip" aria-haspopup="dialog" aria-expanded="false">
+            <span class="user-av" id="user-av" aria-hidden="true">👤</span>
+            <span class="user-txt"><b id="user-name">Invitada</b><small id="user-sub">Partida en este dispositivo</small></span>
+          </button>
+          <div class="user-pop" id="user-pop" role="dialog" aria-label="Tu cuenta" hidden>
+            <p class="user-pop-title" id="user-pop-title">Juegas como invitada</p>
+            <p class="user-pop-txt" id="user-pop-txt">Tu progreso se guarda solo en este navegador.</p>
+            <button class="btn btn-primary" id="btn-cloud" hidden>Entrar con Google</button>
+            <button class="btn btn-ghost" id="btn-signout" hidden>Cerrar sesión</button>
+          </div>
+        </div>
+        <div class="menu-top-right">
+          <span class="sequin-chip" title="Lentejuelas"><i aria-hidden="true">✨</i><strong class="sequins">0</strong></span>
+          <button class="round-btn" id="btn-scores" aria-label="Hall of Fame" title="Hall of Fame">🏆</button>
+        </div>
+      </header>
       <img class="menu-logo" src="./images/logo-menu.png" alt="Drag for the Crown">
       <p class="tagline">Drag Race España · Solo una se lleva la corona</p>
-      <div class="row">
-        <button class="mode-card" id="btn-story" style="background-image:url('./images/modo-historia.png')">
-          <span class="mode-name">Modo historia</span>
-          <span class="mode-desc">Retos, pasarela y lip syncs hasta la corona</span>
-        </button>
-        <button class="mode-card" id="btn-play" style="background-image:url('./images/modo-arcade.png')">
-          <span class="mode-name" id="btn-play-label">Arcade</span>
-          <span class="mode-desc">Duelo de tacones contra todo el reparto</span>
-        </button>
+      <div class="modes" id="modes" role="region" aria-roledescription="carrusel" aria-label="Modos de juego">
+        <button class="mode-arrow car-prev prev" id="modes-prev" aria-label="Modo anterior">‹</button>
+        <div class="modes-track car-track" id="modes-track">
+          <button class="mode-slide s-story" id="btn-story" aria-label="Modo historia">
+            <span class="ms-num">01</span>
+            <span class="ms-copy">
+              <span class="ms-kicker">Temporada completa</span>
+              <span class="ms-name">Modo historia</span>
+              <span class="ms-desc">Retos, pasarela, críticas y lip syncs hasta la corona.</span>
+              <span class="ms-cta">Jugar</span>
+            </span>
+            <img class="ms-art" src="./images/modo-historia.png" alt="" loading="eager">
+          </button>
+          <button class="mode-slide s-arcade" id="btn-play" aria-label="Arcade">
+            <span class="ms-num">02</span>
+            <span class="ms-copy">
+              <span class="ms-kicker">Partida rápida</span>
+              <span class="ms-name" id="btn-play-label">Arcade</span>
+              <span class="ms-desc">Duelo de tacones contra todo el reparto.</span>
+              <span class="ms-cta">Jugar</span>
+            </span>
+            <img class="ms-art" src="./images/modo-arcade.png" alt="">
+          </button>
+          <button class="mode-slide s-mp" id="btn-mp" aria-label="Multijugador">
+            <span class="ms-num">03</span>
+            <span class="ms-copy">
+              <span class="ms-kicker">En directo con amigas</span>
+              <span class="ms-name">Multijugador</span>
+              <span class="ms-desc">Una temporada a la vez, con tiempo por episodio.</span>
+              <span class="ms-cta">Jugar</span>
+            </span>
+            <span class="ms-art ms-trio" aria-hidden="true">
+              <img src="./images/queens/alexandra-del-raval.png" alt="">
+              <img src="./images/queens/carmen-farala.png" alt="">
+              <img src="./images/queens/arantxa-castilla-la-mancha.png" alt="">
+            </span>
+          </button>
+        </div>
+        <button class="mode-arrow car-next next" id="modes-next" aria-label="Modo siguiente">›</button>
+        <div class="modes-dots car-dots" id="modes-dots" role="tablist" aria-label="Elegir modo"></div>
       </div>
-      <div class="row">
-        <button class="btn btn-ghost" id="btn-scores">🏆 Puntuaciones</button>
-        <button class="btn btn-ghost" id="btn-mp">👯 Multijugador</button>
-        <button class="btn btn-ghost" id="btn-cloud" hidden>☁️ Guardar con Google</button>
-      </div>
-      <div class="controls-help">
-        <div class="ctrl"><span class="keys"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span><span>Moverte</span></div>
-        <div class="ctrl"><span class="keys"><kbd class="wide">Espacio</kbd></span><span>Lanzar tacones</span></div>
-        <div class="ctrl"><span class="keys"><kbd>E</kbd></span><span>Poder especial</span></div>
-        <div class="ctrl"><span class="keys"><kbd>P</kbd></span><span>Pausa</span></div>
-        <div class="ctrl"><span class="keys"><kbd>M</kbd></span><span>Sonido</span></div>
-      </div>
-      <p class="best">✨ <strong class="sequins">0</strong> lentejuelas · Récord: <strong id="menu-best">0</strong> · Puntos acumulados: <strong id="menu-total">0</strong></p>
     </section>
 
     <!-- ============ FRANQUICIA ============ -->
@@ -87,8 +123,8 @@
         </div>
       </div>
       </div>
+      <button class="btn btn-ghost" id="btn-back">Volver</button>
       <div class="row">
-        <button class="btn btn-ghost" id="btn-back">Volver</button>
         <button class="btn btn-primary" id="btn-start" disabled>¡Runway!</button>
       </div>
     </section>
@@ -96,6 +132,13 @@
     <!-- ============ PARTIDA ============ -->
     <section id="screen-game" class="screen">
       <canvas id="game" aria-label="Zona de juego"></canvas>
+      <div class="game-help" id="game-help" aria-hidden="true">
+        <span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> Moverte</span>
+        <span><kbd class="wide">Espacio</kbd> Tacones</span>
+        <span><kbd>E</kbd> Poder</span>
+        <span><kbd>P</kbd> Pausa</span>
+        <span><kbd>M</kbd> Sonido</span>
+      </div>
       <div id="overlay-pause" class="overlay">
         <div class="panel">
           <h2 class="title">Pausa</h2>

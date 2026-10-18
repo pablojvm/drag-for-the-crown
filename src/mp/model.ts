@@ -2,13 +2,17 @@
 // La anfitriona aplica estas funciones y reparte el estado; el resto lo pinta.
 
 export type Phase = "lobby" | "anuncio" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "lipsync" | "track" | "final" | "corona";
-export type Ritmo = "normal" | "rapido";
+export type Ritmo = "normal" | "rapido" | "libre";
 
 /** Segundos por fase. La suma de un episodio es el tope de tiempo del episodio. */
 export const DURACION: Record<Ritmo, Record<Exclude<Phase, "lobby" | "corona">, number>> = {
   normal: { anuncio: 10, reto: 240, pasarela: 150, resultados: 30, untucked: 60, veredicto: 12, lipsync: 120, track: 15, final: 120 },
   rapido: { anuncio: 8, reto: 170, pasarela: 110, resultados: 20, untucked: 40, veredicto: 10, lipsync: 90, track: 10, final: 90 },
+  // Sin límite: lo que se juega (reto, pasarela, lip syncs) espera a que entreguen todas; lo que se mira sigue solo
+  libre: { anuncio: 10, reto: 0, pasarela: 0, resultados: 30, untucked: 60, veredicto: 12, lipsync: 0, track: 15, final: 0 },
 };
+/** Momento tope de una fase; 0 = sin tope (se espera a que entreguen todas). */
+export const limite = (now: number, secs: number) => (secs > 0 ? now + secs * 1000 : 0);
 export const topeEpisodio = (r: Ritmo) => {
   const d = DURACION[r];
   return d.anuncio + d.reto + d.pasarela + d.resultados + d.untucked + d.veredicto + d.lipsync + d.track;
@@ -89,7 +93,7 @@ function nextEpisode(s: RoomState, now: number, e: Engine): RoomState {
   const r = { ...pool[Math.floor(e.rnd() * pool.length)] };
   if (!r.noRunway) { const cats = e.categorias(); r.cat = cats[Math.floor(e.rnd() * cats.length)]; }
   const ep = s.ep + 1;
-  return { ...s, ep, reto: r, used: [...s.used, r.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, note: undefined, epNames: { ...s.epNames, [ep]: r.titulo }, phase: "anuncio", deadline: now + DURACION[s.ritmo].anuncio * 1000, v: s.v + 1 };
+  return { ...s, ep, reto: r, used: [...s.used, r.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, note: undefined, epNames: { ...s.epNames, [ep]: r.titulo }, phase: "anuncio", deadline: limite(now, DURACION[s.ritmo].anuncio), v: s.v + 1 };
 }
 
 /** ¿Han entregado ya todas las que tienen que entregar en esta fase? (para no esperar al tope) */
@@ -165,7 +169,7 @@ function seeds(s: RoomState): string[] {
 /** Pasa a la siguiente fase. */
 export function advance(s: RoomState, now: number, e: Engine): RoomState {
   const D = DURACION[s.ritmo];
-  const at = (phase: Phase, secs: number, extra: Partial<RoomState> = {}): RoomState => ({ ...s, ...extra, phase, deadline: now + secs * 1000, v: s.v + 1 });
+  const at = (phase: Phase, secs: number, extra: Partial<RoomState> = {}): RoomState => ({ ...s, ...extra, phase, deadline: limite(now, secs), v: s.v + 1 });
   switch (s.phase) {
     case "anuncio":
       return at("reto", D.reto);
@@ -174,7 +178,7 @@ export function advance(s: RoomState, now: number, e: Engine): RoomState {
     // falls through: sin pasarela aparte, directo a resultados
     case "pasarela": {
       const scored = scoreWeek(s, e);
-      return { ...scored, phase: "resultados", deadline: now + D.resultados * 1000, v: s.v + 1 };
+      return { ...scored, phase: "resultados", deadline: limite(now, D.resultados), v: s.v + 1 };
     }
     case "resultados":
       return at("untucked", D.untucked);
@@ -187,7 +191,7 @@ export function advance(s: RoomState, now: number, e: Engine): RoomState {
       const next = { ...s, pairs, subs: Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, ls: undefined }])) };
       // Si no hay jugadoras en el lip sync, se resuelve solo
       if (!pairs.some((p) => isP(p.a) || isP(p.b))) return { ...next, phase: "lipsync", deadline: now + 6000, v: s.v + 1 };
-      return { ...next, phase: "lipsync", deadline: now + D.lipsync * 1000, v: s.v + 1 };
+      return { ...next, phase: "lipsync", deadline: limite(now, D.lipsync), v: s.v + 1 };
     }
     case "lipsync": {
       const pairs = resolvePairs(s, e);
@@ -198,7 +202,7 @@ export function advance(s: RoomState, now: number, e: Engine): RoomState {
       });
       const nm = (k: string) => nameOfKey(t, k, e);
       const note = pairs.map((p) => `${nm(p.winner!)} se queda. ${nm(p.winner === p.a ? p.b : p.a)} se va a casa.`).join(" ");
-      return { ...t, note, phase: "track", deadline: now + D.track * 1000, v: s.v + 1 };
+      return { ...t, note, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
     }
     case "track": {
       if (aliveKeys(s).length > 4) return nextEpisode(s, now, e);
@@ -207,7 +211,7 @@ export function advance(s: RoomState, now: number, e: Engine): RoomState {
       const ep = s.ep + 1;
       const pairs: Pair[] = sd.length >= 4 ? [{ a: sd[0], b: sd[3] }, { a: sd[1], b: sd[2] }] : sd.length === 3 ? [{ a: sd[1], b: sd[2] }] : [{ a: sd[0], b: sd[1] }];
       const bye = sd.length === 3 ? sd[0] : undefined;
-      return { ...s, ep, epNames: { ...s.epNames, [ep]: "Gran final" }, reto: undefined, rows: undefined, crit: undefined, pairs, finalStage: sd.length === 2 ? 2 : 1, note: bye ? `${nameOfKey(s, bye, e)} pasa directa a la final.` : undefined, subs: {}, phase: "final", deadline: now + D.final * 1000, v: s.v + 1 };
+      return { ...s, ep, epNames: { ...s.epNames, [ep]: "Gran final" }, reto: undefined, rows: undefined, crit: undefined, pairs, finalStage: sd.length === 2 ? 2 : 1, note: bye ? `${nameOfKey(s, bye, e)} pasa directa a la final.` : undefined, subs: {}, phase: "final", deadline: limite(now, D.final), v: s.v + 1 };
     }
     case "final": {
       const pairs = resolvePairs(s, e);
@@ -219,7 +223,7 @@ export function advance(s: RoomState, now: number, e: Engine): RoomState {
         losers.forEach((l) => (t = eliminate(t, l, place, "3ª")));
         const fin = aliveKeys(t).filter((k) => !winners.includes(k)).concat(winners);
         const pair: Pair = { a: fin[0], b: fin[1] };
-        return { ...t, pairs: [pair], finalStage: 2, subs: {}, note: `${winners.map((k) => nameOfKey(t, k, e)).join(" y ")} pasan a la final.`, phase: "final", deadline: now + D.final * 1000, v: s.v + 1 };
+        return { ...t, pairs: [pair], finalStage: 2, subs: {}, note: `${winners.map((k) => nameOfKey(t, k, e)).join(" y ")} pasan a la final.`, phase: "final", deadline: limite(now, D.final), v: s.v + 1 };
       }
       const p = pairs[0];
       const loser = p.winner === p.a ? p.b : p.a;
@@ -235,7 +239,7 @@ export function advance(s: RoomState, now: number, e: Engine): RoomState {
 /** Una vuelta del reloj de la anfitriona: avanza si se acabó el tiempo o ya han entregado todas. */
 export function tick(s: RoomState, now: number, e: Engine): RoomState {
   if (s.phase === "lobby" || s.phase === "corona") return s;
-  if (now >= s.deadline || allIn(s)) return advance(s, now, e);
+  if ((s.deadline > 0 && now >= s.deadline) || allIn(s)) return advance(s, now, e);
   return s;
 }
 

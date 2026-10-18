@@ -1,5 +1,6 @@
 // Pantallas de la temporada en directo (dentro de la pantalla del modo historia, con su propio flujo)
 import { Room } from "./room";
+import { carousel } from "../ui/carousel";
 import { DURACION, topeEpisodio, alivePlayers, aliveKeys, isP, idOf, pkey, type RoomState, type Engine, type Ritmo } from "./model";
 
 const W = window as any;
@@ -21,7 +22,7 @@ const seasons = () => (W.allSeasons() as any[]).filter((s) => !s.special && s.ca
 const castOf = (id: string) => (W.seasonById(id)?.cast || []) as string[];
 
 // Solo pruebas: ?mpfast acorta todos los tiempos
-if (new URLSearchParams(location.search).has("mpfast")) Object.values(DURACION).forEach((d: Record<string, number>) => Object.keys(d).forEach((k) => (d[k] = Math.max(4, Math.round(d[k] / 4)))));
+if (new URLSearchParams(location.search).has("mpfast")) Object.values(DURACION).forEach((d: Record<string, number>) => Object.keys(d).forEach((k) => (d[k] = d[k] > 0 ? Math.max(4, Math.round(d[k] / 4)) : 0)));
 const room = new Room(engine, castOf);
 let chatLog: { name: string; text: string; me?: boolean }[] = [];
 let playing: { ep: number; phase: string } | null = null;
@@ -53,6 +54,7 @@ function header(s: RoomState | null) {
 function tickTimer() {
   const s = room.state, el = $("#mp-timer");
   if (!el) return;
+  if (s && !s.deadline && s.ritmo === "libre" && !["lobby", "corona"].includes(s.phase)) { el.textContent = "∞ sin límite"; el.classList.remove("hurry"); return; }
   if (!s || !s.deadline || s.phase === "lobby" || s.phase === "corona") { el.textContent = ""; return; }
   const left = Math.max(0, Math.ceil((s.deadline - room.now()) / 1000));
   el.textContent = `⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
@@ -66,29 +68,43 @@ function entry() {
   const online = !!(W.DFTC_NET && W.DFTC_NET.enabled);
   body().innerHTML = `
     <div class="story-card mp-entry">
-      <p class="eyebrow">👯 Temporada en directo</p>
       <h3>Una temporada con tus amigas, a la vez</h3>
-      <p class="muted">Cada una es una reina; el resto del reparto lo juega el juego. Cada fase tiene tiempo tope: si alguien no entrega, la temporada sigue sin esperar.${online ? "" : " <b>Sin servidor:</b> de momento solo funciona entre pestañas de este navegador."}</p>
-      <label class="mp-field">Tu nombre <input id="mp-name" maxlength="12" value="${esc(myName())}"></label>
-      <div class="mp-cols">
-        <div class="mp-col">
-          <h4>Crear sala</h4>
-          <label class="mp-field">Temporada <select id="mp-season">${seasons().map((s) => `<option value="${s.id}">${esc(s.name)} · ${s.cast.length} reinas</option>`).join("")}</select></label>
-          <label class="mp-field">Ritmo <select id="mp-ritmo"><option value="normal">Normal · ${Math.round(topeEpisodio("normal") / 60)} min por episodio</option><option value="rapido">Rápido · ${Math.round(topeEpisodio("rapido") / 60)} min por episodio</option></select></label>
-          <button class="btn btn-primary" id="mp-create">Crear sala</button>
-        </div>
-        <div class="mp-col">
-          <h4>Unirse</h4>
-          <label class="mp-field">Código de la sala <input id="mp-code" maxlength="5" placeholder="ABCDE" autocapitalize="characters"></label>
-          <button class="btn btn-primary" id="mp-join">Unirse</button>
+      <p class="muted">Cada una es una reina; el resto del reparto lo juega el juego.${online ? "" : " <b>Sin servidor:</b> de momento solo funciona entre pestañas de este navegador."}</p>
+      <div class="mp-toprow">
+        <label class="mp-field">Tu nombre <input id="mp-name" maxlength="12" value="${esc(myName())}"></label>
+        <div class="mp-join">
+          <span class="mp-lbl">¿Tienes un código?</span>
+          <div class="mp-join-row"><input id="mp-code" maxlength="5" placeholder="ABCDE" autocapitalize="characters" aria-label="Código de la sala"><button class="btn btn-primary" id="mp-join">Unirse</button></div>
         </div>
       </div>
-      <button class="btn btn-ghost" id="mp-back">Volver</button>
+      <div class="mp-create">
+        <h4>O crea una sala: elige temporada</h4>
+        <div class="car mp-car" id="mp-seasons" aria-roledescription="carrusel" aria-label="Temporadas">
+          <button type="button" class="mode-arrow car-prev prev" aria-label="Temporada anterior">‹</button>
+          <div class="car-track mp-track">${seasons().map((se) => { const cover = (W.PORTADAS || {})[se.id]; return `<button type="button" class="mp-season" data-id="${se.id}" aria-label="${esc(se.name)}" style="${cover ? `background-image:url('${cover}')` : ""}"><span class="mps-top"><b>${esc(se.name)}</b><small>${se.year || ""}</small></span><span class="mps-faces">${(se.cast as string[]).slice(0, 7).map((id) => `<i style="background-image:url('${Q(id).photo}')"></i>`).join("")}</span><span class="mps-cast">${se.cast.length} reinas</span></button>`; }).join("")}</div>
+          <button type="button" class="mode-arrow car-next next" aria-label="Temporada siguiente">›</button>
+          <div class="car-dots modes-dots" role="tablist"></div>
+        </div>
+        <div class="mp-createrow">
+  <div class="mp-ritmo" role="radiogroup" aria-label="Ritmo">
+          <button type="button" role="radio" data-r="normal"><b>Normal</b><small>${Math.round(topeEpisodio("normal") / 60)} min por episodio</small></button>
+          <button type="button" role="radio" data-r="rapido"><b>Rápido</b><small>${Math.round(topeEpisodio("rapido") / 60)} min por episodio</small></button>
+          <button type="button" role="radio" data-r="libre"><b>Sin límite</b><small>Se espera a todas</small></button>
+        </div>
+          <button class="btn btn-primary" id="mp-create">Crear sala</button>
+        </div>
+      </div>
     </div>`;
   const nm = () => { const v = ($("#mp-name") as HTMLInputElement).value.trim().slice(0, 12) || "Reina"; W.store?.set("dftc-name", v); return v; };
-  $("#mp-create")!.onclick = () => { room.create(nm(), ($("#mp-season") as HTMLSelectElement).value, ($("#mp-ritmo") as HTMLSelectElement).value as Ritmo); };
+  const car = carousel($("#mp-seasons")!, { storageKey: "dftc-mp-season", keys: () => !!$("#mp-seasons") });
+  let ritmo: Ritmo = (W.store?.get("dftc-mp-ritmo", "normal") as Ritmo) || "normal";
+  const pickRitmo = (r: Ritmo) => { ritmo = r; W.store?.set("dftc-mp-ritmo", r); document.querySelectorAll<HTMLElement>(".mp-ritmo [data-r]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.r === r))); };
+  pickRitmo(["normal", "rapido", "libre"].includes(ritmo) ? ritmo : "normal");
+  document.querySelectorAll<HTMLElement>(".mp-ritmo [data-r]").forEach((b) => (b.onclick = () => pickRitmo(b.dataset.r as Ritmo)));
+  const seasonEls = document.querySelectorAll<HTMLElement>(".mp-season");
+  $("#mp-create")!.onclick = () => { room.create(nm(), seasonEls[Math.max(0, car.active)].dataset.id!, ritmo); };
   $("#mp-join")!.onclick = () => { const c = ($("#mp-code") as HTMLInputElement).value.trim().toUpperCase(); if (c.length === 5) { room.join(c, nm()); body().innerHTML = `<div class="story-card"><h3>Entrando en la sala ${esc(c)}...</h3></div>`; } };
-  $("#mp-back")!.onclick = exit;
+  const back = $("#mp-back"); if (back) back.onclick = exit;
 }
 
 // ---------------------------------- Con sala ----------------------------------
@@ -106,7 +122,7 @@ function render(s: RoomState) {
   const me = mine && mine.alive && mine.queen ? mine : null;
   const sub = s.subs[room.me] || {};
   if (s.phase === "lobby") return lobby(s);
-  if (s.phase === "anuncio") return info(`<p class="eyebrow">Episodio ${s.ep}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. Tope de este episodio: ${Math.round(topeEpisodio(s.ritmo) / 60)} minutos.</p>`);
+  if (s.phase === "anuncio") return info(`<p class="eyebrow">Episodio ${s.ep}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Tope de este episodio: ${Math.round(topeEpisodio(s.ritmo) / 60)} minutos.`}</p>`);
   if (s.phase === "reto") {
     if (me && sub.reto == null && sub.final == null) return play(s, "reto", (el) => api().play(s.reto!.tipo, s.reto!.titulo, el, (raw: number) => {
       const data = s.reto!.noRunway ? { reto: raw, final: api().finalScore(s.reto!.tipo, raw, null) } : { reto: raw };
@@ -133,6 +149,9 @@ function render(s: RoomState) {
   if (s.phase === "corona") return info(`<p class="eyebrow">Gran final</p><h3>👑 ${esc(keyName(s, s.champion!))}${keyPlayer(s, s.champion!) ? ` (${esc(keyPlayer(s, s.champion!))})` : ""}, ¡eres la ganadora!</h3>${track(s)}<button class="btn btn-primary" id="mp-exit2">Salir</button>`, () => { $("#mp-exit2")!.onclick = exit; });
 }
 
+// Sin límite: solo la anfitriona puede seguir sin las que faltan (por si alguien se ha ido)
+const skipBtn = (s: RoomState) => (s.ritmo === "libre" && room.isHost ? `<button class="btn btn-ghost" id="mp-skip">Seguir sin las que faltan</button>` : "");
+document.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest?.("#mp-skip") && confirm("¿Seguir sin esperar? Las que no hayan entregado sacan la nota mínima.")) room.skip(); });
 function info(html: string, after?: () => void) {
   body().innerHTML = `<div class="story-card mp-card">${html}</div>`;
   after && after();
@@ -141,7 +160,7 @@ function waiting(s: RoomState, phase: "reto" | "pasarela") {
   const ps = alivePlayers(s);
   const done = ps.filter((p) => (phase === "reto" ? s.subs[p.id]?.reto != null || s.subs[p.id]?.final != null : s.subs[p.id]?.final != null));
   const mine = s.players.find((p) => p.id === room.me);
-  info(`<p class="eyebrow">${phase === "reto" ? esc(s.reto!.titulo) : `Pasarela: «${esc(s.reto!.cat?.n)}»`}</p><h3>${mine && mine.alive ? "Entregado. Esperando a las demás..." : "Estás viendo la temporada"}</h3><p>${done.length}/${ps.length} han terminado. Si alguna no llega a tiempo, se sigue sin ella.</p><div class="call-faces">${ps.map((p) => face(s, pkey(p.id), done.includes(p) ? "ok" : "wait")).join("")}</div>`);
+  info(`<p class="eyebrow">${phase === "reto" ? esc(s.reto!.titulo) : `Pasarela: «${esc(s.reto!.cat?.n)}»`}</p><h3>${mine && mine.alive ? "Entregado. Esperando a las demás..." : "Estás viendo la temporada"}</h3><p>${done.length}/${ps.length} han terminado. ${s.ritmo === "libre" ? "Sin límite de tiempo: se espera a todas." : "Si alguna no llega a tiempo, se sigue sin ella."}</p><div class="call-faces">${ps.map((p) => face(s, pkey(p.id), done.includes(p) ? "ok" : "wait")).join("")}</div>${skipBtn(s)}`);
 }
 function play(s: RoomState, phase: string, start: (el: HTMLElement) => void) {
   if (playing && playing.ep === s.ep && playing.phase === phase && $("#mp-play")) return; // ya en marcha: no se toca
@@ -169,7 +188,7 @@ function lipsync(s: RoomState, myKey: string | null) {
     const rivalKey = mine.a === myKey ? mine.b : mine.a;
     return play(s, s.phase, (el) => api().lipsync(el, keyQueen(s, rivalKey), (won: boolean, score: number) => { playing = null; room.submit({ ls: { won, score } }); }));
   }
-  info(`<p class="eyebrow">${s.phase === "final" ? (s.finalStage === 2 ? "👑 Lip sync por la corona" : "Gran final · semifinales") : "Lip sync for your life"}</p>${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${pairs.map((p) => `<div class="mp-vs">${face(s, p.a)}<span>VS</span>${face(s, p.b)}</div>`).join("")}<p class="muted">${pairs.some((p) => isP(p.a) || isP(p.b)) ? "Las jugadoras del lip sync están bailando..." : "Las reinas lo dan todo en el escenario..."}</p>`);
+  info(`<p class="eyebrow">${s.phase === "final" ? (s.finalStage === 2 ? "👑 Lip sync por la corona" : "Gran final · semifinales") : "Lip sync for your life"}</p>${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${pairs.map((p) => `<div class="mp-vs">${face(s, p.a)}<span>VS</span>${face(s, p.b)}</div>`).join("")}<p class="muted">${pairs.some((p) => isP(p.a) || isP(p.b)) ? "Las jugadoras del lip sync están bailando..." : "Las reinas lo dan todo en el escenario..."}</p>${pairs.some((p) => isP(p.a) || isP(p.b)) ? skipBtn(s) : ""}`);
 }
 function track(s: RoomState) {
   const eps = Object.keys(s.epNames).map(Number).sort((a, b) => a - b);
@@ -190,7 +209,7 @@ function lobby(s: RoomState) {
   info(`
     <p class="eyebrow">Sala ${esc(s.code)} · ${esc(se?.name || "")} · ritmo ${s.ritmo === "rapido" ? "rápido" : "normal"}</p>
     <h3>Código de la sala: <span class="mp-code">${esc(s.code)}</span></h3>
-    <p class="muted">Pásaselo a tus amigas. Cada una elige una reina; las que no cojáis las juega el juego. Tope por episodio: ${Math.round(topeEpisodio(s.ritmo) / 60)} minutos (reto ${Math.round(DURACION[s.ritmo].reto / 60)} min, pasarela ${Math.round(DURACION[s.ritmo].pasarela / 60)} min, lip sync ${DURACION[s.ritmo].lipsync} s).</p>
+    <p class="muted">Pásaselo a tus amigas. Cada una elige una reina; las que no cojáis las juega el juego. ${s.ritmo === "libre" ? "Sin límite de tiempo: cada fase espera a que entreguéis todas (la anfitriona puede seguir sin las que falten)." : `Tope por episodio: ${Math.round(topeEpisodio(s.ritmo) / 60)} minutos (reto ${Math.round(DURACION[s.ritmo].reto / 60)} min, pasarela ${Math.round(DURACION[s.ritmo].pasarela / 60)} min, lip sync ${DURACION[s.ritmo].lipsync} s).`}</p>
     <div class="mp-players">${s.players.map((p) => `<span class="mp-face ${p.id === room.me ? "me" : ""}"><i style="background-image:url('${p.queen ? Q(p.queen).photo : ""}')"></i><b>${esc(p.name)}${p.id === s.host ? " 👑" : ""}</b><small>${p.queen ? esc(Q(p.queen).name) : "eligiendo..."}</small></span>`).join("")}</div>
     <h4>${mine?.queen ? "Tu reina: " + esc(Q(mine.queen).name) : "Elige tu reina"}</h4>
     <div class="mp-cast">${cast.map((id) => { const t = taken.get(id); return `<button class="mp-q ${t ? (t.id === room.me ? "mine" : "taken") : ""}" data-q="${id}" ${t && t.id !== room.me ? "disabled" : ""}><i style="background-image:url('${Q(id).photo}')"></i><span>${esc(Q(id).name)}</span>${t ? `<small>${esc(t.name)}</small>` : ""}</button>`; }).join("")}</div>

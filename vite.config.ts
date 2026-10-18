@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 const LEGACY = ["reinas", "config", "audio", "extras", "effects", "entities", "game", "ui", "dialogos", "doll", "atelier3d", "ia"];
 const HISTORIA_DIR = "js/historia";
 // Lo que se deja en window para la consola y las pruebas automáticas
-const EXPOSE = ["Story", "UI", "IA", "Game", "store", "Closet", "allSeasons", "seasonById", "FRANCHISES", "TEMPORADAS_ES"];
+const EXPOSE = ["Story", "UI", "IA", "Game", "store", "Closet", "allSeasons", "seasonById", "FRANCHISES", "TEMPORADAS_ES", "PORTADAS"];
 
 function legacy(): Plugin {
   const ID = "virtual:legacy";

@@ -83,4 +83,19 @@ describe("temporada en directo", () => {
     expect(s.track[loser][s.ep]).toBe("ELIM");
     expect(nkey("q3")).toBe("n:q3");
   });
+  it("sin límite: el reto espera a que entreguen todas, pero lo que se mira sigue solo", () => {
+    const e = engine();
+    let s = newRoom("ABCDE", { id: "A", name: "Ana", queen: "q1", joined: 1, alive: true }, "es1", "libre");
+    s = { ...s, players: [...s.players, { id: "B", name: "Bea", queen: "q2", joined: 2, alive: true }] };
+    s = startSeason(s, cast, 0, e);
+    expect(s.deadline).toBeGreaterThan(0); // el anuncio tiene su tiempo
+    s = tick(s, s.deadline, e);
+    expect(s.phase).toBe("reto");
+    expect(s.deadline).toBe(0);
+    expect(tick(s, 1e12, e).phase).toBe("reto"); // no avanza por tiempo
+    s = applySubmit(s, "A", s.ep, "reto", { reto: 70 });
+    expect(tick(s, 1e12, e).phase).toBe("reto");
+    s = applySubmit(s, "B", s.ep, "reto", { reto: 60 });
+    expect(tick(s, 1e12, e).phase).not.toBe("reto");
+  });
 });

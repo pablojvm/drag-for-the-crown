@@ -7,3 +7,7 @@ js/claves.js
 .env
 .env.local
 supabase/.temp/
+
+# Copias temporales
+dftc-src.tgz
+vite.config.ts.timestamp-*

@@ -3,3 +3,4 @@ import "./net/cloud";
 import "./net/account";
 import "virtual:legacy";
 import "./mp/ui";
+import "./ui/menu";
