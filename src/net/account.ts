@@ -4,7 +4,8 @@ import { cloud } from "./cloud";
 function render() {
   const b = document.querySelector<HTMLButtonElement>("#btn-cloud");
   if (!b) return;
-  if (!cloud.enabled) { b.hidden = true; return; }
+  // Sin Google activado en Supabase el botón no sirve (la partida anónima ya se guarda sola)
+  if (!cloud.enabled || (!cloud.googleOn && !(cloud.ready() && !cloud.isGuest))) { b.hidden = true; return; }
   b.hidden = false;
   b.textContent = cloud.ready() && !cloud.isGuest ? `☁️ ${cloud.email || "Cuenta conectada"}` : "☁️ Guardar con Google";
   b.title = cloud.ready() && !cloud.isGuest ? "Tu progreso se guarda en tu cuenta. Pulsa para cerrar sesión." : "Entra con Google para seguir tu partida en cualquier dispositivo";

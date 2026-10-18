@@ -28,6 +28,8 @@ class Cloud {
   ready() { return !!this.session; }
   get isGuest() { return !!this.session?.user?.is_anonymous; }
   get email() { return this.session?.user?.email || null; }
+  /** ¿Está activado el login con Google en Supabase? (si no, el botón no se enseña) */
+  googleOn = false;
 
   private async init() {
     this.sb = createClient(URL!, ANON!, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "sb-dftc-auth" } });
@@ -39,6 +41,10 @@ class Cloud {
         this.session = r.data.session;
       }
       this.sb.auth.onAuthStateChange((_e, s) => { this.session = s; });
+      try {
+        const st = await fetch(`${URL}/auth/v1/settings`, { headers: { apikey: ANON! } }).then((r) => r.json());
+        this.googleOn = !!st?.external?.google;
+      } catch { this.googleOn = false; }
       await this.pull();
       this.loadMemories();
     } catch (e) {
@@ -92,7 +98,7 @@ class Cloud {
   // ---------- Cuenta ----------
   /** Guarda el progreso con Google: si eres anónima se enlaza a tu cuenta (no pierdes nada). */
   async google() {
-    if (!this.sb) return;
+    if (!this.sb || !this.googleOn) return;
     const redirectTo = location.href.split("#")[0];
     if (this.session && this.isGuest) {
       const { error } = await this.sb.auth.linkIdentity({ provider: "google", options: { redirectTo } });

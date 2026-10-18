@@ -1,5 +1,5 @@
 // Función del servidor: la IA del juego (Gemini Flash) con las claves escondidas y un límite diario.
-// Secretos (supabase secrets set ...): GEMINI_API_KEY. Opcionales: GEMINI_MODELS, AI_DAILY_LIMIT, AI_GLOBAL_LIMIT.
+// Secretos (supabase secrets set ...): GEMINI_API_KEY. Opcionales: GROQ_API_KEY (respaldo), GEMINI_MODELS, AI_DAILY_LIMIT, AI_GLOBAL_LIMIT.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CORS = {
@@ -9,7 +9,10 @@ const CORS = {
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
-const MODELS = (Deno.env.get("GEMINI_MODELS") || "gemini-2.5-flash,gemini-flash-lite-latest").split(",").map((s) => s.trim()).filter(Boolean);
+// Varios modelos porque cada uno tiene su propia cuota gratuita diaria
+const MODELS = (Deno.env.get("GEMINI_MODELS") || "gemini-2.5-flash,gemini-2.5-flash-lite,gemini-3.1-flash-lite,gemini-flash-lite-latest,gemini-flash-latest").split(",").map((s) => s.trim()).filter(Boolean);
+const GROQ = Deno.env.get("GROQ_API_KEY") || "";
+const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
 const DAILY = Number(Deno.env.get("AI_DAILY_LIMIT") || 150);
 const GLOBAL = Number(Deno.env.get("AI_GLOBAL_LIMIT") || 1400);
 const KEY = Deno.env.get("GEMINI_API_KEY") || "";
@@ -17,7 +20,7 @@ const KEY = Deno.env.get("GEMINI_API_KEY") || "";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method" }, 405);
-  if (!KEY) return json({ error: "sin clave" }, 503);
+  if (!KEY && !GROQ) return json({ error: "sin clave" }, 503);
 
   // Quién llama (anónima o con Google): la verificación del token la hace Supabase antes de llegar aquí
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -41,8 +44,11 @@ Deno.serve(async (req) => {
   const mine = Array.isArray(q) ? q[0]?.mine : (q as any)?.mine;
   if (mine === -1 || mine === -2) return json({ error: mine === -2 ? "límite diario" : "límite global" }, 403);
 
-  for (const model of MODELS) {
-    const gc: Record<string, unknown> = { temperature: temp, maxOutputTokens: max + 200, thinkingConfig: { thinkingBudget: 0 } };
+  const fallos: string[] = [];
+  for (const model of KEY ? MODELS : []) {
+    // Los 2.5 piensan con thinkingBudget; los nuevos con thinkingLevel
+    const think = model.startsWith("gemini-2.5") ? { thinkingBudget: 0 } : { thinkingLevel: "minimal" };
+    const gc: Record<string, unknown> = { temperature: temp, maxOutputTokens: max + 200, thinkingConfig: think };
     if (body.json) gc.responseMimeType = "application/json";
     try {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(KEY)}`, {
@@ -51,11 +57,32 @@ Deno.serve(async (req) => {
         signal: AbortSignal.timeout(40000),
         body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: gc }),
       });
-      if (!r.ok) continue;
+      if (!r.ok) { fallos.push(`${model}: ${r.status} ${(await r.text()).slice(0, 160).replace(/\s+/g, " ")}`); continue; }
       const d = await r.json();
       const text = (d.candidates?.[0]?.content?.parts || []).map((p: { text?: string }) => p.text || "").join("").trim();
       if (text) return json({ text, model, left: Math.max(0, DAILY - mine) });
-    } catch { /* siguiente modelo */ }
+      fallos.push(`${model}: vacío (${d.candidates?.[0]?.finishReason || d.promptFeedback?.blockReason || "?"})`);
+    } catch (e) { fallos.push(`${model}: ${String(e).slice(0, 80)}`); }
   }
-  return json({ error: "sin respuesta" }, 502);
+  // Respaldo: Groq (Llama), si hay clave
+  for (const model of GROQ ? GROQ_MODELS : []) {
+    try {
+      const b: Record<string, unknown> = { model, temperature: Math.min(temp, 1), max_tokens: max, messages: [{ role: "system", content: system }, { role: "user", content: user }] };
+      if (body.json) b.response_format = { type: "json_object" };
+      const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + GROQ },
+        signal: AbortSignal.timeout(30000),
+        body: JSON.stringify(b),
+      });
+      if (!r.ok) { fallos.push(`${model}: ${r.status}`); continue; }
+      const d = await r.json();
+      const text = String(d.choices?.[0]?.message?.content || "").trim();
+      if (text) return json({ text, model, left: Math.max(0, DAILY - mine) });
+    } catch (e) { fallos.push(`${model}: ${String(e).slice(0, 80)}`); }
+  }
+  console.error("[ai] sin respuesta", fallos.join(" | "));
+  // Si todo es falta de cuota, 429 (el juego espera un minuto); si no, 502
+  const todo429 = fallos.length > 0 && fallos.every((f) => / 429 /.test(f + " "));
+  return json({ error: "sin respuesta", fallos }, todo429 ? 429 : 502);
 });

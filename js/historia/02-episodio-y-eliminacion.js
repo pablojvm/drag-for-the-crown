@@ -611,6 +611,18 @@
         nGroups = G.length;
       }
     }
+    // Bloques del reto en grupo: primero se valora y se anuncia cada grupo, luego a cada reina
+    let blocks = null;
+    if (groupOf) {
+      blocks = [];
+      rows.forEach((r) => { const gi = groupOf.get(r); (blocks[gi] = blocks[gi] || { rows: [], gi }).rows.push(r); });
+    } else if (winTeam) {
+      const W = rows.filter((r) => winTeam.has(r.q)), L = rows.filter((r) => !winTeam.has(r.q));
+      const tn = (list) => (teamOf[list[0].q.id] === "rosa" ? "Equipo Rosa" : "Equipo Oro");
+      if (W.length && L.length) blocks = [{ rows: W, gi: 0, name: tn(W) }, { rows: L, gi: 1, name: tn(L) }];
+    }
+    const blockName = (b) => b.name || b.rows.map((r) => (r.me ? S.queen.name : r.q.name)).join(", ").replace(/, ([^,]*)$/, " y $1");
+    const blockTone = (b) => (b.gi === 0 ? "top" : b.gi === blocks.length - 1 ? "low" : "mid");
     const n = rows.length;
     // Con 6 reinas o menos ya no hay salvadas: todas reciben valoración
     const allCrit = n <= 6;
@@ -719,7 +731,7 @@
         <div class="story-card call">
           <p class="eyebrow">${esc(titulo)} · la pasarela ha terminado</p>
           <h3>Supremme tiene algo que deciros...</h3>
-          ${teamLine}${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
+          ${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
           ${allCrit ? `<p>Quedáis ${n}: a partir de ahora ya no hay salvadas.</p>` + judgedTxt : safeFirst && safe.length ? safeTxt + judgedTxt : judgedTxt + (safe.length ? `<p>Las demás, <b>estáis a salvo</b>.</p>${faces(safe, "safe")}` : "")}
           <p class="call-me">${meSafe ? "✨ Estás a salvo esta semana." : "👀 Te toca escuchar al jurado."}</p>
           <button class="btn btn-primary" id="story-next">Continuar</button>
@@ -744,7 +756,7 @@
           ai = await IA.chat(
             `Escribes las críticas del jurado de Drag Race España a cada reina. Supremme de Luxe (teatral, cariñosa pero exigente) habla sobre todo del reto, Ana Locking (moda, técnica, directa) sobre todo de la pasarela y el look, aunque las dos pueden comentar las dos cosas. Los Javis (Javier Ambrossi y Javier Calvo) también son jueces y a veces dan su valoración. Son SOLO valoraciones: nunca digas posiciones ni resultados (ni ganadora, ni mejores, ni peores, ni bottom, ni lip sync, ni a salvo), ni felicites, ni des notas ni números. ${aiSeason()}`,
             `Reto de esta semana: ${S.curTitulo || S.epNames[S.ep] || "reto"}. ${weekTxt()} Ojo: lo que hizo ${S.queen.name} (su producto, personaje o tema) es SOLO suyo; cada una de estas reinas hizo su propia versión del reto, así que no les atribuyas lo de ${S.queen.name}. ${runwayCat ? `Pasarela: «${runwayCat}».` : "Esta semana no hay pasarela aparte: habla del look con el que presentó el reto."}
-Reinas (valoración global de cada una): ${others.map((r) => `${r.q.name} (${lvl(r)})`).join("; ")}.
+${blocks ? `Es un reto en grupo. Cómo ha quedado cada grupo, de mejor a peor (no lo digas, pero que el tono sea coherente): ${blocks.map((b) => blockName(b)).join(" > ")}. ` : ""}Reinas (valoración global de cada una): ${others.map((r) => `${r.q.name} (${lvl(r)})`).join("; ")}.
 Orden real de esta semana, de mejor a peor (no lo digas, pero que el tono sea coherente: la de arriba suena claramente mejor que las de abajo): ${rows.map((r) => (r.me ? S.queen.name : r.q.name)).join(" > ")}.
 Para cada una escribe "reto" (lo que le dice Supremme sobre su reto, concreto, máximo 22 palabras), "pasarela" (lo que le dice Ana sobre su look, inventa un look concreto que encaje con la categoría, máximo 22 palabras) y, solo en algunas, "javis" (un comentario de los Javis, máximo 18 palabras). Dirígete a ella por su nombre. Que cada crítica sea distinta.
 Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javis":"..."}]}`,
@@ -761,15 +773,44 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           return [["host", `${r.q.name}, ${low1(pickFresh(bank))}`], ["judge", `${r.q.name}, ${low1(pickFresh(JURADO.pasarela[nivel(r)]).replace(/^(y |por cierto, )/i, ""))}`], ...(Math.random() < 0.35 ? pickFresh(JAVIS.critica[nivel(r)]).map(([k, t]) => [k, t.replace(/\{yo\}/g, r.q.name)]) : [])];
         });
       };
+      // Reto en grupo: el jurado valora primero cada grupo en bloque
+      const GRUPO_CRIT = {
+        top: [[["host", "{g}: como grupo habéis funcionado de maravilla. Se notaba que había un plan."], ["judge", "Y el conjunto tenía una idea clara. Ninguna se ha quedado atrás."]],
+          [["host", "{g}: eso es un grupo. Química, ritmo y todas a la misma altura."], ["judge", "Visualmente erais una unidad. Así se presenta un reto en grupo."]]],
+        mid: [[["host", "{g}: como grupo habéis cumplido, pero os faltaba algo para destacar."], ["judge", "Había cosas buenas, pero el conjunto no terminaba de cuadrar."]],
+          [["host", "{g}: correcto, sin más. Esperaba un poco más de chispa de vosotras juntas."], ["judge", "Cada una ha hecho lo suyo, pero no os he visto como grupo."]]],
+        low: [[["host", "{g}: como grupo no ha funcionado. Cada una iba por su lado."], ["judge", "El conjunto no se sostenía. Faltaba una idea común."]],
+          [["host", "{g}: lo siento, pero como grupo ha sido de lo más flojo de la noche."], ["judge", "Se notaba que no os habíais puesto de acuerdo. Y eso en el escenario se ve."]]],
+      };
+      const blockCrit = () => {
+        if (!blocks) return [];
+        const list = blocks.filter((b) => allCrit || b.rows.some((r) => judged.includes(r)));
+        if (!list.length) return [];
+        return [["host", "Vamos a empezar por los grupos."], ...list.flatMap((b) => pickFresh(GRUPO_CRIT[blockTone(b)]).map(([k, t]) => [k, t.replace("{g}", blockName(b))])), ["host", "Y ahora, una a una."]];
+      };
       const critStep = (then) => {
         flowGo("criticas");
         const ctx = { ...ctxWith(pick1(S.rivals)), tension: false };
         rivalCrit().then((rc) => {
-          if (meSafe) return dialog([["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."], ...rc.flat()], ctx, then);
+          const bc = blockCrit();
+          if (meSafe) return dialog([["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."], ...bc, ...rc.flat()], ctx, then);
           const lab = labOf.get(meRow) || "";
-          const base = buildCritique(myScore, "none", /WIN|TOP2|HIGH/.test(lab) ? "top" : /BTM|LOW/.test(lab) ? "low" : "mid");
+          // En grupo, tu crítica habla de lo que has hecho tú; el resultado lo pesa también el grupo
+          let tier = /WIN|TOP2|HIGH/.test(lab) ? "top" : /BTM|LOW/.test(lab) ? "low" : "mid";
+          let label = lab === "WIN" || lab === "TOP2" ? "muy buena" : lab === "HIGH" ? "buena" : /^BTM/.test(lab) ? "muy mala" : lab === "LOW" ? "floja" : "correcta";
+          const extra = [];
+          if (blocks) {
+            const mine = blocks.find((b) => b.rows.includes(meRow));
+            const pos = rows.slice().sort((a, b) => b.s - a.s).indexOf(meRow);
+            const ind = pos < n * 0.34 ? "top" : pos >= n * 0.67 ? "low" : "mid";
+            const gt = mine ? blockTone(mine) : "mid";
+            if (ind !== tier) { tier = ind; label = ind === "top" ? "buena a título individual" : ind === "low" ? "floja a título individual" : "correcta"; }
+            if (ind === "top" && gt !== "top") extra.push(["host", "{yo}, tú has estado de lo mejor de tu grupo. Pero esto era un reto en grupo, y el grupo también cuenta."]);
+            else if (ind === "low" && gt === "top") extra.push(["host", "{yo}, el grupo te ha sostenido. Tú, por tu cuenta, te has quedado por debajo de tus compañeras."]);
+          }
+          const base = buildCritique(myScore, "none", tier);
           const k = Math.floor(rc.length / 2);
-          aiCritique(base, myScore, lab === "WIN" || lab === "TOP2" ? "muy buena" : lab === "HIGH" ? "buena" : /^BTM/.test(lab) ? "muy mala" : lab === "LOW" ? "floja" : "correcta").then((lines) => dialog([...rc.slice(0, k).flat(), ...lines, ...rc.slice(k).flat()], ctx, then));
+          aiCritique(base, myScore, label).then((lines) => dialog([...bc, ...rc.slice(0, k).flat(), ...lines, ...extra, ...rc.slice(k).flat()], ctx, then));
         });
       };
       // Resultados en orden: ganadora, altas, bajas y bottom
@@ -790,6 +831,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
             <p class="eyebrow">Las decisiones del jurado</p>
             <h3>${myLab === "TOP2" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? "¡Has ganado el reto! 👑" : /^BTM/.test(myLab) ? (tw === "winners" ? "Semana floja... pero sigues" : "Vas al lip sync...") : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
             <div class="verdict">
+              ${blocks ? `<div class="v-row win" style="--i:0"><b>🏆 ${blocks[0].name ? `Gana el ${esc(blocks[0].name)}` : "Grupo ganador"}</b>${faces(blocks[0].rows)}</div>` : teamLine}
               <div class="v-row win" style="--i:0"><b>${tw === "winners" ? "⭐ Top 2: os jugáis una estrella" : tw === "allstars" ? "💄 Top 2: os jugáis el poder" : n === 5 ? "👑 Ganadora del reto y 🎟️ pase directo a la gran final" : "👑 Felicidrages, ganadora del reto"}</b>${faces(wins)}</div>
               ${highs.length ? `<div class="v-row high" style="--i:1"><b>✨ Buen trabajo, estáis a salvo</b>${faces(highs)}</div>` : ""}
               ${safesC.length ? `<div class="v-row high" style="--i:1"><b>🙂 Estáis a salvo</b>${faces(safesC)}</div>` : ""}
