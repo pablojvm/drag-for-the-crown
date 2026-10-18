@@ -3,6 +3,10 @@
 # Descripción
 Drag for the Crown es un minijuego arcade de navegador. Eliges a tu queen y te enfrentas a las otras cinco en 5 rondas, esquivando sus tacones y lanzando los tuyos. La última ronda es el jefe final: *Lip Sync for Your Life*.
 
+# Desarrollo
+
+Desde la versión 2 el juego se arranca con Vite (`npm install` y `npm run dev`). Todo lo necesario para desarrollar, probar, publicar y activar el servidor está en [DESARROLLO.md](DESARROLLO.md).
+
 # Cómo se juega
 
 - Muévete con las flechas (o WASD) por la mitad inferior de la pasarela.
@@ -21,9 +25,9 @@ Drag for the Crown es un minijuego arcade de navegador. Eliges a tu queen y te e
 
 Todo está en `js/reinas.js`. Cada reina tiene un `id` (por ejemplo `pitita`):
 
-- Foto de cuerpo entero sin fondo: `images/queens/<id>.png` y pon `foto: true`.
-- Retrato para la tarjeta: `images/queens/<id>_retrato.jpg` y pon `retrato: true`.
-- Audio con su frase: `audio/queens/<id>.mp3` y pon `audio: true`.
+- Foto de cuerpo entero sin fondo: `public/images/queens/<id>.png` y pon `foto: true`.
+- Retrato para la tarjeta: `public/images/queens/<id>_retrato.jpg` y pon `retrato: true`.
+- Audio con su frase: `public/audio/queens/<id>.mp3` y pon `audio: true`.
 - Frase: escríbela en `frase`.
 
 Mientras una reina no tenga foto, aparece con una silueta provisional con sus iniciales.

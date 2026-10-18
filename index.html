@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preload" href="fonts/bungee.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/poppins-400.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles/style.css?v=188">
+  <link rel="stylesheet" href="/styles/style.css">
 </head>
 <body>
   <div id="bg" aria-hidden="true"><i class="beam b1"></i><i class="beam b2"></i><i class="beam b3"></i><i class="floor"></i><i class="grain"></i></div>
@@ -34,6 +34,8 @@
       </div>
       <div class="row">
         <button class="btn btn-ghost" id="btn-scores">🏆 Puntuaciones</button>
+        <button class="btn btn-ghost" id="btn-mp">👯 Multijugador</button>
+        <button class="btn btn-ghost" id="btn-cloud" hidden>☁️ Guardar con Google</button>
       </div>
       <div class="controls-help">
         <div class="ctrl"><span class="keys"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span><span>Moverte</span></div>
@@ -133,6 +135,7 @@
       <div class="tabs" id="scores-tabs">
         <button class="tab active" data-tab="arcade">👠 Arcade</button>
         <button class="tab" data-tab="story">📖 Modo historia</button>
+        <button class="tab" data-tab="mundial" id="tab-mundial" hidden>🌍 Mundial</button>
         <button class="tab" data-tab="reinas">👑 Reinas reinantes</button>
         <button class="tab" data-tab="logros">🏅 Logros</button>
       </div>
@@ -203,19 +206,7 @@
     </div>
   </div>
 
-  <script src="./js/reinas.js?v=188"></script>
-  <script src="./js/config.js?v=188"></script>
-  <script src="./js/audio.js?v=188"></script>
-  <script src="./js/extras.js?v=188"></script>
-  <script src="./js/effects.js?v=188"></script>
-  <script src="./js/entities.js?v=188"></script>
-  <script src="./js/game.js?v=188"></script>
-  <script src="./js/ui.js?v=188"></script>
-  <script src="./js/dialogos.js?v=188"></script>
-  <script src="./js/doll.js?v=188"></script>
-  <script src="./js/atelier3d.js?v=188"></script>
-  <script src="./js/claves.js"></script>
-  <script src="./js/ia.js?v=188"></script>
-  <script src="./js/historia.js?v=188"></script>
+  <script src="/js/claves.js"></script>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

@@ -450,11 +450,20 @@ const UI = (() => {
     document.querySelectorAll("#scores-tabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === scoresTab));
     if (logros) return renderAchievements();
     if (reigns) return renderReigns();
-    const story = scoresTab === "story";
+    const mundial = scoresTab === "mundial";
+    const story = scoresTab === "story" || mundial;
+    const net = window.DFTC_NET;
+    if ($("#tab-mundial")) $("#tab-mundial").hidden = !(net && net.enabled);
+    if (mundial && net) net.loadTop().then(() => scoresTab === "mundial" && renderScoresTable());
     document.querySelectorAll("#scores-tabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === scoresTab));
     $("#th-res").textContent = story ? "Resultado" : "Rondas";
     $("#th-pts").textContent = story ? "Track record" : "Puntos";
-    const board = story ? StoryBoard.board : Progress.board;
+    renderScoresTable();
+  }
+  function renderScoresTable() {
+    const mundial = scoresTab === "mundial";
+    const story = scoresTab === "story" || mundial;
+    const board = mundial ? (window.DFTC_NET ? window.DFTC_NET.cachedTop() : []) : story ? StoryBoard.board : Progress.board;
     const mine = story ? Story.lastEntryId : lastEntryId;
     $("#scores-table tbody").innerHTML = board
       .map((e, i) => {
@@ -475,7 +484,7 @@ const UI = (() => {
     if (story) $("#scores-table tbody").querySelectorAll("tr.has-track").forEach((tr) => tr.addEventListener("click", () => openEntryTrack(board[+tr.dataset.n])));
     $("#scores-table").style.display = board.length ? "" : "none";
     $("#scores-empty").style.display = board.length ? "none" : "";
-    $("#scores-empty").textContent = story ? "Todavía no has jugado ninguna temporada en modo historia." : "Todavía no hay partidas. ¡A la pasarela!";
+    $("#scores-empty").textContent = mundial ? "Cargando el ranking mundial..." : story ? "Todavía no has jugado ninguna temporada en modo historia." : "Todavía no hay partidas. ¡A la pasarela!";
 
     const box = (label, value) => `<div><span>${label}</span><strong>${value}</strong></div>`;
     if (story) {

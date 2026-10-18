@@ -1,0 +1,8 @@
+# Configuración mínima para la CLI de Supabase (supabase link / db push / functions deploy)
+project_id = "drag-for-the-crown"
+
+[auth]
+enable_anonymous_sign_ins = true
+
+[functions.ai]
+verify_jwt = true

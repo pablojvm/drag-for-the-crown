@@ -211,11 +211,15 @@ Devuelve JSON {"reinas":[{"id":"...","voz":"registro (tranquila, irónica, seca,
   // Memoria de lo que pasa en la temporada (para que las escenas tengan continuidad)
   function logEv(t) {
     t = String(t).replace(/\s*\((?:nota|Nota)\s*\d+\)/g, "").replace(/\.?\s*Nota \d+/g, "");
-    S.log = [...(S.log || []), `Ep.${S.ep}: ${t}`].slice(-30);
+    S.log = [...(S.log || []), `Ep.${S.ep}: ${t}`].slice(-60);
   }
   // Lo que ha pasado en el episodio actual (para que el jurado hable de lo que de verdad se hizo)
   const weekTxt = () => { const L = (S.log || []).filter((x) => x.startsWith(`Ep.${S.ep}:`)).map((x) => x.replace(/^Ep\.\d+:\s*/, "")); return L.length ? `Lo que ha pasado de verdad esta semana (habla de esto; no inventes otro producto, personaje, canción ni tema): ${L.join(" · ")}.` : ""; };
-  const memTxt = () => ((S.log || []).length ? `Lo que ha pasado hasta ahora (más reciente al final):\n${S.log.slice(-14).join("\n")}` : "");
+  const memTxt = () => {
+    const now = (S.log || []).length ? `Lo que ha pasado hasta ahora (más reciente al final):\n${S.log.slice(-20).join("\n")}` : "";
+    const past = window.DFTC_NET && window.DFTC_NET.ready() ? window.DFTC_NET.pastMemories() : "";
+    return [past, now].filter(Boolean).join("\n");
+  };
   const str = (x) => (typeof x === "string" ? x : x && typeof x === "object" ? x.t || x.texto || x.text || "" : x == null ? "" : String(x));
   function waitDots() {
     body().innerHTML = `<div class="story-card ia-wait"><div class="ia-dots"><i></i><i></i><i></i></div></div>`;

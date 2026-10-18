@@ -1,1 +1,9 @@
+node_modules/
+dist/
+.DS_Store
+# Claves locales para probar la IA sin servidor (nunca se suben)
+public/js/claves.js
 js/claves.js
+.env
+.env.local
+supabase/.temp/

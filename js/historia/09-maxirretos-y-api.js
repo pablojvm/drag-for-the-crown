@@ -379,17 +379,9 @@
     const rest = field.filter((q) => !mini.includes(q)).sort((a, b) => (S.record[keyOf(b)] || 0) - (S.record[keyOf(a)] || 0));
     const all = [...mini, ...rest];
     const seedSrc = mini.length >= field.length - 1 ? "el minirreto" : "el track record";
-    // Cuadro principal de P plazas (potencia de 2). Si sobran reinas, hay ronda previa: la juegan las peores del minirreto
-    const P = 2 ** Math.floor(Math.log2(all.length));
-    const R = Math.log2(P);
-    const nPre = all.length - P;
-    const direct = all.slice(0, P - nPre), preQ = all.slice(P - nPre);
-    // Orden clásico de cabezas de serie (1 contra la última, 2 contra la penúltima... y nunca 1 y 2 en el mismo lado)
-    const seedOrder = (n) => { let o = [1]; while (o.length < n) { const m = o.length * 2 + 1; o = o.flatMap((s) => [s, m - s]); } return o; };
-    const SO = seedOrder(P);
-    const slots = SO.map((s) => (s <= direct.length ? direct[s - 1] : null));
-    // Ronda previa: la mejor de las que no se clasificaron contra la peor; la ganadora ocupa la plaza de cabeza de serie más baja
-    const pre = Array.from({ length: nPre }, (_, k) => ({ a: preQ[k], b: preQ[preQ.length - 1 - k], slot: SO.indexOf(direct.length + 1 + k) }));
+    // Cuadro (src/core/bracket.ts): P plazas; si sobran reinas, ronda previa para las peores del minirreto
+    const { P, R, direct, preQ, slots, pre } = DFTC.buildBracket(all);
+    const nPre = pre.length;
     // rounds[0] = ronda previa (puede estar vacía); rounds[1..R] = cuadro principal
     const rounds = [pre];
     for (let r = 0; r < R; r++) rounds.push(Array.from({ length: P / 2 ** (r + 1) }, (_, i) => (r === 0 ? { a: slots[2 * i], b: slots[2 * i + 1] } : { a: null, b: null })));
@@ -534,5 +526,5 @@
     return out;
   }
   window.DFTC_SIM = (sid = "es1", n = 300) => { const r = simulate(sid, n); if (r) console.table(r); return r; };
-  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), preview, _test, simulate, repetirEpisodio: repeatEpisode, lastEntryId: null };
+  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), preview, _test, simulate, repetirEpisodio: repeatEpisode, mp: mpApi, lastEntryId: null };
 })();

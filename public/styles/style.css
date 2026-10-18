@@ -2403,3 +2403,41 @@ body:not(.portrait) .lz-trophy b { font-size: 15px; }
 body:not(.portrait) .lz-col.l .lz-m::after, body:not(.portrait) .lz-col.r .lz-m::after { width: 26px; }
 body:not(.portrait) .lz-col.l .lz-m::after { right: -26px; }
 body:not(.portrait) .lz-col.r .lz-m::after { left: -26px; }
+
+/* ---------- Temporada en directo (multijugador) ---------- */
+#screen-story.mp .story-hud .hud-bar > :not(#story-exit), #screen-story.mp .hud-cast { display: none !important; }
+.mp-timer { display: inline-block; margin-left: 12px; padding: 2px 12px; border-radius: 999px; background: #2b1238; color: #fff; font: 700 18px/1.4 Poppins, sans-serif; vertical-align: middle; letter-spacing: 1px; }
+.mp-timer:empty { display: none; }
+.mp-timer.hurry { background: var(--pink); animation: pulse 1s ease-in-out infinite; }
+.mp-card, .mp-entry { text-align: center; }
+.mp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin: 16px 0; text-align: left; }
+.mp-col { background: rgba(255,255,255,.55); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.mp-col h4 { margin: 0; font: 800 18px/1.2 Poppins, sans-serif; }
+.mp-field { display: flex; flex-direction: column; gap: 4px; font: 700 13px/1.2 Poppins, sans-serif; color: var(--ink); text-align: left; margin: 6px auto; max-width: 420px; }
+.mp-field input, .mp-field select { font: 600 16px Poppins, sans-serif; padding: 9px 12px; border-radius: 12px; border: 2px solid rgba(255,61,154,.35); background: #fff; color: #2b1238; }
+.mp-code { letter-spacing: 6px; color: var(--pink); }
+.mp-players, .call-faces { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 10px 0; }
+.mp-face { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 84px; font: 700 12px/1.2 Poppins, sans-serif; color: var(--ink); }
+.mp-face i { width: 54px; height: 54px; border-radius: 50%; background: center 20% / cover #eee; border: 3px solid #fff; box-shadow: 0 4px 10px -4px rgba(0,0,0,.3); }
+.mp-face.me i { border-color: var(--pink); }
+.mp-face small { font-weight: 500; color: var(--ink-soft); }
+.mp-face.wait { opacity: .5; }
+.mp-face.ok i { border-color: #3dbb7a; }
+.mp-cast { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; margin: 10px 0 16px; }
+.mp-q { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 6px; border-radius: 14px; border: 2px solid transparent; background: rgba(255,255,255,.7); cursor: pointer; font: 700 12px/1.2 Poppins, sans-serif; color: #2b1238; }
+.mp-q i { width: 64px; height: 64px; border-radius: 50%; background: center 20% / cover #eee; }
+.mp-q.mine { border-color: var(--pink); background: #fff; }
+.mp-q.taken { opacity: .45; cursor: default; }
+.mp-q small { font-weight: 500; color: var(--pink); }
+.mp-crit { display: flex; flex-direction: column; gap: 12px; text-align: left; margin-top: 10px; }
+.mp-crit-row { display: grid; grid-template-columns: 100px 1fr; gap: 12px; align-items: center; background: rgba(255,255,255,.6); border-radius: 16px; padding: 10px 14px; }
+.mp-crit-row p { margin: 4px 0; font-size: 15px; }
+.mp-chat { height: 360px; overflow-y: auto; text-align: left; background: rgba(255,255,255,.7); border-radius: 16px; padding: 12px 16px; margin: 10px 0; }
+.mp-chat p { margin: 6px 0; }
+.mp-chat p.me b { color: var(--pink); }
+.mp-chat-f { display: flex; gap: 10px; }
+.mp-chat-f input { flex: 1; font: 500 16px Poppins, sans-serif; padding: 10px 14px; border-radius: 12px; border: 2px solid rgba(255,61,154,.35); }
+.mp-vs { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 14px 0; }
+.mp-vs > span { font: 400 30px/1 Bungee, sans-serif; color: var(--pink); }
+body.portrait .mp-cols { grid-template-columns: 1fr; }
+body.portrait .mp-timer { font-size: 15px; }

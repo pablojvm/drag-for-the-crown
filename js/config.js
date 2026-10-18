@@ -338,6 +338,7 @@ const store = {
   set(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      if (window.DFTC_NET && key.startsWith("dftc-")) window.DFTC_NET.touch(); // sube el progreso a la nube
       return true;
     } catch {
       return false; // sin almacenamiento disponible o lleno
@@ -393,16 +394,9 @@ function lookOf(q, seasonId) {
 
 // Puntuaciones del modo historia (tabla y carrera aparte del arcade)
 // Clasificación del modo historia: por la puntuación del track record (PPE) y, a igualdad, por número de wins
-function storyMetrics(e) {
-  if (e.ppe != null) return { ppe: e.ppe, wins: e.winsT != null ? e.winsT : e.wins || 0 };
-  // Partidas antiguas: se saca de la tabla del track record guardada
-  const m = /<tr class="me[^"]*"[\s\S]*?<\/tr>/.exec(e.track || "");
-  const row = m ? m[0] : "";
-  const ppe = parseFloat((/<td class="ppe">([\d.]+)<\/td>/.exec(row) || [])[1]) || 0;
-  const wins = (row.match(/>WIN</g) || []).length || e.wins || 0;
-  return { ppe, wins };
-}
-const storyRank = (a, b) => { const A = storyMetrics(a), B = storyMetrics(b); return B.ppe - A.ppe || B.wins - A.wins || (b.won ? 1 : 0) - (a.won ? 1 : 0) || b.score - a.score; };
+// Viven en src/core/track.ts (con tests)
+const storyMetrics = DFTC.storyMetrics;
+const storyRank = DFTC.storyRank;
 const StoryBoard = {
   get board() {
     return store.get("dftc-story-board", []).slice().sort(storyRank);

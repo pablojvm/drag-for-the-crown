@@ -1,11 +1,11 @@
 // Prueba de humo: abre el juego, empieza una temporada, prepara los looks y llega a la primera pasarela
 // sin errores; además corre el simulador de equilibrio. Requiere Playwright:
-//   npm i -D playwright && npx playwright install chromium
-//   python3 -m http.server 8000   (en otra terminal, desde la carpeta del juego)
+//   npx playwright install chromium   (la primera vez)
+//   npm run build && npm run preview   (en otra terminal)
 //   node tools/smoke-test.mjs [http://localhost:8000]
 import { chromium } from "playwright";
 
-const URL = process.argv[2] || "http://localhost:8000";
+const URL = process.argv[2] || "http://localhost:4173/";
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];

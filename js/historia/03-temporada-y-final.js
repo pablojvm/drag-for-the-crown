@@ -667,8 +667,22 @@
         StoryBoard.rename(entry.id, nm);
       });
     }
-    $("#story-menu").addEventListener("click", () => { abandon(); UI.show("menu"); });
-    $("#story-again").addEventListener("click", () => start(q, s));
+    // Hall of Fame mundial y memoria larga (solo si hay servidor)
+    let sent = false;
+    const sendWorld = () => {
+      if (sent || !window.DFTC_NET) return;
+      sent = true;
+      const nm = (nameInput && nameInput.value.trim()) || store.get("dftc-name", "") || "Anónima";
+      window.DFTC_NET.submitScore({ ...entry, queen: q.id, season: s.id, name: nm });
+    };
+    if (window.DFTC_NET) {
+      const sum = (S.log || []).slice(-24).map((x) => x.replace(/^Ep\.(\d+):\s*/, "Ep.$1 ")).join(" · ");
+      window.DFTC_NET.addMemory(s.name, q.name, `${won ? "Ganó la corona" : `Quedó ${placeTxt(place)}`}. ${sum}`);
+      ["#story-scores", "#story-track"].forEach((id) => $(id) && $(id).addEventListener("click", sendWorld));
+      addEventListener("pagehide", sendWorld, { once: true });
+    }
+    $("#story-menu").addEventListener("click", () => { sendWorld(); abandon(); UI.show("menu"); });
+    $("#story-again").addEventListener("click", () => { sendWorld(); start(q, s); });
     S.endHTML = body().innerHTML;
     $("#story-track").addEventListener("click", () => showTrack(() => { body().innerHTML = S.endHTML; theEndRebind(q, s); }, "Volver"));
     $("#story-scores").addEventListener("click", () => { UI.scoresTab("story"); UI.show("scores"); });

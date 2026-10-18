@@ -17,6 +17,7 @@
   }
   // Tras el minirreto: el taller ya sabe cuál es el reto de la semana
   function afterMini() {
+    flowGo("taller");
     const wscene = (then) => {
       const r = Math.random();
       if (r < 0.12) { const c = pickFresh(JAVIS.consejo); return dialog(c.lines, ctxWith(pick1(S.rivals)), then, c.choices); }
@@ -261,6 +262,7 @@
     { id: "eleccion", txt: "elegir primero en el reto y quedarse los mejores materiales", apply: () => (S.advice += 4) },
   ];
   function miniChallenge(then) {
+    flowGo("minirreto");
     setSet("werkroom");
     S.runwayBonus = 0;
     S.captains = null;
@@ -466,6 +468,7 @@
     };
   }
   function challengeIntro(reto, titulo, tipo, onScore) {
+    if (!onScore) flowGo("reto");
     S.curPieces = null;
     S.ballCtx = null;
     S.weekProd = null;
@@ -506,6 +509,7 @@
   }
   // La pasarela de cada semana, con su categoría
   function runway(then) {
+    flowGo("pasarela");
     setSet("stage");
     // Pasarela temática (si hay fotos para ella)
     const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []);
@@ -550,6 +554,7 @@
 
   // Resultado de la semana: todo sale de las notas del día (nada predefinido)
   function results(myScore, titulo) {
+    flowGo("llamada");
     setSet("panel");
     let sc = {};
     if (S.phase && S.phase.ep === S.ep && S.phase.sc) sc = { ...S.phase.sc };
@@ -757,6 +762,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         });
       };
       const critStep = (then) => {
+        flowGo("criticas");
         const ctx = { ...ctxWith(pick1(S.rivals)), tension: false };
         rivalCrit().then((rc) => {
           if (meSafe) return dialog([["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."], ...rc.flat()], ctx, then);
@@ -768,6 +774,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       };
       // Resultados en orden: ganadora, altas, bajas y bottom
       const verdict = (then) => {
+        flowGo("veredicto");
         applyMarks();
         setSet("panel");
         const byLab = (f) => rows.filter((r) => f(labOf.get(r)));
@@ -794,7 +801,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           </div>`;
         $("#story-next").addEventListener("click", then);
       };
-      const toLipSync = () =>
+      const toLipSync = () => flowGo("lipsync") &&
         luckMoment(() =>
           (tw === "moneda" && bottomRows.length === 3 ? coinFlip : (x, cb) => cb(x.bottomRows))({ winner, bottomRows }, (pair) =>
             elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2), rows }),
@@ -1185,6 +1192,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
 
   // Untucked: eliges a quién te acercas
   function untucked(res, then) {
+    flowGo("untucked");
     setSet("lounge");
     if (S.rivals.length < 2) return then();
     const opts = [];
@@ -1306,6 +1314,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
 
   // All Stars: las dos del top hacen lip sync; la ganadora elige a quién mandar a casa
   function topLipSync(top2, then) {
+    flowGo("lipsync");
     const [a, b] = top2;
     const meTop = top2.find((r) => r.me);
     if (meTop) {
@@ -1740,6 +1749,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
   }
   // Tú eres la maestra de ceremonias: presentas el show, no compites y estás a salvo
   function mcEpisode() {
+    flowGo("mc");
     const comp = shuffle(S.rivals.slice());
     const outs = shuffle(S.out.slice());
     const pairs = comp.map((c) => ({ c, o: outs.shift() || null }));

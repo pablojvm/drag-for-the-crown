@@ -86,6 +86,7 @@
     return `Listo: recarga la página y pulsa Continuar para repetir el episodio ${cur.ep}.`;
   }
   function save() {
+    if (S && S.mp) return; // la temporada en directo no pisa la partida individual
     const ok = store.set(SAVE_KEY, snapshot());
     if (ok === false && !saveWarned) {
       saveWarned = true;
@@ -554,19 +555,8 @@
   // Cada temporada de la franquicia es algo más dura que la anterior
   // ===================== EQUILIBRIO: todos los números de dificultad en un solo sitio =====================
   // Cambia aquí y comprueba el reparto con DFTC_SIM("es1", 500) en la consola
-  const BALANCE = {
-    temporada: { subidaPorTemporada: 2, subidaMax: 10 },
-    // Dado de cada semana: % de brillante, buena, normal, floja y desastre según atributo bajo / medio / alto
-    dado: { low: [3, 10, 30, 32, 25], mid: [10, 22, 38, 20, 10], high: [30, 35, 25, 8, 2] },
-    notas: [[90, 99], [78, 89], [62, 77], [45, 61], [20, 44]],
-    // Tu juego mueve tu dado: a partir de qué nota subes o bajas escalones
-    tuJuego: { borda: 90, probDosEscalones: 0.35, bien: 75, normal: 55, mal: 35 },
-    // Rasgos en el reto (puntos sobre 100)
-    rasgos: { fortaleza: 9, debilidad: -10, pasarela: 5, poderMax: 5, poderFactor: 0.6 },
-    // Lip sync simulado entre rivales
-    lipSync: { fortaleza: 4, debilidad: -6, porRecord: 1, poderFactor: 0.4, escala: 44, min: 0.25, max: 0.75 },
-    repescaCuando: 7,
-  };
+  // Los números viven en src/core/balance.ts (con tests)
+  const BALANCE = DFTC.BALANCE;
   const seasonBoost = () => Math.min(BALANCE.temporada.subidaMax, ((S.season && S.season.index) || 0) * BALANCE.temporada.subidaPorTemporada);
   // Lo que cuenta en el reto de la semana: los atributos que pide (y el estilo si hay pasarela)
   const retoAttrOf = (q) => {
@@ -579,25 +569,16 @@
   // de que le salga brillante, buena, normal, floja o un desastre; la nota sale de ese resultado.
   const DADO = BALANCE.dado;
   const DADO_NOTA = BALANCE.notas;
-  function dadoProbs(a) {
-    const t = clamp((a - 2.5) / 7, 0, 1);
-    const [A, B, u] = t < 0.5 ? [DADO.low, DADO.mid, t / 0.5] : [DADO.mid, DADO.high, (t - 0.5) / 0.5];
-    return A.map((x, i) => x + (B[i] - x) * u);
-  }
-  function tirarDado(a) {
-    const p = dadoProbs(a);
-    let r = Math.random() * p.reduce((x, y) => x + y, 0), i = 0;
-    for (; i < 4; i++) { r -= p[i]; if (r < 0) break; }
-    return i;
-  }
-  const notaDe = (cat, pos) => { const [lo, hi] = DADO_NOTA[clamp(cat, 0, 4)]; return Math.round(lo + (hi - lo) * clamp(pos, 0, 1)); };
+  // El dado vive en src/core/dado.ts; aquí se le pasa el azar con semilla de la partida
+  const dadoProbs = (a) => DFTC.dadoProbs(a, DADO);
+  const tirarDado = (a) => DFTC.tirarDado(a, Math.random);
+  const notaDe = (cat, pos) => DFTC.notaDe(cat, pos, DADO_NOTA);
   // Rachas, rasgos, némesis y temporadas más duras mueven un poco el dado (en puntos de atributo)
   const dadoExtra = (q) => (seasonBoost() / 5) + clamp(S.form[q.id] || 0, -8, 8) / 6 + traitMod(q) / 6 + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) / 6 : 0);
   const rivalScore = (q) => clamp(notaDe(tirarDado(retoAttrOf(q) + dadoExtra(q)), Math.random()), 5, 99);
   // Tu nota: tu juego mueve tu dado (bordarlo sube escalones, hacerlo mal los baja), pero no lo asegura
   function myDado(played) {
-    const J = BALANCE.tuJuego;
-    const steps = played >= J.borda ? (Math.random() < J.probDosEscalones ? 2 : 1) : played >= J.bien ? 1 : played >= J.normal ? 0 : played >= J.mal ? -1 : -2;
+    const steps = DFTC.pasosDeJuego(played, Math.random);
     const a = retoAttrOf(S.queen) + seasonBoost() / 10;
     const cat = clamp(tirarDado(a) - steps, 0, 4);
     return notaDe(cat, 0.35 + clamp((played - 40) / 60, 0, 1) * 0.65);
@@ -696,9 +677,7 @@
   const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", MISSC: "MISS CONGENIALITY", RTRN: "RTRN", MC: "MC" };
   // Puntuación del track record (PPE) de tu reina: media de sus resultados semana a semana
   function myPPE() {
-    const V = { WIN: 5, WINNER: 5, TOP2: 4.5, HIGH: 4, SAFE: 3, LOW: 2, BTM2: 1, BTM3: 1, ELIM: 0 };
-    const v = Object.values(S.track.me || {}).map((l) => V[l]).filter((x) => x !== undefined);
-    return v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 100) / 100 : 0;
+    return DFTC.ppe(Object.values(S.track.me || {}));
   }
   function trackHTML() {
     const eps = Object.keys(S.epNames).map(Number).sort((a, b) => a - b);
@@ -722,7 +701,7 @@
       })
       .sort((a, b) => a.out - b.out || (a.out ? b.last - a.last : 0) || lastRank(a.k) - lastRank(b.k) || b.w - a.w || b.h - a.h || b.s - a.s || a.lo - b.lo || a.b - b.b);
     const ppe = (k) => {
-      const V = { WIN: 5, WINNER: 5, TOP2: 4.5, HIGH: 4, SAFE: 3, LOW: 2, BTM2: 1, BTM3: 1, ELIM: 0 };
+      const V = DFTC.PPE_VALOR;
       const v = eps.map((e) => V[(S.track[k] || {})[e]]).filter((x) => x !== undefined);
       return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) : "–";
     };
@@ -767,6 +746,8 @@
   }
   function resumeMid() {
     const ph = S.phase;
+    // Al reanudar, el flujo vuelve a la fase del punto de control
+    S.flow = ph.stage === "mini" ? "minirreto" : ph.stage === "runway" ? "reto" : "pasarela";
     const byKey = (k) => (k === "me" ? S.queen : qById(k));
     S.advice = ph.advice || 0;
     S.runwayBonus = ph.runwayBonus || 0;
@@ -798,6 +779,7 @@
 
   // El episodio ha terminado: se guarda YA (antes de ver el track record o salir)
   function endEpisodeBtn() {
+    flowGo("fin");
     S.phase = null;
     save();
     const b = $("#story-next");
@@ -819,6 +801,7 @@
     setSet("werkroom");
     store.set(EPSTART_KEY, snapshot());
     S.ep++;
+    flowGo("inicio");
     S.advice = 0;
     S.helped = false;
     header();

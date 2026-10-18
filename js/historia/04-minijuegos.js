@@ -917,6 +917,9 @@
   function runSteps(el, cfg, done) {
     const st = { total: 0, wsum: 0, focus: 50, energy: 100, log: [], ...(cfg.init || {}) };
     let i = 0, busy = false, timer = 0, cur = null;
+    // Todo dentro de su propio contenedor: si otra pantalla ya ha sustituido a esta, este minijuego se apaga solo
+    const $l = (s) => el.querySelector(s);
+    const gone = () => !document.body.contains(el) || !$l("#dc-o");
     el.innerHTML = `
       <div class="mg dc">
         <p class="mg-info">${cfg.icon || "🎬"} ${esc(cfg.title)}</p>
@@ -936,17 +939,18 @@
         })
         .join("");
     function next() {
+      if (gone()) return stop();
       busy = false;
       if (i >= cfg.steps.length) return end();
       const s = cfg.steps[i++](st);
       if (!s) return next();
       cur = s;
-      $("#dc-m").innerHTML = meterHTML();
-      $("#dc-s").innerHTML = `${s.q ? `<h4>${s.q}</h4>` : ""}${s.sub ? `<p>${s.sub}</p>` : ""}`;
-      $("#dc-msg").textContent = "";
-      if (cfg.top) $("#dc-top").innerHTML = cfg.top(st);
+      $l("#dc-m").innerHTML = meterHTML();
+      $l("#dc-s").innerHTML = `${s.q ? `<h4>${s.q}</h4>` : ""}${s.sub ? `<p>${s.sub}</p>` : ""}`;
+      $l("#dc-msg").textContent = "";
+      if (cfg.top) $l("#dc-top").innerHTML = cfg.top(st);
       const EMO = /^((?:\p{Extended_Pictographic}|\uFE0F|\u200D)+)\s*/u;
-      $("#dc-o").innerHTML = s.opts
+      $l("#dc-o").innerHTML = s.opts
         .map((o, k) => {
           const m = typeof o.t === "string" && o.t.match(EMO);
           const icon = m ? m[1] : "";
@@ -957,6 +961,7 @@
       el.querySelectorAll(".dc-opt").forEach((b) => b.addEventListener("click", () => pick(+b.dataset.k)));
     }
     function pick(k) {
+      if (gone()) return stop();
       if (busy || !cur || !cur.opts[k]) return;
       busy = true;
       const r = cur.opts[k].go(st) || {};
@@ -967,8 +972,8 @@
         st.wsum += w;
       }
       el.querySelectorAll(".dc-opt").forEach((b, j) => b.classList.add(j === k ? "picked" : "dim"));
-      $("#dc-m").innerHTML = meterHTML();
-      $("#dc-msg").innerHTML = r.msg || "";
+      $l("#dc-m").innerHTML = meterHTML();
+      $l("#dc-msg").innerHTML = r.msg || "";
       if (r.pts !== undefined) (r.pts >= 70 ? Sound.powerup && Sound.powerup() : r.pts < 40 ? Sound.impact() : Sound.countdown(false));
       timer = setTimeout(next, r.msg ? 1500 : 450);
     }

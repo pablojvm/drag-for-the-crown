@@ -19,17 +19,19 @@ const Story = (() => {
   const dropKeys = () => { docKeys.forEach(([t, f, o]) => document.removeEventListener(t, f, o)); docKeys.clear(); };
   const NEVER = new Promise(() => {});
   const guardP = (p) => { const id = runId; return Promise.resolve(p).then((r) => (id === runId ? r : NEVER)); };
-  const IA = { ...__REAL_IA, chat: (...a) => guardP(__REAL_IA.chat(...a)), image: (...a) => guardP(__REAL_IA.image(...a)) };
+  // En la temporada en directo no se usa IA: todas juegan con los mismos textos y al mismo ritmo
+  const IA = { ...__REAL_IA, ready: () => !(S && S.mp) && __REAL_IA.ready(), chat: (...a) => (S && S.mp ? Promise.resolve(null) : guardP(__REAL_IA.chat(...a))), image: (...a) => guardP(__REAL_IA.image(...a)) };
   // Azar con semilla guardada en la partida: recargar no repite tiradas y cualquier fallo se puede reproducir
   const Math = Object.create(__REAL_MATH);
   Math.random = () => {
     if (!S || typeof S.rng !== "number") return __REAL_MATH.random();
-    let t = (S.rng = (S.rng + 0x6d2b79f5) >>> 0);
-    t = __REAL_MATH.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + __REAL_MATH.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    const [v, next] = DFTC.nextRandom(S.rng);
+    S.rng = next;
+    return v;
   };
-  const newSeed = () => (__REAL_MATH.random() * 4294967296) >>> 0;
+  const newSeed = DFTC.newSeed;
+  // Máquina de estados del episodio (src/core/episode.ts): cada fase avisa al entrar y se comprueba el orden
+  const flowGo = (f) => { if (S && S.ep > 0 && !S.meOut) DFTC.flow.go(S, f); return true; };
   const pick1 = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const $ = (s) => document.querySelector(s);
   // Anti doble clic: los botones que hacen avanzar la partida solo cuentan una pulsación (salvo en minijuegos de ritmo)

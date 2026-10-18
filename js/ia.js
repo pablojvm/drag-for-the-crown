@@ -27,7 +27,10 @@ const IA = (() => {
 
   // Proveedores, en orden de preferencia
   const gem = (model, think) => ({ id: "g:" + model, kind: "gemini", model, think, key: () => K().gemini });
+  // Primero el servidor del juego (si está configurado): IA para todo el mundo sin claves en el navegador
+  const net = () => window.DFTC_NET;
   const CHAIN = [
+    { id: "server", kind: "server", key: () => (net() && net().ready() ? "srv" : "") },
     gem("gemini-2.5-flash", { thinkingBudget: 0 }),
     gem("gemini-3.1-flash-lite", { thinkingLevel: "minimal" }),
     gem("gemini-flash-lite-latest", { thinkingLevel: "minimal" }),
@@ -46,6 +49,7 @@ const IA = (() => {
 
   async function callOne(p, system, user, { max, temp, json, timeout }) {
     const sig = AbortSignal.timeout(timeout);
+    if (p.kind === "server") return await Promise.race([net().chat(system, user, { max, temp, json, timeout }), new Promise((_, rej) => setTimeout(() => rej({ status: 0 }), timeout))]);
     if (p.kind === "gemini") {
       const gc = { temperature: temp, maxOutputTokens: max, thinkingConfig: p.think };
       if (json) gc.responseMimeType = "application/json";
