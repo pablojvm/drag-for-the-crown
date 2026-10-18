@@ -2,8 +2,9 @@
 // Si no hay VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY el juego funciona igual que antes, solo en este navegador.
 import { createClient, type SupabaseClient, type Session } from "@supabase/supabase-js";
 
-const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// La URL y la clave publishable son públicas (acaban en el navegador); las variables VITE_* solo las sustituyen
+const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || "https://dfrpawqeganamczjjafi.supabase.co";
+const ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || "sb_publishable_VadA8dMEtciBROMEjPGZwQ_MfB8Qtzn";
 
 // Claves de localStorage que viajan a la nube (todo el progreso salvo las claves de IA locales)
 const SKIP = new Set(["dftc-claves", "dftc-sync-at", "dftc-sync-local"]);
