@@ -377,6 +377,23 @@ const Story = (() => {
     return d;
   }
   let saveWarned = false;
+  // Copia de la partida justo antes de cada episodio: permite repetir el capítulo desde la consola
+  const EPSTART_KEY = "dftc-story-epstart";
+  function repeatEpisode() {
+    const cur = store.get(SAVE_KEY, null);
+    if (!cur) return "No hay ninguna partida guardada.";
+    const st = store.get(EPSTART_KEY, null);
+    let back = null;
+    if (st && st.queen === cur.queen && st.season === cur.season && st.ep === cur.ep - 1) back = st;
+    else if (cur.ep === 1) {
+      // Primer episodio sin copia: se vuelve al principio de la temporada con los looks ya preparados
+      back = { ...cur, ep: 0, phase: null, track: {}, record: {}, form: {}, points: 0, wins: 0, bottoms: 0, streak: 0, lipsyncs: 0, epNames: {}, log: [], lalaRes: null, meOut: false, rivals: [...cur.rivals, ...cur.out], out: [], usedThemes: [], runwayIdx: 0 };
+    }
+    if (!back) return "No puedo repetir este capítulo: solo se puede el último que empezaste.";
+    store.set(SAVE_KEY, { ...back, date: new Date().toISOString() });
+    abandon();
+    return `Listo: recarga la página y pulsa Continuar para repetir el episodio ${cur.ep}.`;
+  }
   function save() {
     const ok = store.set(SAVE_KEY, snapshot());
     if (ok === false && !saveWarned) {
@@ -1109,6 +1126,7 @@ const Story = (() => {
   }
   function episode() {
     setSet("werkroom");
+    store.set(EPSTART_KEY, snapshot());
     S.ep++;
     S.advice = 0;
     S.helped = false;
@@ -1677,6 +1695,13 @@ const Story = (() => {
       if (mo && S.rp.ps[mo] != null) sc.__me = Math.round(myScore * 0.65 + S.rp.ps[mo] * 0.35);
     }
     if (sc.__me != null) myScore = sc.__me;
+    // Lalaparuza: la clasificación sale del cuadro del torneo (sin dado ni bonus)
+    const LR = S.curTipo === "lalaparuza" && S.lalaRes && S.lalaRes.ep === S.ep && S.lalaRes.done ? S.lalaRes : null;
+    if (LR) {
+      S.rivals.forEach((q) => { if (LR.score[q.id] != null) sc[q.id] = LR.score[q.id]; });
+      myScore = LR.score.me;
+      sc.__dado = myScore;
+    }
     if (S.phase && S.phase.ep === S.ep && !S.phase.sc) { S.phase.sc = { ...sc }; save(); }
     let teamLine = "";
     let winTeam = null;
@@ -8250,37 +8275,118 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
   }
 
   // Lalaparuza: torneo de lip syncs (sin taller)
+  // Lalaparuza: cuadro de eliminatorias con todo el reparto. Cada duelo es un lip sync;
+  // tú bailas los tuyos y el resto se resuelve en el escenario. La clasificación sale del cuadro.
   function mxLalaparuza(el, done) {
     const SONGS = [["balada", "🎹 Balada emocional", "carisma"], ["pop", "🎵 Pop up-tempo", "performance"], ["dance", "🔊 Dance / urbano", "performance"]];
-    const pool = shuffle(S.rivals.slice());
-    const rounds = Math.min(3, Math.max(1, Math.ceil(Math.log2(S.rivals.length + 1))));
-    let r = 0;
     const profile = (q) => { const a = attrsOf(q); return a.carisma > a.performance ? "balada" : a.performance > a.carisma + 1 ? "dance" : "pop"; };
-    const round = () => {
-      const rival = pool[r % pool.length];
+    const ME = S.queen;
+    const all = shuffle([ME, ...S.rivals]);
+    // Cuadro principal de P plazas (potencia de 2). Si sobran reinas, hay ronda previa: las que la ganan entran en el cuadro
+    const P = 2 ** Math.floor(Math.log2(all.length));
+    const R = Math.log2(P);
+    const nPre = all.length - P;
+    const pool = all.slice();
+    // Plazas del cuadro que se deciden en la ronda previa, repartidas a lo largo del cuadro
+    const preSlots = Array.from({ length: nPre }, (_, k) => Math.floor(((k + 0.5) * P) / nPre));
+    const slots = Array.from({ length: P }, (_, i) => (preSlots.includes(i) ? null : pool.shift()));
+    const pre = preSlots.map((slot) => ({ a: pool.shift(), b: pool.shift(), slot }));
+    // rounds[0] = ronda previa (puede estar vacía); rounds[1..R] = cuadro principal
+    const rounds = [pre];
+    for (let r = 0; r < R; r++) rounds.push(Array.from({ length: P / 2 ** (r + 1) }, (_, i) => (r === 0 ? { a: slots[2 * i], b: slots[2 * i + 1] } : { a: null, b: null })));
+    const reached = new Map(all.map((q) => [q, 0]));
+    let champ = null;
+    S.lalaRes = { ep: S.ep, done: false };
+    const nm = (q) => (q === ME ? "Tú" : q.name);
+    const rName = (r) => (r === 0 ? "Ronda previa" : r === R ? "Final" : r === R - 1 ? "Semifinal" : r === R - 2 ? "Cuartos" : "Octavos");
+    const box = (m, r) => {
+      if (!m || (!m.a && !m.b)) return `<div class="lz-m lz-r${Math.min(r, 3)} empty"><span>&nbsp;</span><span>&nbsp;</span></div>`;
+      const row = (q) => (q ? `<span class="${q === ME ? "me" : ""} ${m.w ? (m.w === q ? "win" : "lose") : ""}"><i style="background-image:url('${photo(q)}')"></i>${esc(nm(q))}</span>` : `<span class="wait">por decidir</span>`);
+      return `<div class="lz-m lz-r${Math.min(r, 3)} ${m.live ? "live" : ""}">${row(m.a)}${row(m.b)}</div>`;
+    };
+    const col = (r, ms, side) => `<div class="lz-col ${side}${r === 0 ? " pre" : ""}"><b class="lz-rn">${rName(r)}</b>${ms.map((m) => box(m, r)).join("")}</div>`;
+    function bracketHTML() {
+      const leftC = [], rightC = [];
+      for (let r = 1; r < R; r++) {
+        const ms = rounds[r], h = ms.length / 2;
+        leftC.push(col(r, ms.slice(0, h), "l"));
+        rightC.unshift(col(r, ms.slice(h), "r"));
+      }
+      // Ronda previa: cada duelo en el lado de la plaza que decide
+      if (pre.length) {
+        const pl = pre.filter((m) => m.slot < P / 2), pr = pre.filter((m) => m.slot >= P / 2);
+        if (pl.length) leftC.unshift(col(0, pl, "l"));
+        if (pr.length) rightC.push(col(0, pr, "r"));
+      }
+      const fin = rounds[R][0];
+      const cols = [...leftC, `<div class="lz-col lz-center"><div class="lz-trophy">🏆<b>${champ ? esc(nm(champ)) : "Ganadora"}</b></div>${box(fin, R)}<b class="lz-rn">Final</b></div>`, ...rightC];
+      return `<div class="lz-bracket" style="--cols:${cols.length}">${cols.join("")}</div>`;
+    }
+    // Siguiente duelo pendiente (por rondas)
+    const nextMatch = () => { for (let r = 0; r <= R; r++) for (let i = 0; i < rounds[r].length; i++) { const m = rounds[r][i]; if (m.a && m.b && !m.w) return { r, i, m }; } return null; };
+    function advance(r, i, w) {
+      const m = rounds[r][i];
+      m.w = w; m.live = false;
+      const l = m.a === w ? m.b : m.a;
+      reached.set(l, r);
+      if (r === R) { champ = w; reached.set(w, R + 1); return; }
+      if (r === 0) { const t = rounds[1][Math.floor(m.slot / 2)]; if (m.slot % 2 === 0) t.a = w; else t.b = w; return; }
+      const nx = rounds[r + 1][Math.floor(i / 2)];
+      if (i % 2 === 0) nx.a = w; else nx.b = w;
+    }
+    const meOut = () => rounds.some((rs) => rs.some((m) => m.w && m.w !== ME && (m.a === ME || m.b === ME)));
+    function board(note = "") {
+      const nx = nextMatch();
+      if (nx) nx.m.live = true;
+      const mine = nx && (nx.m.a === ME || nx.m.b === ME);
+      el.innerHTML = `
+        <div class="story-card lz-card">
+          <p class="eyebrow">🏆 Lalaparuza · cuadro del torneo</p>
+          <h3>${champ ? `${esc(champ === ME ? "¡Ganas la Lalaparuza!" : `${champ.name} gana la Lalaparuza`)}` : nx ? `${rName(nx.r)}: ${esc(nm(nx.m.a))} vs ${esc(nm(nx.m.b))}` : ""}</h3>
+          ${note ? `<p class="twist-note">${note}</p>` : ""}
+          <div class="lz-scroll">${bracketHTML()}</div>
+          <div class="row"><button class="btn btn-primary" id="lz-go">${champ ? "Ver resultados" : mine ? "💃 Mi lip sync" : "Ver el duelo"}</button>${meOut() && !champ ? `<button class="btn btn-ghost" id="lz-skip">⏩ Resolver el resto</button>` : ""}</div>
+        </div>`;
+      el.querySelector("#lz-go").addEventListener("click", () => (champ ? finish() : play(nx)));
+      const sk = el.querySelector("#lz-skip");
+      if (sk) sk.addEventListener("click", () => { let x; while (!champ && (x = nextMatch())) advance(x.r, x.i, simLS(x.m.a, x.m.b)[0]); board(); });
+    }
+    function play({ r, i, m }) {
+      if (m.a !== ME && m.b !== ME) {
+        const [w, l] = simLS(m.a, m.b);
+        advance(r, i, w);
+        return board(`💃 ${esc(w.name)} gana a ${esc(l.name)}.`);
+      }
+      const rival = m.a === ME ? m.b : m.a;
       el.innerHTML = "";
       runSteps(el, {
-        title: `Lalaparuza · Ronda ${r + 1}/${rounds}`, icon: "🏆",
+        title: `Lalaparuza · ${rName(r)}`, icon: "🏆",
         steps: [() => ({
           q: `🥊 Te enfrentas a ${esc(rival.name)}`,
-          sub: `Su punto fuerte parece: <b>${SONGS.find((s) => s[0] === profile(rival))[1]}</b>. Tus atributos: ${attrChips(["carisma", "performance"])}`,
-          opts: SONGS.map(([k, t, at]) => ({ t, d: `Tira de ${ATTR_NAMES[at]}`, go: (s) => { s.song = t; s.bonus = (A(at) - 5) * 3 + (k === profile(rival) ? (A(at) >= 7 ? 12 : -8) : 4); return { msg: k === profile(rival) ? "Es justo su terreno... valiente." : "Buena elección: le sacas de su zona." }; } })),
+          sub: `Su punto fuerte parece: <b>${SONGS.find((x) => x[0] === profile(rival))[1]}</b>. Tus atributos: ${attrChips(["carisma", "performance"])}`,
+          opts: SONGS.map(([k, t, at]) => ({ t, d: `Tira de ${ATTR_NAMES[at]}`, go: (st) => { st.song = t; st.bonus = (A(at) - 5) * 3 + (k === profile(rival) ? (A(at) >= 7 ? 12 : -8) : 4); return { msg: k === profile(rival) ? "Es justo su terreno... valiente." : "Buena elección: le sacas de su zona." }; } })),
         })],
         finish: () => 0,
       }, (_, st) => {
         el.innerHTML = "";
         runLipsync(el, rival, (won) => {
-          if (won) {
-            r++;
-            Toast.show(`🏆 ¡Pasas de ronda!`, `${rival.name}, fuera del torneo`);
-            if (r >= rounds) return done(90);
-            return round();
-          }
-          done([40, 58, 76][r] || 40);
+          advance(r, i, won ? ME : rival);
+          board(won ? `💃 ¡Ganas a ${esc(rival.name)}! Sigues en el torneo.` : `💔 ${esc(rival.name)} te gana. Fuera del torneo... el resto se decide sin ti.`);
         }, st.song, st.bonus || 0);
       });
-    };
-    round();
+    }
+    // Nota según hasta dónde llega cada una (la ganadora arriba, las que caen en la primera ronda abajo)
+    function finish() {
+      // reached: 0 = cae en la ronda previa, r = cae en esa ronda del cuadro, R+1 = campeona
+      const base = (q) => (q === champ ? 95 : 42 + (reached.get(q) / R) * 46);
+      const score = {};
+      all.forEach((q) => { if (q !== ME) score[q.id] = Math.round(clamp(base(q) + clamp((rivalScore(q) - 55) * 0.08, -4, 4), 0, 99)); });
+      score.me = Math.round(base(ME));
+      S.lalaRes = { ep: S.ep, done: true, score, champ: champ === ME ? "me" : champ.id };
+      logEv(`Lalaparuza: gana ${champ === ME ? S.queen.name : champ.name}; ${S.queen.name} llega a ${reached.get(ME) > R ? "la victoria" : rName(reached.get(ME)).toLowerCase()}`);
+      done(score.me);
+    }
+    board(`Eliminatorias de lip sync con todo el reparto${nPre ? `: ${nPre === 1 ? "un duelo previo decide" : `${nPre} duelos previos deciden`} quién entra en el cuadro` : ""}. La que gane el torneo gana el reto; las que caigan pronto, al bottom.`);
   }
 
   // Solo para pruebas automatizadas: lanza un reto concreto
@@ -8324,5 +8430,5 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
     return out;
   }
   window.DFTC_SIM = (sid = "es1", n = 300) => { const r = simulate(sid, n); if (r) console.table(r); return r; };
-  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), preview, _test, simulate, lastEntryId: null };
+  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), preview, _test, simulate, repetirEpisodio: repeatEpisode, lastEntryId: null };
 })();

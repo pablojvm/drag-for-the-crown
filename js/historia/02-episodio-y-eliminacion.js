@@ -550,6 +550,13 @@
       if (mo && S.rp.ps[mo] != null) sc.__me = Math.round(myScore * 0.65 + S.rp.ps[mo] * 0.35);
     }
     if (sc.__me != null) myScore = sc.__me;
+    // Lalaparuza: la clasificación sale del cuadro del torneo (sin dado ni bonus)
+    const LR = S.curTipo === "lalaparuza" && S.lalaRes && S.lalaRes.ep === S.ep && S.lalaRes.done ? S.lalaRes : null;
+    if (LR) {
+      S.rivals.forEach((q) => { if (LR.score[q.id] != null) sc[q.id] = LR.score[q.id]; });
+      myScore = LR.score.me;
+      sc.__dado = myScore;
+    }
     if (S.phase && S.phase.ep === S.ep && !S.phase.sc) { S.phase.sc = { ...sc }; save(); }
     let teamLine = "";
     let winTeam = null;

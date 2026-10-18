@@ -58,6 +58,23 @@
     return d;
   }
   let saveWarned = false;
+  // Copia de la partida justo antes de cada episodio: permite repetir el capítulo desde la consola
+  const EPSTART_KEY = "dftc-story-epstart";
+  function repeatEpisode() {
+    const cur = store.get(SAVE_KEY, null);
+    if (!cur) return "No hay ninguna partida guardada.";
+    const st = store.get(EPSTART_KEY, null);
+    let back = null;
+    if (st && st.queen === cur.queen && st.season === cur.season && st.ep === cur.ep - 1) back = st;
+    else if (cur.ep === 1) {
+      // Primer episodio sin copia: se vuelve al principio de la temporada con los looks ya preparados
+      back = { ...cur, ep: 0, phase: null, track: {}, record: {}, form: {}, points: 0, wins: 0, bottoms: 0, streak: 0, lipsyncs: 0, epNames: {}, log: [], lalaRes: null, meOut: false, rivals: [...cur.rivals, ...cur.out], out: [], usedThemes: [], runwayIdx: 0 };
+    }
+    if (!back) return "No puedo repetir este capítulo: solo se puede el último que empezaste.";
+    store.set(SAVE_KEY, { ...back, date: new Date().toISOString() });
+    abandon();
+    return `Listo: recarga la página y pulsa Continuar para repetir el episodio ${cur.ep}.`;
+  }
   function save() {
     const ok = store.set(SAVE_KEY, snapshot());
     if (ok === false && !saveWarned) {
@@ -790,6 +807,7 @@
   }
   function episode() {
     setSet("werkroom");
+    store.set(EPSTART_KEY, snapshot());
     S.ep++;
     S.advice = 0;
     S.helped = false;
