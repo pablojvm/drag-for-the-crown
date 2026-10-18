@@ -29,6 +29,16 @@
     // Orden de retos de esta temporada: empieza en pasarela y el Snatch Game llega pronto
     const rest = shuffle(ORDEN_RETOS.filter((t) => t !== "pasarela" && t !== "snatch"));
     rest.splice(1 + Math.floor(Math.random() * 3), 0, "snatch");
+    // La Lalaparuza cae cuando quedan 8 (cuadro limpio, sin ronda previa). Si nunca quedan 8, se va al final del orden
+    {
+      const lz = rest.indexOf("lalaparuza");
+      if (lz >= 0) rest.splice(lz, 1);
+      const total = season.cast.length, ep8 = total - 7;
+      // All Winners: nadie se va, así que cae a mitad de temporada (con ronda previa si hace falta)
+      if (twistOf() === "winners") rest.splice(2 + Math.floor(Math.random() * 3), 0, "lalaparuza");
+      else if (total >= 8 && ep8 >= 1 && ep8 <= rest.length) rest.splice(ep8 - 1, 0, "lalaparuza");
+      else rest.push("lalaparuza");
+    }
     S.order = rest;
     S.runwayPlan = buildPlan();
     // La memoria de otras temporadas: cómo te recuerdan las demás
@@ -68,7 +78,7 @@
     if (st && st.queen === cur.queen && st.season === cur.season && st.ep === cur.ep - 1) back = st;
     else if (cur.ep === 1) {
       // Primer episodio sin copia: se vuelve al principio de la temporada con los looks ya preparados
-      back = { ...cur, ep: 0, phase: null, track: {}, record: {}, form: {}, points: 0, wins: 0, bottoms: 0, streak: 0, lipsyncs: 0, epNames: {}, log: [], lalaRes: null, meOut: false, rivals: [...cur.rivals, ...cur.out], out: [], usedThemes: [], runwayIdx: 0 };
+      back = { ...cur, ep: 0, phase: null, track: {}, record: {}, form: {}, points: 0, wins: 0, bottoms: 0, streak: 0, lipsyncs: 0, epNames: {}, log: [], lalaRes: null, retoEp: null, meOut: false, rivals: [...cur.rivals, ...cur.out], out: [], usedThemes: [], runwayIdx: 0 };
     }
     if (!back) return "No puedo repetir este capítulo: solo se puede el último que empezaste.";
     store.set(SAVE_KEY, { ...back, date: new Date().toISOString() });

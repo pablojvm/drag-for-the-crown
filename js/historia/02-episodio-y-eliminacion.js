@@ -233,9 +233,23 @@
   // ------------------------------- Reto ------------------------------------
   function pickReto() {
     if (twistOf() === "repesca" && !S.flags.repesca && !S.meOut && S.rivals.length + 1 <= REPESCA_AT && S.out.length) return "repescaStand";
+    if (S.retoEp && S.retoEp.ep === S.ep) return S.retoEp.tipo;
     let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
     if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS; // partidas guardadas con el formato antiguo
-    return ord[(S.ep - 1) % ord.length];
+    // La Lalaparuza solo cae con 8 o 16 reinas (cuadro sin ronda previa): si toca antes, se aplaza; si toca ya, se adelanta
+    const n = S.rivals.length + 1, p2 = n >= 8 && (n & (n - 1)) === 0;
+    if (S.order && ord.length === S.order.length && twistOf() !== "winners") {
+      const O = S.order, i = (S.ep - 1) % O.length, li = O.indexOf("lalaparuza");
+      if (O[i] === "lalaparuza" && !p2) {
+        const tgt = n > 8 ? i + (n - 8) : O.length - 1;
+        const j = tgt > i && tgt < O.length ? tgt : Math.min(O.length - 1, i + 1);
+        if (j !== i) [O[i], O[j]] = [O[j], O[i]];
+      } else if (p2 && li > i) [O[i], O[li]] = [O[li], O[i]];
+      ord = O;
+    }
+    const tipo = ord[(S.ep - 1) % ord.length];
+    S.retoEp = { ep: S.ep, tipo };
+    return tipo;
   }
 
   // ------------------------------ Minirreto ----------------------------------
