@@ -217,7 +217,8 @@ Devuelve JSON {"reinas":[{"id":"...","voz":"registro (tranquila, irónica, seca,
   const weekTxt = () => { const L = (S.log || []).filter((x) => x.startsWith(`Ep.${S.ep}:`)).map((x) => x.replace(/^Ep\.\d+:\s*/, "")); return L.length ? `Lo que ha pasado de verdad esta semana (habla de esto; no inventes otro producto, personaje, canción ni tema): ${L.join(" · ")}.` : ""; };
   const memTxt = () => {
     const now = (S.log || []).length ? `Lo que ha pasado hasta ahora (más reciente al final):\n${S.log.slice(-20).join("\n")}` : "";
-    const past = window.DFTC_NET && window.DFTC_NET.ready() ? window.DFTC_NET.pastMemories() : "";
+    // Otras temporadas solo cuentan en All Stars: en una temporada normal todas entran nuevas
+    const past = memoriaOn() && window.DFTC_NET && window.DFTC_NET.ready() ? window.DFTC_NET.pastMemories() : "";
     return [past, now].filter(Boolean).join("\n");
   };
   const str = (x) => (typeof x === "string" ? x : x && typeof x === "object" ? x.t || x.texto || x.text || "" : x == null ? "" : String(x));
@@ -303,7 +304,7 @@ Devuelve JSON {"lineas":[{"k":"r1|r2|me","t":"..."}],"opciones":[{"t":"lo que di
       idTxt(q),
     ].filter(Boolean).join(" ");
   }
-  const aiSeason = () => `Temporada: ${S.season.name}. Episodio ${S.ep}. Quedan ${S.rivals.length + 1} reinas. La protagonista (la jugadora) es ${S.queen.name}. Resultados de ${S.queen.name}: ${Object.values(S.track.me || {}).join(", ") || "aún ninguno"}. ${nemStory()} ${weekNote()} ${ggNote()}${twistOf() === "allstars" ? " Es un All Stars: la ganadora de cada reto decide a quién de las dos del bottom manda a casa. Puede ser justa (la que peor lo hizo) o hacer una jugarreta y eliminar a una rival fuerte; las reinas hablan de esto, de quién juega limpio y de quién no." : ""}`;
+  const aiSeason = () => `Temporada: ${S.season.name}. Episodio ${S.ep}. Quedan ${S.rivals.length + 1} reinas. La protagonista (la jugadora) es ${S.queen.name}. Resultados de ${S.queen.name}: ${Object.values(S.track.me || {}).join(", ") || "aún ninguno"}. ${nemStory()} ${weekNote()} ${ggNote()}${twistOf() === "allstars" ? " Es un All Stars: la ganadora de cada reto decide a quién de las dos del bottom manda a casa. Puede mirar solo la semana (se va la que peor lo hizo), tener en cuenta la trayectoria de toda la temporada (no castigar a una buena reina por un mal día, que también es justo) o hacer una jugarreta y eliminar a una rival fuerte que lo hizo mejor; las reinas hablan de esto, de quién juega limpio y de quién no." : ""}`;
   function weekNote() {
     if (S.curEpTipo !== S.ep || !S.curTipo || !RETOS[S.curTipo]) return "Todavía no se sabe cuál es el reto de esta semana: no habléis de él como si lo conocierais.";
     return `Reto de esta semana: «${S.curTitulo}» (${String(RETOS[S.curTipo].desc || "").replace(/<[^>]+>/g, "")}). Si se habla del reto, es este y no otro.`;

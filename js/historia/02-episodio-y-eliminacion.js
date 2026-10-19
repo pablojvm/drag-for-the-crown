@@ -172,7 +172,7 @@
         changeRel(q, -1);
         if (isNem(q)) heat(2);
         nemEvent("humill", S.queen, q);
-        Toast.show(`🎯 ${q.name} se desconcentra`, "Te lo recordará... en esta y en otras temporadas");
+        Toast.show(`🎯 ${q.name} se desconcentra`, memoriaOn() ? "Te lo recordará... y no solo en esta temporada" : "Te lo recordará el resto de la temporada");
         then();
       });
     }
@@ -1433,13 +1433,23 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       Toast.show("🔁 Ru-dención", `Antes acabaste en el bottom en ${EP_SHORT[S.curTipo] || "este reto"}... y ahora lo ganas`);
     }
   }
-  // All Stars: la ganadora elige. Justicia (la peor de la semana) o jugarreta (quitarse a una rival fuerte)
-  const asStrength = (q) => { const t = S.track[keyOf(q)] || {}; const v = Object.values(t); return v.filter((l) => l === "WIN" || l === "TOP2").length * 3 + v.filter((l) => l === "HIGH").length - v.filter((l) => /^BTM/.test(l)).length; };
+  // All Stars: la ganadora elige a quién manda a casa. No es solo quién lo hizo peor ese día:
+  // - "semana": se va la peor de la semana (justo)
+  // - "trayectoria": se va la de peor temporada aunque esta semana lo hiciera mejor; no castigas un mal día (justo)
+  // - "jugarreta": se va la que lo hizo mejor esta semana Y tiene mejor (o igual) temporada: quitarse a una rival fuerte
+  const asPPE = (q) => DFTC.ppe(Object.values(S.track[keyOf(q)] || {}));
+  const asStrength = (q) => { const v = Object.values(S.track[keyOf(q)] || {}); return asPPE(q) * 2 + v.filter((l) => l === "WIN" || l === "TOP2").length; };
+  const PPE_MARGEN = 0.25;
+  const asKind = (go, stay, sOf) => (sOf(go) <= sOf(stay) ? "semana" : asPPE(go) < asPPE(stay) - PPE_MARGEN ? "trayectoria" : "jugarreta");
+  const ppeTxt = (q) => asPPE(q).toFixed(2).replace(".", ",");
   // Reacciones del taller a la decisión (con IA si está disponible)
-  async function asReactions(dec, go, stay, fair) {
+  async function asReactions(dec, go, stay, kind) {
+    const fair = kind !== "jugarreta";
     const witnesses = shuffle(S.rivals.filter((q) => q !== dec && q !== stay && q !== go)).slice(0, 2);
     const decN = dec === S.queen ? S.queen.name : dec.name;
-    const fallback = fair
+    const fallback = kind === "trayectoria"
+      ? [["r1", pick1([`Ha mirado toda la temporada, no solo un día. ${stay.name} ha tenido una semana mala, nada más.`, `${go.name} lo hizo mejor hoy, vale, pero ${stay.name} lleva toda la competición dándolo todo.`, "No ha castigado un mal día. Eso también es ser justa."])], ["r2", pick1(["Ya... pero a mí me habría dolido estar en el lugar de " + go.name + ".", "Es un criterio. Discutible, pero es un criterio.", "Pues yo habría mirado solo esta semana. Aunque lo entiendo."])]]
+      : fair
       ? [["r1", pick1([`Lo justo es lo justo: ${go.name} lo hizo peor esta semana.`, "Decisión limpia. Nadie puede decir nada.", "Ha mandado a casa a la que tocaba. Sin dramas."])], ["r2", pick1(["Ya, pero ojo, que ahora la que se ha quedado viene con ganas.", "Bien hecho. Aunque yo no sé si habría tenido tanta ética.", "Eso es jugar limpio."])]]
       : [["r1", pick1([`¡¿Perdona?! ¿${go.name} a casa? ¡Pero si lo hizo mejor que ${stay.name}!`, "Eso no ha sido justicia, eso ha sido estrategia pura y dura.", `Se ha quitado de en medio a ${go.name} porque le daba miedo. Así de claro.`])], ["r2", pick1(["Jugarreta de manual. Apuntado queda.", "Pues a partir de ahora, cuidado con ella: no juega limpio.", "Bueno... es un All Stars. Aquí se viene a ganar."])]];
     let lines = fallback;
@@ -1447,8 +1457,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       aiWait("El taller comenta la decisión...");
       const r = await IA.chat(
         `Escribes reacciones de concursantes de un All Stars de Drag Race España en el taller, justo después de una eliminación. Cada reina habla SOLO como ella misma, con su carácter. ${aiSeason()}`,
-        `${decN} ganó el reto y tenía que elegir a quién mandaba a casa entre las dos del bottom. Ha elegido eliminar a ${go.name} y salvar a ${stay.name}. ${fair ? `${go.name} fue la que peor lo hizo: decisión justa.` : `${go.name} lo hizo MEJOR que ${stay.name} y es una rival fuerte: ha sido una jugarreta estratégica para quitarse competencia.`}
-Reinas que comentan: ${witnesses.map((q) => `${q.name} (${idTxt(q) || aiProfile(q)})`).join(" | ")}. Escribe 2 o 3 líneas (máximo 22 palabras cada una), reaccionando a la decisión${dec === S.queen ? ` delante de ${S.queen.name}` : ""}. Que se note si les parece justo o una jugarreta.
+        `${decN} ganó el reto y tenía que elegir a quién mandaba a casa entre las dos del bottom. Ha elegido eliminar a ${go.name} y salvar a ${stay.name}. ${kind === "semana" ? `${go.name} fue la que peor lo hizo esta semana: decisión justa.` : kind === "trayectoria" ? `Esta semana ${go.name} lo hizo algo mejor, pero ${stay.name} lleva mucha mejor temporada (PPE ${ppeTxt(stay)} frente a ${ppeTxt(go)}): ha valorado la trayectoria y no ha castigado un mal día. Es defendible, no es una jugarreta, aunque alguna pueda discutirlo.` : `${go.name} lo hizo MEJOR que ${stay.name} esta semana y además lleva igual o mejor temporada: ha sido una jugarreta estratégica para quitarse competencia.`}
+Reinas que comentan: ${witnesses.map((q) => `${q.name} (${idTxt(q) || aiProfile(q)})`).join(" | ")}. Escribe 2 o 3 líneas (máximo 22 palabras cada una), reaccionando a la decisión${dec === S.queen ? ` delante de ${S.queen.name}` : ""}. Que se note si les parece justo, defendible o una jugarreta.
 Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
         { json: true, max: 400, temp: 1, timeout: 15000 },
       ).catch(() => null);
@@ -1462,13 +1472,14 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     const sOf = (q) => (bottomRows.find((r) => r.q === q) || {}).s || 0;
     const worst = sOf(pair[0]) <= sOf(pair[1]) ? pair[0] : pair[1];
     const strong = asStrength(pair[0]) >= asStrength(pair[1]) ? pair[0] : pair[1];
+    const bestPPE = asPPE(pair[0]) >= asPPE(pair[1]) ? pair[0] : pair[1];
     if (winner.me) {
-      const tags = (q) => [q === worst ? `<em class="as-tag worst">📉 La peor esta semana</em>` : `<em class="as-tag ok">Mejor que la otra</em>`, q === strong && strong !== worst ? `<em class="as-tag strong">⚠️ Rival fuerte</em>` : ""].join("");
+      const tags = (q) => [q === worst ? `<em class="as-tag worst">📉 La peor esta semana</em>` : `<em class="as-tag ok">Mejor esta semana</em>`, `<em class="as-tag ${q === bestPPE ? "ok" : "worst"}">📈 Temporada: PPE ${ppeTxt(q)}</em>`, q === strong && strong !== worst ? `<em class="as-tag strong">⚠️ Rival fuerte</em>` : ""].join("");
       body().innerHTML = `
         <div class="story-card">
           <p class="eyebrow">💄 Has ganado: tú decides</p>
           <h3>¿A quién mandas a casa?</h3>
-          <p>Puedes ser justa y mandar a casa a la que peor lo ha hecho... o hacer la jugarreta y quitarte de en medio a una rival fuerte. El taller lo va a comentar.</p>
+          <p>Puedes mirar solo esta semana, tener en cuenta toda su temporada (y no castigar a nadie por un mal día)... o hacer la jugarreta y quitarte de en medio a una rival fuerte. El taller lo va a comentar.</p>
           <div class="hub-grid two">${pair
             .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${tags(q)}</button>`)
             .join("")}</div>
@@ -1480,8 +1491,9 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
           const go = qById(b.dataset.id), stay = pair.find((x) => x !== go);
           changeRel(stay, 2);
           S.rivals.filter((r) => relOf(r) >= 1 && Math.random() < 0.4 && r !== stay).slice(0, 1).forEach((r) => changeRel(r, -1));
-          const goWasWorst = sOf(go) <= sOf(stay);
-          remember(stay, "salvada", !goWasWorst);
+          const kind = asKind(go, stay, sOf);
+          const goWasWorst = kind !== "jugarreta";
+          remember(stay, "salvada", kind !== "semana");
           nemEvent("vote", S.queen, go);
           nemEvent("save", S.queen, stay);
           eliminate(go);
@@ -1490,13 +1502,13 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
           else { S.flags.fairAS = (S.flags.fairAS || 0) + 1; if (S.flags.fairAS >= 3) Achievements.unlock("juez-justa"); }
           if (!goWasWorst) { persona("mean", 1); S.rivals.filter((r) => r !== stay && Math.random() < 0.35).slice(0, 2).forEach((r) => changeRel(r, -1)); }
           else persona("kind", 0.5);
-          logEv(goWasWorst ? `${S.queen.name} gana y manda a casa a ${go.name}, la peor de la semana: decisión justa` : `${S.queen.name} gana y hace la jugarreta: manda a casa a ${go.name}, que lo hizo mejor que ${stay.name}, para quitarse una rival fuerte`);
+          logEv(kind === "semana" ? `${S.queen.name} gana y manda a casa a ${go.name}, la peor de la semana: decisión justa` : kind === "trayectoria" ? `${S.queen.name} gana y manda a casa a ${go.name}: esta semana lo hizo algo mejor que ${stay.name}, pero ${stay.name} lleva mejor temporada. Valora la trayectoria y no castiga un mal día` : `${S.queen.name} gana y hace la jugarreta: manda a casa a ${go.name}, que lo hizo mejor que ${stay.name} y lleva igual o mejor temporada, para quitarse una rival fuerte`);
           return dialog(pickFresh(goWasWorst ? MEMORIA.despedida.justa : MEMORIA.despedida.injusta), { ...ctxWith(go), q: { r1: go }, r1: go.name, tension: true }, () =>
-            asReactions(S.queen, go, stay, goWasWorst).then(({ lines, ctx }) => dialog(lines, ctx, () => showASResult(go, stay))));
+            asReactions(S.queen, go, stay, kind).then(({ lines, ctx }) => dialog(lines, ctx, () => showASResult(go, stay, kind))));
         }),
       );
       return;
-      function showASResult(go, stay) {
+      function showASResult(go, stay, kind) {
           header();
           body().innerHTML = `
             <div class="story-card">
@@ -1504,6 +1516,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
               <h3>${esc(go.name)}, sashay away</h3>
               <div class="vs"><img src="${photo(stay)}"><span>💄</span><img class="gone" src="${photo(go)}"></div>
               <p>Has salvado a <b>${esc(stay.name)}</b>.</p>
+              ${kind === "trayectoria" ? `<p class="muted">Has mirado toda la temporada: ${esc(stay.name)} (PPE ${ppeTxt(stay)}) iba mejor que ${esc(go.name)} (PPE ${ppeTxt(go)}).</p>` : kind === "jugarreta" ? `<p class="twist-note">😈 Jugarreta: ${esc(go.name)} lo hizo mejor esta semana y lleva igual o mejor temporada.</p>` : ""}
               <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
             </div>`;
           endEpisodeBtn();
@@ -1518,16 +1531,25 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       go = likeMe >= likeOther ? other : S.queen;
       if (S.pacts && S.pacts[dec.id]) go = traitsOf(dec).car === "traicionera" && Math.random() < 0.4 ? S.queen : other;
     } else {
-      // Justicia o jugarreta: las ambiciosas y traicioneras tiran más de estrategia
+      // Cada una mira la semana y la temporada con su propio peso; las ambiciosas y traicioneras tiran más de estrategia
       const car = traitsOf(dec).car;
-      const schemer = Math.random() < (car === "ambiciosa" || car === "traicionera" ? 0.55 : car === "leal" ? 0.15 : 0.3);
-      go = schemer && strong !== worst ? strong : worst;
+      const wT = 4 + Math.random() * 8; // cuánto pesa la trayectoria (puntos de nota por punto de PPE)
+      const merit = (q) => sOf(q) + asPPE(q) * wT;
+      const deserved = merit(pair[0]) <= merit(pair[1]) ? pair[0] : pair[1];
+      const schemer = Math.random() < (car === "ambiciosa" || car === "traicionera" ? 0.45 : car === "leal" ? 0.1 : 0.22);
+      go = schemer && strong !== deserved ? strong : deserved;
       if (Math.abs(groupAff(dec, pair[0]) - groupAff(dec, pair[1])) >= 2) go = groupAff(dec, pair[0]) > groupAff(dec, pair[1]) ? pair[1] : pair[0];
     }
     const stay = pair.find((x) => x !== go);
-    const fair = go === worst;
-    const lines = [["r1", meIn ? (go === S.queen ? (fair ? "Lo siento, {yo}... Esta semana lo hiciste peor. Es lo justo." : "Lo siento, {yo}. Eres de las más fuertes y no puedo arriesgarme.") : "{yo}, esta semana me quedo contigo. No me falles.") : fair ? "He mandado a casa a la que peor lo ha hecho. Es lo justo." : "No es nada personal... es estrategia."]];
-    logEv(fair ? `${dec.name} gana y manda a casa a ${go === S.queen ? S.queen.name : go.name}, la peor de la semana: decisión justa` : `${dec.name} gana y hace la jugarreta: manda a casa a ${go === S.queen ? S.queen.name : go.name}, que lo hizo mejor, para quitarse una rival fuerte`);
+    const kind = asKind(go, stay, sOf);
+    const fair = kind !== "jugarreta";
+    const goN = go === S.queen ? S.queen.name : go.name, stayN = stay === S.queen ? S.queen.name : stay.name;
+    const lines = [["r1", meIn
+      ? go === S.queen
+        ? kind === "semana" ? "Lo siento, {yo}... Esta semana lo hiciste peor. Es lo justo." : kind === "trayectoria" ? `Lo siento, {yo}. Hoy has estado mejor, pero ${stayN} lleva mejor temporada y no la voy a castigar por un mal día.` : "Lo siento, {yo}. Eres de las más fuertes y no puedo arriesgarme."
+        : kind === "trayectoria" ? "{yo}, esta semana no ha sido la tuya, pero llevas una temporada muy buena. Me quedo contigo." : "{yo}, esta semana me quedo contigo. No me falles."
+      : kind === "semana" ? "He mandado a casa a la que peor lo ha hecho. Es lo justo." : kind === "trayectoria" ? "He mirado toda la temporada, no solo hoy. Un mal día lo tiene cualquiera." : "No es nada personal... es estrategia."]];
+    logEv(kind === "semana" ? `${dec.name} gana y manda a casa a ${goN}, la peor de la semana: decisión justa` : kind === "trayectoria" ? `${dec.name} gana y manda a casa a ${goN}: hoy lo hizo algo mejor, pero ${stayN} lleva mejor temporada. Valora la trayectoria y no castiga un mal día` : `${dec.name} gana y hace la jugarreta: manda a casa a ${goN}, que lo hizo mejor y lleva igual o mejor temporada, para quitarse una rival fuerte`);
     dialog(lines, { ...ctxWith(dec), tension: true }, () => {
       nemEvent("vote", dec, go);
       if (go === S.queen && S.pacts && S.pacts[dec.id]) { delete S.pacts[dec.id]; nemEvent("betray", dec, S.queen); }
@@ -1537,14 +1559,14 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       }
       if (meIn) changeRel(dec, 1);
       eliminate(go);
-      asReactions(dec, go, stay, fair).then(({ lines: rl, ctx: rctx }) => dialog(rl, rctx, () => {
+      asReactions(dec, go, stay, kind).then(({ lines: rl, ctx: rctx }) => dialog(rl, rctx, () => {
         header();
         body().innerHTML = `
           <div class="story-card">
             <p class="eyebrow">${esc(dec.name)} ha decidido</p>
             <h3>${esc(go.name)}, sashay away</h3>
             <div class="vs"><img src="${photo(stay)}"><span>💄</span><img class="gone" src="${photo(go)}"></div>
-            <p class="${fair ? "muted" : "twist-note"}">${fair ? "Ha mandado a casa a la peor de la semana." : `😈 Jugarreta: ${esc(go.name)} lo hizo mejor que ${esc(stay.name)}.`}</p>
+            <p class="${fair ? "muted" : "twist-note"}">${kind === "semana" ? "Ha mandado a casa a la peor de la semana." : kind === "trayectoria" ? `Ha mirado toda la temporada: ${esc(stay.name)} (PPE ${ppeTxt(stay)}) iba mejor que ${esc(go.name)} (PPE ${ppeTxt(go)}).` : `😈 Jugarreta: ${esc(go.name)} lo hizo mejor esta semana y lleva igual o mejor temporada.`}</p>
             <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
           </div>`;
         endEpisodeBtn();

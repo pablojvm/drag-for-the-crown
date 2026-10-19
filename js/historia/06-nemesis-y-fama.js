@@ -1,40 +1,45 @@
   // ------------------------------ Sistema Némesis ------------------------------
-  // Memoria permanente entre temporadas: cada reina tiene rasgos, poder y cicatrices con las demás.
-  // Lo que pasa aquí se recuerda en las siguientes temporadas (y en All Stars).
+  // Memoria entre temporadas: cada reina tiene rasgos, poder y cicatrices con las demás.
+  // En una temporada normal todas entran nuevas: nadie se acuerda de nada (lo de esta temporada vive en S.nemLocal).
+  // Todo se apunta también en la memoria permanente, que solo se usa en All Stars y All Winners: ahí sí vuelven con su historia.
   const NEM_KEY = "dftc-nemesis";
+  const nemBlank = (d = {}) => ({ q: d.q || {}, f: d.f || {}, scars: d.scars || {}, known: d.known || [] });
+  const memoriaOn = () => !S || !S.season || asLike(twistOf());
   const Nem = {
-    get() { const d = store.get(NEM_KEY, null) || {}; return { q: d.q || {}, f: d.f || {}, scars: d.scars || {}, known: d.known || [] }; },
-    put(d) { store.set(NEM_KEY, d); },
+    perm() { return nemBlank(store.get(NEM_KEY, null) || {}); },
+    local() { if (!S.nemLocal) S.nemLocal = nemBlank(); return S.nemLocal; },
+    get() { return memoriaOn() ? this.perm() : this.local(); },
+    // Cambia la memoria permanente y, si es una temporada normal, también la de esta temporada
+    edit(fn) {
+      const p = this.perm();
+      fn(p);
+      store.set(NEM_KEY, p);
+      if (!memoriaOn()) fn(this.local());
+    },
     power(id) { return (this.get().q[id] || {}).power || 0; },
     titles(id) { return (this.get().q[id] || {}).titles || []; },
     addPower(id, n) {
-      const d = this.get();
       const t = traitsOf(qById(id) || { id });
       if (n > 0 && t.car === "ambiciosa") n *= 2;
-      d.q[id] = { ...(d.q[id] || {}), power: clamp(((d.q[id] || {}).power || 0) + n, 0, 10) };
-      this.put(d);
+      this.edit((d) => { d.q[id] = { ...(d.q[id] || {}), power: clamp(((d.q[id] || {}).power || 0) + n, 0, 10) }; });
     },
+    addTitle(id, name) { this.edit((d) => { d.q[id] = { ...(d.q[id] || {}), titles: [...((d.q[id] || {}).titles || []), name] }; }); },
     feel(a, b) { return this.get().f[`${a}>${b}`] || 0; },
     addFeel(a, b, n) {
-      const d = this.get();
       if (n < 0 && traitsOf(qById(a) || { id: a }).car === "rencorosa") n *= 2;
       const k = `${a}>${b}`;
-      d.f[k] = clamp((d.f[k] || 0) + n, -5, 5);
-      this.put(d);
+      this.edit((d) => { d.f[k] = clamp((d.f[k] || 0) + n, -5, 5); });
     },
     scar(by, to, k) {
-      const d = this.get();
       const key = [by, to].sort().join("|");
-      d.scars[key] = [...(d.scars[key] || []), { by, to, k, s: S.season.name, sid: S.season.id, ep: S.ep }].slice(-8);
-      this.put(d);
+      const e = { by, to, k, s: S.season.name, sid: S.season.id, ep: S.ep };
+      this.edit((d) => { d.scars[key] = [...(d.scars[key] || []), e].slice(-8); });
     },
     scarsOf(a, b) { return this.get().scars[[a, b].sort().join("|")] || []; },
     knows(id, slot) { return this.get().known.includes(`${id}:${slot}`); },
     learn(id, slot) {
       if (this.knows(id, slot)) return false;
-      const d = this.get();
-      d.known.push(`${id}:${slot}`);
-      this.put(d);
+      this.edit((d) => { if (!d.known.includes(`${id}:${slot}`)) d.known.push(`${id}:${slot}`); });
       return true;
     },
   };
@@ -135,7 +140,7 @@
             <p class="eyebrow">🐍 ¡Traición!</p>
             <h3>${esc(q.name)} ha roto vuestro pacto</h3>
             <div class="vs"><img src="${photo(S.queen)}"><span>🗡️</span><img src="${photo(q)}"></div>
-            <p>Ha ido contando tus planes por el taller: <b>te va a costar caro en el próximo reto</b>. Esto no se va a olvidar, ni en esta temporada ni en las siguientes.</p>
+            <p>Ha ido contando tus planes por el taller: <b>te va a costar caro en el próximo reto</b>. Esto no se va a olvidar.</p>
             <button class="btn btn-primary" id="story-next">Continuar</button>
           </div>`;
         $("#story-next").addEventListener("click", then);
@@ -158,7 +163,7 @@
     m.innerHTML = `
       <div class="shop board">
         <div class="shop-top"><h3>⚔️ Tus rivales</h3><button class="btn btn-primary" id="board-close">Cerrar</button></div>
-        <p class="muted">Descubre sus puntos fuertes y débiles cotilleando, observando en el Untucked o gracias a tus aliadas. Todo lo que pasa se recuerda en las siguientes temporadas.</p>
+        <p class="muted">Descubre sus puntos fuertes y débiles cotilleando, observando en el Untucked o gracias a tus aliadas. ${memoriaOn() ? "Vienen con su historia: se acuerdan de lo que pasó en otras temporadas." : "Aquí todas entráis nuevas. Lo que pase lo recordarán si volvéis a coincidir en un All Stars."}</p>
         <div class="board-grid">${list.map((q) => {
           const t = traitsOf(q), out = S.out.includes(q), [ri, rn] = rankOf(q);
           const sc = Nem.scarsOf(me, q.id);

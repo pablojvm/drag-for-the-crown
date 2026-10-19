@@ -634,7 +634,7 @@
     const fe = Object.keys(S.epNames).map(Number).sort((a, b) => b - a)[0];
     [S.queen, ...S.rivals, ...S.out].forEach((q) => {
       const l = (S.track[keyOf(q)] || {})[fe];
-      if (l === "WINNER") { Nem.addPower(q.id, 3); const d = Nem.get(); d.q[q.id] = { ...(d.q[q.id] || {}), titles: [...((d.q[q.id] || {}).titles || []), S.season.name] }; Nem.put(d); }
+      if (l === "WINNER") { Nem.addPower(q.id, 3); Nem.addTitle(q.id, S.season.name); }
       if (l === "RUNNER-UP" || l === "3ª") Nem.addPower(q.id, 1);
     });
     Closet.add(prize);
