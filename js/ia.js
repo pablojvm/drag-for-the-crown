@@ -49,7 +49,8 @@ const IA = (() => {
 
   async function callOne(p, system, user, { max, temp, json, timeout }) {
     const sig = AbortSignal.timeout(timeout);
-    if (p.kind === "server") return await Promise.race([net().chat(system, user, { max, temp, json, timeout }), new Promise((_, rej) => setTimeout(() => rej({ status: 0 }), timeout))]);
+    // El servidor ya prueba varios modelos por su cuenta: se le da más margen
+    if (p.kind === "server") { const t = Math.max(timeout, 30000); return await Promise.race([net().chat(system, user, { max, temp, json, timeout: t }), new Promise((_, rej) => setTimeout(() => rej({ status: 0 }), t))]); }
     if (p.kind === "gemini") {
       const gc = { temperature: temp, maxOutputTokens: max, thinkingConfig: p.think };
       if (json) gc.responseMimeType = "application/json";
@@ -116,7 +117,7 @@ const IA = (() => {
       } catch (e) {
         const st = (e && e.status) || 0;
         // Sin cuota → 1 minuto; modelo no disponible o petición inválida → resto de la sesión; saturado o caído → 20 s
-        console.warn(`[IA] ${p.id} falla (${st || (e && e.name) || e})`);
+        console.warn(`[IA] ${p.id} falla (${st || (e && e.name) || "sin respuesta a tiempo"})`);
         cool[p.id] = Date.now() + (st === 429 ? 60000 : st === 404 || st === 400 || st === 401 || st === 403 ? 864e5 : 20000);
       }
     }

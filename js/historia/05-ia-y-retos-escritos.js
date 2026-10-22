@@ -502,9 +502,24 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"lo que dice (máximo 28 palabras
           
           <button class="btn btn-primary" id="lv-done">Continuar</button>
         </div>`;
-      el.querySelector("#lv-done").addEventListener("click", () => done(final));
+      markLive(); el.querySelector("#lv-done").addEventListener("click", () => done(final));
     }
     draw();
+  }
+  // Si la versión en directo no se puede preparar, se dice y se deja elegir: reintentar o jugar con opciones
+  function liveFail(el, retry, classic) {
+    el.innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">✍️ En directo</p>
+        <h3>No he podido preparar el reto en directo</h3>
+        <p class="muted">El guion ha tardado demasiado en llegar. Puedes probar otra vez o jugarlo con opciones.</p>
+        <div class="choice-col">
+          <button class="btn btn-primary" id="lf-retry">🔁 Reintentar en directo</button>
+          <button class="btn btn-ghost" id="lf-classic">🎲 Jugar con opciones</button>
+        </div>
+      </div>`;
+    el.querySelector("#lf-retry").addEventListener("click", retry);
+    el.querySelector("#lf-classic").addEventListener("click", classic);
   }
   // Elegir entre jugar en directo con IA o la versión de siempre
   function aiOrClassic(el, title, icon, live, classic) {
@@ -696,7 +711,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre de una rival","t":"lo que dice o hace 
               <div class="impro-cast">${[{ q: S.queen, n: myN }, ...mates.map((q) => ({ q, n: notas[q.name] }))].map((x) => `<span><i style="background-image:url('${photo(x.q)}')"></i><b>${esc(x.q === S.queen ? "Tú" : x.q.name)}</b><small></small></span>`).join("")}</div>
               <button class="btn btn-primary" id="lv-done">Continuar</button>
             </div>`;
-          el.querySelector("#lv-done").addEventListener("click", () => { if (final >= 80) growAttr(final > 90 ? "comedia" : "carisma"); done(final); });
+          markLive(); el.querySelector("#lv-done").addEventListener("click", () => { if (final >= 80) growAttr(final > 90 ? "comedia" : "carisma"); done(final); });
         }
         others();
       }
@@ -719,7 +734,7 @@ Devuelve JSON {"titulo":"...","genero":"...","sinopsis":"...","papeles":[{"papel
     ).then((g) => {
       const roles = g && Array.isArray(g.papeles) ? g.papeles.filter((x) => x && x.papel).slice(0, mates.length + 1) : [];
       const lines = g && Array.isArray(g.guion) ? g.guion.filter((x) => x && x.papel && str(x.t).trim()) : [];
-      if (roles.length < 2 || lines.length < 5) { mxActing.classic = true; return mxActing(el, (sc) => { mxActing.classic = false; done(sc); }); }
+      if (roles.length < 2 || lines.length < 5) return liveFail(el, () => liveActing(el, done), () => { mxActing.classic = true; mxActing(el, (sc) => { mxActing.classic = false; done(sc); }); });
       if (/teletienda/i.test(S.curTitulo || "") && S.weekProd) logEv(`El producto de la teletienda es ${S.weekProd}`);
       casting(g, roles, lines);
     });
@@ -853,7 +868,7 @@ Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","
             ${c && c.calvo ? `<p class="lv host"><b>Javier Calvo</b>${esc(IA.clean(str(c.calvo)))}</p>` : ""}
             <button class="btn btn-primary" id="lv-done">Continuar</button>
           </div>`;
-        el.querySelector("#lv-done").addEventListener("click", () => { if (score >= 85) growAttr("performance"); done(score); });
+        markLive(); el.querySelector("#lv-done").addEventListener("click", () => { if (score >= 85) growAttr("performance"); done(score); });
       }
       advance();
     }
@@ -919,9 +934,11 @@ Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","
   };
   const judgeLines = (r, a = "supreme", b = "ana", na = "Supremme", nb = "Ana Locking") =>
     `${r && r[a] ? `<p class="lv host"><b>${na}</b>${esc(IA.clean(str(r[a])))}</p>` : ""}${r && r[b] ? `<p class="lv host"><b>${nb}</b>${esc(IA.clean(str(r[b])))}</p>` : ""}`;
+  // El jurado ya ha dado su opinión en directo: el resultado de la semana no puede contradecirla
+  const markLive = () => { S.liveEp = S.ep; };
   function liveResult(el, eyebrow, html, score, then) {
     el.innerHTML = `<div class="story-card live"><p class="eyebrow">${eyebrow}</p>${html}<button class="btn btn-primary" id="lv-done">Continuar</button></div>`;
-    el.querySelector("#lv-done").addEventListener("click", then);
+    markLive(); el.querySelector("#lv-done").addEventListener("click", then);
   }
   // Las compañeras del reto: tu equipo si lo hay, si no, al azar
   const crew = (n) => (S.team && S.team.length ? S.team.filter((q) => S.rivals.includes(q)) : shuffle(S.rivals)).slice(0, n);
@@ -933,7 +950,7 @@ Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","
     let winQ = !iWin && S.miniWin ? S.rivals.find((q) => q.id === S.miniWin) : null;
     const mates = [...(winQ ? [winQ] : []), ...shuffle(S.rivals.filter((q) => q !== winQ))].slice(0, 7);
     if (!iWin && !winQ) winQ = mates[0];
-    const fail = () => { mxRusical.classic = true; mxRusical(el, (sc) => { mxRusical.classic = false; done(sc); }); };
+    const fail = () => liveFail(el, () => liveRusical(el, done, tema), () => { mxRusical.classic = true; mxRusical(el, (sc) => { mxRusical.classic = false; done(sc); }); });
     aiWait("Los compositores están terminando la partitura...", el);
     IA.chat(
       `Eres la guionista y letrista del Rusical de Drag Race España: un musical paródico, cantado, con humor drag. ${aiSeason()}`,
@@ -1154,7 +1171,7 @@ Si alguna letra nombra al grupo, el nombre es exactamente «${band}». Escribe e
 Devuelve JSON {"titulo":"...","estribillo":["...","...","...","..."],"estrofas":[{"reina":"nombre","versos":["...","...","...","..."]}]}`,
         { json: true, max: 1200, temp: 1 },
       );
-      if (!r || !Array.isArray(r.estribillo)) { mxGirlGroups.classic = true; return mxGirlGroups(el, (sc) => { mxGirlGroups.classic = false; done(sc); }); }
+      if (!r || !Array.isArray(r.estribillo)) return liveFail(el, () => liveGirlGroups(el, done), () => { mxGirlGroups.classic = true; mxGirlGroups(el, (sc) => { mxGirlGroups.classic = false; done(sc); }); });
       const coro = r.estribillo.slice(0, 4).map((v) => IA.clean(str(v)));
       const est = (Array.isArray(r.estrofas) ? r.estrofas : []).filter((x) => x && mates.some((q) => q.name === str(x.reina)) && Array.isArray(x.versos));
       const title = IA.clean(str(r.titulo)) || band;
@@ -1215,7 +1232,7 @@ Devuelve JSON {"caja":"...","materiales":["...","...","...","...","...","..."],"
       { json: true, max: 400, temp: 1 },
     ).then((box) => {
       const mats = box && Array.isArray(box.materiales) && box.materiales.length >= 4 ? box.materiales.slice(0, 6).map((m) => IA.clean(str(m))) : null;
-      if (!mats) { mxMateriales.classic = true; return mxMateriales(el, (sc) => { mxMateriales.classic = false; done(sc); }); }
+      if (!mats) return liveFail(el, () => liveMateriales(el, done), () => { mxMateriales.classic = true; mxMateriales(el, (sc) => { mxMateriales.classic = false; done(sc); }); });
       el.innerHTML = `
         <div class="story-card live">
           <p class="eyebrow">🧰 Materiales imposibles · ${esc(IA.clean(str(box.caja)))}</p>
@@ -1296,7 +1313,7 @@ Devuelve JSON {"credible":0,"moda":0,"uso":0,"ana":"comentario (máximo 25 palab
 Devuelve JSON {"nombre":"...","quien":"...","historia":"...","comodidad":"baja|media|alta","personalidad":"...","saludo":"..."}`,
       { json: true, max: 400, temp: 1 },
     ).then((m) => {
-      if (!m || !m.nombre) { mxMakeover.classic = true; return mxMakeover(el, (sc) => { mxMakeover.classic = false; done(sc); }); }
+      if (!m || !m.nombre) return liveFail(el, () => liveMakeover(el, done, kind), () => { mxMakeover.classic = true; mxMakeover(el, (sc) => { mxMakeover.classic = false; done(sc); }); });
       const who = IA.clean(str(m.nombre));
       const sys = `Hablas SOLO como ${who}, ${str(m.quien)}, que va a hacer un makeover drag con ${S.queen.name} en Drag Race España. Tu historia: ${str(m.historia)}. Personalidad: ${str(m.personalidad)}. Comodidad con el drag: ${str(m.comodidad)}. Has venido porque te hace muchísima ilusión dragearte con ${S.queen.name}: sabes a lo que vienes y estás entregada, aunque te den nervios. Nunca pongas excusas ni digas que te tienes que ir, que estás cansada o que mañana trabajas. Contestas con naturalidad, máximo 25 palabras.`;
       const log = [{ who, t: IA.clean(str(m.saludo)) || "¡Qué ilusión! Nunca lo he hecho, pero vengo a por todas." }];
@@ -1369,7 +1386,7 @@ Puntúa de 0 a 100. Devuelve JSON {"parecido":0,"conexion":0,"supreme":"comentar
 Devuelve JSON {"producto":"...","marca":"...","descripcion":"máximo 25 palabras","cliente":"..."${mate ? ',"idea":"..."' : ""}}`,
       { json: true, max: 300, temp: 1.1 },
     ).then((p) => {
-      if (!p || !p.producto) { mxPublicidad.classic = true; return mxPublicidad(el, (sc) => { mxPublicidad.classic = false; done(sc); }); }
+      if (!p || !p.producto) return liveFail(el, () => livePublicidad(el, done), () => { mxPublicidad.classic = true; mxPublicidad(el, (sc) => { mxPublicidad.classic = false; done(sc); }); });
       const prod = IA.clean(str(p.producto)), marca = IA.clean(str(p.marca));
       el.innerHTML = `
         <div class="story-card live">

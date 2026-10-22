@@ -559,7 +559,12 @@
     let sc = {};
     if (S.phase && S.phase.ep === S.ep && S.phase.sc) sc = { ...S.phase.sc };
     S.rivals.forEach((q) => { if (sc[q.id] == null) sc[q.id] = rivalScore(q); });
-    if (sc.__dado == null && typeof window.__forceScore !== "number") sc.__dado = myDado(myScore);
+    if (sc.__dado == null && typeof window.__forceScore !== "number") {
+      let d = myDado(myScore);
+      // Si el jurado ya te valoró en directo, el dado solo matiza: no puede convertir unas críticas buenísimas en un desastre
+      if (S.liveEp === S.ep) d = clamp(d, myScore - 8, myScore + 6);
+      sc.__dado = d;
+    }
     if (sc.__dado != null) myScore = sc.__dado;
     // Segunda Oportunidrag: la nota es de la pareja (la reina y su eliminada)
     if (S.curTipo === "repescaStand" && S.rp && S.rp.ep === S.ep && !sc.__rp) {

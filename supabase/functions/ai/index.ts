@@ -16,6 +16,8 @@ const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
 const DAILY = Number(Deno.env.get("AI_DAILY_LIMIT") || 150);
 const GLOBAL = Number(Deno.env.get("AI_GLOBAL_LIMIT") || 1400);
 const KEY = Deno.env.get("GEMINI_API_KEY") || "";
+// Modelos sin cuota o que no existen: se saltan un rato (la función vive varios minutos entre llamadas)
+const cool = new Map<string, number>();
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -45,7 +47,16 @@ Deno.serve(async (req) => {
   if (mine === -1 || mine === -2) return json({ error: mine === -2 ? "límite diario" : "límite global" }, 403);
 
   const fallos: string[] = [];
-  for (const model of KEY ? MODELS : []) {
+  const t0 = Date.now();
+  const fresh = MODELS.filter((m) => !(cool.get(m)! > Date.now()));
+  const models = KEY ? (fresh.length ? fresh : MODELS) : [];
+  // Los textos largos (guiones) necesitan más tiempo
+  const BUDGET = max > 1000 ? 45000 : 25000, PER = max > 1000 ? 20000 : 9000;
+  for (const [i, model] of models.entries()) {
+    // Tope total (25 s, o 45 s en textos largos); a cada modelo, una parte salvo al último
+    const left = BUDGET - (Date.now() - t0);
+    if (left < 2500) break;
+    const slice = i === models.length - 1 ? left : Math.min(PER, left);
     // Los 2.5 piensan con thinkingBudget; los nuevos con thinkingLevel
     const think = model.startsWith("gemini-2.5") ? { thinkingBudget: 0 } : { thinkingLevel: "minimal" };
     const gc: Record<string, unknown> = { temperature: temp, maxOutputTokens: max + 200, thinkingConfig: think };
@@ -54,10 +65,15 @@ Deno.serve(async (req) => {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(KEY)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(40000),
+        signal: AbortSignal.timeout(slice),
         body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: gc }),
       });
-      if (!r.ok) { fallos.push(`${model}: ${r.status} ${(await r.text()).slice(0, 160).replace(/\s+/g, " ")}`); continue; }
+      if (!r.ok) {
+        if (r.status === 429) cool.set(model, Date.now() + 10 * 60000);
+        if (r.status === 404) cool.set(model, Date.now() + 24 * 3600000);
+        fallos.push(`${model}: ${r.status} ${(await r.text()).slice(0, 160).replace(/\s+/g, " ")}`);
+        continue;
+      }
       const d = await r.json();
       const text = (d.candidates?.[0]?.content?.parts || []).map((p: { text?: string }) => p.text || "").join("").trim();
       if (text) return json({ text, model, left: Math.max(0, DAILY - mine) });
