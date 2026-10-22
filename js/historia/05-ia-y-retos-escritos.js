@@ -438,7 +438,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"lo que dice (máximo 28 palabras
     const lk = S.lastLook;
     const r = await IA.chat(
       `Escribes las críticas del jurado de Drag Race España. Supremme de Luxe es la presentadora (directa, teatral, cariñosa pero exigente). Ana Locking es jurado (moda, técnica, seria y precisa). ${aiSeason()} ${(() => { const f = fame(); return f ? `En el taller, ${S.queen.name} tiene fama de ser ${FAMA[f].n}.` : ""; })()}`,
-      `Reto de esta semana: ${S.curTitulo || S.epNames[S.ep] || "reto"}. ${weekTxt()} Nota de ${S.queen.name} en el reto: ${S.lastParts ? S.lastParts.reto : score}/100${S.lastParts && S.lastParts.pasarela != null ? `, pasarela: ${S.lastParts.pasarela}/100` : ""}. ${lk ? `Categoría de pasarela: ${lk.cat}. Su mejor pieza: ${lk.best}. Su peor pieza: ${lk.worst}.${lk.concepto ? ` Concepto que defendió: «${lk.concepto}».` : ""}${lk.critica ? ` Ya le dijeron en la pasarela: ${lk.critica}` : ""}` : ""} Su valoración global es ${label}. Devuelve JSON con "supreme", "ana" y "javis": la crítica de cada uno a ${S.queen.name}, en segunda persona, máximo 30 palabras cada una, coherentes con la nota. Supremme habla sobre todo del reto (aunque puede comentar el look), Ana sobre todo de la pasarela y el look (aunque puede comentar el reto), y los Javis (Javier Ambrossi o Javier Calvo, son jueces) dan su valoración desde la interpretación y la emoción. Son SOLO valoraciones: nunca digas posiciones ni resultados (ni ganadora, ni mejores, ni peores, ni bottom, ni lip sync, ni a salvo, ni en peligro); eso se anuncia después del Untucked. Tampoco menciones notas ni números.`,
+      `Reto de esta semana: ${S.curTitulo || S.epNames[S.ep] || "reto"}. ${weekTxt()} Nota de ${S.queen.name} en el reto: ${S.lastParts ? S.lastParts.reto : score}/100${S.lastParts && S.lastParts.pasarela != null ? `, pasarela: ${S.lastParts.pasarela}/100` : ""}. ${lk ? `Categoría de pasarela: ${lk.cat}. Su mejor pieza: ${lk.best}. Su peor pieza: ${lk.worst}.${lk.concepto ? ` Concepto que defendió: «${lk.concepto}».` : ""}${lk.critica ? ` Lo que pensó el jurado al verla: ${lk.critica}` : ""}` : ""}${juryTxt() ? ` Lo que pensó el jurado durante el reto (todavía no se lo ha dicho; díselo ahora, con otras palabras): ${juryTxt()}` : ""} Su valoración global es ${label}. Devuelve JSON con "supreme", "ana" y "javis": la crítica de cada uno a ${S.queen.name}, en segunda persona, máximo 30 palabras cada una, coherentes con la nota. Supremme habla sobre todo del reto (aunque puede comentar el look), Ana sobre todo de la pasarela y el look (aunque puede comentar el reto), y los Javis (Javier Ambrossi o Javier Calvo, son jueces) dan su valoración desde la interpretación y la emoción. Son SOLO valoraciones: nunca digas posiciones ni resultados (ni ganadora, ni mejores, ni peores, ni bottom, ni lip sync, ni a salvo, ni en peligro); eso se anuncia después del Untucked. Tampoco menciones notas ni números.`,
       { json: true, max: 320, temp: 0.85 },
     );
     if (!r || !r.supreme || !r.ana) return lines;
@@ -456,6 +456,16 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"lo que dice (máximo 28 palabras
     if (!r) return null;
     return { nota: clamp(Math.round(Number.isFinite(+r.nota) ? +r.nota : 40), 0, 100), publico: String(r.publico || "risas"), reaccion: IA.clean(r.reaccion || "") };
   }
+  // El jurado no comenta nada al terminar los retos ni las pasarelas: lo que piensa se guarda para las valoraciones
+  function juryNote(...txt) {
+    const t = txt.map((x) => str(x).trim()).filter(Boolean).map((x) => IA.clean(x));
+    if (!t.length) return;
+    if (!S.juryNotes || S.juryNotes.ep !== S.ep) S.juryNotes = { ep: S.ep, t: [] };
+    S.juryNotes.t.push(...t);
+    S.juryNotes.t = S.juryNotes.t.slice(-8);
+  }
+  const juryTxt = () => (S.juryNotes && S.juryNotes.ep === S.ep ? S.juryNotes.t.join(" ") : "");
+  const juryWait = `<p class="muted jury-wait">⚖️ El jurado ha tomado nota. Lo sabrás en las valoraciones.</p>`;
   // Pantalla común para escribir en directo y ver la reacción
   function liveRounds(el, cfg, done) {
     let round = 0;
@@ -489,7 +499,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"lo que dice (máximo 28 palabras
       const pub = j ? j.publico : "risas";
       log.push({ who: "Público", t: { carcajada: "🤣 ¡Carcajada general!", risas: "😄 Risas", silencio: "😶 Silencio...", abucheo: "😬 Uuuuh..." }[pub] || "😄 Risas", cls: "pub" });
       // En el Snatch Game no hay críticas durante el juego: solo se sigue el juego dentro de los personajes
-      if (j && j.reaccion && !cfg.inCharacter) log.push({ who: "Supremme", t: j.reaccion, cls: "host" });
+      if (j && j.reaccion && !cfg.inCharacter) juryNote(j.reaccion);
       if (r.after) { const extra = await r.after(v, nota); if (extra) log.push(...[].concat(extra).filter(Boolean)); }
       round++;
       if (round < cfg.rounds.length) return draw();
@@ -499,7 +509,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"lo que dice (máximo 28 palabras
         <div class="story-card live">
           <p class="eyebrow">${cfg.icon} ${esc(cfg.title)} · resultado</p>
           <div class="live-log">${log.map((m) => `<p class="lv ${m.cls}"><b>${esc(m.who)}</b>${esc(m.t)}</p>`).join("")}</div>
-          
+          ${juryWait}
           <button class="btn btn-primary" id="lv-done">Continuar</button>
         </div>`;
       markLive(); el.querySelector("#lv-done").addEventListener("click", () => done(final));
@@ -707,7 +717,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre de una rival","t":"lo que dice o hace 
             <div class="story-card live">
               <p class="eyebrow">📺 Improvisación en grupo · resultado</p>
               <div class="live-log">${log.map((m) => `<p class="lv ${m.me ? "me" : "rival"}"><b>${esc(m.who)}</b>${esc(m.t)}</p>`).join("")}</div>
-              ${r && r.supreme ? `<p class="lv host"><b>Supremme</b>${esc(IA.clean(str(r.supreme)))}</p>` : ""}
+              ${(juryNote(r && r.supreme), juryWait)}
               <div class="impro-cast">${[{ q: S.queen, n: myN }, ...mates.map((q) => ({ q, n: notas[q.name] }))].map((x) => `<span><i style="background-image:url('${photo(x.q)}')"></i><b>${esc(x.q === S.queen ? "Tú" : x.q.name)}</b><small></small></span>`).join("")}</div>
               <button class="btn btn-primary" id="lv-done">Continuar</button>
             </div>`;
@@ -932,8 +942,8 @@ Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","
     const ten = v.every((x) => x == null || x <= 10) && v.some((x) => x > 0);
     return v.map((x) => clamp(Math.round(x == null ? d : ten ? x * 10 : x), 0, 100));
   };
-  const judgeLines = (r, a = "supreme", b = "ana", na = "Supremme", nb = "Ana Locking") =>
-    `${r && r[a] ? `<p class="lv host"><b>${na}</b>${esc(IA.clean(str(r[a])))}</p>` : ""}${r && r[b] ? `<p class="lv host"><b>${nb}</b>${esc(IA.clean(str(r[b])))}</p>` : ""}`;
+  // Lo que diría el jurado se guarda para las valoraciones; aquí solo se avisa
+  const judgeLines = (r, a = "supreme", b = "ana") => { juryNote(r && r[a], r && r[b]); return juryWait; };
   // El jurado ya ha dado su opinión en directo: el resultado de la semana no puede contradecirla
   const markLive = () => { S.liveEp = S.ep; };
   function liveResult(el, eyebrow, html, score, then) {

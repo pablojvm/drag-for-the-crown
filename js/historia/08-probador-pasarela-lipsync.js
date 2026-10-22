@@ -307,10 +307,10 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
       score += anaBonus;
       score = clamp(Math.round(score), 0, 100);
       flags.critica = r ? `${str(r.supreme)} ${str(r.ana)}` : null;
+      // El jurado no dice nada todavía: su opinión llega en las valoraciones
       el.querySelector(".rw-panel").innerHTML = `
-        <h4>⚖️ El jurado opina</h4>
-        ${r && r.supreme ? `<p class="lv host"><b>Supremme</b>${esc(IA.clean(str(r.supreme)))}</p>` : ""}
-        ${r && r.ana ? `<p class="lv host"><b>Ana Locking</b>${esc(IA.clean(str(r.ana)))}</p>` : ""}
+        <h4>⚖️ Fin de tu pasarela</h4>
+        <p class="muted jury-wait">El jurado ha tomado nota. Lo sabrás en las valoraciones.</p>
         <button class="btn btn-primary" id="rw-done">Continuar</button>`;
       logEv(`Pasarela «${cat}»: ${S.queen.name} defiende el concepto «${concept}» (nota ${score})`);
       el.querySelector("#rw-done").addEventListener("click", () => { cleanup = null; done(score, flags, lookSpec); });

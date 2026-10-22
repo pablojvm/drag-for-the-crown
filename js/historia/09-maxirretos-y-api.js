@@ -39,7 +39,7 @@
       // El foco se gestiona tras cada pregunta
       steps.push((st) => {
         st.focus -= 6;
-        if (st.focus > 80) { st.total += 25 * 0.5; st.wsum += 0.5; Toast.show("🔦 ¡Estás interrumpiendo!", "Demasiado foco: el jurado lo penaliza"); }
+        if (st.focus > 80) { st.total += 25 * 0.5; st.wsum += 0.5; Toast.show("🔦 ¡Estás interrumpiendo!", "Demasiado foco: le quitas el plano a las demás"); }
         else if (st.focus < 30) { st.total += 25 * 0.5; st.wsum += 0.5; Toast.show("🔦 Pasas desapercibida", "Nadie se acuerda de ti"); }
         st.focus = clamp(st.focus, 0, 100);
         return null;
@@ -295,7 +295,7 @@
         q: "🎤 Presentación en pareja en la pasarela",
         opts: [
           { t: "💃 Coreografía juntas", d: "Maquillaje + Carisma", go: () => res(check(["maquillaje", "carisma"], 55), 96, 35, "¡Family resemblance total!", "Os descoordináis.") },
-          { t: "🫶 Dejar que se luzca", d: "Carisma", go: () => res(check(["carisma"], 48), 85, 45, "El jurado se enamora de tu invitada.", "Le pueden los nervios y se queda quieta.") },
+          { t: "🫶 Dejar que se luzca", d: "Carisma", go: () => res(check(["carisma"], 48), 85, 45, "El público se enamora de tu invitada.", "Le pueden los nervios y se queda quieta.") },
         ],
       }),
     ];
