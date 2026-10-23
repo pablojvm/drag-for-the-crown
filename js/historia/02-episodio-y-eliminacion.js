@@ -1371,7 +1371,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           <p class="eyebrow">💄 Lip sync por el poder</p>
           <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
           <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
-          <p>${twistOf() === "winners" ? "La que gane se lleva una estrella ⭐. Las estrellas dan ventaja en la gran final." : "La que gane decide quién de las dos del bottom se va a casa."}</p>
+          <p>${twistOf() === "winners" ? "La que gane se lleva una estrella ⭐ (si no está bloqueada) y bloquea a una compañera para la semana que viene. Las estrellas dan ventaja en la gran final." : "La que gane decide quién de las dos del bottom se va a casa."}</p>
           <button class="btn btn-primary" id="story-ls">¡A la pasarela!</button>
         </div>`;
       Music.play("tension");
@@ -1412,7 +1412,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         <h3>${esc(w.name)} vs ${esc(l.name)}</h3>
         <p class="muted">${esc(fill(pickFresh(HISTORIA.lipsyncOtras), { a: w.name, b: l.name }))}</p>
         <div class="vs"><img src="${photo(w)}"><span>👑</span><img src="${photo(l)}"></div>
-        <p><b>${esc(w.name)}</b> ${twistOf() === "winners" ? "gana el lip sync y se lleva una estrella ⭐." : "gana y tiene el pintalabios: decide quién se va."}</p>
+        <p><b>${esc(w.name)}</b> ${twistOf() === "winners" ? "gana el lip sync: estrella ⭐ (si no está bloqueada) y bloqueo para otra." : "gana y tiene el pintalabios: decide quién se va."}</p>
         <button class="btn btn-primary" id="story-next">Continuar</button>
       </div>`;
     mark(w, "WIN");

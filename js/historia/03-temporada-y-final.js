@@ -255,22 +255,65 @@
   // ---------------- All Winners: nadie se va; todas llegan a la final ----------------
   // Cada semana el top 2 hace lip sync por una estrella. La final es una eliminatoria de lip syncs entre todas
   function winnersWeeks() { return clamp(S.rivals.length + S.out.length + (S.meOut ? 0 : 1) - 1, 4, 8); }
+  // La ganadora del lip sync se lleva una estrella y bloquea a una compañera: la semana que viene no podrá ganar estrella
   function winnersStar(dec) {
     S.stars = S.stars || {};
     const k = dec.me ? "me" : dec.q.id;
-    S.stars[k] = (S.stars[k] || 0) + 1;
-    if (dec.me) { S.wins++; Toast.show("⭐ ¡Una estrella para ti!", "Te dará ventaja en la gran final"); }
-    logEv(`${dec.me ? S.queen.name : dec.q.name} gana una estrella`);
+    const decName = dec.me ? S.queen.name : dec.q.name;
+    const blocked = S.block && S.block.ep === S.ep && S.block.id === k;
+    if (!blocked) {
+      S.stars[k] = (S.stars[k] || 0) + 1;
+      if (dec.me) { S.wins++; Toast.show("⭐ ¡Una estrella para ti!", "Te dará ventaja en la gran final"); }
+      logEv(`${decName} gana una estrella`);
+    } else logEv(`${decName} gana el lip sync, pero estaba bloqueada: se queda sin estrella`);
+    const byName = blocked ? nameOfKey(S.block.by) : "";
+    S.block = null;
     header();
+    const starsMap = () => new Map([S.queen, ...S.rivals].map((q) => [q, (S.stars || {})[keyOf(q)] || 0]));
+    const table = () => standingsHTML([S.queen, ...S.rivals], starsMap(), "Estrellas").replace(/👑/g, "⭐");
+    const done = (target) => {
+      S.block = { ep: S.ep + 1, id: keyOf(target), by: k };
+      logEv(`${decName} bloquea a ${target === S.queen ? S.queen.name : target.name}: la semana que viene no podrá ganar estrella`);
+      if (target === S.queen) Toast.show(`🚫 ${decName} te ha bloqueado`, "La semana que viene no puedes ganar estrella");
+      else if (dec.me) changeRel(target, -1);
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">⭐ All Winners · el bloqueo</p>
+          <h3>${dec.me ? `Bloqueas a ${esc(target.name)}` : (target === S.queen ? `${esc(decName)} te bloquea a ti` : `${esc(decName)} bloquea a ${esc(target.name)}`)}</h3>
+          <div class="vs"><img src="${photo(dec.me ? S.queen : dec.q)}"><span>🚫</span><img class="gone" src="${photo(target)}"></div>
+          <p>${target === S.queen ? "La semana que viene no podrás ganar estrella, aunque ganes el lip sync." : `La semana que viene ${esc(target.name)} no podrá ganar estrella, aunque gane el lip sync.`} Esta semana nadie se va a casa.</p>
+          ${table()}
+          <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
+        </div>`;
+      endEpisodeBtn();
+    };
+    const others = [S.queen, ...S.rivals].filter((q) => keyOf(q) !== k);
+    if (dec.me) {
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">⭐ All Winners</p>
+          <h3>${blocked ? "Ganas el lip sync... pero estabas bloqueada" : "¡Te llevas la estrella!"}</h3>
+          ${blocked ? `<p class="twist-note">🚫 ${esc(byName)} te bloqueó la semana pasada: esta vez no hay estrella. Pero el bloqueo sí es tuyo.</p>` : ""}
+          <p>Ahora te toca <b>bloquear a una compañera</b>: la semana que viene no podrá ganar estrella.</p>
+          <div class="hub-grid">${others.map((q, i) => `<button class="hub-q" style="--i:${i}" data-b="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>⭐ ${(S.stars || {})[keyOf(q)] || 0}</small></button>`).join("")}</div>
+          ${table()}
+        </div>`;
+      body().querySelectorAll("[data-b]").forEach((b) => b.addEventListener("click", () => done(qById(b.dataset.b))));
+      return;
+    }
+    // Las demás bloquean a la que más estrellas tiene; si te tienen manía, a ti
+    const meQ = S.queen;
+    const score = (q) => ((S.stars || {})[keyOf(q)] || 0) * 2 + (q === meQ ? -relOf(dec.q) * 1.5 + (S.meOut ? -99 : 0) : 0) + Math.random() * 1.5;
+    const target = others.filter((q) => q !== meQ || !S.meOut).sort((a, b) => score(b) - score(a))[0];
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">⭐ All Winners</p>
-        <h3>${dec.me ? "¡Te llevas la estrella!" : `Estrella para ${esc(dec.q.name)}`}</h3>
-        <p>Esta semana nadie se va a casa. Todas seguís en la competición.</p>
-        ${standingsHTML([S.queen, ...S.rivals], new Map([S.queen, ...S.rivals].map((q) => [q, (S.stars || {})[keyOf(q)] || 0])), "Estrellas").replace(/👑/g, "⭐")}
-        <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
+        <h3>${blocked ? `${esc(decName)} gana... pero estaba bloqueada` : `Estrella para ${esc(decName)}`}</h3>
+        ${blocked ? `<p class="twist-note">🚫 ${esc(byName)} la bloqueó la semana pasada: se queda sin estrella.</p>` : ""}
+        <p>Ahora ${esc(decName)} tiene que bloquear a una compañera...</p>
+        <button class="btn btn-primary" id="story-go">Ver a quién bloquea</button>
       </div>`;
-    endEpisodeBtn();
+    $("#story-go").addEventListener("click", () => done(target));
   }
   function winnersFinal() {
     setSet("stage");

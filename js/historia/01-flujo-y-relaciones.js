@@ -593,7 +593,7 @@
     if (tw === "suerte") chip = S.luck === undefined ? "🍀 Cajitas por abrir" : S.luck === "me" ? "🍀 ¡La tienes tú! (en secreto)" : S.luck ? "🍀 ¿Quién la tendrá?" : "🍀 Ya se ha usado";
     if (tw === "repesca") chip = S.flags.repesca ? "🔁 Segunda Oportunidrag: hecha" : "🔁 Segunda Oportunidrag: pendiente";
     if (tw === "allstars") chip = "💄 Decide la ganadora";
-    if (tw === "winners") chip = `⭐ Nadie se va · tus estrellas: ${(S.stars || {}).me || 0}`;
+    if (tw === "winners") chip = `⭐ Nadie se va · tus estrellas: ${(S.stars || {}).me || 0}${S.block && S.block.ep === S.ep ? ` · 🚫 Bloqueada: ${S.block.id === "me" ? "tú" : nameOfKey(S.block.id)}` : ""}`;
     $("#story-ep").textContent = S.meOut ? "Fuera de la competición" : isFinal() ? (S.flags.reunion ? "Gran final" : "El reencuentro") : `Episodio ${S.ep}`;
     if (chip) $("#story-season").innerHTML += ` <span class="twist-chip">${esc(chip)}</span>`;
     const fm = fame();

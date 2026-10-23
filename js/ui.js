@@ -80,7 +80,10 @@ const UI = (() => {
     const grid = $("#franchise-grid");
     grid.innerHTML = "";
     FRANCHISES.forEach((f) => {
-      const won = f.seasons.filter((s) => wonIn(s.id)).length;
+      // En historia cuentan también las especiales (All Stars a tu gusto y All Winners)
+      const list = mode === "story" && typeof allSeasons === "function" ? allSeasons().filter((s) => ((s.franchise && s.franchise.id) || s.franchise) === f.id) : f.seasons;
+      const total = list.length || f.seasons.length;
+      const won = list.filter((s) => wonIn(s.id)).length;
       const faces = [...new Set(f.seasons.flatMap((s) => s.cast.slice(-2)))].slice(0, 6);
       const card = document.createElement("button");
       card.className = "franchise-card" + (f.comingSoon ? " soon" : "");
@@ -92,8 +95,8 @@ const UI = (() => {
           f.comingSoon
             ? `<span class="soon-badge">Próximamente</span>`
             : `<span class="faces">${faces.map((id) => `<i style="background-image:${portraitBg(queenById2(id))}"></i>`).join("")}</span>
-        <span class="f-progress"><span class="progress"><span style="width:${(won / f.seasons.length) * 100}%"></span></span>
-        <small>👑 ${won} de ${f.seasons.length} ${f.seasons.length === 1 ? "temporada ganada" : "temporadas ganadas"} ${mode === "story" ? "en historia" : "en arcade"}</small></span>`
+        <span class="f-progress"><span class="progress"><span style="width:${(won / total) * 100}%"></span></span>
+        <small>👑 ${won} de ${total} ${total === 1 ? "temporada ganada" : "temporadas ganadas"} ${mode === "story" ? "en historia" : "en arcade"}</small></span>`
         }`;
       const fLock = mode === "story" && !f.comingSoon && f.seasons.length && !f.seasons.some((x) => storyUnlock({ ...x, franchise: f }).ok) ? storyUnlock({ ...f.seasons[0], franchise: f }).why : null;
       if (fLock) { card.classList.add("locked"); card.insertAdjacentHTML("beforeend", `<span class="soon-badge">🔒 ${esc(fLock)}</span>`); }
