@@ -179,15 +179,22 @@ const FRANCHISES = [
 // All Winners: las reinas con las que has ganado cada temporada. All Stars a tu gusto: hasta 14 reinas elegidas por ti
 const REGULAR_ES = () => TEMPORADAS_ES.filter((t) => t.franchise === "es");
 const PLAYABLE_AS = () => TEMPORADAS_ES.filter((t) => t.franchise === "esas" && t.cast && t.cast.length);
+// Con qué reina ganaste una temporada. Las partidas antiguas no guardaban la corona aparte:
+// se busca también en la reina reinante y en el Hall of Fame (la última vez que la ganaste)
 function storyCrown(sid) {
   const C = store.get("dftc-story-crowns", {});
   if (C[sid]) return C[sid];
   const R = store.get("dftc-reinantes", {})[sid];
-  return R && R.mine ? { queen: R.queen, runner: null } : null;
+  if (R && R.mine) return { queen: R.queen, runner: null };
+  const won = (store.get("dftc-story-board", []) || []).filter((e) => e && e.season === sid && e.won && e.queen).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+  if (won) return { queen: won.queen, runner: null };
+  if (R && R.player && (store.get("dftc-story-wins", []) || []).includes(sid)) return { queen: R.player, runner: null };
+  return null;
 }
 function allWinnersCast() {
   const used = new Set(), cast = [];
-  [...REGULAR_ES(), ...PLAYABLE_AS()].forEach((t) => {
+  // Temporadas normales, All Stars y el All Stars a tu gusto
+  [...REGULAR_ES(), ...PLAYABLE_AS(), { id: "escustom" }].forEach((t) => {
     const c = storyCrown(t.id);
     if (!c) return;
     // Si la ganadora ya está (p. ej. ganó también una temporada normal), entra su runner-up

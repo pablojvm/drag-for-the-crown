@@ -411,6 +411,8 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
   // ------------------------------ Lip sync (energía) ------------------------------
   // Cada truco tira de algo distinto: la revelación del look (Estilo), la caída (Performance, difícil) y el split (Performance, más seguro)
   const EMOTES = [["revelacion", "🎁 Revelación", "estilo", 52, 66], ["caida", "💥 La caída (death drop)", "performance", 56, 76], ["split", "🤸 Split", "performance", 46, 60]];
+  // Repetir el mismo movimiento dos veces seguidas aburre al público (antes bastaba con repetir "Uso del espacio" para ganar siempre)
+  const REPITE = 0.55;
   function runLipsync(el, rival, done, songPick, bonus = 0) {
     const ra = attrsOf(rival);
     const song = songPick || null;
@@ -426,6 +428,7 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
           ...EMOTES.map(([k, t, at, dif, top]) => ({
             t: `${t}`, d: `Energía −45 · ${ATTR_NAMES[at]}${clim ? " · ¡Momento perfecto!" : " · Mejor en el clímax"}`, tag: "Emote",
             go: (s) => {
+              s.lastTag = "Emote";
               if (s.energy < 45) { s.energy = Math.max(0, s.energy - 10); s.mine += 4; return { pts: 20, msg: "Sin fuelle: el truco se queda a medias." }; }
               s.energy -= 45;
               const c = check([at], clim ? dif : dif + 8);
@@ -434,8 +437,8 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
               return { pts: c.ok ? (clim ? 100 : 70) : 20, msg: `${c.txt}<br>${c.ok ? (clim ? "¡El público se levanta!" : "Impresiona... aunque era pronto.") : "¡Uf! Se te va el truco."}` };
             },
           })),
-          { t: "💗 Conexión emocional", d: `Energía −10 · Carisma ${A("carisma")}`, tag: "Cara", go: (s) => { if (s.energy < 10) { s.mine += 2; return { pts: 20, msg: "Estás agotada: ni la cara te responde." }; } s.energy -= 10; const imp = 8 + A("carisma") * 1.6; s.mine += imp; return { pts: 55 + A("carisma") * 4, msg: "Cada palabra la sientes. Se te ve en los ojos." }; } },
-          { t: "🌀 Uso del espacio", d: `Energía −15 · Performance ${A("performance")}`, tag: "Escenario", go: (s) => { if (s.energy < 15) { s.mine += 2; return { pts: 20, msg: "Sin energía para moverte." }; } s.energy -= 15; const imp = 12 + A("performance") * 2; s.mine += imp; return { pts: 55 + A("performance") * 4, msg: "Te comes el escenario de punta a punta." }; } },
+          { t: "💗 Conexión emocional", d: `Energía −10 · Carisma ${A("carisma")}${st.lastTag === "Cara" ? " · ⚠️ ya lo has hecho" : ""}`, tag: "Cara", go: (s) => { const rep = s.lastTag === "Cara"; s.lastTag = "Cara"; if (s.energy < 10) { s.mine += 2; return { pts: 20, msg: "Estás agotada: ni la cara te responde." }; } s.energy -= 10; const imp = (8 + A("carisma") * 1.6) * (rep ? REPITE : 1); s.mine += imp; return { pts: rep ? 35 : 55 + A("carisma") * 4, msg: rep ? "Otra vez la misma cara... el público ya lo ha visto." : "Cada palabra la sientes. Se te ve en los ojos." }; } },
+          { t: "🌀 Uso del espacio", d: `Energía −15 · Performance ${A("performance")}${st.lastTag === "Escenario" ? " · ⚠️ ya lo has hecho" : ""}`, tag: "Escenario", go: (s) => { const rep = s.lastTag === "Escenario"; s.lastTag = "Escenario"; if (s.energy < 15) { s.mine += 2; return { pts: 20, msg: "Sin energía para moverte." }; } s.energy -= 15; const imp = (12 + A("performance") * 2) * (rep ? REPITE : 1); s.mine += imp; return { pts: rep ? 35 : 55 + A("performance") * 4, msg: rep ? "Otra vuelta por el escenario... el público se empieza a aburrir." : "Te comes el escenario de punta a punta." }; } },
         ];
         // Solo un emote al azar por turno para que haya que pensar
         const em = pick1(opts.slice(0, 3));
