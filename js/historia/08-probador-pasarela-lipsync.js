@@ -412,12 +412,14 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
   // Cada truco tira de algo distinto: la revelación del look (Estilo), la caída (Performance, difícil) y el split (Performance, más seguro)
   const EMOTES = [["revelacion", "🎁 Revelación", "estilo", 52, 66], ["caida", "💥 La caída (death drop)", "performance", 56, 76], ["split", "🤸 Split", "performance", 46, 60]];
   // Repetir el mismo movimiento dos veces seguidas aburre al público (antes bastaba con repetir "Uso del espacio" para ganar siempre)
-  const REPITE = 0.55;
+  const REPITE = 0.65;
   function runLipsync(el, rival, done, songPick, bonus = 0) {
     const ra = attrsOf(rival);
     const song = songPick || null;
     // Escala pensada para que, con atributos iguales, la jugadora gane algo más de la mitad de las veces
-    let rival_ = clamp(40 + (ra.performance + ra.carisma) * 6.5 + clamp(S.form[rival.id] || 0, -6, 6) * 2 + seasonBoost() * 1.5 + rnd(-12, 12), 45, 175);
+    // Calibrado con simulación: con atributos parecidos, jugando bien (alternando y guardando un truco para el clímax) ganas ~3 de cada 4;
+    // repitiendo siempre lo mismo o al azar, casi nunca. La racha de la rival y la dificultad de la temporada pesan, pero menos que antes
+    let rival_ = clamp(35 + (ra.performance + ra.carisma) * 6.5 + clamp(S.form[rival.id] || 0, -6, 6) + seasonBoost() * 0.5 + rnd(-12, 12), 45, 175);
     const PH = ["Inicio", "Puente", "Clímax"];
     let cfgTop = null;
     const steps = [];
@@ -444,7 +446,7 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
         const em = pick1(opts.slice(0, 3));
         return {
           q: `🎵 ${ph} de la canción · ${j + 1}/2`,
-          sub: `${song ? `Canción: <b>${esc(song)}</b> · ` : ""}${rivalMove(rival, pi, j)}`,
+          sub: `${song ? `Canción: <b>${esc(song)}</b> · ` : ""}${rivalMove(rival, pi, j)}${pi === 0 && j === 0 ? "<br><small>💡 Alterna movimientos (repetir aburre al público) y guarda 45 de energía para un truco en el clímax.</small>" : ""}`,
           opts: [em, opts[3], opts[4]],
         };
       }));
