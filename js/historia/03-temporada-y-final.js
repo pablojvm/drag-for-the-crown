@@ -270,7 +270,7 @@
       const n = S.ep === winnersWeeks() ? 3 : 1;
       S.stars[x] = (S.stars[x] || 0) + n;
       logEv(`${nameOfKey(x)} gana ${n === 1 ? "una estrella" : `${n} estrellas`}`);
-      if (x === "me") { S.wins++; Toast.show(n === 1 ? "⭐ ¡Una estrella para ti!" : `🌟 ¡${n} estrellas para ti!`, "Las 4 con más estrellas se juegan la corona"); }
+      if (x === "me") { Toast.show(n === 1 ? "⭐ ¡Una estrella para ti!" : `🌟 ¡${n} estrellas para ti!`, "Las 4 con más estrellas se juegan la corona"); }
     });
     const byName = blocked ? nameOfKey(S.block.by) : "";
     // No se puede bloquear dos veces seguidas a la misma reina
