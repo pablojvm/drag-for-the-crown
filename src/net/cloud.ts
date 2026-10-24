@@ -7,8 +7,18 @@ const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || "https:
 const ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || "sb_publishable_VadA8dMEtciBROMEjPGZwQ_MfB8Qtzn";
 
 // Claves de localStorage que viajan a la nube (todo el progreso salvo las claves de IA locales)
-const SKIP = new Set(["dftc-claves", "dftc-sync-at", "dftc-sync-local"]);
+const SKIP = new Set(["dftc-claves", "dftc-sync-at", "dftc-sync-local", "dftc-sync-user"]);
 const syncKeys = () => Object.keys(localStorage).filter((k) => k.startsWith("dftc-") && !SKIP.has(k) && (localStorage.getItem(k) || "").length < 400_000);
+
+// Cuánto progreso hay en un conjunto de datos (para no pisar una partida grande con una vacía al cambiar de cuenta)
+const progressOf = (get: (k: string) => string | null) => {
+  const arr = (k: string) => { try { const v = JSON.parse(get(k) || "[]"); return Array.isArray(v) ? v.length : 0; } catch { return 0; } };
+  const num = (k: string) => { const n = Number(get(k)); return Number.isFinite(n) ? n : 0; };
+  return arr("dftc-story-wins") * 1000 + arr("dftc-story-board") * 20 + (get("dftc-story-save") && get("dftc-story-save") !== "null" ? 5 : 0) + Math.min(num("dftc-sequins"), 9999) / 10000;
+};
+
+// La URL con la que se abrió la página (antes de que Supabase la limpie): trae los errores de vuelta de Google
+const URL_AT_LOAD = typeof location !== "undefined" ? location.hash + location.search : "";
 
 export interface TopEntry { name: string; queen: string; season: string; ppe: number; winsT: number; won: boolean; place: string | null; date: string; score: number; id: string }
 
@@ -41,6 +51,12 @@ class Cloud {
         this.session = r.data.session;
       }
       this.sb.auth.onAuthStateChange((_e, s) => { this.session = s; });
+      // Si al enlazar Google resulta que esa cuenta ya existía (la creaste en otro dispositivo), se entra en ella
+      if (/identity_already_exists/.test(URL_AT_LOAD)) {
+        history.replaceState(null, "", location.pathname);
+        await this.sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.href.split("#")[0] } });
+        return;
+      }
       try {
         const st = await fetch(`${URL}/auth/v1/settings`, { headers: { apikey: ANON! } }).then((r) => r.json());
         this.googleOn = !!st?.external?.google;
@@ -85,14 +101,29 @@ class Cloud {
     const { data } = await this.sb.from("saves").select("data, updated_at").eq("user_id", this.session.user.id).maybeSingle();
     const localAt = Number(localStorage.getItem("dftc-sync-local") || 0);
     const syncedAt = Date.parse(localStorage.getItem("dftc-sync-at") || "") || 0;
+    const uid = this.session.user.id;
+    const lastUser = localStorage.getItem("dftc-sync-user");
+    localStorage.setItem("dftc-sync-user", uid);
     if (!data) { if (syncKeys().length) this.push(); return; }
     const remoteAt = Date.parse(data.updated_at);
-    if (remoteAt > syncedAt && remoteAt > localAt) {
-      Object.entries(data.data as Record<string, string>).forEach(([k, v]) => localStorage.setItem(k, v));
-      localStorage.setItem("dftc-sync-at", data.updated_at);
-      localStorage.setItem("dftc-sync-local", String(remoteAt));
-      if (!sessionStorage.getItem("dftc-pulled")) { sessionStorage.setItem("dftc-pulled", "1"); location.reload(); }
-    } else if (localAt > remoteAt) this.push();
+    // Cambio de cuenta (p. ej. entras con Google en un dispositivo que ya tenía partida): gana la que tenga más progreso
+    if (lastUser && lastUser !== uid) {
+      const remote = data.data as Record<string, string>;
+      const mine = progressOf((k) => localStorage.getItem(k));
+      const theirs = progressOf((k) => (k in remote ? remote[k] : null));
+      if (mine > theirs) { await this.push(); return; }
+      // La cuenta tiene más: se trae entera aunque este dispositivo haya tocado algo hace poco
+      return this.apply(data.data as Record<string, string>, data.updated_at);
+    }
+    if (remoteAt > syncedAt && remoteAt > localAt) this.apply(data.data as Record<string, string>, data.updated_at);
+    else if (localAt > remoteAt) this.push();
+  }
+  /** Copia en este navegador la partida de la nube y recarga una vez. */
+  private apply(remote: Record<string, string>, at: string) {
+    Object.entries(remote).forEach(([k, v]) => localStorage.setItem(k, v));
+    localStorage.setItem("dftc-sync-at", at);
+    localStorage.setItem("dftc-sync-local", String(Date.parse(at)));
+    if (!sessionStorage.getItem("dftc-pulled")) { sessionStorage.setItem("dftc-pulled", "1"); location.reload(); }
   }
 
   // ---------- Cuenta ----------
@@ -100,7 +131,9 @@ class Cloud {
   async google() {
     if (!this.sb || !this.googleOn) return;
     const redirectTo = location.href.split("#")[0];
-    if (this.session && this.isGuest) {
+    // Invitada con progreso: se enlaza Google a esta partida. Invitada sin progreso (p. ej. un móvil nuevo): se entra directamente en la cuenta
+    const hasProgress = progressOf((k) => localStorage.getItem(k)) >= 1000;
+    if (this.session && this.isGuest && hasProgress) {
       const { error } = await this.sb.auth.linkIdentity({ provider: "google", options: { redirectTo } });
       if (!error) return;
     }
