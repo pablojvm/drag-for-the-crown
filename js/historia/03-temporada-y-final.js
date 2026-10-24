@@ -267,6 +267,8 @@
       logEv(`${decName} gana una estrella`);
     } else logEv(`${decName} gana el lip sync, pero estaba bloqueada: se queda sin estrella`);
     const byName = blocked ? nameOfKey(S.block.by) : "";
+    // No se puede bloquear dos veces seguidas a la misma reina
+    const prevBlocked = S.block && S.block.ep === S.ep ? S.block.id : null;
     S.block = null;
     header();
     const starsMap = () => new Map([S.queen, ...S.rivals].map((q) => [q, (S.stars || {})[keyOf(q)] || 0]));
@@ -287,14 +289,14 @@
         </div>`;
       endEpisodeBtn();
     };
-    const others = [S.queen, ...S.rivals].filter((q) => keyOf(q) !== k);
+    const others = [S.queen, ...S.rivals].filter((q) => keyOf(q) !== k && keyOf(q) !== prevBlocked);
     if (dec.me) {
       body().innerHTML = `
         <div class="story-card">
           <p class="eyebrow">⭐ All Winners</p>
           <h3>${blocked ? "Ganas el lip sync... pero estabas bloqueada" : "¡Te llevas la estrella!"}</h3>
           ${blocked ? `<p class="twist-note">🚫 ${esc(byName)} te bloqueó la semana pasada: esta vez no hay estrella. Pero el bloqueo sí es tuyo.</p>` : ""}
-          <p>Ahora te toca <b>bloquear a una compañera</b>: la semana que viene no podrá ganar estrella.</p>
+          <p>Ahora te toca <b>bloquear a una compañera</b>: la semana que viene no podrá ganar estrella.${prevBlocked ? ` ${esc(nameOfKey(prevBlocked))} ya estaba bloqueada esta semana: no se puede repetir.` : ""}</p>
           <div class="hub-grid">${others.map((q, i) => `<button class="hub-q" style="--i:${i}" data-b="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>⭐ ${(S.stars || {})[keyOf(q)] || 0}</small></button>`).join("")}</div>
           ${table()}
         </div>`;
