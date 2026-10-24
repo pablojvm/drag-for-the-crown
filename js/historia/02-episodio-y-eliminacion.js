@@ -388,6 +388,7 @@
     const finishGroups = (groups, mine) => {
       const order = groups.slice();
       S.cGroups = order.map((g) => g.map(keyOf));
+      S.cSize = size;
       S.team = mine.filter((q) => q !== S.queen);
       logEv(`Reto por ${size === 2 ? "parejas" : "grupos"}: ${S.queen.name} va con ${S.team.map((q) => q.name).join(" y ")}`);
       body().innerHTML = `
@@ -630,7 +631,8 @@
     const blockTone = (b) => (b.gi === 0 ? "top" : b.gi === blocks.length - 1 ? "low" : "mid");
     const n = rows.length;
     // Con 6 reinas o menos ya no hay salvadas: todas reciben valoración
-    const allCrit = n <= 6;
+    // En All Winners solo reciben críticas las de arriba (nunca todas)
+    const allCrit = n <= 6 && twistOf() !== "winners";
     const winner = rows[0];
     const tw = twistOf();
     // T6: bottom de tres (luego decide la moneda)
@@ -718,8 +720,14 @@
         else lab = "SAFE";
         if (tw === "winners") {
           if (lab === "LOW" || /^BTM/.test(lab)) lab = "SAFE";
-          // Las dos siguientes al top 2 reciben críticas especialmente buenas
-          if (lab === "SAFE" && k >= 2 && k <= 3 && n >= 6) lab = "HIGH";
+          // Reto en grupo: arriba solo el grupo ganador (sus dos mejores, top 2; el resto, HIGH); las demás, salvadas
+          // Por parejas (y algún trío): la segunda pareja también queda en HIGH
+          if (blocks) {
+            const pairs = blocks.length > 1 && groupOf && S.cSize === 2;
+            lab = /TOP2|BTOP/.test(lab) ? lab : blocks[0].rows.includes(r) || (pairs && blocks[1].rows.includes(r)) ? "HIGH" : "SAFE";
+          }
+          // Reto individual: las dos siguientes al top 2 reciben críticas especialmente buenas
+          if (!blocks && lab === "SAFE" && k >= 2 && k <= 3 && n >= 6) lab = "HIGH";
           // La bloqueada puede quedar en el top, pero sin estrella (en rojo en el track record)
           if (lab === "TOP2" && S.block && S.block.ep === S.ep && S.block.id === keyOf(r.q)) lab = "BTOP";
         }
