@@ -1389,7 +1389,6 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           <p class="eyebrow">💄 Lip sync por el poder</p>
           <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
           <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
-          <p>${twistOf() === "winners" ? "Las dos os lleváis una estrella ⭐ (si no estáis bloqueadas). La que gane, además, bloquea a una compañera para la semana que viene. Las 4 con más estrellas se juegan la corona." : "La que gane decide quién de las dos del bottom se va a casa."}</p>
           <button class="btn btn-primary" id="story-ls">¡A la pasarela!</button>
         </div>`;
       Music.play("tension");
@@ -1621,10 +1620,6 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
         <p class="eyebrow">${forCrown ? "Lip sync por la corona" : onWin ? "Lip sync de la Segunda Oportunidrag" : "Lip sync for your life"}</p>
         <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
         <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
-        <p>${forCrown ? "Una ronda, una corona." : onWin ? "Si ganas, vuelves a la competición." : "Gana el duelo de tacones o te vas a casa."}</p>
-        ${isNem(rival) ? `<p class="twist-note">⚔️ Contra tu némesis. Llevabais toda la temporada esperando esto.</p>` : ""}
-        ${Nem.knows(rival.id, "deb") && traitsOf(rival).deb === "lsFlojo" ? `<p class="gold">🎯 Sabes que su lip sync es flojo: empiezas con ventaja.</p>` : ""}
-        ${Nem.knows(rival.id, "fort") && traitsOf(rival).fort === "lipsync" ? `<p class="twist-note">🔥 Es una bestia del lip sync, pero ibas preparada.</p>` : ""}
         <button class="btn btn-primary" id="story-ls">¡A la pasarela!</button>
       </div>`;
     Music.play("tension");

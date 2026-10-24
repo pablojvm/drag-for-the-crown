@@ -210,7 +210,6 @@
         <p class="eyebrow">${o.eyebrow}</p>
         <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
         <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
-        <p>${o.text}</p>
         <button class="btn btn-primary" id="story-ls">¡A la pasarela!</button>
       </div>`;
     Music.play("tension");

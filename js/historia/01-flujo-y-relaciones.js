@@ -137,7 +137,12 @@
           <p class="eyebrow">${esc(se.franchise.name)} · ${esc(se.name)}</p>
           <h3>${esc(q.name)}</h3>
           <p>Vas por el episodio ${d.phase && d.phase.ep === d.ep ? `${d.ep} (${d.phase.stage === "mini" ? "después del minirreto" : d.phase.stage === "runway" ? "antes de la pasarela" : "en los resultados"})` : d.ep + 1}. Quedan ${d.rivals.length + (d.meOut ? 0 : 1)} reinas en la competición.</p>
-          ${(() => { const w = Object.values((d.track || {}).me || {}).filter((l) => l === "WIN" || l === "BWIN").length; return `<p class="muted">${w ? `${w} ${w === 1 ? "reto ganado" : "retos ganados"}` : "Aún sin victorias"}</p>`; })()}
+          ${(() => {
+            // All Winners: lo que cuenta son las estrellas
+            if (se.special === "winners" || (seasonById(d.season) || {}).special === "winners") { const st = (d.stars || {}).me || 0; return `<p class="muted">${st ? `⭐ ${st} ${st === 1 ? "estrella" : "estrellas"}` : "Aún sin estrellas"}</p>`; }
+            const w = Object.values((d.track || {}).me || {}).filter((l) => l === "WIN" || l === "BWIN").length;
+            return `<p class="muted">${w ? `${w} ${w === 1 ? "reto ganado" : "retos ganados"}` : "Aún sin victorias"}</p>`;
+          })()}
           <div class="row">
             <button class="btn btn-ghost" id="story-new">Nueva historia</button>
             <button class="btn btn-primary" id="story-continue">Continuar</button>
