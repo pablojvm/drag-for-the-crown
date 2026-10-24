@@ -638,6 +638,8 @@
     // Segunda Oportunidrag: bottom de tres y lip sync a tres bandas
     if (S.curTipo === "repescaStand" && repescaNow() && n >= 5) nb = 3;
     if (groupOf) { const lastSize = rows.filter((r) => groupOf.get(r) === nGroups - 1).length; nb = Math.max(1, Math.min(nb, lastSize)); }
+    // All Winners: no hay bottom ni críticas negativas (solo top 2, altas y salvadas)
+    if (tw === "winners") nb = 0;
     let bottomRows = rows.slice(n - nb);
     const notes = [];
     // El reto anterior a la Segunda Oportunidrag da inmunidad para esa semana
@@ -714,6 +716,13 @@
         else if (k <= (n <= 7 ? 1 : 2)) lab = "HIGH";
         else if (k >= n - nb - 1) lab = "LOW";
         else lab = "SAFE";
+        if (tw === "winners") {
+          if (lab === "LOW" || /^BTM/.test(lab)) lab = "SAFE";
+          // Las dos siguientes al top 2 reciben críticas especialmente buenas
+          if (lab === "SAFE" && k >= 2 && k <= 3 && n >= 6) lab = "HIGH";
+          // La bloqueada puede quedar en el top, pero sin estrella (en rojo en el track record)
+          if (lab === "TOP2" && S.block && S.block.ep === S.ep && S.block.id === keyOf(r.q)) lab = "BTOP";
+        }
         labs.set(r, lab);
       });
       const labOf = labs;
@@ -729,7 +738,7 @@
       const safeTxt = `<p>${safe.length ? `${safe.map(nm).join(", ")}: <b>estáis salvadas</b>. Podéis volver al backstage.` : allCrit ? `Quedáis ${n}: a partir de ahora <b>todas recibís valoración</b>.` : "Esta semana no se salva nadie de antemano."}</p>${safe.length ? faces(safe, "safe") : ""}`;
       const judgedTxt = allCrit
         ? `<p>${judged.map(nm).join(", ")}: esta semana <b>todas recibís la valoración del jurado</b>.</p>${faces(judged)}`
-        : `<p>${judged.map(nm).join(", ")}... <b>sois las mejores y las peores del programa de hoy</b>.</p>${faces(judged)}`;
+        : tw === "winners" ? `<p>${judged.map(nm).join(", ")}: <b>esta semana recibís las críticas del jurado</b>.</p>${faces(judged)}` : `<p>${judged.map(nm).join(", ")}... <b>sois las mejores y las peores del programa de hoy</b>.</p>${faces(judged)}`;
       header();
       Music.play("tension");
       body().innerHTML = `
@@ -746,14 +755,14 @@
       const RIVAL_LOW = ["{n}, hoy no te he reconocido.", "{n}, te ha faltado de todo esta semana.", "{n}, esperaba muchísimo más de ti."];
       const othersCrit = () => {
         const others = shuffle(judged.filter((r) => !r.me)).slice(0, 3);
-        return others.map((r) => [pick1(["judge", "host", "ambrossi", "calvo"]), pick1(["WIN", "HIGH", "TOP2"].includes(labOf.get(r)) ? RIVAL_TOP : RIVAL_LOW).replace("{n}", r.q.name)]);
+        return others.map((r) => [pick1(["judge", "host", "ambrossi", "calvo"]), pick1(["WIN", "HIGH", "TOP2", "BTOP"].includes(labOf.get(r)) ? RIVAL_TOP : RIVAL_LOW).replace("{n}", r.q.name)]);
       };
       // Cada reina que recibe valoración escucha su crítica: del reto y de la pasarela (sin notas ni posiciones)
       const rivalCrit = async () => {
         const others = shuffle(judged.filter((r) => !r.me));
         if (!others.length) return [];
-        const lvl = (r) => { const l = labOf.get(r); return l === "WIN" || l === "TOP2" ? "muy buena" : l === "HIGH" ? "buena" : /^BTM/.test(l) ? "muy floja" : l === "LOW" ? "floja" : "correcta"; };
-        const nivel = (r) => { const l = labOf.get(r); return ["WIN", "TOP2", "HIGH"].includes(l) ? "top" : /^BTM|LOW/.test(l) ? "low" : "mid"; };
+        const lvl = (r) => { const l = labOf.get(r); return l === "WIN" || l === "TOP2" || l === "BTOP" ? "muy buena" : l === "HIGH" ? "buena" : /^BTM/.test(l) ? "muy floja" : l === "LOW" ? "floja" : "correcta"; };
+        const nivel = (r) => { const l = labOf.get(r); return ["WIN", "TOP2", "BTOP", "HIGH"].includes(l) ? "top" : /^BTM|LOW/.test(l) ? "low" : "mid"; };
         const runwayCat = (RETOS[S.curTipo] || {}).noRunway ? null : S.lastLook && S.lastLook.cat;
         let ai = null;
         if (IA.ready()) {
@@ -802,7 +811,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           const lab = labOf.get(meRow) || "";
           // En grupo, tu crítica habla de lo que has hecho tú; el resultado lo pesa también el grupo
           let tier = /WIN|TOP2|HIGH/.test(lab) ? "top" : /BTM|LOW/.test(lab) ? "low" : "mid";
-          let label = lab === "WIN" || lab === "TOP2" ? "muy buena" : lab === "HIGH" ? "buena" : /^BTM/.test(lab) ? "muy mala" : lab === "LOW" ? "floja" : "correcta";
+          let label = lab === "WIN" || lab === "TOP2" || lab === "BTOP" ? "muy buena" : lab === "HIGH" ? "buena" : /^BTM/.test(lab) ? "muy mala" : lab === "LOW" ? "floja" : "correcta";
           const extra = [];
           if (blocks) {
             const mine = blocks.find((b) => b.rows.includes(meRow));
@@ -824,7 +833,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         applyMarks();
         setSet("panel");
         const byLab = (f) => rows.filter((r) => f(labOf.get(r)));
-        const wins = byLab((l) => l === "WIN" || l === "TOP2");
+        const wins = byLab((l) => l === "WIN" || l === "TOP2" || l === "BTOP");
         const highs = byLab((l) => l === "HIGH");
         const lows = byLab((l) => l === "LOW");
         const safesC = allCrit ? byLab((l) => l === "SAFE") : [];
@@ -834,7 +843,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         body().innerHTML = `
           <div class="story-card call">
             <p class="eyebrow">Las decisiones del jurado</p>
-            <h3>${myLab === "TOP2" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? "¡Has ganado el reto! 👑" : /^BTM/.test(myLab) ? (tw === "winners" ? "Semana floja... pero sigues" : "Vas al lip sync...") : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
+            <h3>${myLab === "TOP2" || myLab === "BTOP" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? "¡Has ganado el reto! 👑" : /^BTM/.test(myLab) ? (tw === "winners" ? "Semana floja... pero sigues" : "Vas al lip sync...") : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
             <div class="verdict">
               ${blocks ? `<div class="v-row win" style="--i:0"><b>🏆 ${blocks[0].name ? `Gana el ${esc(blocks[0].name)}` : "Grupo ganador"}</b>${faces(blocks[0].rows)}</div>` : teamLine}
               <div class="v-row win" style="--i:0"><b>${tw === "winners" ? "⭐ Top 2: os jugáis una estrella" : tw === "allstars" ? "💄 Top 2: os jugáis el poder" : n === 5 ? "👑 Ganadora del reto y 🎟️ pase directo a la gran final" : "👑 Felicidrages, ganadora del reto"}</b>${faces(wins)}</div>
@@ -842,7 +851,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
               ${safesC.length ? `<div class="v-row high" style="--i:1"><b>🙂 Estáis a salvo</b>${faces(safesC)}</div>` : ""}
               ${lows.length ? `<div class="v-row low" style="--i:2"><b>😬 A salvo... por los pelos</b>${faces(lows)}</div>` : ""}
               ${immuneNote ? `<p class="twist-note">${immuneNote}</p>` : ""}
-              <div class="v-row btm" style="--i:3"><b>${tw === "winners" ? "😬 Las más flojas de la semana (aquí nadie se va)" : `💔 Lo siento: sois el bottom ${btms.length}`}</b>${faces(btms)}</div>
+              ${btms.length ? `<div class="v-row btm" style="--i:3"><b>💔 Lo siento: sois el bottom ${btms.length}</b>${faces(btms)}</div>` : ""}
             </div>
             <button class="btn btn-primary" id="story-next">Continuar</button>
           </div>`;
@@ -1321,7 +1330,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     const meBottom = bottomRows.some((r) => r.me);
     const others = bottomRows.filter((r) => !r.me).map((r) => r.q);
     if (twistOf() === "allstars") return topLipSync(top2, (dec) => allStarsDecision(dec, bottomRows));
-    if (twistOf() === "winners") return topLipSync(top2, (dec) => winnersStar(dec));
+    if (twistOf() === "winners") return topLipSync(top2, (dec) => winnersStar(dec, top2));
     // Segunda Oportunidrag: con siete reinas se van dos de golpe... y vuelve una por sorpresa
     if (repescaNow()) return tripleLipSync(bottomRows, winner, rows);
     if (meBottom) return lipSync(others[0], false);
@@ -1360,6 +1369,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
   }
 
   // All Stars: las dos del top hacen lip sync; la ganadora elige a quién mandar a casa
+  const winLab = (q) => (twistOf() === "winners" && S.block && S.block.ep === S.ep && S.block.id === keyOf(q) ? "BWIN" : "WIN");
   function topLipSync(top2, then) {
     flowGo("lipsync");
     const [a, b] = top2;
@@ -1371,7 +1381,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           <p class="eyebrow">💄 Lip sync por el poder</p>
           <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
           <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
-          <p>${twistOf() === "winners" ? "La que gane se lleva una estrella ⭐ (si no está bloqueada) y bloquea a una compañera para la semana que viene. Las estrellas dan ventaja en la gran final." : "La que gane decide quién de las dos del bottom se va a casa."}</p>
+          <p>${twistOf() === "winners" ? "Las dos os lleváis una estrella ⭐ (si no estáis bloqueadas). La que gane, además, bloquea a una compañera para la semana que viene. Las 4 con más estrellas se juegan la corona." : "La que gane decide quién de las dos del bottom se va a casa."}</p>
           <button class="btn btn-primary" id="story-ls">¡A la pasarela!</button>
         </div>`;
       Music.play("tension");
@@ -1387,7 +1397,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
               S.points += 1000;
               if (S.lipsyncs >= 3) Achievements.unlock("superviviente");
               Toast.show("💄 ¡Has ganado el lip sync!", "Tienes el poder de decidir");
-              mark(S.queen, "WIN");
+              mark(S.queen, winLab(S.queen));
               meWonReto();
               if (S.rivals.length + 1 === 5 && twistOf() !== "winners") S.flags.pase = "me";
               S.wins++;
@@ -1395,7 +1405,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
               return then({ q: S.queen, me: true });
             }
             Toast.show(`💄 ${rival.name} gana el lip sync`, "Ella decide");
-            mark(rival, "WIN");
+            mark(rival, winLab(rival));
             if (S.rivals.length + 1 === 5 && twistOf() !== "winners") S.flags.pase = rival.id;
             then({ q: rival });
           });
@@ -1412,10 +1422,10 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         <h3>${esc(w.name)} vs ${esc(l.name)}</h3>
         <p class="muted">${esc(fill(pickFresh(HISTORIA.lipsyncOtras), { a: w.name, b: l.name }))}</p>
         <div class="vs"><img src="${photo(w)}"><span>👑</span><img src="${photo(l)}"></div>
-        <p><b>${esc(w.name)}</b> ${twistOf() === "winners" ? "gana el lip sync: estrella ⭐ (si no está bloqueada) y bloqueo para otra." : "gana y tiene el pintalabios: decide quién se va."}</p>
+        <p><b>${esc(w.name)}</b> ${twistOf() === "winners" ? "gana el lip sync y el bloqueo. Las dos se llevan estrella ⭐ (si no están bloqueadas)." : "gana y tiene el pintalabios: decide quién se va."}</p>
         <button class="btn btn-primary" id="story-next">Continuar</button>
       </div>`;
-    mark(w, "WIN");
+    mark(w, winLab(w));
     $("#story-next").addEventListener("click", () => then({ q: w }));
   }
 

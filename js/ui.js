@@ -413,27 +413,35 @@ const UI = (() => {
   function renderReigns() {
     const R = store.get("dftc-reinantes", {});
     const fmtD = (d) => new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
-    $("#reign-grid").innerHTML = allSeasons()
-      .filter((s) => s.cast && s.cast.length && !s.special)
-      .map((s, i) => {
-        const r = R[s.id];
-        const orig = s.enEmision ? null : queenById(s.winner);
-        const q = r ? queenById(r.queen) : orig;
-        const player = r && queenById(r.player);
-        const sub = r
-          ? r.mine ? "Coronada en tu partida" : `Ganó en tu partida${player ? ` con ${esc(player.name)}` : ""}`
-          : orig ? "Ganadora original" : "En emisión · aún sin reina";
-        return `<div class="reign ${r ? (r.mine ? "mine" : "played") : ""}" style="--i:${i}">
+    // Arriba la Reina de reinas (All Winners), luego los All Stars y después las temporadas normales
+    const card = (s, i, cls = "") => {
+      const r = R[s.id];
+      const orig = s.enEmision || s.special ? null : queenById(s.winner);
+      const q = r ? queenById(r.queen) : orig;
+      const player = r && queenById(r.player);
+      const sub = r
+        ? r.mine ? "Coronada en tu partida" : `Ganó en tu partida${player ? ` con ${esc(player.name)}` : ""}`
+        : orig ? "Ganadora original" : s.special ? "Aún sin coronar" : "En emisión · aún sin reina";
+      return `<div class="reign ${cls} ${r ? (r.mine ? "mine" : "played") : ""}" style="--i:${i}">
           <span class="tag-mini" style="background:${s.franchise.color}">${s.franchise.tag}</span>
           <i class="reign-pic" style="background-image:url('${q ? lookOf(q, s.id).portrait : PORTADAS[s.id] || ""}')"></i>
-          <span class="reign-crown">👑</span>
+          <span class="reign-crown">${cls === "qoq" ? "👑👑" : "👑"}</span>
           <strong>${esc(q ? q.name : "¿?")}</strong>
-          <small class="reign-season">${esc(s.name)} · ${s.year}</small>
+          <small class="reign-season">${esc(s.name)}${s.year && !s.special ? ` · ${s.year}` : ""}</small>
           <small class="reign-sub">${sub}${r && r.reigns > 1 ? ` · ${r.reigns} coronas seguidas` : ""}</small>
           ${r ? `<small class="muted">${fmtD(r.date)}${orig && orig.id !== r.queen ? ` · Original: ${esc(orig.name)}` : ""}</small>` : ""}
         </div>`;
-      })
-      .join("");
+    };
+    const SS = allSeasons().filter((s) => s.cast && (s.cast.length || s.special));
+    const frOf = (s) => (s.franchise && s.franchise.id) || s.franchise;
+    const aw = SS.find((s) => s.special === "winners");
+    const as = SS.filter((s) => frOf(s) === "esas" && s.special !== "winners");
+    const reg = SS.filter((s) => frOf(s) !== "esas");
+    let i = 0;
+    $("#reign-grid").innerHTML =
+      (aw ? `<h4 class="reign-h">👑 Reina de reinas</h4>${card(aw, i++, "qoq")}` : "") +
+      (as.length ? `<h4 class="reign-h">⭐ All Stars</h4>${as.map((s) => card(s, i++)).join("")}` : "") +
+      (reg.length ? `<h4 class="reign-h">💄 Temporadas</h4>${reg.map((s) => card(s, i++)).join("")}` : "");
   }
   // Track record de una partida guardada en el ranking
   function openEntryTrack(e) {

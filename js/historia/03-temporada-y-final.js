@@ -256,16 +256,22 @@
   // Cada semana el top 2 hace lip sync por una estrella. La final es una eliminatoria de lip syncs entre todas
   function winnersWeeks() { return clamp(S.rivals.length + S.out.length + (S.meOut ? 0 : 1) - 1, 4, 8); }
   // La ganadora del lip sync se lleva una estrella y bloquea a una compañera: la semana que viene no podrá ganar estrella
-  function winnersStar(dec) {
+  // Como en el All Stars 7: las dos del top ganan estrella (salvo la bloqueada) y la del lip sync, además, bloquea
+  function winnersStar(dec, top2) {
     S.stars = S.stars || {};
     const k = dec.me ? "me" : dec.q.id;
     const decName = dec.me ? S.queen.name : dec.q.name;
-    const blocked = S.block && S.block.ep === S.ep && S.block.id === k;
-    if (!blocked) {
-      S.stars[k] = (S.stars[k] || 0) + 1;
-      if (dec.me) { S.wins++; Toast.show("⭐ ¡Una estrella para ti!", "Te dará ventaja en la gran final"); }
-      logEv(`${decName} gana una estrella`);
-    } else logEv(`${decName} gana el lip sync, pero estaba bloqueada: se queda sin estrella`);
+    const blockedKey = S.block && S.block.ep === S.ep ? S.block.id : null;
+    const blocked = blockedKey === k;
+    const keys = (top2 && top2.length ? top2.map((r) => (r.me ? "me" : r.q.id)) : [k]);
+    keys.forEach((x) => {
+      if (x === blockedKey) { logEv(`${nameOfKey(x)} estaba en el top, pero bloqueada: se queda sin estrella`); return; }
+      // Como el Talent Show del All Stars 7: la última semana antes de la final, el top 2 se lleva 3 estrellas
+      const n = S.ep === winnersWeeks() ? 3 : 1;
+      S.stars[x] = (S.stars[x] || 0) + n;
+      logEv(`${nameOfKey(x)} gana ${n === 1 ? "una estrella" : `${n} estrellas`}`);
+      if (x === "me") { S.wins++; Toast.show(n === 1 ? "⭐ ¡Una estrella para ti!" : `🌟 ¡${n} estrellas para ti!`, "Las 4 con más estrellas se juegan la corona"); }
+    });
     const byName = blocked ? nameOfKey(S.block.by) : "";
     // No se puede bloquear dos veces seguidas a la misma reina
     const prevBlocked = S.block && S.block.ep === S.ep ? S.block.id : null;
@@ -294,8 +300,8 @@
       body().innerHTML = `
         <div class="story-card">
           <p class="eyebrow">⭐ All Winners</p>
-          <h3>${blocked ? "Ganas el lip sync... pero estabas bloqueada" : "¡Te llevas la estrella!"}</h3>
-          ${blocked ? `<p class="twist-note">🚫 ${esc(byName)} te bloqueó la semana pasada: esta vez no hay estrella. Pero el bloqueo sí es tuyo.</p>` : ""}
+          <h3>${blocked ? "Ganas el lip sync... pero estabas bloqueada" : "¡Ganas el lip sync!"}</h3>
+          ${blocked ? `<p class="twist-note">🚫 ${esc(byName)} te bloqueó la semana pasada: esta vez no hay estrella. Pero el bloqueo sí es tuyo.</p>` : `<p class="muted">Las dos del top os lleváis estrella; tú, además, el bloqueo.</p>`}
           <p>Ahora te toca <b>bloquear a una compañera</b>: la semana que viene no podrá ganar estrella.${prevBlocked ? ` ${esc(nameOfKey(prevBlocked))} ya estaba bloqueada esta semana: no se puede repetir.` : ""}</p>
           <div class="hub-grid">${others.map((q, i) => `<button class="hub-q" style="--i:${i}" data-b="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>⭐ ${(S.stars || {})[keyOf(q)] || 0}</small></button>`).join("")}</div>
           ${table()}
@@ -310,106 +316,174 @@
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">⭐ All Winners</p>
-        <h3>${blocked ? `${esc(decName)} gana... pero estaba bloqueada` : `Estrella para ${esc(decName)}`}</h3>
+        <h3>${blocked ? `${esc(decName)} gana... pero estaba bloqueada` : `${esc(decName)} gana el lip sync`}</h3>
+        <p class="muted">Las dos del top se llevan estrella${blockedKey && keys.includes(blockedKey) ? " (menos la bloqueada)" : ""}.</p>
         ${blocked ? `<p class="twist-note">🚫 ${esc(byName)} la bloqueó la semana pasada: se queda sin estrella.</p>` : ""}
         <p>Ahora ${esc(decName)} tiene que bloquear a una compañera...</p>
         <button class="btn btn-primary" id="story-go">Ver a quién bloquea</button>
       </div>`;
     $("#story-go").addEventListener("click", () => done(target));
   }
+  // Gran final de All Winners, como en el All Stars 7 real:
+  // - Las 4 con más estrellas van a la final por la corona (si hay empate en el corte, decide la que más estrellas tiene).
+  // - Las demás se juegan el título de "Queen of She Done Already Done Had Herses" (QoSDADHH).
+  // - Las dos son eliminatorias de lip syncs. Puestos por tramos: 1º, 2º, 3º/4º y del 5º al último (con la QoSDADHH destacada).
   function winnersFinal() {
     setSet("stage");
     S.epNames[S.ep] = "Final";
     const all = [S.queen, ...S.rivals];
     const starsOf = (q) => (S.stars || {})[keyOf(q)] || 0;
-    // Cabezas de serie por estrellas (la que más tiene descansa si sois impares)
-    let alive = shuffle(all).sort((a, b) => starsOf(b) - starsOf(a));
-    let round = 1, duels = [], di = 0, bye = null, next = [];
-    const tbl = () => standingsHTML(all.filter((q) => alive.includes(q)), new Map(all.map((q) => [q, starsOf(q)])), "Siguen en pie · ⭐ estrellas").replace(/👑/g, "⭐");
-    let roundSize = 0;
-    function setupRound() {
-      roundSize = alive.length;
-      bye = alive.length % 2 ? alive[0] : null;
-      const pool = alive.filter((q) => q !== bye);
-      duels = [];
-      for (let i = 0; i < pool.length / 2; i++) duels.push([pool[i], pool[pool.length - 1 - i]]);
-      di = 0;
-      next = bye ? [bye] : [];
-    }
-    const roundName = () => (alive.length === 2 ? "Lip sync por la corona" : `Ronda ${round}`);
-    function board(note = "") {
-      header();
-      const d = duels[di];
-      body().innerHTML = `
-        <div class="story-card">
-          <p class="eyebrow">👑 Gran final All Winners · ${roundName()}</p>
-          <h3>${d ? `${esc(nmQ(d[0]))} vs ${esc(nmQ(d[1]))}` : "Ronda terminada"}</h3>
-          ${note ? `<p class="twist-note">${note}</p>` : ""}
-          ${bye && round === 1 && di === 0 ? `<p class="muted">⭐ ${esc(nmQ(bye))} tiene más estrellas y descansa esta ronda.</p>` : ""}
-          ${tbl()}
-          <button class="btn btn-primary" id="story-next">${d ? (d.includes(S.queen) ? "💃 Mi lip sync" : "Ver el duelo") : "Siguiente ronda"}</button>
-        </div>`;
-      $("#story-next").addEventListener("click", () => (d ? duel() : endRound()));
-    }
-    let lastRunner = null;
-    function lose(q) {
-      if (alive.length === 2) lastRunner = q;
-      alive = alive.filter((x) => x !== q);
-    }
-    function duel() {
-      const [a, b] = duels[di++];
-      if (a === S.queen || b === S.queen) {
-        const rv = a === S.queen ? b : a;
-        S.lsBonus = clamp(starsOf(S.queen) * 3 - starsOf(rv) * 2, -6, 12);
-        return playLS(rv, { eyebrow: `Gran final · ${roundName()}`, text: "La que pierda se queda fuera de la corona.", curtain: alive.length === 2 ? "LIP SYNC POR LA CORONA" : "GRAN FINAL" }, (won) => {
-          const w = won ? S.queen : rv, l = won ? rv : S.queen;
-          next.push(w);
-          if (!won) return meOut(w, l);
-          lose(l);
-          board(`💃 Ganas a ${esc(rv.name)}.`);
-        });
-      }
-      const [w, l] = simLS(a, b);
-      next.push(w);
-      lose(l);
-      board(`${esc(w.name)} gana a ${esc(l.name)}.`);
-    }
-    function endRound() {
-      alive = shuffle(next).sort((a, b) => starsOf(b) - starsOf(a));
-      round++;
-      if (alive.length === 1) return finish(alive[0]);
-      setupRound();
+    const ppeOf = (q) => DFTC.ppe(Object.values(S.track[keyOf(q)] || {}));
+    const byMerit = (a, b) => starsOf(b) - starsOf(a) || ppeOf(b) - ppeOf(a);
+    const ranked = all.slice().sort(byMerit);
+    const TOP = Math.min(4, all.length);
+    const stars4 = ranked.length > TOP ? starsOf(ranked[TOP - 1]) : -1;
+    const sure = ranked.filter((q) => starsOf(q) > stars4).slice(0, TOP);
+    const tied = ranked.filter((q) => starsOf(q) === stars4);
+    const chooser = ranked[0];
+    const tbl = (list, title) => standingsHTML(list, new Map(all.map((q) => [q, starsOf(q)])), title).replace(/👑/g, "⭐");
+
+    // Eliminatoria genérica: la mejor sembrada descansa si sois impares. Llama a onDone({ champ, runner })
+    function bracket(list, name, onDone) {
+      let alive = list.slice(), round = 1, duels = [], di = 0, bye = null, next = [], runner = null;
+      const setup = () => {
+        bye = alive.length % 2 ? alive[0] : null;
+        const pool = alive.filter((q) => q !== bye);
+        duels = [];
+        for (let i = 0; i < pool.length / 2; i++) duels.push([pool[i], pool[pool.length - 1 - i]]);
+        di = 0;
+        next = bye ? [bye] : [];
+        rname = alive.length === 2 ? "la final" : `ronda ${round}`;
+      };
+      let rname = "";
+      const rn = () => rname;
+      const board = (note = "") => {
+        header();
+        const d = duels[di];
+        body().innerHTML = `
+          <div class="story-card">
+            <p class="eyebrow">${name} · ${rn()}</p>
+            <h3>${d ? `${esc(nmQ(d[0]))} vs ${esc(nmQ(d[1]))}` : "Ronda terminada"}</h3>
+            ${note ? `<p class="twist-note">${note}</p>` : ""}
+            ${bye && di === 0 ? `<p class="muted">⭐ ${esc(nmQ(bye))} descansa esta ronda.</p>` : ""}
+            ${tbl(list.filter((q) => alive.includes(q)), "Siguen en pie · ⭐ estrellas")}
+            <button class="btn btn-primary" id="story-next">${d ? (d.includes(S.queen) ? "💃 Mi lip sync" : "Ver el duelo") : "Continuar"}</button>
+          </div>`;
+        $("#story-next").addEventListener("click", () => (d ? duel() : endRound()));
+      };
+      const lose = (q) => { if (alive.length === 2) runner = q; alive = alive.filter((x) => x !== q); };
+      const duel = () => {
+        const [a, b] = duels[di++];
+        if (a === S.queen || b === S.queen) {
+          const rv = a === S.queen ? b : a;
+          S.lsBonus = clamp(starsOf(S.queen) * 3 - starsOf(rv) * 2, -6, 12);
+          return playLS(rv, { eyebrow: `${name} · ${rn()}`, text: "La que pierda se queda fuera.", curtain: alive.length === 2 ? name.toUpperCase() : "GRAN FINAL" }, (won) => {
+            const w = won ? S.queen : rv, l = won ? rv : S.queen;
+            next.push(w);
+            lose(l);
+            board(won ? `💃 Ganas a ${esc(rv.name)}.` : `${esc(rv.name)} te gana.`);
+          });
+        }
+        const [w, l] = simLS(a, b);
+        next.push(w);
+        lose(l);
+        board(`${esc(w.name)} gana a ${esc(l.name)}.`);
+      };
+      const endRound = () => {
+        alive = next.slice().sort(byMerit);
+        round++;
+        if (alive.length <= 1) return onDone({ champ: alive[0], runner });
+        setup();
+        board();
+      };
+      if (list.length === 1) return onDone({ champ: list[0], runner: null });
+      setup();
       board();
     }
-    // Si caes, el resto de la final se resuelve sola
-    function meOut(by, me) {
-      // Las que caen en la misma ronda comparten puesto (p. ej. 5º/8º)
-      const lo = Math.ceil(roundSize / 2) + 1;
-      const place = roundSize <= 2 ? 2 : lo === roundSize ? lo : `${lo}º/${roundSize}º`;
-      lose(me);
-      let rest = [...next, ...duels.slice(di).map(([a, b]) => simLS(a, b)[0])];
-      let runner = by;
-      while (rest.length > 1) {
-        const r2 = [];
-        rest = shuffle(rest);
-        if (rest.length % 2) r2.push(rest.pop());
-        for (let i = 0; i < rest.length; i += 2) { const [w, l] = simLS(rest[i], rest[i + 1]); r2.push(w); runner = l; }
-        rest = r2;
+
+    function run(top) {
+      const bottom = ranked.filter((q) => !top.includes(q));
+      // Semifinales como en la tele: 1ª contra 4ª y 2ª contra 3ª
+      const topSeeded = top.slice().sort(byMerit);
+      const bottomSeeded = bottom.slice().sort(byMerit);
+      const finishAll = (qd, crown) => {
+        const fp = {};
+        const lastB = TOP + bottom.length;
+        const tierB = bottom.length > 1 ? `${TOP + 1}º/${lastB}º` : `${TOP + 1}º`;
+        top.forEach((q) => {
+          const k = keyOf(q);
+          if (q === crown.champ) { fp[k] = { o: 1, r: "1º" }; mark(q, "WINNER"); }
+          else if (q === crown.runner) { fp[k] = { o: 2, r: "2º" }; mark(q, "RUNNER-UP"); }
+          else { fp[k] = { o: 3, r: top.length > 3 ? "3º/4º" : "3º" }; mark(q, "3ª"); }
+        });
+        bottom.forEach((q) => {
+          const k = keyOf(q);
+          const isQ = qd && q === qd.champ;
+          fp[k] = { o: isQ ? 5 : 6, r: tierB };
+          mark(q, isQ ? "QOSD" : "ELIMF");
+        });
+        S.finalPlace = fp;
+        const meP = fp.me;
+        if (crown.champ === S.queen) return theEnd(true, crown.runner, true);
+        if (crown.runner === S.queen) return theEnd(false, crown.champ, true, `${crown.champ.name} te gana la corona de All Winners.`, 2);
+        const qdTxt = qd && qd.champ === S.queen ? " Pero te llevas el título de QoSDADHH: la reina que ya lo había hecho todo." : "";
+        return theEnd(false, crown.champ, false, `La corona de Reina de reinas se la lleva ${crown.champ.name}.${qdTxt}`, meP ? meP.o : TOP + 1);
+      };
+      const intro = [
+        ["host", `Estas son las cuatro con más estrellas: ${topSeeded.map(nmQ).join(", ")}. Os jugáis la corona de Reina de reinas.`],
+        ...(bottom.length ? [["host", `${bottomSeeded.map(nmQ).join(", ")}: os jugáis el título de Queen of She Done Already Done Had Herses. Porque ya lo habíais hecho todo.`]] : []),
+        ["judge", "Lip sync contra lip sync. La que pierda, se queda fuera."],
+      ];
+      dialog(intro, ctxWith(S.rivals[0]), () => {
+        const crownRun = (qd) => bracket(topSeeded, "👑 Reina de reinas", (crown) => finishAll(qd, crown));
+        if (bottom.length >= 2) return bracket(bottomSeeded, "💅 QoSDADHH", (qd) => {
+          header();
+          body().innerHTML = `
+            <div class="story-card">
+              <p class="eyebrow">💅 Queen of She Done Already Done Had Herses</p>
+              <h3>${qd.champ === S.queen ? "¡El título es tuyo!" : `${esc(qd.champ.name)} se lleva el título`}</h3>
+              <div class="vs"><img src="${photo(qd.champ)}"><span>💅</span>${qd.runner ? `<img class="gone" src="${photo(qd.runner)}">` : ""}</div>
+              <p>Ahora, la final por la corona.</p>
+              <button class="btn btn-primary" id="story-next">Continuar</button>
+            </div>`;
+          $("#story-next").addEventListener("click", () => crownRun(qd));
+        });
+        crownRun(bottom.length === 1 ? { champ: bottom[0], runner: null } : null);
+      });
+    }
+
+    // Empate en el corte del top 4: decide la que más estrellas tiene
+    if (stars4 >= 0 && sure.length < TOP && tied.length > TOP - sure.length) {
+      const need = TOP - sure.length;
+      const opts = tied.filter((q) => q !== chooser);
+      // Las demás eligen por PPE; si una candidata eres tú, cuenta lo bien que os lleváis
+      const auto = () => {
+        const sc = (q) => ppeOf(q) + (q === S.queen ? relOf(chooser) * 0.3 : 0);
+        return [...(tied.includes(chooser) ? [chooser] : []), ...opts.slice().sort((a, b) => sc(b) - sc(a))].slice(0, need);
+      };
+      if (chooser === S.queen && !tied.includes(S.queen)) {
+        header();
+        body().innerHTML = `
+          <div class="story-card">
+            <p class="eyebrow">👑 Gran final All Winners</p>
+            <h3>Empate en el corte: decides tú</h3>
+            <p>Tienes más estrellas que nadie. ${tied.map((q) => esc(q.name)).join(", ")} empatan con ${stars4} ⭐: elige ${need === 1 ? "quién pasa" : `a las ${need} que pasan`} a la final por la corona.</p>
+            <div class="hub-grid">${tied.map((q, i) => `<button class="hub-q" style="--i:${i}" data-t="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>PPE ${ppeOf(q).toFixed(2).replace(".", ",")}</small></button>`).join("")}</div>
+          </div>`;
+        const chosen = [];
+        body().querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => {
+          chosen.push(qById(b.dataset.t));
+          b.disabled = true;
+          if (chosen.length === need) run([...sure, ...chosen]);
+        }));
+        return;
       }
-      const champ = rest[0] || by;
-      all.filter((q) => q !== S.queen && q !== champ && q !== runner).forEach((q) => { mark(q, "ELIM"); eliminate(q); });
-      mark(champ, "WINNER");
-      if (runner && runner !== champ) mark(runner, "RUNNER-UP");
-      if (place === 2) return theEnd(false, champ, true, `${champ.name} te gana la corona de All Winners.`, 2);
-      mark(S.queen, "ELIM");
-      return theEnd(false, champ, false, `${by.name} te gana en la final. La corona se la lleva ${champ.name}.`, place);
+      const picked = auto();
+      const top = [...sure, ...picked];
+      const left = tied.filter((q) => !picked.includes(q));
+      return dialog([["host", `Empate a ${stars4} ${stars4 === 1 ? "estrella" : "estrellas"} entre ${tied.map(nmQ).join(", ")}. Decide ${nmQ(chooser)}, la que más estrellas tiene.`], ["host", `${nmQ(chooser)} elige a ${picked.map(nmQ).join(" y ")}. ${left.map(nmQ).join(" y ")}, os jugáis el otro título.`]], ctxWith(chooser === S.queen ? S.rivals[0] : chooser), () => run(top));
     }
-    // Solo se llega aquí si ganas tú (si caes, meOut cierra la final)
-    function finish(champ) {
-      all.filter((q) => q !== champ && q !== lastRunner).forEach((q) => mark(q, "ELIM"));
-      return theEnd(champ === S.queen, lastRunner, true);
-    }
-    dialog([["host", "Reinas, llegamos a la gran final de All Winners. Aquí estáis todas: nadie se fue a casa."], ["host", "Pero solo una se lleva la corona. Lip sync contra lip sync: la que pierda, se queda fuera."], ["judge", "Las estrellas que habéis ganado cuentan: la que más tenga, más fácil lo tiene."]], ctxWith(S.rivals[0]), () => { setupRound(); board(); });
+    run(ranked.slice(0, TOP));
   }
 
   function finale() {

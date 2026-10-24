@@ -1,5 +1,5 @@
 // Track record: valor de cada etiqueta y PPE (puntos por episodio)
-export const PPE_VALOR: Record<string, number> = { WIN: 5, WINNER: 5, TOP2: 4.5, HIGH: 4, SAFE: 3, LOW: 2, BTM2: 1, BTM3: 1, ELIM: 0 };
+export const PPE_VALOR: Record<string, number> = { WIN: 5, BWIN: 5, WINNER: 5, TOP2: 4.5, BTOP: 4.5, HIGH: 4, SAFE: 3, LOW: 2, BTM2: 1, BTM3: 1, ELIM: 0 };
 
 export function ppe(labels: string[]): number {
   const v = labels.map((l) => PPE_VALOR[l]).filter((x): x is number => x !== undefined);

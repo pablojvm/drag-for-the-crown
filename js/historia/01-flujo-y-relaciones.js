@@ -593,7 +593,7 @@
     if (tw === "suerte") chip = S.luck === undefined ? "🍀 Cajitas por abrir" : S.luck === "me" ? "🍀 ¡La tienes tú! (en secreto)" : S.luck ? "🍀 ¿Quién la tendrá?" : "🍀 Ya se ha usado";
     if (tw === "repesca") chip = S.flags.repesca ? "🔁 Segunda Oportunidrag: hecha" : "🔁 Segunda Oportunidrag: pendiente";
     if (tw === "allstars") chip = "💄 Decide la ganadora";
-    if (tw === "winners") chip = `⭐ Nadie se va · tus estrellas: ${(S.stars || {}).me || 0}${S.block && S.block.ep === S.ep ? ` · 🚫 Bloqueada: ${S.block.id === "me" ? "tú" : nameOfKey(S.block.id)}` : ""}`;
+    if (tw === "winners") chip = `⭐ Nadie se va · tus estrellas: ${(S.stars || {}).me || 0}${S.ep === winnersWeeks() ? " · 🌟 Esta semana el top 2 gana 3 estrellas" : ""}${S.block && S.block.ep === S.ep ? ` · 🚫 Bloqueada: ${S.block.id === "me" ? "tú" : nameOfKey(S.block.id)}` : ""}`;
     $("#story-ep").textContent = S.meOut ? "Fuera de la competición" : isFinal() ? (S.flags.reunion ? "Gran final" : "El reencuentro") : `Episodio ${S.ep}`;
     if (chip) $("#story-season").innerHTML += ` <span class="twist-chip">${esc(chip)}</span>`;
     const fm = fame();
@@ -673,8 +673,8 @@
     (S.track[k] = S.track[k] || {})[S.ep] = lab;
   }
   const TRACK_CLASS = (l) =>
-    l === "WIN" || l === "WINNER" ? "t-win" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : l === "RTRN" ? "t-rtrn" : l === "MC" ? "t-mc" : "t-none";
-  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", MISSC: "MISS CONGENIALITY", RTRN: "RTRN", MC: "MC" };
+    l === "WIN" || l === "WINNER" ? "t-win" : l === "BWIN" ? "t-win t-blocked" : l === "BTOP" ? "t-top2 t-blocked" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : l === "RTRN" ? "t-rtrn" : l === "MC" ? "t-mc" : l === "FINALISTA" ? "t-third" : l === "QOSD" ? "t-qosd" : l === "ELIMF" ? "t-elim" : "t-none";
+  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", MISSC: "MISS CONGENIALITY", RTRN: "RTRN", MC: "MC", FINALISTA: "FINALISTA", SINESTRELLA: "SIN ⭐", QOSD: "QoSDADHH", ELIMF: "ELIMINADA", BWIN: "WIN", BTOP: "TOP2" };
   // Puntuación del track record (PPE) de tu reina: media de sus resultados semana a semana
   function myPPE() {
     return DFTC.ppe(Object.values(S.track.me || {}));
@@ -684,7 +684,7 @@
     const everyone = [S.queen, ...S.rivals, ...S.out];
     const count = (k, test) => eps.filter((e) => test((S.track[k] || {})[e] || "")).length;
     // Orden de las que siguen: cómo quedaron en el último episodio con resultados
-    const ORDER = { WINNER: 0, WIN: 1, "RUNNER-UP": 2, TOP2: 3, FINAL: 3, HIGH: 4, "3ª": 5, SAFE: 6, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9, MC: 6, RTRN: 6.5 };
+    const ORDER = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, FINAL: 3, HIGH: 4, "3ª": 5, FINALISTA: 5, QOSD: 5.5, SAFE: 6, SINESTRELLA: 6.8, ELIMF: 8.5, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9, MC: 6, RTRN: 6.5 };
     const lastScored = [...eps].reverse().find((e) => everyone.some((q) => ORDER[(S.track[keyOf(q)] || {})[e]] !== undefined));
     const lastRank = (k) => { const l = lastScored && (S.track[k] || {})[lastScored]; return ORDER[l] !== undefined ? ORDER[l] : 7.5; };
     const lastEp = (k) => Math.max(0, ...eps.filter((e) => (S.track[k] || {})[e] && S.track[k][e] !== "MISSC"));
@@ -695,7 +695,7 @@
         const k = keyOf(q);
         return {
           q, k, out: isOut(q), last: lastEp(k),
-          w: count(k, (l) => l === "WIN" || l === "WINNER"), h: count(k, (l) => l === "HIGH" || l === "TOP2"),
+          w: count(k, (l) => l === "WIN" || l === "BWIN" || l === "WINNER"), h: count(k, (l) => l === "HIGH" || l === "TOP2" || l === "BTOP"),
           s: count(k, (l) => l === "SAFE"), lo: count(k, (l) => l === "LOW"), b: count(k, (l) => /^BTM/.test(l)),
         };
       })
@@ -707,7 +707,12 @@
     };
     // Las que se van en el mismo episodio (doble eliminación) comparten puesto: 7º/8º
     const elimAt = (r) => r.out && (S.track[r.k] || {})[r.last] === "ELIM" ? r.last : null;
-    const rk = rows.map((r, i) => {
+    // All Winners: la final deja a cada reina en su puesto exacto
+    const FP = S.finalPlace;
+    const fpOk = FP && rows.every((r) => FP[r.k]);
+    const fo = (k) => (typeof FP[k] === "object" ? FP[k].o : FP[k]);
+    if (fpOk) rows.sort((a, b) => fo(a.k) - fo(b.k) || b.w - a.w);
+    const rk = fpOk ? rows.map((r) => (typeof FP[r.k] === "object" ? FP[r.k].r : `${FP[r.k]}º`)) : rows.map((r, i) => {
       const e = elimAt(r);
       if (e == null) return `${i + 1}º`;
       let a = i, b = i;
