@@ -136,7 +136,22 @@
         <div>
           <p class="eyebrow">${esc(se.franchise.name)} · ${esc(se.name)}</p>
           <h3>${esc(q.name)}</h3>
-          <p>Vas por el episodio ${d.phase && d.phase.ep === d.ep ? `${d.ep} (${d.phase.stage === "mini" ? "después del minirreto" : d.phase.stage === "runway" ? "antes de la pasarela" : "en los resultados"})` : d.ep + 1}. Quedan ${d.rivals.length + (d.meOut ? 0 : 1)} reinas en la competición.</p>
+          <p>Vas por el episodio ${d.phase && d.phase.ep === d.ep ? `${d.ep} (${d.phase.stage === "mini" ? "después del minirreto" : d.phase.stage === "runway" ? "antes de la pasarela" : "en los resultados"})` : d.ep + 1}.${(se.special === "winners") ? "" : ` Quedan ${d.rivals.length + (d.meOut ? 0 : 1)} reinas en la competición.`}</p>
+          ${se.special === "winners" ? (() => {
+            // All Winners: nadie se va, así que se dice cómo vas en estrellas respecto al corte del top 4
+            const st = d.stars || {};
+            const mine = st.me || 0;
+            const others = (d.rivals || []).map((id) => st[id] || 0);
+            const pos = 1 + others.filter((x) => x > mine).length;
+            const tied = others.filter((x) => x === mine).length;
+            const total = others.length + 1;
+            const cut = [mine, ...others].sort((x, y) => y - x)[Math.min(3, total - 1)];
+            const txt = pos === 1 ? (tied ? "Compartes la cabeza: no te duermas." : "¡Vas en cabeza! La corona te está mirando.")
+              : pos <= 4 ? (mine === cut && tied ? "Estás en el corte del top 4, empatada: cada estrella cuenta." : "Estás dentro del top 4: si sigue así, te juegas la corona.")
+              : cut - mine <= 1 ? "Estás a un paso del top 4: una estrella más y entras."
+              : "Tienes que espabilar: ahora mismo no entrarías en la final por la corona.";
+            return `<p>Vas ${pos}ª de ${total} en estrellas${tied ? " (empatada)" : ""}. ${txt}</p>`;
+          })() : ""}
           ${(() => {
             // All Winners: lo que cuenta son las estrellas
             if (se.special === "winners" || (seasonById(d.season) || {}).special === "winners") { const st = (d.stars || {}).me || 0; return `<p class="muted">${st ? `⭐ ${st} ${st === 1 ? "estrella" : "estrellas"}` : "Aún sin estrellas"}</p>`; }
