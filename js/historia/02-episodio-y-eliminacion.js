@@ -1378,6 +1378,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
 
   // All Stars: las dos del top hacen lip sync; la ganadora elige a quién mandar a casa
   const winLab = (q) => (twistOf() === "winners" && S.block && S.block.ep === S.ep && S.block.id === keyOf(q) ? "BWIN" : "WIN");
+  // All Winners: en medio de las dos del top, la Legendary Legend Star que se juegan
+  const vsMid = (txt) => (twistOf() === "winners" ? `<img class="ll-vs" src="./images/legendary-star.png" alt="Legendary Legend Star">` : `<span>${txt}</span>`);
   function topLipSync(top2, then) {
     flowGo("lipsync");
     const [a, b] = top2;
@@ -1388,7 +1390,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         <div class="story-card">
           <p class="eyebrow">💄 Lip sync por el poder</p>
           <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
-          <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
+          <div class="vs"><img src="${photo(S.queen)}">${vsMid("VS")}<img src="${photo(rival)}"></div>
           <button class="btn btn-primary" id="story-ls">¡A la pasarela!</button>
         </div>`;
       Music.play("tension");
@@ -1428,7 +1430,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         <p class="eyebrow">💄 Lip sync por el poder</p>
         <h3>${esc(w.name)} vs ${esc(l.name)}</h3>
         <p class="muted">${esc(fill(pickFresh(HISTORIA.lipsyncOtras), { a: w.name, b: l.name }))}</p>
-        <div class="vs"><img src="${photo(w)}"><span>👑</span><img src="${photo(l)}"></div>
+        <div class="vs"><img src="${photo(w)}">${vsMid("👑")}<img src="${photo(l)}"></div>
         <p><b>${esc(w.name)}</b> ${twistOf() === "winners" ? "gana el lip sync y el bloqueo. Las dos se llevan estrella ⭐ (si no están bloqueadas)." : "gana y tiene el pintalabios: decide quién se va."}</p>
         <button class="btn btn-primary" id="story-next">Continuar</button>
       </div>`;

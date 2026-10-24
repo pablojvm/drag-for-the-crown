@@ -308,7 +308,6 @@
         <div class="story-card">
           <p class="eyebrow">⭐ All Winners</p>
           <h3>${blocked ? "Ganas el lip sync... pero estabas bloqueada" : "¡Ganas el lip sync!"}</h3>
-          ${award}
           ${blocked ? `<p class="twist-note">🚫 ${esc(byName)} te bloqueó la semana pasada: esta vez no hay estrella. Pero el bloqueo sí es tuyo.</p>` : `<p class="muted">Las dos del top os lleváis estrella; tú, además, el bloqueo.</p>`}
           <p>Ahora te toca <b>bloquear a una compañera</b>: la semana que viene no podrá ganar estrella.${prevBlocked ? ` ${esc(nameOfKey(prevBlocked))} ya estaba bloqueada esta semana: no se puede repetir.` : ""}</p>
           <div class="hub-grid">${others.map((q, i) => `<button class="hub-q" style="--i:${i}" data-b="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>⭐ ${(S.stars || {})[keyOf(q)] || 0}</small></button>`).join("")}</div>
@@ -325,7 +324,6 @@
       <div class="story-card">
         <p class="eyebrow">⭐ All Winners</p>
         <h3>${blocked ? `${esc(decName)} gana... pero estaba bloqueada` : `${esc(decName)} gana el lip sync`}</h3>
-        ${award}
         <p class="muted">Las dos del top se llevan estrella${blockedKey && keys.includes(blockedKey) ? " (menos la bloqueada)" : ""}.</p>
         ${blocked ? `<p class="twist-note">🚫 ${esc(byName)} la bloqueó la semana pasada: se queda sin estrella.</p>` : ""}
         <p>Ahora ${esc(decName)} tiene que bloquear a una compañera...</p>
