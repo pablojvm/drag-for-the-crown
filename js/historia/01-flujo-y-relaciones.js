@@ -154,7 +154,7 @@
           })() : ""}
           ${(() => {
             // All Winners: lo que cuenta son las estrellas
-            if (se.special === "winners" || (seasonById(d.season) || {}).special === "winners") { const st = (d.stars || {}).me || 0; return `<p class="muted ll-count">${st ? `<img src="./images/legendary-star-sm.png" alt=""> ${st} ${st === 1 ? "Legendary Legend Star" : "Legendary Legend Stars"}` : "Aún sin estrellas"}</p>`; }
+            if (se.special === "winners" || (seasonById(d.season) || {}).special === "winners") { const st = (d.stars || {}).me || 0; return `<p class="muted ll-count">${st ? `<img src="./images/legendary-star-sm.png?v=2" alt=""> ${st} ${st === 1 ? "Legendary Legend Star" : "Legendary Legend Stars"}` : "Aún sin estrellas"}</p>`; }
             const w = Object.values((d.track || {}).me || {}).filter((l) => l === "WIN" || l === "BWIN").length;
             return `<p class="muted">${w ? `${w} ${w === 1 ? "reto ganado" : "retos ganados"}` : "Aún sin victorias"}</p>`;
           })()}

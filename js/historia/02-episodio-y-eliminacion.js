@@ -1379,7 +1379,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
   // All Stars: las dos del top hacen lip sync; la ganadora elige a quién mandar a casa
   const winLab = (q) => (twistOf() === "winners" && S.block && S.block.ep === S.ep && S.block.id === keyOf(q) ? "BWIN" : "WIN");
   // All Winners: en medio de las dos del top, la Legendary Legend Star que se juegan
-  const vsMid = (txt) => (twistOf() === "winners" ? `<img class="ll-vs" src="./images/legendary-star.png" alt="Legendary Legend Star">` : `<span>${txt}</span>`);
+  const vsMid = (txt) => (twistOf() === "winners" ? `<img class="ll-vs" src="./images/legendary-star.png?v=2" alt="Legendary Legend Star">` : `<span>${txt}</span>`);
   function topLipSync(top2, then) {
     flowGo("lipsync");
     const [a, b] = top2;

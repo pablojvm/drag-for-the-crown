@@ -299,7 +299,7 @@
     const starred = keys.filter((x) => x !== blockedKey).map((x) => (x === "me" ? S.queen : qById(x))).filter(Boolean);
     const award = starred.length ? `
       <div class="ll-award">
-        <img class="ll-star" src="./images/legendary-star.png" alt="Legendary Legend Star">
+        <img class="ll-star" src="./images/legendary-star.png?v=2" alt="Legendary Legend Star">
         <div><p class="ll-title">Legendary Legend Star${starred.length > 1 ? "s" : ""}${S.ep === winnersWeeks() ? " ×3" : ""}</p>
         <div class="call-faces">${starred.map((q) => `<span class="${q === S.queen ? "me" : ""}"><i style="background-image:url('${photo(q)}')"></i>${esc(q === S.queen ? "Tú" : q.name)}</span>`).join("")}</div></div>
       </div>` : "";

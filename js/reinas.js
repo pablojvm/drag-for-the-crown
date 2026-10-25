@@ -252,7 +252,7 @@ const PORTADAS = {
   es5: "./images/temporadas/es5.jpg",
   es6: "./images/temporadas/es6.jpg",
   esas1: "./images/temporadas/esas1.jpg?v=3",
-  esas2: "./images/temporadas/esas2.jpg?v=2",
+  esas2: "./images/temporadas/esas2.jpg?v=4",
   escustom: "./images/temporadas/escustom.jpg",
   esaw: "./images/temporadas/esaw.jpg?v=6",
 };

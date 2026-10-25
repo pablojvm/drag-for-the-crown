@@ -3,6 +3,16 @@
     if (IA.ready() && !mxSnatch.classic) return aiOrClassic(el, "Snatch Game", "🎭", () => liveSnatch(el, done), () => { mxSnatch.classic = true; mxSnatch(el, (sc) => { mxSnatch.classic = false; done(sc); }); });
     const chars = shuffle(SNATCH_PERSONAJES).slice(0, 3);
     const qs = shuffle(SNATCH_PREGUNTAS).slice(0, 5);
+    // En el plató cada rival es su personaje: se la nombra así, nunca por su nombre drag
+    const rc = (st, r) => {
+      st.rc = st.rc || {};
+      if (!st.rc[r.id]) {
+        const taken = [st.char, ...Object.values(st.rc)];
+        const c = shuffle(SNATCH_PERSONAJES).find((x) => !taken.includes(x)) || pick1(SNATCH_PERSONAJES);
+        st.rc[r.id] = c;
+      }
+      return st.rc[r.id].name;
+    };
     const steps = [
       () => ({
         q: "🎭 ¿A quién imitas?",
@@ -15,7 +25,7 @@
         steps.push((st) => {
           const r = pick1(S.rivals);
           return {
-            q: `😶 ${esc(r.name)} se queda en blanco...`,
+            q: `😶 ${esc(rc(st, r))} se queda en blanco...`,
             sub: "Hay un silencio incómodo en el plató. ¿Aprovechas?",
             opts: [
               { t: "🎯 Robar la atención y rematar el chiste", d: "Comedia + Carisma", go: (s) => { s.focus += 18; const c = check(["comedia", "carisma"], 58); if (c.ok) changeRel(r, -1); return res(c, 100, 22, "¡Remate perfecto! Te llevas la risa.", "Intentas rematar... y la pisas. Nadie se ríe."); } },
@@ -31,7 +41,7 @@
           sub: `Eres <b>${esc(ch.name)}</b>. Pregunta ${n + 1}/5.`,
           opts: [
             { t: `😂 «${esc(pick1(ch.frases))}»`, d: "Comedia absurda", tag: "Comedia", go: (s) => { s.focus += 14; return res(check(["comedia"], 52), 90, 30, "¡Carcajada general!", "Nadie lo pilla. Grillos."); } },
-            { t: `⚡ Replicar a ${esc(r.name)}`, d: "Carisma · sube mucho el foco y crea drama", tag: "Carisma", go: (s) => { s.focus += 24; s.drama = (s.drama || 0) + 1; changeRel(r, -1); return res(check(["carisma"], 55), 94, 34, `¡Le has dado un zasca a ${esc(r.name)} y el plató explota!`, "La réplica suena a ataque. Tensión, no risas."); } },
+            { t: `⚡ Replicar a ${esc(rc(st, r))}`, d: "Carisma · sube mucho el foco y crea drama", tag: "Carisma", go: (s) => { s.focus += 24; s.drama = (s.drama || 0) + 1; changeRel(r, -1); return res(check(["carisma"], 55), 94, 34, `¡Le has dado un zasca a ${esc(rc(st, r))} y el plató explota!`, "La réplica suena a ataque. Tensión, no risas."); } },
             { t: `🛡️ «${esc(pick1(SNATCH_PLANAS))}»`, d: "Respuesta segura", tag: "Segura", go: (s) => { s.focus -= 12; return { pts: 48, msg: "Correcta. Poco memorable." }; } },
           ],
         };
