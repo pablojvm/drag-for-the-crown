@@ -572,7 +572,7 @@
       sc.__rp = 1;
       S.rivals.forEach((q) => { const o = S.rp.pairs[q.id]; if (o && S.rp.ps[o] != null) sc[q.id] = Math.round(sc[q.id] * 0.6 + S.rp.ps[o] * 0.4); });
       const mo = S.rp.pairs.me;
-      if (mo && S.rp.ps[mo] != null) sc.__me = Math.round(myScore * 0.65 + S.rp.ps[mo] * 0.35);
+      if (mo && S.rp.ps[mo] != null) sc.__me = Math.round(myScore * 0.65 + (typeof window.__forceScore === "number" ? window.__forceScore : S.rp.ps[mo]) * 0.35);
     }
     if (sc.__me != null) myScore = sc.__me;
     // Lalaparuza: la clasificación sale del cuadro del torneo (sin dado ni bonus)
@@ -1991,7 +1991,8 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
             cleanup = null;
             if (typeof window.__forceScore === "number") raw = window.__forceScore;
             Music.stop();
-            pairs.forEach((p) => (p.s = p.me ? raw * 0.6 + rivalScore(p.c) * 0.4 : p.o ? rivalScore(p.c) * 0.6 + rivalScore(p.o) * 0.4 : rivalScore(p.c)));
+            const forced = typeof window.__forceScore === "number"; // solo pruebas: la nota forzada vale para las dos de la pareja
+            pairs.forEach((p) => (p.s = p.me ? raw * 0.6 + (forced ? raw : rivalScore(p.c)) * 0.4 : p.o ? rivalScore(p.c) * 0.6 + rivalScore(p.o) * 0.4 : rivalScore(p.c)));
             pairs.sort((a, b) => b.s - a.s);
             const n = pairs.length;
             const nb = n >= 5 ? 3 : 2;

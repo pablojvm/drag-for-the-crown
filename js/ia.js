@@ -124,6 +124,8 @@ const IA = (() => {
     return null;
   }
   async function check() {
+    // Ollama solo existe en local: en la web publicada ni se intenta (evita el error de CORS en la consola)
+    if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { ollamaOk = false; return ready(); }
     try {
       const r = await fetch("http://localhost:11434/api/tags", { signal: AbortSignal.timeout(1500) });
       const d = await r.json();
