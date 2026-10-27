@@ -20,7 +20,7 @@ const Story = (() => {
   const NEVER = new Promise(() => {});
   const guardP = (p) => { const id = runId; return Promise.resolve(p).then((r) => (id === runId ? r : NEVER)); };
   // En la temporada en directo no se usa IA: todas juegan con los mismos textos y al mismo ritmo
-  const IA = { ...__REAL_IA, ready: () => !(S && S.mp) && __REAL_IA.ready(), chat: (...a) => (S && S.mp ? Promise.resolve(null) : guardP(__REAL_IA.chat(...a))), image: (...a) => guardP(__REAL_IA.image(...a)) };
+  const IA = { ...__REAL_IA, ready: () => !(S && S.mp && !S.mpIA) && __REAL_IA.ready(), chat: (...a) => (S && S.mp && !S.mpIA ? Promise.resolve(null) : guardP(__REAL_IA.chat(...a))), image: (...a) => guardP(__REAL_IA.image(...a)) };
   // Azar con semilla guardada en la partida: recargar no repite tiradas y cualquier fallo se puede reproducir
   const Math = Object.create(__REAL_MATH);
   Math.random = () => {

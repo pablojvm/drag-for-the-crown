@@ -1,6 +1,6 @@
 // Controlador de la sala: la anfitriona lleva el reloj y aplica las reglas; todas reciben el mismo estado.
 // Si la anfitriona se cae, la siguiente que entró toma el relevo con el último estado.
-import { newRoom, startSeason, tick, advance, applySubmit, type RoomState, type Engine, type Ritmo, type Phase, type Sub, type Player } from "./model";
+import { newRoom, startSeason, tick, advance, applySubmit, type RoomState, type Engine, type Ritmo, type Formato, type Phase, type Sub, type Player } from "./model";
 import { LocalBus, OnlineBus, type Bus } from "./bus";
 
 const myId = () => {
@@ -79,10 +79,10 @@ export class Room {
     }
   }
 
-  create(name: string, season: string, ritmo: Ritmo) {
+  create(name: string, season: string, ritmo: Ritmo, opts: { fmt?: Formato; ia?: boolean } = {}) {
     const code = newCode();
     this.connect(code);
-    this.state = newRoom(code, { id: this.me, name, queen: null, joined: this.joinedAt, alive: false }, season, ritmo);
+    this.state = newRoom(code, { id: this.me, name, queen: null, joined: this.joinedAt, alive: false }, season, ritmo, opts);
     this.onChange(this.state);
     this.broadcast();
     return code;

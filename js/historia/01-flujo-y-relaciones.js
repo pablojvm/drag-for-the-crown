@@ -831,9 +831,15 @@
     S.helped = false;
     header();
     const tw = twistOf();
-    if (twistOf() === "winners" && S.ep > winnersWeeks()) return winnersFinal();
-    if (isFinal()) return episodeFinal();
-    workroom();
+    const go = () => {
+      if (twistOf() === "winners" && S.ep > winnersWeeks()) return winnersFinal();
+      if (isFinal()) return episodeFinal();
+      workroom();
+    };
+    // All Stars: primero se enseña el pintalabios que había elegido la que perdió el lip sync
+    if (S.asPending && S.asPending.ep === S.ep - 1) return revealPendingLipstick(go);
+    if (S.asPending) S.asPending = null;
+    go();
   }
   // Con 4 reinas: primero el reencuentro (Miss Simpatía) y luego la gran final
   function episodeFinal() {

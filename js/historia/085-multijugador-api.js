@@ -1,18 +1,20 @@
 
   // ------------------------------ Multijugador: lo que el modo en directo usa del motor ------------------------------
   // La temporada en directo (src/mp) lleva su propio flujo; aquí solo se le prestan los retos, la pasarela,
-  // el lip sync, las notas y los textos del jurado. Mientras dura (S.mp) no se guarda la partida individual ni se usa IA.
+  // el lip sync, las notas, los diálogos y los textos del jurado. Mientras dura (S.mp) no se guarda la partida individual;
+  // la IA solo se usa si la sala se creó con ella (S.mpIA).
   const MP_RETOS = ["snatch", "roast", "rusical", "actuacion", "diseno", "makeover", "impro"];
   const mpQ = (k) => (k === "me" ? S.queen : qById(k));
   const mpApi = {
-    begin(queenId, seasonId, rivalIds) {
+    begin(queenId, seasonId, rivalIds, opts = {}) {
       runId++;
       dropKeys();
       if (cleanup) cleanup();
       cleanup = null;
       const season = seasonById(seasonId);
-      S = { ...blankState(qById(queenId), season, rivalIds.map(qById).filter(Boolean)), rng: newSeed(), mp: true, ep: 1, flags: { prepped: true } };
-      [mxSnatch, mxActing, mxRusical, mxGirlGroups, mxMateriales, mxMakeover, mxImpro, mxPublicidad, mxRoast].forEach((f) => (f.classic = true));
+      S = { ...blankState(qById(queenId), season, rivalIds.map(qById).filter(Boolean)), rng: newSeed(), mp: true, mpIA: !!opts.ia, ep: 1, flags: { prepped: true } };
+      // Con IA cada una elige en cada reto si lo hace en directo (escribiendo) o con opciones
+      [mxSnatch, mxActing, mxRusical, mxGirlGroups, mxMateriales, mxMakeover, mxImpro, mxPublicidad, mxRoast].forEach((f) => (f.classic = !opts.ia));
       return true;
     },
     end() {
@@ -30,6 +32,44 @@
       if (cleanup) cleanup();
       cleanup = null;
     },
+    /** ¿Hay IA disponible para ofrecerla al crear la sala? */
+    iaReady: () => __REAL_IA.ready(),
+    /** Formato de la temporada para la sala. */
+    formato: (seasonId) => ((TEMPORADAS_HISTORIA[seasonId] || {}).twist === "allstars" ? "allstars" : "normal"),
+    /** Fondo de la escena (taller, plató, jurado, Untucked). */
+    scene: (name) => setSet(name),
+    /** Diálogo con las caras de siempre (Supremme, Ana, los Javis y las reinas). */
+    talk(lines, then, extra = {}) {
+      if (!S) return then && then();
+      const r1 = (extra.r1 && qById(extra.r1)) || S.rivals[0] || S.queen;
+      dialog(lines, ctxWith(r1, { reto: extra.reto || S.curTitulo || "" }), () => { cleanup = null; then && then(); });
+    },
+    /** Líneas del anuncio del reto (y la bienvenida de la temporada el primer día). */
+    announceLines(ep, seasonId) {
+      const info = TEMPORADAS_HISTORIA[seasonId] || {};
+      const intro = ep === 1 && (!info.twist || info.twist === "allstars") ? info.intro || [] : [];
+      const hola = [["host", pick1(["¡Hola, hola, mis reinas!", "¡Buenos días, reinas!", "¡Hola, mis niñas!"])]];
+      return [...(ep === 1 ? intro : hola), ...pickFresh(HISTORIA.anuncio)];
+    },
+    /** Pantalla del lip sync con su telón, y luego el minijuego. */
+    lipsyncShow(el, rivalId, o, cb) {
+      const rival = qById(rivalId);
+      el.innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">${o.eyebrow}</p>
+          <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
+          <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
+          ${o.note ? `<p class="muted">${esc(o.note)}</p>` : ""}
+          <button class="btn btn-primary" id="mp-ls-go">¡A la pasarela!</button>
+        </div>`;
+      Music.play("tension");
+      el.querySelector("#mp-ls-go").addEventListener("click", () => Curtain.run(() => {
+        Music.stop();
+        setSet("stage");
+        el.innerHTML = `<div id="mp-ls-play"></div>`;
+        runLipsync(el.querySelector("#mp-ls-play"), rival, (won, score) => { cleanup = null; cb(!!won, Math.round(score || 0)); });
+      }, o.curtain || "LIP SYNC"));
+    },
     retos: () => MP_RETOS.map((k) => ({ tipo: k, titulo: RETOS[k].titulo(), desc: RETOS[k].desc, noRunway: !!RETOS[k].noRunway, ctrl: RETOS[k].ctrl })),
     categorias: () => (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA.filter((t) => !t.rv).map((t) => ({ n: t.n, d: t.d })) : CATEGORIAS.map((n) => ({ n, d: "" }))),
     setEp(ep, rivalIds) {
@@ -39,15 +79,19 @@
     },
     play(tipo, titulo, el, cb) {
       S.curTipo = tipo; S.curEpTipo = S.ep; S.curTitulo = titulo; S.team = null; S.cGroups = null; S.curPieces = null; S.lastLook = null;
-      RETOS[tipo].run(el, (raw) => { cleanup = null; cb(Math.round(raw)); });
+      S.juryNotes = null; S.liveEp = 0;
+      // Si se hizo en directo, lo que pensó el jurado viaja con la nota para las críticas
+      RETOS[tipo].run(el, (raw) => { cleanup = null; cb(Math.round(raw), S.liveEp === S.ep ? juryTxt() : ""); });
     },
     runway(el, cat, cb) { runRunwayNew(el, cat, (walk) => { cleanup = null; cb(Math.round(walk)); }); },
     lipsync(el, rivalId, cb) { runLipsync(el, qById(rivalId), (won, score) => { cleanup = null; cb(!!won, Math.round(score || 0)); }); },
     /** Nota final de la semana de la jugadora (el dado manda, su juego lo mueve). */
-    finalScore(tipo, raw, walk) {
+    finalScore(tipo, raw, walk, live) {
       S.curTipo = tipo;
       const total = walk == null ? raw : raw * 0.65 + walk * 0.35;
-      return myDado(clamp(total, 0, 100));
+      const d = myDado(clamp(total, 0, 100));
+      // Como en la historia: si el jurado ya te valoró en directo, el dado solo matiza
+      return live ? clamp(d, Math.round(total) - 8, Math.round(total) + 6) : d;
     },
     rivalScore(qId, tipo) { const prev = S.curTipo; S.curTipo = tipo; const v = rivalScore(qById(qId)); S.curTipo = prev; return v; },
     simLS(aId, bId) { return simLS(qById(aId), qById(bId))[0].id; },

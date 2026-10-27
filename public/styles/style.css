@@ -2693,3 +2693,63 @@ body.portrait .ll-award { flex-direction: column; gap: 10px; }
 body.portrait .ll-title { text-align: center; }
 .vs .ll-vs { width: 150px !important; height: auto !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; object-fit: contain; filter: drop-shadow(0 10px 18px rgba(160,90,0,.45)); animation: ll-pop .7s var(--ease-spring) both; }
 body.portrait .vs .ll-vs { width: 120px !important; }
+
+/* ---------- Multijugador v4: IA, decisión del All Stars, track ---------- */
+.mp-ia { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; background: rgba(255,255,255,.7); cursor: pointer; text-align: left; }
+.mp-ia input { width: 20px; height: 20px; accent-color: var(--pink, #ff3d9a); flex: none; }
+.mp-ia span { display: flex; flex-direction: column; line-height: 1.2; }
+.mp-ia small { opacity: .75; font-size: .82em; }
+.mp-face.gone i { filter: grayscale(1); opacity: .55; }
+.mp-vs > span { align-self: center; font-size: 1.6rem; }
+.mp-track-peek { margin-top: 14px; text-align: left; }
+.mp-track-peek summary { cursor: pointer; font-weight: 700; }
+#screen-story.mp .dlg { min-height: 420px; }
+/* Track record ancho: centrado sin cortar los lados (con flex + center, lo que desborda se perdía por la izquierda) */
+.track-wrap { justify-content: flex-start; }
+.track-wrap > table { margin-inline: auto; }
+/* Multijugador: sin el reparto ni las otras herramientas, la barra del HUD queda solo con «Salir» (sin barra vacía en móvil) */
+#screen-story.mp .story-hud { background: none !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; width: auto !important; backdrop-filter: none !important; }
+#screen-story.mp .story-right { justify-content: flex-end; }
+body.portrait #screen-story.mp .dlg-skip { top: 6px; right: 6px; }
+body.portrait #screen-story.mp .story-hud .hud-exit { padding: 6px 12px; }
+body.portrait #screen-story.mp #story-exit span { display: inline !important; font-size: 13px; }
+
+/* ---------- All Stars: pintalabios (tubo negro cuadrado, banda dorada y el nombre en blanco, como los del programa) ---------- */
+.lipstick { --lw: 210px; --lh: 50px; position: relative; display: inline-flex; align-items: stretch; width: var(--lw); height: var(--lh); border-radius: 6px; transform: rotate(-8deg); filter: drop-shadow(0 14px 16px rgba(20,0,30,.45)); }
+.lipstick > span { display: block; height: 100%; }
+.lipstick .ls-cap { flex: 0 0 22%; border-radius: 6px 0 0 6px; background: linear-gradient(180deg, #4a4a52 0%, #141418 22%, #050507 60%, #1d1d22 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,.18), inset -2px 0 3px rgba(0,0,0,.6); }
+.lipstick .ls-band { flex: 0 0 5px; background: linear-gradient(180deg, #fff3c4, #d9a92e 40%, #7a5512 70%, #f4d27a); }
+.lipstick .ls-body { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 0 6px 6px 0; background: linear-gradient(180deg, #55555e 0%, #18181d 20%, #050507 58%, #222228 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,.2); padding: 0 10px; }
+.lipstick .ls-body b { display: block; font: 800 22px/1 Poppins, sans-serif; color: #fff; text-transform: uppercase; letter-spacing: -.5px; white-space: nowrap; transform: scaleX(.82); transform-origin: center; text-shadow: 0 1px 0 rgba(0,0,0,.5); }
+.lipstick .ls-body b.long { font-size: 16px; }
+.lipstick .ls-body b.xlong { font-size: 13px; }
+/* Cerrado: el lado sin nombre */
+.lipstick.closed .ls-body b { color: transparent; text-shadow: none; }
+.lipstick.closed .ls-body::after { content: "?"; font: 800 24px/1 Poppins, sans-serif; color: rgba(255,255,255,.35); }
+.lipstick.closed .ls-body b { position: absolute; }
+/* Revelar: entra girando y aparece el nombre */
+.lipstick.reveal { animation: ls-pull 1.1s cubic-bezier(.2,1.25,.4,1) both; }
+.lipstick.reveal .ls-body b { animation: ls-name .6s .9s both; }
+@keyframes ls-pull { from { opacity: 0; transform: translateY(70px) rotate(-60deg) scale(.6); } 60% { opacity: 1; } to { opacity: 1; transform: rotate(-8deg); } }
+@keyframes ls-name { from { opacity: 0; letter-spacing: 6px; } to { opacity: 1; letter-spacing: -.5px; } }
+.ls-pair, .ls-reveal { display: flex; justify-content: center; align-items: center; gap: 30px; flex-wrap: wrap; margin: 22px 0 12px; }
+.ls-pair .lipstick:nth-child(2) { transform: rotate(6deg); }
+.ls-reveal .lipstick { --lw: 300px; --lh: 70px; }
+.ls-reveal .lipstick .ls-body b { font-size: 32px; }
+.ls-reveal .lipstick .ls-body b.long { font-size: 24px; }
+.ls-reveal .lipstick .ls-body b.xlong { font-size: 19px; }
+.ls-name { font: 800 24px/1.1 Poppins, sans-serif; color: var(--ink, #3b0d4f); text-transform: uppercase; animation: ls-name .6s 1.3s both; }
+.ls-pick { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; margin: 16px 0; }
+.ls-choice { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 22px 18px 14px; border-radius: 22px; border: 2px solid transparent; background: rgba(255,255,255,.75); cursor: pointer; animation: ls-rise .6s calc(var(--i) * .12s) both; transition: transform .2s, border-color .2s, box-shadow .2s; font: inherit; }
+.ls-choice:hover, .ls-choice:focus-visible { transform: translateY(-6px); border-color: var(--pink, #ff3d9a); box-shadow: 0 16px 30px -14px rgba(255,61,154,.6); outline: none; }
+.ls-choice:hover .lipstick { transform: rotate(-3deg) scale(1.04); }
+.ls-choice .lipstick { transition: transform .25s; margin-bottom: 6px; }
+@keyframes ls-rise { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+.ls-face { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft, #6b4a7a); }
+.ls-face i { width: 30px; height: 30px; border-radius: 50%; background: center 20% / cover #eee; border: 2px solid #fff; }
+.ls-choice .as-tag { font-size: 11px; }
+body.portrait .ls-reveal .lipstick { --lw: 260px; --lh: 62px; }
+@media (prefers-reduced-motion: reduce) { .lipstick.reveal, .lipstick.reveal .ls-body b, .ls-name, .ls-choice { animation: none; } }
+.mp-reveal { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 2px dashed rgba(255,61,154,.25); }
+.mp-reveal .ls-reveal { margin: 8px 0; }
+.ls-name { color: var(--ink, #3b0d4f); }

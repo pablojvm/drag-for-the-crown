@@ -1,7 +1,7 @@
 // Pantallas de la temporada en directo (dentro de la pantalla del modo historia, con su propio flujo)
 import { Room } from "./room";
 import { carousel } from "../ui/carousel";
-import { DURACION, topeEpisodio, alivePlayers, aliveKeys, isP, idOf, pkey, type RoomState, type Engine, type Ritmo } from "./model";
+import { DURACION, IA_EXTRA, topeEpisodio, alivePlayers, aliveKeys, standings, ppeOf, isP, idOf, pkey, type RoomState, type Engine, type Ritmo } from "./model";
 
 const W = window as any;
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T | null;
@@ -48,7 +48,7 @@ const face = (s: RoomState, k: string, cls = "") => `<span class="mp-face ${cls}
 function header(s: RoomState | null) {
   const se = s ? W.seasonById(s.season) : null;
   $("#story-season")!.textContent = s ? `👯 Temporada en directo · ${se ? se.name : ""} · Sala ${s.code}` : "👯 Temporada en directo";
-  const title: Record<string, string> = { lobby: "Sala de espera", anuncio: `Episodio ${s?.ep}`, reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: "Lip sync for your life", track: "Track record", final: "Gran final", corona: "¡Tenemos ganadora!" };
+  const title: Record<string, string> = { lobby: "Sala de espera", anuncio: `Episodio ${s?.ep}`, reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && s.fmt === "allstars" ? "Lip sync por el poder" : "Lip sync for your life", decision: "Los pintalabios", pintalabios: "El pintalabios", track: "Track record", final: "Gran final", corona: "¡Tenemos ganadora!" };
   $("#story-ep")!.innerHTML = `${esc(s ? title[s.phase] : "Multijugador")} <span class="mp-timer" id="mp-timer"></span>`;
 }
 function tickTimer() {
@@ -66,6 +66,7 @@ function entry() {
   shell(true);
   header(null);
   const online = !!(W.DFTC_NET && W.DFTC_NET.enabled);
+  const iaOk = !!api().iaReady();
   body().innerHTML = `
     <div class="story-card mp-entry">
       <h3>Una temporada con tus amigas, a la vez</h3>
@@ -81,7 +82,7 @@ function entry() {
         <h4>O crea una sala: elige temporada</h4>
         <div class="car mp-car" id="mp-seasons" aria-roledescription="carrusel" aria-label="Temporadas">
           <button type="button" class="mode-arrow car-prev prev" aria-label="Temporada anterior">‹</button>
-          <div class="car-track mp-track">${seasons().map((se) => { const cover = (W.PORTADAS || {})[se.id]; return `<button type="button" class="mp-season" data-id="${se.id}" aria-label="${esc(se.name)}" style="${cover ? `background-image:url('${cover}')` : ""}"><span class="mps-top"><b>${esc(se.name)}</b><small>${se.year || ""}</small></span><span class="mps-faces">${(se.cast as string[]).slice(0, 7).map((id) => `<i style="background-image:url('${Q(id).photo}')"></i>`).join("")}</span><span class="mps-cast">${se.cast.length} reinas</span></button>`; }).join("")}</div>
+          <div class="car-track mp-track">${seasons().map((se) => { const cover = (W.PORTADAS || {})[se.id]; return `<button type="button" class="mp-season" data-id="${se.id}" aria-label="${esc(se.name)}" style="${cover ? `background-image:url('${cover}')` : ""}"><span class="mps-top"><b>${esc(se.name)}</b><small>${api().formato(se.id) === "allstars" ? "💄 Formato All Stars" : se.year || ""}</small></span><span class="mps-faces">${(se.cast as string[]).slice(0, 7).map((id) => `<i style="background-image:url('${Q(id).photo}')"></i>`).join("")}</span><span class="mps-cast">${se.cast.length} reinas</span></button>`; }).join("")}</div>
           <button type="button" class="mode-arrow car-next next" aria-label="Temporada siguiente">›</button>
           <div class="car-dots modes-dots" role="tablist"></div>
         </div>
@@ -91,6 +92,7 @@ function entry() {
           <button type="button" role="radio" data-r="rapido"><b>Rápido</b><small>${Math.round(topeEpisodio("rapido") / 60)} min por episodio</small></button>
           <button type="button" role="radio" data-r="libre"><b>Sin límite</b><small>Se espera a todas</small></button>
         </div>
+          ${iaOk ? `<label class="mp-ia"><input type="checkbox" id="mp-ia" ${W.store?.get("dftc-mp-ia", true) ? "checked" : ""}><span><b>✍️ Retos con IA</b><small>Cada una puede escribir sus frases (el reto dura más)</small></span></label>` : ""}
           <button class="btn btn-primary" id="mp-create">Crear sala</button>
         </div>
       </div>
@@ -102,52 +104,143 @@ function entry() {
   pickRitmo(["normal", "rapido", "libre"].includes(ritmo) ? ritmo : "normal");
   document.querySelectorAll<HTMLElement>(".mp-ritmo [data-r]").forEach((b) => (b.onclick = () => pickRitmo(b.dataset.r as Ritmo)));
   const seasonEls = document.querySelectorAll<HTMLElement>(".mp-season");
-  $("#mp-create")!.onclick = () => { room.create(nm(), seasonEls[Math.max(0, car.active)].dataset.id!, ritmo); };
+  $("#mp-create")!.onclick = () => {
+    const id = seasonEls[Math.max(0, car.active)].dataset.id!;
+    const ia = iaOk && !!($("#mp-ia") as HTMLInputElement | null)?.checked;
+    W.store?.set("dftc-mp-ia", ia);
+    room.create(nm(), id, ritmo, { fmt: api().formato(id), ia });
+  };
   $("#mp-join")!.onclick = () => { const c = ($("#mp-code") as HTMLInputElement).value.trim().toUpperCase(); if (c.length === 5) { room.join(c, nm()); body().innerHTML = `<div class="story-card"><h3>Entrando en la sala ${esc(c)}...</h3></div>`; } };
   const back = $("#mp-back"); if (back) back.onclick = exit;
 }
 
 // ---------------------------------- Con sala ----------------------------------
+const AS = (s: RoomState) => s.fmt === "allstars";
+const names = (s: RoomState, ks: string[]) => ks.map((k) => keyName(s, k)).join(", ").replace(/, ([^,]*)$/, " y $1");
+const SPEAKER: Record<string, string> = { Supremme: "host", "Supremme de Luxe": "host", "Ana Locking": "judge", "Javier Ambrossi": "ambrossi", "Javier Calvo": "calvo" };
+
+// Escenas con diálogo: se ven una vez por fase; si llega un estado nuevo en la misma fase, no se repiten
+let sceneKey = "";
+let sceneDone = "";
+function stage(s: RoomState, set: string, lines: [string, string][], after: () => void) {
+  const key = `${s.code}:${s.ep}:${s.phase}`;
+  if (sceneKey === key) { if (sceneDone === key) after(); return; } // diálogo en marcha: no se toca
+  if (sceneKey && sceneDone !== sceneKey) api().abort(); // cambió la fase a mitad de un diálogo
+  sceneKey = key;
+  sceneDone = "";
+  api().scene(set);
+  if (!lines.length) { sceneDone = key; return after(); }
+  api().talk(lines, () => { if (sceneKey !== key) return; sceneDone = key; const st = room.state; if (st) render(st); }, { reto: s.reto?.titulo || "" });
+}
+
 function render(s: RoomState) {
   header(s);
   const mine = s.players.find((p) => p.id === room.me);
+  // Si cambió la fase con un diálogo a medias, se cierra (deja de escuchar el teclado)
+  const curKey = `${s.code}:${s.ep}:${s.phase}`;
+  if (sceneKey && sceneKey !== curKey && sceneDone !== sceneKey && !playing) { api().abort(); sceneDone = sceneKey; }
   // Cambió la fase: si estaba jugando algo de otra fase, se corta
   if (playing && (playing.ep !== s.ep || playing.phase !== s.phase)) { api().abort(); playing = null; }
   if (s.phase !== "lobby" && !begun) {
     const q = mine?.queen || castOf(s.season)[0];
-    api().begin(q, s.season, castOf(s.season).filter((x) => x !== q));
+    api().begin(q, s.season, castOf(s.season).filter((x) => x !== q), { ia: !!s.ia });
     begun = true;
   }
   if (begun) api().setEp(s.ep, aliveKeys(s).map((k) => keyQueen(s, k)).filter((x) => x && x !== mine?.queen));
   const me = mine && mine.alive && mine.queen ? mine : null;
   const sub = s.subs[room.me] || {};
-  if (s.phase === "lobby") return lobby(s);
-  if (s.phase === "anuncio") return info(`<p class="eyebrow">Episodio ${s.ep}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Tope de este episodio: ${Math.round(topeEpisodio(s.ritmo) / 60)} minutos.`}</p>`);
+  if (s.phase === "lobby") { api().scene("werkroom"); return lobby(s); }
+  if (s.phase === "anuncio") {
+    const rv = revealOf(s);
+    const lines: [string, string][] = [...(rv ? [["host", `Antes de empezar... ${keyName(s, rv.by)}, ¿a quién habías elegido tú la semana pasada?`] as [string, string]] : []), ...api().announceLines(s.ep, s.season)];
+    if (s.reto!.cat) lines.push(["judge", `Y en la pasarela quiero veros con «${s.reto!.cat.n}». ${s.reto!.cat.d || ""}`.trim()]);
+    if (AS(s) && s.ep === 1) lines.push(["host", "Recordad: esto es un All Stars. Las dos mejores de cada semana harán un lip sync por el poder, y la ganadora decidirá cuál de las dos peores se va a casa."]);
+    return stage(s, "werkroom", lines, () => info(`${revealHTML(s)}<p class="eyebrow">Episodio ${s.ep}${AS(s) ? " · All Stars" : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Tope de este episodio: ${Math.round((topeEpisodio(s.ritmo) + (s.ia ? DURACION[s.ritmo].reto * (IA_EXTRA - 1) : 0)) / 60)} minutos.`}</p>`));
+  }
   if (s.phase === "reto") {
-    if (me && sub.reto == null && sub.final == null) return play(s, "reto", (el) => api().play(s.reto!.tipo, s.reto!.titulo, el, (raw: number) => {
-      const data = s.reto!.noRunway ? { reto: raw, final: api().finalScore(s.reto!.tipo, raw, null) } : { reto: raw };
+    api().scene("werkroom");
+    if (me && sub.reto == null && sub.final == null) return play(s, "reto", (el) => api().play(s.reto!.tipo, s.reto!.titulo, el, (raw: number, jury: string) => {
+      const data = s.reto!.noRunway ? { reto: raw, jury, final: api().finalScore(s.reto!.tipo, raw, null, !!jury) } : { reto: raw, jury };
       playing = null; room.submit(data);
     }));
     return waiting(s, "reto");
   }
   if (s.phase === "pasarela") {
+    api().scene("stage");
     if (me && sub.final == null) return play(s, "pasarela", (el) => api().runway(el, s.reto!.cat!.n, (walk: number) => {
-      const raw = (room.state!.subs[room.me] || {}).reto ?? 30;
-      playing = null; room.submit({ final: api().finalScore(s.reto!.tipo, raw, walk) });
+      const mineSub = room.state!.subs[room.me] || {};
+      const raw = mineSub.reto ?? 30;
+      playing = null; room.submit({ final: api().finalScore(s.reto!.tipo, raw, walk, !!mineSub.jury) });
     }));
     return waiting(s, "pasarela");
   }
-  if (s.phase === "resultados") return info(`<p class="eyebrow">Supremme tiene algo que deciros</p><div class="mp-crit">${(s.crit || []).map((c) => `<div class="mp-crit-row">${face(s, c.key)}<div>${c.lines.map(([who, t]) => `<p><b>${esc(who)}:</b> ${esc(t)}</p>`).join("")}</div></div>`).join("")}</div>`);
-  if (s.phase === "untucked") return untucked(s);
+  if (s.phase === "resultados") {
+    const lines: [string, string][] = [["host", pick(["Reinas, ha llegado el momento de las críticas.", "Vamos con las valoraciones del jurado.", "Señoritas, el jurado tiene mucho que decir."])]];
+    (s.crit || []).forEach((c) => c.lines.forEach(([who, t]) => lines.push([SPEAKER[who] || "host", t])));
+    return stage(s, "panel", lines, () => info(`<p class="eyebrow">Las críticas del jurado</p><div class="mp-crit">${(s.crit || []).map((c) => `<div class="mp-crit-row">${face(s, c.key)}<div>${c.lines.map(([who, t]) => `<p><b>${esc(who)}:</b> ${esc(t)}</p>`).join("")}</div></div>`).join("")}</div>`));
+  }
+  if (s.phase === "untucked") { api().scene("lounge"); return untucked(s); }
   if (s.phase === "veredicto") {
     const rows = s.rows || [];
+    const of = (l: string) => rows.filter((x) => x.label === l).map((x) => x.key);
+    const lines: [string, string][] = AS(s)
+      ? [["host", `${names(s, of("TOP2"))}: sois las dos mejores de la semana. ¡Os vais a jugar el poder en un lip sync!`], ["host", `${names(s, of("BTM2"))}: lo siento, estáis en el bottom. Una de vosotras se irá a casa.`]]
+      : [["host", `${names(s, of("WIN"))}, ¡enhorabuena, has ganado el reto!`], ["host", `${names(s, of("BTM2"))}: es la hora de que hagáis el lip sync for your life.`]];
     const grp = (labs: string[], t: string, cls: string) => { const r = rows.filter((x) => labs.includes(x.label)); return r.length ? `<div class="v-row ${cls}"><b>${t}</b><div class="call-faces">${r.map((x) => face(s, x.key)).join("")}</div></div>` : ""; };
-    return info(`<p class="eyebrow">Las decisiones del jurado</p><div class="verdict">${grp(["WIN"], "👑 Ganadora del reto", "win")}${grp(["HIGH"], "✨ Buen trabajo, estáis a salvo", "high")}${grp(["SAFE"], "🙂 A salvo", "high")}${grp(["LOW"], "😬 A salvo... por los pelos", "low")}${grp(["BTM2"], "💔 Bottom: lip sync for your life", "btm")}</div>`);
+    return stage(s, "panel", lines, () => info(`<p class="eyebrow">Las decisiones del jurado</p><div class="verdict">${AS(s) ? grp(["TOP2"], "💄 Top 2: lip sync por el poder", "win") : grp(["WIN"], "👑 Ganadora del reto", "win")}${grp(["HIGH"], "✨ Buen trabajo, estáis a salvo", "high")}${grp(["SAFE"], "🙂 A salvo", "high")}${grp(["LOW"], "😬 A salvo... por los pelos", "low")}${grp(["BTM2"], AS(s) ? "💔 Bottom: una se irá con el pintalabios" : "💔 Bottom: lip sync for your life", "btm")}</div>`));
   }
-  if (s.phase === "lipsync" || s.phase === "final") return lipsync(s, me ? pkey(me.id) : null);
-  if (s.phase === "track") return info(`${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${track(s)}`);
-  if (s.phase === "corona") return info(`<p class="eyebrow">Gran final</p><h3>👑 ${esc(keyName(s, s.champion!))}${keyPlayer(s, s.champion!) ? ` (${esc(keyPlayer(s, s.champion!))})` : ""}, ¡eres la ganadora!</h3>${track(s)}<button class="btn btn-primary" id="mp-exit2">Salir</button>`, () => { $("#mp-exit2")!.onclick = exit; });
+  if (s.phase === "lipsync" || s.phase === "final") { api().scene("stage"); return lipsync(s, me ? pkey(me.id) : null); }
+  if (s.phase === "decision") return decision(s);
+  if (s.phase === "pintalabios") return lipstickReveal(s);
+  if (s.phase === "track") return stage(s, "werkroom", [], () => info(`${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}<h3>Track record</h3>${track(s)}`));
+  if (s.phase === "corona") { api().scene("stage"); return info(`<p class="eyebrow">Gran final</p><h3>👑 ${esc(keyName(s, s.champion!))}${keyPlayer(s, s.champion!) ? ` (${esc(keyPlayer(s, s.champion!))})` : ""}, ¡eres la ganadora!</h3>${track(s)}<button class="btn btn-primary" id="mp-exit2">Salir</button>`, () => { $("#mp-exit2")!.onclick = exit; }); }
 }
+const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+
+// All Stars: pintalabios (tubo dorado con el nombre de la elegida)
+const lipstick = (name: string, cls = "") => `<div class="lipstick ${cls}" role="img" aria-label="Pintalabios: ${esc(name)}"><span class="ls-cap"></span><span class="ls-band"></span><span class="ls-body"><b class="${name.length > 15 ? "xlong" : name.length > 10 ? "long" : ""}">${esc(name)}</b></span></div>`;
+// Antes del lip sync: las dos del top eligen en secreto
+function decision(s: RoomState) {
+  const d = s.decision!;
+  const mineKey = pkey(room.me);
+  const sc = (k: string) => (s.rows || []).find((r) => r.key === k)?.score ?? 0;
+  const ppeTxt = (k: string) => ppeOf(s, k).toFixed(2).replace(".", ",");
+  const worst = d.options.slice().sort((a, b) => sc(a) - sc(b))[0];
+  const mePick = d.top.includes(mineKey) && !(s.subs[room.me] || {}).elim;
+  const lines: [string, string][] = [["host", `${names(s, d.top)}: antes del lip sync, cada una tiene dos pintalabios. Uno con el nombre de ${keyName(s, d.options[0])} y otro con el de ${keyName(s, d.options[1] || d.options[0])}.`], ["host", "Elegid en secreto a quién mandaríais a casa. La que gane el lip sync sacará el suyo."]];
+  return stage(s, "panel", lines, () => {
+    if (mePick) {
+      return info(`<p class="eyebrow">💄 Elige tu pintalabios</p><h3>Si ganas el lip sync, ¿a quién mandas a casa?</h3><p>Tu rival también elige el suyo en secreto. Puedes mirar la semana, la temporada... o hacer la jugarreta.</p>
+        <div class="ls-pick">${d.options.map((k, i) => `<button class="ls-choice" style="--i:${i}" data-k="${esc(k)}">${lipstick(keyName(s, k))}<span class="ls-face"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i>${keyPlayer(s, k) ? esc(keyPlayer(s, k)) : ""}</span><em class="as-tag ${k === worst ? "worst" : "ok"}">${k === worst ? "📉 La peor esta semana" : "Mejor esta semana"}</em><em class="as-tag ok">📈 PPE ${ppeTxt(k)}</em></button>`).join("")}</div>
+        <details class="mp-track-peek"><summary>📊 Ver track record</summary>${track(s)}</details>`, () => {
+        document.querySelectorAll<HTMLElement>(".ls-choice[data-k]").forEach((b) => (b.onclick = () => { room.submit({ elim: b.dataset.k! }); info(`<p class="eyebrow">💄 Pintalabios guardado</p><h3>Si ganas, se va ${esc(keyName(s, b.dataset.k!))}</h3><p class="muted">Esperando a que tu rival elija el suyo...</p>`); }));
+      });
+    }
+    const done = d.top.filter((k) => !isP(k) || (s.subs[idOf(k)] || {}).elim != null);
+    info(`<p class="eyebrow">💄 Los pintalabios</p><h3>${esc(names(s, d.top))} eligen en secreto</h3><div class="ls-pair">${d.options.map((k) => lipstick(keyName(s, k), "closed")).join("")}</div><div class="call-faces">${d.top.map((k) => face(s, k, done.includes(k) ? "ok" : "wait")).join("")}</div>${d.top.some(isP) ? skipBtn(s) : ""}`);
+  });
+}
+// Después del lip sync: la ganadora saca su pintalabios
+function lipstickReveal(s: RoomState) {
+  const d = s.decision!;
+  if (!d.by || !d.go) return info(`<p class="muted">...</p>`);
+  const go: string = d.go, by: string = d.by;
+  const stay = d.options.find((k) => k !== go) || go;
+  const me = by === pkey(room.me);
+  const ppeTxt = (k: string) => ppeOf(s, k).toFixed(2).replace(".", ",");
+  const why = d.kind === "semana" ? "Ha mandado a casa a la peor de la semana." : d.kind === "trayectoria" ? `Ha mirado toda la temporada: ${keyName(s, stay)} (PPE ${ppeTxt(stay)}) iba mejor que ${keyName(s, go)} (PPE ${ppeTxt(go)}).` : `😈 Jugarreta: ${keyName(s, go)} lo hizo mejor esta semana y lleva igual o mejor temporada.`;
+  return stage(s, "panel", [["host", me ? "¡Has ganado el lip sync! Saca tu pintalabios..." : `${keyName(s, by)}, has ganado el lip sync. Saca tu pintalabios...`]], () =>
+    info(`<p class="eyebrow">💄 ${me ? "Tu pintalabios" : `El pintalabios de ${esc(keyName(s, by))}`}</p><div class="ls-reveal">${lipstick(keyName(s, go), "reveal")}</div><p class="ls-name">${esc(keyName(s, go))}, sashay away</p><div class="mp-vs">${face(s, stay)}<span>💄</span>${face(s, go, "gone")}</div><p class="${d.kind === "jugarreta" ? "twist-note" : "muted"}">${esc(why)}</p>`));
+}
+// Al empezar el episodio siguiente: el pintalabios de la que perdió el lip sync
+const revealOf = (s: RoomState) => (s.reveal && s.reveal.ep === s.ep - 1 ? s.reveal : null);
+const revealHTML = (s: RoomState) => {
+  const r = revealOf(s);
+  if (!r) return "";
+  const me = r.by === pkey(room.me);
+  const same = r.go === r.went;
+  return `<div class="mp-reveal"><p class="eyebrow">💄 Lo que no se vio</p><div class="ls-reveal">${lipstick(keyName(s, r.go), "reveal")}</div><p>${me ? "Tu pintalabios" : `El pintalabios de <b>${esc(keyName(s, r.by))}</b>`} decía <b>«${esc(keyName(s, r.go))}»</b>. ${same ? "Las dos habían elegido a la misma reina." : `Si ${me ? "hubieras" : "hubiera"} ganado, se habría ido ${esc(keyName(s, r.go))} en lugar de ${esc(keyName(s, r.went))}.`}</p></div>`;
+};
 
 // Sin límite: solo la anfitriona puede seguir sin las que faltan (por si alguien se ha ido)
 const skipBtn = (s: RoomState) => (s.ritmo === "libre" && room.isHost ? `<button class="btn btn-ghost" id="mp-skip">Seguir sin las que faltan</button>` : "");
@@ -186,18 +279,22 @@ function lipsync(s: RoomState, myKey: string | null) {
   const mine = myKey ? pairs.find((p) => (p.a === myKey || p.b === myKey) && !p.winner) : null;
   if (mine && !(s.subs[room.me] || {}).ls) {
     const rivalKey = mine.a === myKey ? mine.b : mine.a;
-    return play(s, s.phase, (el) => api().lipsync(el, keyQueen(s, rivalKey), (won: boolean, score: number) => { playing = null; room.submit({ ls: { won, score } }); }));
+    const o = s.phase === "final"
+      ? { eyebrow: s.finalStage === 2 ? "👑 Lip sync por la corona" : "Gran final · semifinal", curtain: s.finalStage === 2 ? "LIP SYNC POR LA CORONA" : "LIP SYNC", note: "" }
+      : AS(s) ? { eyebrow: "💄 Lip sync por el poder", curtain: "LIP SYNC POR EL PODER", note: "La que gane se lleva el reto y saca su pintalabios." }
+      : { eyebrow: "💔 Lip sync for your life", curtain: "LIP SYNC FOR YOUR LIFE", note: "La que pierda se va a casa." };
+    return play(s, s.phase, (el) => api().lipsyncShow(el, keyQueen(s, rivalKey), o, (won: boolean, score: number) => { playing = null; room.submit({ ls: { won, score } }); }));
   }
-  info(`<p class="eyebrow">${s.phase === "final" ? (s.finalStage === 2 ? "👑 Lip sync por la corona" : "Gran final · semifinales") : "Lip sync for your life"}</p>${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${pairs.map((p) => `<div class="mp-vs">${face(s, p.a)}<span>VS</span>${face(s, p.b)}</div>`).join("")}<p class="muted">${pairs.some((p) => isP(p.a) || isP(p.b)) ? "Las jugadoras del lip sync están bailando..." : "Las reinas lo dan todo en el escenario..."}</p>${pairs.some((p) => isP(p.a) || isP(p.b)) ? skipBtn(s) : ""}`);
+  info(`${s.phase === "final" && s.finalStage === 1 ? revealHTML(s) : ""}<p class="eyebrow">${s.phase === "final" ? (s.finalStage === 2 ? "👑 Lip sync por la corona" : "Gran final · semifinales") : AS(s) ? "💄 Lip sync por el poder" : "Lip sync for your life"}</p>${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${pairs.map((p) => `<div class="mp-vs">${face(s, p.a)}<span>VS</span>${face(s, p.b)}</div>`).join("")}<p class="muted">${pairs.some((p) => isP(p.a) || isP(p.b)) ? "Las jugadoras del lip sync están bailando..." : "Las reinas lo dan todo en el escenario..."}</p>${pairs.some((p) => isP(p.a) || isP(p.b)) ? skipBtn(s) : ""}`);
 }
 function track(s: RoomState) {
   const eps = Object.keys(s.epNames).map(Number).sort((a, b) => a - b);
-  const all = [...aliveKeys(s), ...s.out.slice().reverse().map((o) => o.key)];
-  const cls = (l: string) => ({ WIN: "t-win", WINNER: "t-win", HIGH: "t-high", SAFE: "t-safe", LOW: "t-low", BTM2: "t-btm", ELIM: "t-elim", "RUNNER-UP": "t-runner", "3ª": "t-third" } as Record<string, string>)[l] || "t-none";
-  const lab = (l: string) => ({ WINNER: "GANADORA", "RUNNER-UP": "FINALISTA", ELIM: "ELIM" } as Record<string, string>)[l] || l;
-  const place = (k: string, i: number) => s.out.find((o) => o.key === k)?.place || (s.champion === k ? "1º" : `${i + 1}º`);
-  return `<div class="track-wrap"><table class="track"><thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(s.epNames[e])}</small></th>`).join("")}</tr></thead><tbody>${all
-    .map((k, i) => `<tr class="${k === pkey(room.me) ? "me" : ""} ${s.out.some((o) => o.key === k) ? "out" : ""}"><td class="rk">${esc(place(k, i))}</td><td class="qn"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(keyName(s, k))}${keyPlayer(s, k) ? ` <b>(${esc(keyPlayer(s, k))})</b>` : ""}</span></td>${eps.map((e) => { const l = (s.track[k] || {})[e]; return `<td class="${l ? cls(l) : "t-none"}">${l ? lab(l) : ""}</td>`; }).join("")}</tr>`)
+  const rows = standings(s);
+  const cls = (l: string) => ({ WIN: "t-win", WINNER: "t-win", TOP2: "t-top2", HIGH: "t-high", SAFE: "t-safe", LOW: "t-low", BTM2: "t-btm", ELIM: "t-elim", "RUNNER-UP": "t-runner", "3ª": "t-third" } as Record<string, string>)[l] || "t-none";
+  const lab = (l: string) => ({ WINNER: "GANADORA", "RUNNER-UP": "FINALISTA", "3ª": "3ª/4ª" } as Record<string, string>)[l] || l;
+  const lastEp = (k: string) => Math.max(0, ...eps.filter((e) => (s.track[k] || {})[e]));
+  return `<div class="track-wrap"><table class="track"><thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(s.epNames[e])}</small></th>`).join("")}<th>PPE</th></tr></thead><tbody>${rows
+    .map((r, i) => { const k = r.key; return `<tr class="${k === pkey(room.me) ? "me" : ""} ${r.out ? "out" : ""}" style="--i:${i}"><td class="rk">${esc(r.place)}</td><td class="qn"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(keyName(s, k))}${keyPlayer(s, k) ? ` <b>(${esc(keyPlayer(s, k))})</b>` : ""}</span></td>${eps.map((e) => { const l = (s.track[k] || {})[e]; return `<td class="${l ? cls(l) : r.out && e > lastEp(k) ? "t-gone" : "t-none"}">${l ? lab(l) : ""}</td>`; }).join("")}<td class="ppe">${Object.keys(s.track[k] || {}).length ? ppeOf(s, k).toFixed(2) : "–"}</td></tr>`; })
     .join("")}</tbody></table></div>`;
 }
 function lobby(s: RoomState) {
@@ -231,6 +328,8 @@ function exit() {
   if (begun) api().end();
   begun = false;
   chatLog = [];
+  sceneKey = sceneDone = "";
+  api().scene(null);
   clearInterval(timer);
   shell(false);
   $("#screen-story")!.classList.remove("mp");

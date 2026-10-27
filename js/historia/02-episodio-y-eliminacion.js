@@ -1337,7 +1337,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     setSet("stage");
     const meBottom = bottomRows.some((r) => r.me);
     const others = bottomRows.filter((r) => !r.me).map((r) => r.q);
-    if (twistOf() === "allstars") return topLipSync(top2, (dec) => allStarsDecision(dec, bottomRows));
+    // All Stars: antes del lip sync, cada una del top 2 elige en secreto su pintalabios; la ganadora lo saca
+    if (twistOf() === "allstars") return asPicks(top2, bottomRows, (picks) => topLipSync(top2, (dec) => asReveal(dec, top2, picks, bottomRows)));
     if (twistOf() === "winners") return topLipSync(top2, (dec) => winnersStar(dec, top2));
     // Segunda Oportunidrag: con siete reinas se van dos de golpe... y vuelve una por sorpresa
     if (repescaNow()) return tripleLipSync(bottomRows, winner, rows);
@@ -1405,7 +1406,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
               S.lipsyncs++;
               S.points += 1000;
               if (S.lipsyncs >= 3) Achievements.unlock("superviviente");
-              Toast.show("💄 ¡Has ganado el lip sync!", "Tienes el poder de decidir");
+              Toast.show("💄 ¡Has ganado el lip sync!", twistOf() === "allstars" ? "Saca tu pintalabios" : "Tienes el poder de decidir");
               mark(S.queen, winLab(S.queen));
               meWonReto();
               if (S.rivals.length + 1 === 5 && twistOf() !== "winners") S.flags.pase = "me";
@@ -1413,7 +1414,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
               earn(300, "Ganas el reto de la semana");
               return then({ q: S.queen, me: true });
             }
-            Toast.show(`💄 ${rival.name} gana el lip sync`, "Ella decide");
+            Toast.show(`💄 ${rival.name} gana el lip sync`, twistOf() === "allstars" ? "Ella saca su pintalabios" : "Ella decide");
             mark(rival, winLab(rival));
             if (S.rivals.length + 1 === 5 && twistOf() !== "winners") S.flags.pase = rival.id;
             then({ q: rival });
@@ -1431,7 +1432,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         <h3>${esc(w.name)} vs ${esc(l.name)}</h3>
         <p class="muted">${esc(fill(pickFresh(HISTORIA.lipsyncOtras), { a: w.name, b: l.name }))}</p>
         <div class="vs"><img src="${photo(w)}">${vsMid("👑")}<img src="${photo(l)}"></div>
-        <p><b>${esc(w.name)}</b> ${twistOf() === "winners" ? "gana el lip sync y el bloqueo. Las dos se llevan estrella ⭐ (si no están bloqueadas)." : "gana y tiene el pintalabios: decide quién se va."}</p>
+        <p><b>${esc(w.name)}</b> ${twistOf() === "winners" ? "gana el lip sync y el bloqueo. Las dos se llevan estrella ⭐ (si no están bloqueadas)." : "gana el lip sync: va a sacar su pintalabios."}</p>
         <button class="btn btn-primary" id="story-next">Continuar</button>
       </div>`;
     mark(w, winLab(w));
@@ -1491,62 +1492,11 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     }
     return { lines, ctx: { ...ctxWith(witnesses[0] || pick1(S.rivals), { r2: witnesses[1] || witnesses[0] }), q: { r1: witnesses[0], r2: witnesses[1] || witnesses[0] }, tension: !fair } };
   }
-  function allStarsDecision(winner, bottomRows) {
+  // Pintalabios de una reina del juego: mira la semana y la temporada (y a veces hace estrategia)
+  function npcLipstick(dec, bottomRows) {
     const pair = bottomRows.map((r) => r.q);
     const sOf = (q) => (bottomRows.find((r) => r.q === q) || {}).s || 0;
-    const worst = sOf(pair[0]) <= sOf(pair[1]) ? pair[0] : pair[1];
     const strong = asStrength(pair[0]) >= asStrength(pair[1]) ? pair[0] : pair[1];
-    const bestPPE = asPPE(pair[0]) >= asPPE(pair[1]) ? pair[0] : pair[1];
-    if (winner.me) {
-      const tags = (q) => [q === worst ? `<em class="as-tag worst">📉 La peor esta semana</em>` : `<em class="as-tag ok">Mejor esta semana</em>`, `<em class="as-tag ${q === bestPPE ? "ok" : "worst"}">📈 Temporada: PPE ${ppeTxt(q)}</em>`, q === strong && strong !== worst ? `<em class="as-tag strong">⚠️ Rival fuerte</em>` : ""].join("");
-      body().innerHTML = `
-        <div class="story-card">
-          <p class="eyebrow">💄 Has ganado: tú decides</p>
-          <h3>¿A quién mandas a casa?</h3>
-          <p>Puedes mirar solo esta semana, tener en cuenta toda su temporada (y no castigar a nadie por un mal día)... o hacer la jugarreta y quitarte de en medio a una rival fuerte. El taller lo va a comentar.</p>
-          <div class="hub-grid two">${pair
-            .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${tags(q)}</button>`)
-            .join("")}</div>
-          ${trackBtn()}
-        </div>`;
-      bindTrack();
-      body().querySelectorAll("[data-id]").forEach((b) =>
-        b.addEventListener("click", () => {
-          const go = qById(b.dataset.id), stay = pair.find((x) => x !== go);
-          changeRel(stay, 2);
-          S.rivals.filter((r) => relOf(r) >= 1 && Math.random() < 0.4 && r !== stay).slice(0, 1).forEach((r) => changeRel(r, -1));
-          const kind = asKind(go, stay, sOf);
-          const goWasWorst = kind !== "jugarreta";
-          remember(stay, "salvada", kind !== "semana");
-          nemEvent("vote", S.queen, go);
-          nemEvent("save", S.queen, stay);
-          eliminate(go);
-          // Jugarreta: el taller lo nota (fama de mala y alguna se enfría contigo)
-          if (!goWasWorst) Achievements.unlock("villana-as");
-          else { S.flags.fairAS = (S.flags.fairAS || 0) + 1; if (S.flags.fairAS >= 3) Achievements.unlock("juez-justa"); }
-          if (!goWasWorst) { persona("mean", 1); S.rivals.filter((r) => r !== stay && Math.random() < 0.35).slice(0, 2).forEach((r) => changeRel(r, -1)); }
-          else persona("kind", 0.5);
-          logEv(kind === "semana" ? `${S.queen.name} gana y manda a casa a ${go.name}, la peor de la semana: decisión justa` : kind === "trayectoria" ? `${S.queen.name} gana y manda a casa a ${go.name}: esta semana lo hizo algo mejor que ${stay.name}, pero ${stay.name} lleva mejor temporada. Valora la trayectoria y no castiga un mal día` : `${S.queen.name} gana y hace la jugarreta: manda a casa a ${go.name}, que lo hizo mejor que ${stay.name} y lleva igual o mejor temporada, para quitarse una rival fuerte`);
-          return dialog(pickFresh(goWasWorst ? MEMORIA.despedida.justa : MEMORIA.despedida.injusta), { ...ctxWith(go), q: { r1: go }, r1: go.name, tension: true }, () =>
-            asReactions(S.queen, go, stay, kind).then(({ lines, ctx }) => dialog(lines, ctx, () => showASResult(go, stay, kind))));
-        }),
-      );
-      return;
-      function showASResult(go, stay, kind) {
-          header();
-          body().innerHTML = `
-            <div class="story-card">
-              <p class="eyebrow">El pintalabios ha hablado</p>
-              <h3>${esc(go.name)}, sashay away</h3>
-              <div class="vs"><img src="${photo(stay)}"><span>💄</span><img class="gone" src="${photo(go)}"></div>
-              <p>Has salvado a <b>${esc(stay.name)}</b>.</p>
-              ${kind === "trayectoria" ? `<p class="muted">Has mirado toda la temporada: ${esc(stay.name)} (PPE ${ppeTxt(stay)}) iba mejor que ${esc(go.name)} (PPE ${ppeTxt(go)}).</p>` : kind === "jugarreta" ? `<p class="twist-note">😈 Jugarreta: ${esc(go.name)} lo hizo mejor esta semana y lleva igual o mejor temporada.</p>` : ""}
-              <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
-            </div>`;
-          endEpisodeBtn();
-      }
-    }
-    const dec = winner.q;
     const meIn = pair.includes(S.queen);
     let go;
     if (meIn) {
@@ -1564,6 +1514,145 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       go = schemer && strong !== deserved ? strong : deserved;
       if (Math.abs(groupAff(dec, pair[0]) - groupAff(dec, pair[1])) >= 2) go = groupAff(dec, pair[0]) > groupAff(dec, pair[1]) ? pair[1] : pair[0];
     }
+    return go;
+  }
+  // Pintalabios: tubo con el nombre de la elegida
+  const lipstickHTML = (name, cls = "") => `<div class="lipstick ${cls}" role="img" aria-label="Pintalabios: ${esc(name)}"><span class="ls-cap"></span><span class="ls-band"></span><span class="ls-body"><b class="${name.length > 15 ? "xlong" : name.length > 10 ? "long" : ""}">${esc(name)}</b></span></div>`;
+  const nmOf = (q) => (q === S.queen ? S.queen.name : q.name);
+  // Antes del lip sync, las dos del top eligen en secreto a quién mandarían a casa
+  function asPicks(top2, bottomRows, then) {
+    const pair = bottomRows.map((r) => r.q);
+    const picks = {};
+    top2.filter((r) => !r.me).forEach((r) => (picks[keyOf(r.q)] = npcLipstick(r.q, bottomRows)));
+    const meTop = top2.some((r) => r.me);
+    header();
+    if (!meTop) {
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💄 Los pintalabios</p>
+          <h3>${esc(top2.map((r) => nmOf(r.q)).join(" y "))} eligen en secreto</h3>
+          <p>Cada una tiene dos pintalabios, uno con el nombre de ${esc(pair.map(nmOf).join(" y otro con el de "))}. Guardan el suyo... y la que gane el lip sync lo sacará.</p>
+          <div class="ls-pair">${pair.map((q) => lipstickHTML(nmOf(q), "closed")).join("")}</div>
+          <button class="btn btn-primary" id="story-next">Al lip sync</button>
+        </div>`;
+      return $("#story-next").addEventListener("click", () => then(picks));
+    }
+    const sOf = (q) => (bottomRows.find((r) => r.q === q) || {}).s || 0;
+    const worst = sOf(pair[0]) <= sOf(pair[1]) ? pair[0] : pair[1];
+    const strong = asStrength(pair[0]) >= asStrength(pair[1]) ? pair[0] : pair[1];
+    const bestPPE = asPPE(pair[0]) >= asPPE(pair[1]) ? pair[0] : pair[1];
+    const tags = (q) => [q === worst ? `<em class="as-tag worst">📉 La peor esta semana</em>` : `<em class="as-tag ok">Mejor esta semana</em>`, `<em class="as-tag ${q === bestPPE ? "ok" : "worst"}">📈 Temporada: PPE ${ppeTxt(q)}</em>`, q === strong && strong !== worst ? `<em class="as-tag strong">⚠️ Rival fuerte</em>` : ""].join("");
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">💄 Elige tu pintalabios</p>
+        <h3>Si ganas el lip sync, ¿a quién mandas a casa?</h3>
+        <p>Tu rival también elige el suyo en secreto. La que gane el lip sync lo sacará y esa reina se irá. Puedes mirar la semana, la temporada... o hacer la jugarreta.</p>
+        <div class="ls-pick">${pair.map((q, i) => `<button class="ls-choice" style="--i:${i}" data-id="${q.id}">${lipstickHTML(nmOf(q))}<span class="ls-face"><i style="background-image:url('${photo(q)}')"></i>${relLabel(q)}</span>${tags(q)}</button>`).join("")}</div>
+        ${trackBtn()}
+      </div>`;
+    bindTrack();
+    body().querySelectorAll(".ls-choice").forEach((b) => b.addEventListener("click", () => {
+      picks.me = qById(b.dataset.id);
+      Toast.show("💄 Pintalabios guardado", `Si ganas, se va ${picks.me.name}`);
+      then(picks);
+    }));
+  }
+  // Tras el lip sync: la ganadora saca su pintalabios. El de la otra se verá al empezar el siguiente episodio
+  function asReveal(dec, top2, picks, bottomRows) {
+    const decQ = dec.me ? S.queen : dec.q;
+    const loser = top2.map((r) => r.q).find((q) => q !== decQ);
+    const go = picks[keyOf(decQ)] || npcLipstick(decQ, bottomRows);
+    const lgo = loser && (picks[keyOf(loser)] || npcLipstick(loser, bottomRows));
+    if (loser && lgo) S.asPending = { ep: S.ep, by: keyOf(loser), go: keyOf(lgo), went: keyOf(go) };
+    header();
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">💄 El pintalabios</p>
+        <h3>${dec.me ? "Saca tu pintalabios..." : `${esc(decQ.name)} saca su pintalabios...`}</h3>
+        <div class="ls-reveal">${lipstickHTML(nmOf(go), "reveal")}</div>
+        <p class="ls-name">«${esc(nmOf(go))}»</p>
+        <button class="btn btn-primary" id="story-next">Continuar</button>
+      </div>`;
+    Music.sfx && Music.sfx("whoosh");
+    $("#story-next").addEventListener("click", () => allStarsDecision(dec, bottomRows, go));
+  }
+  // Al empezar el episodio siguiente se ve qué pintalabios había elegido la que perdió el lip sync
+  function revealPendingLipstick(then) {
+    const P = S.asPending;
+    S.asPending = null;
+    const nm = (k) => (k === "me" ? S.queen.name : (qById(k) || {}).name || "");
+    const by = P.by === "me" ? "Tu pintalabios" : `El pintalabios de ${nm(P.by)}`;
+    const same = P.go === P.went;
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">💄 Lo que no se vio</p>
+        <h3>${P.by === "me" ? "¿A quién habías elegido tú?" : `¿A quién había elegido ${esc(nm(P.by))}?`}</h3>
+        <div class="ls-reveal">${lipstickHTML(nm(P.go), "reveal")}</div>
+        <p>${esc(by)} decía <b>«${esc(nm(P.go))}»</b>. ${same ? "Las dos habían elegido a la misma reina." : P.go === "me" ? "Si hubiera ganado ella, te habrías ido tú." : `Si ${P.by === "me" ? "hubieras" : "hubiera"} ganado, se habría ido ${esc(nm(P.go))} en lugar de ${esc(nm(P.went))}.`}</p>
+        <button class="btn btn-primary" id="story-next">Continuar</button>
+      </div>`;
+    save();
+    $("#story-next").addEventListener("click", then);
+  }
+  function allStarsDecision(winner, bottomRows, preGo) {
+    const pair = bottomRows.map((r) => r.q);
+    const sOf = (q) => (bottomRows.find((r) => r.q === q) || {}).s || 0;
+    const worst = sOf(pair[0]) <= sOf(pair[1]) ? pair[0] : pair[1];
+    const strong = asStrength(pair[0]) >= asStrength(pair[1]) ? pair[0] : pair[1];
+    const bestPPE = asPPE(pair[0]) >= asPPE(pair[1]) ? pair[0] : pair[1];
+    if (winner.me) {
+      // Ya eligió su pintalabios antes del lip sync: se aplica sin volver a preguntar
+      if (preGo) return decideMe(preGo);
+      const tags = (q) => [q === worst ? `<em class="as-tag worst">📉 La peor esta semana</em>` : `<em class="as-tag ok">Mejor esta semana</em>`, `<em class="as-tag ${q === bestPPE ? "ok" : "worst"}">📈 Temporada: PPE ${ppeTxt(q)}</em>`, q === strong && strong !== worst ? `<em class="as-tag strong">⚠️ Rival fuerte</em>` : ""].join("");
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💄 Has ganado: tú decides</p>
+          <h3>¿A quién mandas a casa?</h3>
+          <p>Puedes mirar solo esta semana, tener en cuenta toda su temporada (y no castigar a nadie por un mal día)... o hacer la jugarreta y quitarte de en medio a una rival fuerte. El taller lo va a comentar.</p>
+          <div class="hub-grid two">${pair
+            .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${tags(q)}</button>`)
+            .join("")}</div>
+          ${trackBtn()}
+        </div>`;
+      bindTrack();
+      body().querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => decideMe(qById(b.dataset.id))));
+      return;
+      function decideMe(go) {
+          const stay = pair.find((x) => x !== go);
+          changeRel(stay, 2);
+          S.rivals.filter((r) => relOf(r) >= 1 && Math.random() < 0.4 && r !== stay).slice(0, 1).forEach((r) => changeRel(r, -1));
+          const kind = asKind(go, stay, sOf);
+          const goWasWorst = kind !== "jugarreta";
+          remember(stay, "salvada", kind !== "semana");
+          nemEvent("vote", S.queen, go);
+          nemEvent("save", S.queen, stay);
+          eliminate(go);
+          // Jugarreta: el taller lo nota (fama de mala y alguna se enfría contigo)
+          if (!goWasWorst) Achievements.unlock("villana-as");
+          else { S.flags.fairAS = (S.flags.fairAS || 0) + 1; if (S.flags.fairAS >= 3) Achievements.unlock("juez-justa"); }
+          if (!goWasWorst) { persona("mean", 1); S.rivals.filter((r) => r !== stay && Math.random() < 0.35).slice(0, 2).forEach((r) => changeRel(r, -1)); }
+          else persona("kind", 0.5);
+          logEv(kind === "semana" ? `${S.queen.name} gana y manda a casa a ${go.name}, la peor de la semana: decisión justa` : kind === "trayectoria" ? `${S.queen.name} gana y manda a casa a ${go.name}: esta semana lo hizo algo mejor que ${stay.name}, pero ${stay.name} lleva mejor temporada. Valora la trayectoria y no castiga un mal día` : `${S.queen.name} gana y hace la jugarreta: manda a casa a ${go.name}, que lo hizo mejor que ${stay.name} y lleva igual o mejor temporada, para quitarse una rival fuerte`);
+          return dialog(pickFresh(goWasWorst ? MEMORIA.despedida.justa : MEMORIA.despedida.injusta), { ...ctxWith(go), q: { r1: go }, r1: go.name, tension: true }, () =>
+            asReactions(S.queen, go, stay, kind).then(({ lines, ctx }) => dialog(lines, ctx, () => showASResult(go, stay, kind))));
+      }
+      function showASResult(go, stay, kind) {
+          header();
+          body().innerHTML = `
+            <div class="story-card">
+              <p class="eyebrow">El pintalabios ha hablado</p>
+              <h3>${esc(go.name)}, sashay away</h3>
+              <div class="vs"><img src="${photo(stay)}"><span>💄</span><img class="gone" src="${photo(go)}"></div>
+              <p>Has salvado a <b>${esc(stay.name)}</b>.</p>
+              ${kind === "trayectoria" ? `<p class="muted">Has mirado toda la temporada: ${esc(stay.name)} (PPE ${ppeTxt(stay)}) iba mejor que ${esc(go.name)} (PPE ${ppeTxt(go)}).</p>` : kind === "jugarreta" ? `<p class="twist-note">😈 Jugarreta: ${esc(go.name)} lo hizo mejor esta semana y lleva igual o mejor temporada.</p>` : ""}
+              <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
+            </div>`;
+          endEpisodeBtn();
+      }
+    }
+    const dec = winner.q;
+    const meIn = pair.includes(S.queen);
+    const go = preGo || npcLipstick(dec, bottomRows);
     const stay = pair.find((x) => x !== go);
     const kind = asKind(go, stay, sOf);
     const fair = kind !== "jugarreta";
@@ -2030,3 +2119,4 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       },
     );
   }
+

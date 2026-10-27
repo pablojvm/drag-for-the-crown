@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, type Engine, type RoomState } from "../src/mp/model";
+import { newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, standings, ppeOf, type Engine, type RoomState } from "../src/mp/model";
 import { makeRng } from "../src/core";
 
 const engine = (seed = 1): Engine => {
@@ -33,7 +33,7 @@ describe("temporada en directo", () => {
   });
   it("el tope del episodio es la suma de sus fases", () => {
     expect(topeEpisodio("rapido")).toBeLessThan(topeEpisodio("normal"));
-    expect(topeEpisodio("normal")).toBeLessThanOrEqual(11 * 60);
+    expect(topeEpisodio("normal")).toBeLessThanOrEqual(12 * 60);
   });
   it("si alguien no entrega, la fase acaba al llegar el tope", () => {
     const e = engine();
@@ -97,5 +97,70 @@ describe("temporada en directo", () => {
     expect(tick(s, 1e12, e).phase).toBe("reto");
     s = applySubmit(s, "B", s.ep, "reto", { reto: 60 });
     expect(tick(s, 1e12, e).phase).not.toBe("reto");
+  });
+
+  const asRoom = (ia = false): RoomState => {
+    let s = newRoom("ABCDE", { id: "A", name: "Ana", queen: "q1", joined: 1, alive: true }, "esas1", "rapido", { fmt: "allstars", ia });
+    s = { ...s, players: [...s.players, { id: "B", name: "Bea", queen: "q2", joined: 2, alive: true }] };
+    return startSeason(s, cast, 0, engine(7));
+  };
+  it("All Stars: las dos mejores eligen pintalabios antes del lip sync y la ganadora saca el suyo", () => {
+    const e = engine(7);
+    let s = asRoom();
+    let guard = 0;
+    while (s.phase !== "decision" && guard++ < 50) s = advance(s, guard, e);
+    const top = (s.rows || []).filter((r) => r.label === "TOP2").map((r) => r.key);
+    const btm = (s.rows || []).filter((r) => r.label === "BTM2").map((r) => r.key);
+    expect(top).toEqual(s.rows!.slice(0, 2).map((r) => r.key));
+    expect(s.decision!.top.slice().sort()).toEqual(top.slice().sort());
+    expect(s.decision!.options.slice().sort()).toEqual(btm.slice().sort());
+    // las jugadoras del top eligen; las del juego ya traen su elección
+    top.filter((k) => k.startsWith("p:")).forEach((k) => (s = applySubmit(s, k.slice(2), s.ep, "decision", { elim: btm[0] })));
+    s = advance(s, 1e6, e);
+    expect(s.phase).toBe("lipsync");
+    expect(Object.keys(s.decision!.picks).sort()).toEqual(top.slice().sort());
+    top.filter((k) => k.startsWith("p:")).forEach((k) => expect(s.decision!.picks[k]).toBe(btm[0]));
+    expect([s.pairs![0].a, s.pairs![0].b].sort()).toEqual(top.slice().sort());
+    s = advance(s, 2e6, e);
+    expect(s.phase).toBe("pintalabios");
+    const d = s.decision!;
+    expect(d.go).toBe(d.picks[d.by!]);
+    expect(s.track[d.by!][s.ep]).toBe("WIN");
+    expect(aliveKeys(s)).not.toContain(d.go);
+    expect(top.every((k) => aliveKeys(s).includes(k))).toBe(true);
+    // el pintalabios de la otra se guarda para el episodio siguiente
+    const loser = top.find((k) => k !== d.by)!;
+    expect(s.reveal).toEqual({ ep: s.ep, by: loser, go: d.picks[loser], went: d.go });
+    s = advance(s, 3e6, e); // track
+    s = advance(s, 4e6, e); // siguiente episodio
+    expect(s.reveal?.ep).toBe(s.ep - 1);
+  });
+  it("All Stars entera: termina con ganadora y nunca se va nadie del top 2", () => {
+    const e = engine(11);
+    let s = asRoom();
+    let guard = 0;
+    while (s.phase !== "corona" && guard++ < 800) {
+      if (s.phase === "pintalabios") { const top = s.pairs![0]; expect([top.a, top.b]).not.toContain(s.decision!.go); }
+      s = advance(s, guard * 1000, e);
+    }
+    expect(s.phase).toBe("corona");
+  });
+  it("con IA el reto dura más", () => {
+    const a = advance(asRoom(false), 0, engine()), b = advance(asRoom(true), 0, engine());
+    expect(b.deadline).toBeGreaterThan(a.deadline);
+  });
+  it("el track record ordena: las que siguen por su semana y temporada; las eliminadas, de la última a la primera", () => {
+    const e = engine(3);
+    let s = room();
+    let guard = 0;
+    while (s.phase !== "corona" && guard++ < 500) s = advance(s, guard * 1000, e);
+    const st = standings(s);
+    expect(st[0].key).toBe(s.champion);
+    expect(st[0].place).toBe("1º");
+    const outs = st.filter((x) => x.out);
+    const epOf = (k: string) => s.out.find((o) => o.key === k)!.ep;
+    for (let i = 1; i < outs.length; i++) expect(epOf(outs[i - 1].key)).toBeGreaterThanOrEqual(epOf(outs[i].key));
+    expect(outs[outs.length - 1].place).toBe(`${cast.length}º`);
+    expect(ppeOf(s, s.champion!)).toBeGreaterThan(0);
   });
 });
