@@ -103,5 +103,13 @@
       if (!(RETOS[tipo] || {}).noRunway) out.push(["Ana Locking", `${name}, ${low1(pickFresh(JURADO.pasarela[level]).replace(/^(y |por cierto, )/i, ""))}`]);
       return out;
     },
-    queen: (id) => { const q = qById(id); return q ? { id: q.id, name: q.name, photo: lookOf(q, S && S.season && S.season.id).portrait || q.portrait, sprite: lookOf(q, S && S.season && S.season.id).sprite || q.sprite } : null; },
+    /** Foto y sprite de la reina con el look de esa temporada (All Stars, etc.); sin temporada, la de la partida en curso. */
+    queen: (id, seasonId) => {
+      const q = qById(id);
+      if (!q) return null;
+      const L = lookOf(q, seasonId || (S && S.season && S.season.id));
+      return { id: q.id, name: q.name, photo: L.portrait || q.portrait, sprite: L.sprite || q.sprite, quote: q.quote || "" };
+    },
+    /** Ficha de modo historia (atributos, carácter, fortaleza) para elegir reina en la sala. */
+    preview: (id) => { const q = qById(id); return q ? preview(q) : null; },
   };

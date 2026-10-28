@@ -2753,3 +2753,47 @@ body.portrait .ls-reveal .lipstick { --lw: 260px; --lh: 62px; }
 .mp-reveal { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 2px dashed rgba(255,61,154,.25); }
 .mp-reveal .ls-reveal { margin: 8px 0; }
 .ls-name { color: var(--ink, #3b0d4f); }
+
+/* ---------- Avisos propios (sustituyen a los del navegador) ---------- */
+.app-ask { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 16px; background: rgba(59, 13, 79, .4); backdrop-filter: blur(6px); animation: fade-in .2s ease both; }
+.app-ask.closing { opacity: 0; transition: opacity .18s; }
+.app-ask-card { width: min(440px, 100%); text-align: center; animation: card-rise .35s var(--ease-spring) both; }
+.app-ask-card h3 { margin: 4px 0 8px; }
+.app-ask-card p { margin: 0 0 18px; color: var(--ink-soft); }
+.app-ask-icon { font-size: 40px; line-height: 1; margin-bottom: 6px; }
+.app-ask-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.app-ask-row .btn.danger { background: linear-gradient(135deg, #ff3b5c, #c2185b); }
+
+/* ---------- Multijugador: elegir reina como en el modo normal ---------- */
+.mp-select { display: flex; align-items: flex-start; justify-content: center; gap: 22px; margin: 10px 0 14px; text-align: left; }
+.mp-qgrid { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 14px; flex: 1 1 auto; max-width: 660px; }
+.mp-qgrid .queen-card { width: 150px; flex: 0 0 150px; height: 180px; }
+.mp-qgrid.compact { gap: 10px; }
+.mp-qgrid.compact .queen-card { width: 118px; flex-basis: 118px; height: 150px; border-radius: 16px; }
+.mp-qgrid.compact .queen-card .name { font-size: 12px; left: 9px; right: 9px; bottom: 9px; }
+.mp-qgrid.compact .queen-card .check { width: 24px; height: 24px; top: 7px; right: 7px; }
+.mp-qgrid .queen-card.taken .portrait { filter: grayscale(1) brightness(.5); }
+.mp-qgrid .queen-card.taken:hover .portrait { filter: grayscale(.6) brightness(.7); }
+.mp-taken { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 2; padding: 3px 8px; border-radius: 999px; background: rgba(59,13,79,.85); color: #fff; font: 700 11px/1.3 Poppins, sans-serif; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-qdet { flex: 0 0 380px; position: sticky; top: 0; }
+.mp-qdet .details-inner { width: 100%; animation: slide-panel .4s var(--ease-out); }
+.mp-qdet .details-portrait { height: 170px; }
+.mp-qdet .det-place { margin: 2px 0 6px; color: var(--ink-soft); font-size: 13px; }
+.mp-qdet .stat-row.story-stat { display: grid; grid-template-columns: 112px 1fr 26px; align-items: center; gap: 8px; margin: 4px 0; font-size: 13px; }
+.mp-qdet .pips.ten { display: flex; gap: 4px; }
+.mp-qdet .pips.ten i { width: 13px; }
+.mp-qdet .stat-n { text-align: right; }
+.mp-power { display: block; color: var(--pink) !important; font-size: 17px; margin: 2px 0; }
+.mp-qdet .details-power p { margin: 0; color: var(--ink-soft); font-size: 13px; }
+body.portrait .mp-select { flex-direction: column; align-items: center; }
+body.portrait .mp-qdet { flex-basis: auto; width: 100%; max-width: 640px; position: static; }
+body.portrait .mp-qgrid .queen-card { width: 150px; flex-basis: 150px; }
+.story-card.mp-lobby { max-width: 1200px; width: 100%; }
+.mp-lobby .mp-qgrid { max-width: 720px; }
+.app-ask-card { background: rgba(255,255,255,.96) !important; }
+.app-ask-card h3 { font-size: 24px; line-height: 1.15; }
+.app-ask-row { flex-wrap: nowrap; }
+.app-ask-row .btn { min-width: 0 !important; flex: 1 1 0; padding-left: 14px; padding-right: 14px; font-size: 18px; }
+#stage > .app-ask { position: absolute; }
+body.portrait .app-ask-card { width: min(560px, 100%); }
+#stage > .app-ask { backdrop-filter: none; background: rgba(59, 13, 79, .55); }

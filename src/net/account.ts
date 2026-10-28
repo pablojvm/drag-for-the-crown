@@ -1,3 +1,4 @@
+import { ask } from "../ui/confirm";
 // Ficha de jugadora en la esquina del menú: quién juega y dónde se guarda la partida
 import { cloud } from "./cloud";
 
@@ -37,7 +38,7 @@ document.addEventListener("click", (e) => {
   const t = e.target as HTMLElement;
   if (t.closest?.("#user-chip")) return open($("#user-pop")!.hidden);
   if (t.closest?.("#btn-cloud")) { cloud.google(); return; }
-  if (t.closest?.("#btn-signout")) { if (confirm("¿Cerrar sesión? Tu progreso queda guardado en tu cuenta.")) cloud.signOut(); return; }
+  if (t.closest?.("#btn-signout")) { ask("Tu progreso queda guardado en tu cuenta.", { title: "¿Cerrar sesión?", ok: "Cerrar sesión", icon: "👋" }).then((y) => { if (y) cloud.signOut(); }); return; }
   if (!t.closest?.("#user-pop")) open(false);
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") open(false); });
