@@ -1,6 +1,6 @@
 // Controlador de la sala: la anfitriona lleva el reloj y aplica las reglas; todas reciben el mismo estado.
 // Si la anfitriona se cae, la siguiente que entró toma el relevo con el último estado.
-import { newRoom, startSeason, tick, advance, applySubmit, type RoomState, type Engine, type Ritmo, type Formato, type Phase, type Sub, type Player } from "./model";
+import { newRoom, startSeason, tick, advance, applySubmit, setScript, hostNext, proposePause, votePause, resumeRoom, type RoomState, type Engine, type Ritmo, type Formato, type Phase, type Sub, type Player } from "./model";
 import { LocalBus, OnlineBus, type Bus } from "./bus";
 
 const myId = () => {
@@ -11,7 +11,7 @@ const myId = () => {
 const newCode = () => Array.from({ length: 5 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 24)]).join("");
 
 export class Room {
-  readonly me = myId();
+  me = myId();
   state: RoomState | null = null;
   bus: Bus | null = null;
   private loop = 0;
@@ -43,6 +43,8 @@ export class Room {
     this.bus.on("leave", (d: { id: string }) => this.hostDo((s) => (s.phase === "lobby" ? { ...s, players: s.players.filter((x) => x.id !== d.id), v: s.v + 1 } : s)));
     this.bus.on("submit", (d: { id: string; ep: number; phase: Phase; data: Sub }) => this.hostDo((s) => applySubmit(s, d.id, d.ep, d.phase, d.data)));
     this.bus.on("chat", (m) => this.onChat(m));
+    this.bus.on("pausa", (d: { id: string }) => this.hostDo((s) => proposePause(s, d.id, Date.now())));
+    this.bus.on("voto", (d: { id: string; yes: boolean }) => this.hostDo((s) => votePause(s, d.id, d.yes, Date.now())));
     this.bus.on("hello", () => this.isHost && this.broadcast());
     this.loop = window.setInterval(() => this.heartbeat(), 500);
   }
@@ -51,6 +53,34 @@ export class Room {
     if (!this.isHost || !this.state) return;
     const n = f(this.state);
     if (n !== this.state) { this.state = n; this.broadcast(); this.onChange(n); }
+  }
+  /** La anfitriona pone el guion de la pantalla que se mira. */
+  script(key: string, lines: [string, string][]) { this.hostDo((s) => setScript(s, key, lines)); }
+  /** La anfitriona pasa la línea o la pantalla (todas ven lo mismo). */
+  next() { this.hostDo((s) => hostNext(s, Date.now(), this.engine())); }
+  /** Propone pausar y guardar (hace falta el sí de todas). */
+  pause() {
+    if (this.isHost) this.hostDo((s) => proposePause(s, this.me, Date.now()));
+    else this.bus?.send("pausa", { id: this.me });
+  }
+  vote(yes: boolean) {
+    if (this.isHost) this.hostDo((s) => votePause(s, this.me, yes, Date.now()));
+    else this.bus?.send("voto", { id: this.me, yes });
+  }
+  /** Reabre una partida guardada con su código; quien la abre lleva la sala. */
+  resume(saved: RoomState, myOldId: string) {
+    this.me = myOldId;
+    sessionStorage.setItem("dftc-mp-id", myOldId);
+    this.connect(saved.code);
+    this.state = resumeRoom(saved, this.me, Date.now());
+    this.onChange(this.state);
+    this.broadcast();
+  }
+  /** Volver a una sala guardada que ha reabierto otra: se entra con la misma jugadora de antes. */
+  rejoin(code: string, name: string, myOldId: string) {
+    this.me = myOldId;
+    sessionStorage.setItem("dftc-mp-id", myOldId);
+    this.join(code, name);
   }
   /** Sin límite de tiempo: la anfitriona puede seguir sin esperar a las que faltan. */
   skip() { this.hostDo((s) => (s.phase === "lobby" || s.phase === "corona" ? s : advance(s, Date.now(), this.engine()))); }

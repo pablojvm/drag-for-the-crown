@@ -2405,7 +2405,8 @@ body:not(.portrait) .lz-col.l .lz-m::after { right: -26px; }
 body:not(.portrait) .lz-col.r .lz-m::after { left: -26px; }
 
 /* ---------- Temporada en directo (multijugador) ---------- */
-#screen-story.mp .story-hud .hud-bar > :not(#story-exit), #screen-story.mp .hud-cast { display: none !important; }
+#screen-story.mp .story-hud .hud-bar > :not(#story-exit):not(#mp-pause), #screen-story.mp .hud-cast { display: none !important; }
+#screen-story.mp #mp-pause[hidden] { display: none !important; }
 .mp-timer { display: inline-block; margin-left: 12px; padding: 2px 12px; border-radius: 999px; background: #2b1238; color: #fff; font: 700 18px/1.4 Poppins, sans-serif; vertical-align: middle; letter-spacing: 1px; }
 .mp-timer:empty { display: none; }
 .mp-timer.hurry { background: var(--pink); animation: pulse 1s ease-in-out infinite; }
@@ -2797,3 +2798,19 @@ body.portrait .mp-qgrid .queen-card { width: 150px; flex-basis: 150px; }
 #stage > .app-ask { position: absolute; }
 body.portrait .app-ask-card { width: min(560px, 100%); }
 #stage > .app-ask { backdrop-filter: none; background: rgba(59, 13, 79, .55); }
+
+/* ---------- Multijugador: pantallas que lleva la anfitriona, pausa y partidas guardadas ---------- */
+.mp-dlg .dlg-box { cursor: default; }
+.mp-dlg-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.mp-dlg-count { font: 700 12px/1 Poppins, sans-serif; color: var(--ink-soft); opacity: .7; }
+.mp-follow { margin: 0; font: 700 13px/1.2 Poppins, sans-serif; color: var(--ink-soft); }
+.mp-hostbar { display: flex; justify-content: center; margin-top: 14px; }
+.mp-next { min-width: 180px; }
+.mp-saved { margin: 4px 0 18px; padding: 14px 16px; border-radius: 18px; background: rgba(255, 216, 77, .18); border: 1px solid rgba(255, 184, 0, .4); text-align: left; }
+.mp-saved h4 { margin: 0 0 8px; }
+.mp-saved-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px dashed rgba(59,13,79,.15); }
+.mp-saved-row:first-of-type { border-top: 0; }
+.mp-saved-row small { display: block; color: var(--ink-soft); font-size: 12px; }
+.mp-saved-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.mp-saved-btns .btn { padding: 8px 14px; font-size: 14px; }
+body.portrait .mp-saved-row { flex-direction: column; align-items: stretch; }

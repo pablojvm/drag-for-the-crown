@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, standings, ppeOf, type Engine, type RoomState } from "../src/mp/model";
+import { newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, standings, ppeOf, planCats, setScript, hostNext, proposePause, votePause, resumeRoom, type Engine, type RoomState } from "../src/mp/model";
 import { makeRng } from "../src/core";
 
 const engine = (seed = 1): Engine => {
@@ -21,7 +21,7 @@ const cast = ["q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8"];
 const room = (): RoomState => {
   let s = newRoom("ABCDE", { id: "A", name: "Ana", queen: "q1", joined: 1, alive: true }, "es1", "rapido");
   s = { ...s, players: [...s.players, { id: "B", name: "Bea", queen: "q2", joined: 2, alive: true }] };
-  return startSeason(s, cast, 0, engine());
+  return advance(startSeason(s, cast, 0, engine()), 0, engine()); // maletas → episodio 1
 };
 
 describe("temporada en directo", () => {
@@ -88,8 +88,11 @@ describe("temporada en directo", () => {
     let s = newRoom("ABCDE", { id: "A", name: "Ana", queen: "q1", joined: 1, alive: true }, "es1", "libre");
     s = { ...s, players: [...s.players, { id: "B", name: "Bea", queen: "q2", joined: 2, alive: true }] };
     s = startSeason(s, cast, 0, e);
-    expect(s.deadline).toBeGreaterThan(0); // el anuncio tiene su tiempo
-    s = tick(s, s.deadline, e);
+    expect(s.phase).toBe("maletas");
+    s = advance(s, 0, e);
+    expect(s.phase).toBe("anuncio");
+    expect(s.deadline).toBe(0); // el anuncio lo pasa la anfitriona
+    s = advance(s, 0, e);
     expect(s.phase).toBe("reto");
     expect(s.deadline).toBe(0);
     expect(tick(s, 1e12, e).phase).toBe("reto"); // no avanza por tiempo
@@ -102,7 +105,7 @@ describe("temporada en directo", () => {
   const asRoom = (ia = false): RoomState => {
     let s = newRoom("ABCDE", { id: "A", name: "Ana", queen: "q1", joined: 1, alive: true }, "esas1", "rapido", { fmt: "allstars", ia });
     s = { ...s, players: [...s.players, { id: "B", name: "Bea", queen: "q2", joined: 2, alive: true }] };
-    return startSeason(s, cast, 0, engine(7));
+    return advance(startSeason(s, cast, 0, engine(7)), 0, engine(7));
   };
   it("All Stars: las dos mejores eligen pintalabios antes del lip sync y la ganadora saca el suyo", () => {
     const e = engine(7);
@@ -162,5 +165,53 @@ describe("temporada en directo", () => {
     for (let i = 1; i < outs.length; i++) expect(epOf(outs[i - 1].key)).toBeGreaterThanOrEqual(epOf(outs[i].key));
     expect(outs[outs.length - 1].place).toBe(`${cast.length}º`);
     expect(ppeOf(s, s.champion!)).toBeGreaterThan(0);
+  });
+
+  const fresh = (ritmo: "normal" | "libre" = "normal") => {
+    let s = newRoom("ABCDE", { id: "A", name: "Ana", queen: "q1", joined: 1, alive: true }, "es1", ritmo);
+    s = { ...s, players: [...s.players, { id: "B", name: "Bea", queen: "q2", joined: 2, alive: true }] };
+    return startSeason(s, cast, 0, engine(4));
+  };
+  it("antes del episodio 1 se hacen las maletas con el plan de pasarelas", () => {
+    const e = engine(4);
+    let s = fresh();
+    expect(s.phase).toBe("maletas");
+    expect(s.plan).toHaveLength(cast.length - 4);
+    s = applySubmit(s, "A", s.ep, "maletas", { ready: true });
+    expect(allIn(s)).toBe(false);
+    s = applySubmit(s, "B", s.ep, "maletas", { ready: true });
+    expect(allIn(s)).toBe(true);
+    s = tick(s, 1, e);
+    expect(s.phase).toBe("anuncio");
+    expect(s.reto!.tipo).toBe(s.plan![0].tipo);
+    expect(s.reto!.cat?.n).toBe(s.plan![0].cat?.n);
+  });
+  it("las pantallas que se miran las pasa la anfitriona, línea a línea", () => {
+    const e = engine(4);
+    let s = advance(fresh(), 0, e); // anuncio
+    expect(tick(s, 1e12, e).phase).toBe("anuncio"); // sin reloj
+    s = setScript(s, "1:anuncio:0", [["host", "a"], ["host", "b"]]);
+    expect(setScript(s, "1:anuncio:0", [["host", "x"]]).script!.lines[0][1]).toBe("a");
+    s = hostNext(s, 0, e); expect(s.script!.i).toBe(1);
+    s = hostNext(s, 0, e); expect(s.script!.i).toBe(2); // ya en la tarjeta
+    s = hostNext(s, 0, e);
+    expect(s.phase).toBe("reto");
+    expect(s.script).toBeUndefined();
+  });
+  it("pausar necesita el sí de todas; con un no se sigue", () => {
+    const e = engine(4);
+    let s = advance(advance(fresh(), 0, e), 1000, e); // reto con reloj
+    const dl = s.deadline;
+    s = proposePause(s, "A", 5000);
+    expect(tick(s, 1e12, e).phase).toBe("reto"); // en votación no corre el reloj
+    const no = votePause(s, "B", false, 9000);
+    expect(no.pause).toBeUndefined();
+    expect(no.deadline).toBe(dl + 4000);
+    s = votePause(s, "B", true, 9000);
+    expect(s.paused).toBe(true);
+    const back = resumeRoom(s, "B", 100000);
+    expect(back.paused).toBe(false);
+    expect(back.host).toBe("B");
+    expect(back.deadline).toBe(100000 + Math.max(15000, dl - 5000));
   });
 });

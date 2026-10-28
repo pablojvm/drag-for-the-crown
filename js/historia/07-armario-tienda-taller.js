@@ -13,8 +13,9 @@
   const priceOf = (it) => PRICE[slotOf(it)][statOf(it)[0]];
   const euros = (n) => `${Math.round(n).toLocaleString("es-ES")} €`;
   const Closet = {
-    get() { return store.get(CLOSET_KEY, { money: 0, owned: {} }); },
-    set(c) { store.set(CLOSET_KEY, c); document.querySelectorAll(".closet-money").forEach((e) => (e.textContent = euros(c.money))); },
+    // En la temporada en directo se usa un armario aparte, con el presupuesto de la sala (no toca el tuyo)
+    get() { if (S && S.mp) return (S.mpCloset = S.mpCloset || { money: 0, owned: {} }); return store.get(CLOSET_KEY, { money: 0, owned: {} }); },
+    set(c) { if (S && S.mp) S.mpCloset = c; else store.set(CLOSET_KEY, c); document.querySelectorAll(".closet-money").forEach((e) => (e.textContent = euros(c.money))); },
     get money() { return this.get().money; },
     has(id) { return !!this.get().owned[id]; },
     add(n) { const c = this.get(); c.money = Math.max(0, Math.round(c.money + n)); this.set(c); },

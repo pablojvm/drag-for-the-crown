@@ -13,6 +13,8 @@
       cleanup = null;
       const season = seasonById(seasonId);
       S = { ...blankState(qById(queenId), season, rivalIds.map(qById).filter(Boolean)), rng: newSeed(), mp: true, mpIA: !!opts.ia, ep: 1, flags: { prepped: true } };
+      // Lo de cada una que no viaja por la sala (maletas y armario de la temporada), por si se reanuda
+      if (opts.local) ["prepLooks", "mpCloset", "usedLooks", "runwayPlan"].forEach((k) => opts.local[k] !== undefined && (S[k] = opts.local[k]));
       // Con IA cada una elige en cada reto si lo hace en directo (escribiendo) o con opciones
       [mxSnatch, mxActing, mxRusical, mxGirlGroups, mxMateriales, mxMakeover, mxImpro, mxPublicidad, mxRoast].forEach((f) => (f.classic = !opts.ia));
       return true;
@@ -31,6 +33,43 @@
       dropKeys();
       if (cleanup) cleanup();
       cleanup = null;
+    },
+    /** Lo de esta jugadora que hay que guardar con la partida (maletas y armario). */
+    local: () => (S ? { prepLooks: S.prepLooks || {}, mpCloset: S.mpCloset || null, usedLooks: S.usedLooks || [], runwayPlan: S.runwayPlan || [] } : null),
+    /** Presupuesto de la sala para las maletas (igual para todas: lo justo para un look por pasarela y algo más). */
+    budget: (cats) => Math.ceil((basicBudget(cats) * 1.25) / 50) * 50,
+    /** Maletas: los Javis llaman, producción da el presupuesto y se preparan los looks de todas las pasarelas. */
+    maletas(el, cats, budget, cb) {
+      S.runwayPlan = cats.slice();
+      S.ballPlan = [];
+      if (!S.mpCloset) S.mpCloset = { money: budget, owned: {} };
+      S.prepLooks = S.prepLooks || {};
+      setSet("lounge");
+      const lines = [
+        ["ambrossi", "¿Sí? ¿Hablo con {yo}? ¡Somos los Javis!"],
+        ["calvo", `Te llamamos porque vas a estar en ${S.season.name}... ¡y en directo con tus amigas!`],
+        ["ambrossi", `Serán ${cats.length} pasarelas. Te decimos las temáticas, pero no en qué orden.`],
+        ["calvo", "Lo que compres ahora es lo que hay: durante la temporada no se puede ir de compras, y ningún look se repite."],
+      ];
+      dialog(lines, ctxWith(S.rivals[0] || S.queen), () => {
+        el = body(); // el diálogo ocupa la pantalla: la tarjeta va donde esté ahora
+        el.innerHTML = `
+          <div class="story-card call-plan">
+            <p class="eyebrow">📞 Los Javis · tus pasarelas</p>
+            <h3>${cats.length} looks que preparar</h3>
+            <div class="sched">${cats.map((c, i) => { const t = themeOf(c); return `<div class="sched-ep" style="--i:${i}"><b>👠 Pasarela</b><span>${esc(c)}</span>${t ? `<small>${esc(t.d)}</small>` : ""}</div>`; }).join("")}</div>
+            <p class="gold">💶 Producción te da <b class="closet-money">${euros(Closet.money)}</b> para esta temporada. Es tu presupuesto: no toca tu armario del modo historia.</p>
+            <button class="btn btn-primary" id="mp-maletas-go">👗 Preparar mis looks</button>
+          </div>`;
+        el.querySelector("#mp-maletas-go").addEventListener("click", () => prepAllLooks(() => { cleanup = null; cb(); }));
+      });
+    },
+    /** Quién habla en una pantalla de la sala: presentadoras o una reina (q:id). */
+    speaker(key) {
+      if (PRESENTADORAS[key]) return { ...PRESENTADORAS[key], side: PRESENTADORAS[key].side || "left" };
+      const q = qById(String(key).replace(/^q:/, ""));
+      if (!q) return { name: "", role: "", img: "", side: "right" };
+      return { name: q.name, role: "Reina", img: lookOf(q, S && S.season && S.season.id).sprite || q.sprite, side: "right" };
     },
     /** ¿Hay IA disponible para ofrecerla al crear la sala? */
     iaReady: () => __REAL_IA.ready(),

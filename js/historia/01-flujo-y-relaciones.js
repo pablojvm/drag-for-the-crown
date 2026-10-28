@@ -605,6 +605,8 @@
   }
 
   function header() {
+    // Temporada en directo: la cabecera la pinta la sala (no la del modo historia)
+    if (S && S.mp) return window.__mpHeader && window.__mpHeader();
     $("#story-season").textContent = `Modo historia · ${S.season.name} · ${seasonInfo().lema || S.season.franchise.name}`;
     let chip = "";
     const tw = twistOf();
