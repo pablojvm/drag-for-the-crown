@@ -11,7 +11,8 @@
       dropKeys();
       if (cleanup) cleanup();
       cleanup = null;
-      const season = seasonById(seasonId);
+      // Partida personalizada: una temporada hecha con las reinas elegidas
+      const season = seasonById(seasonId) || { id: "mpcustom", name: "Temporada personalizada", year: "", cast: [queenId, ...rivalIds], franchise: { id: "es", name: "Drag Race España" } };
       S = { ...blankState(qById(queenId), season, rivalIds.map(qById).filter(Boolean)), rng: newSeed(), mp: true, mpIA: !!opts.ia, ep: 1, flags: { prepped: true } };
       // Lo de cada una que no viaja por la sala (maletas y armario de la temporada), por si se reanuda
       if (opts.local) ["prepLooks", "mpCloset", "usedLooks", "runwayPlan"].forEach((k) => opts.local[k] !== undefined && (S[k] = opts.local[k]));
@@ -74,7 +75,18 @@
     /** ¿Hay IA disponible para ofrecerla al crear la sala? */
     iaReady: () => __REAL_IA.ready(),
     /** Formato de la temporada para la sala. */
-    formato: (seasonId) => ((TEMPORADAS_HISTORIA[seasonId] || {}).twist === "allstars" ? "allstars" : "normal"),
+    formato: (seasonId) => {
+      const t = (TEMPORADAS_HISTORIA[seasonId] || {}).twist;
+      return ["allstars", "winners", "repesca", "suerte", "corazon", "moneda"].includes(t) ? t : "normal";
+    },
+    /** Reto de la Segunda Oportunidrag (stand-up en parejas con las eliminadas). */
+    repescaReto: () => ({ tipo: "repescaStand", titulo: RETOS.repescaStand.titulo(), desc: RETOS.repescaStand.desc, noRunway: true, ctrl: RETOS.repescaStand.ctrl }),
+    /** Todas las reinas de todas las temporadas (para la partida personalizada), con su temporada. */
+    allQueens: () => {
+      const seen = new Map();
+      allSeasons().filter((se) => se.cast && !se.special).forEach((se) => se.cast.forEach((id) => { if (!seen.has(id) && qById(id)) seen.set(id, se.id); }));
+      return [...seen].map(([id, season]) => ({ id, season }));
+    },
     /** Fondo de la escena (taller, plató, jurado, Untucked). */
     scene: (name) => setSet(name),
     /** Diálogo con las caras de siempre (Supremme, Ana, los Javis y las reinas). */
@@ -86,7 +98,8 @@
     /** Líneas del anuncio del reto (y la bienvenida de la temporada el primer día). */
     announceLines(ep, seasonId) {
       const info = TEMPORADAS_HISTORIA[seasonId] || {};
-      const intro = ep === 1 && (!info.twist || info.twist === "allstars") ? info.intro || [] : [];
+      // Todas las dinámicas ya existen en la sala: se presentan como en el modo historia
+      const intro = ep === 1 ? info.intro || [] : [];
       const hola = [["host", pick1(["¡Hola, hola, mis reinas!", "¡Buenos días, reinas!", "¡Hola, mis niñas!"])]];
       return [...(ep === 1 ? intro : hola), ...pickFresh(HISTORIA.anuncio)];
     },
@@ -116,8 +129,11 @@
       S.ep = ep;
       if (rivalIds) S.rivals = rivalIds.map(qById).filter(Boolean);
     },
-    play(tipo, titulo, el, cb) {
+    play(tipo, titulo, el, cb, extra = {}) {
       S.curTipo = tipo; S.curEpTipo = S.ep; S.curTitulo = titulo; S.team = null; S.cGroups = null; S.curPieces = null; S.lastLook = null;
+      // Segunda Oportunidrag: con quién haces el monólogo
+      S.rp = extra.partner ? { ep: S.ep, pairs: { me: extra.partner }, ps: {} } : null;
+      S.meOut = !!extra.out;
       S.juryNotes = null; S.liveEp = 0;
       // Si se hizo en directo, lo que pensó el jurado viaja con la nota para las críticas
       RETOS[tipo].run(el, (raw) => { cleanup = null; cb(Math.round(raw), S.liveEp === S.ep ? juryTxt() : ""); });

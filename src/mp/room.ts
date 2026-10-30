@@ -109,10 +109,11 @@ export class Room {
     }
   }
 
-  create(name: string, season: string, ritmo: Ritmo, opts: { fmt?: Formato; ia?: boolean } = {}) {
+  create(name: string, season: string, ritmo: Ritmo, opts: { fmt?: Formato; ia?: boolean; custom?: RoomState["custom"] } = {}) {
     const code = newCode();
     this.connect(code);
     this.state = newRoom(code, { id: this.me, name, queen: null, joined: this.joinedAt, alive: false }, season, ritmo, opts);
+    if (opts.custom) this.state = { ...this.state, custom: opts.custom };
     this.onChange(this.state);
     this.broadcast();
     return code;
@@ -129,9 +130,12 @@ export class Room {
     if (this.isHost) this.hostDo((s) => (s.players.some((x) => x.queen === queen) ? s : { ...s, players: s.players.map((x) => (x.id === this.me ? { ...x, queen } : x)), v: s.v + 1 }));
     else this.bus?.send("pick", { id: this.me, queen });
   }
-  start() {
-    this.hostDo((s) => startSeason(s, this.castOf(s.season), Date.now(), this.engine()));
+  /** Empieza la temporada (en la personalizada, con el reparto que se ha montado en la sala). */
+  start(cast?: string[]) {
+    this.hostDo((s) => startSeason(s, cast || this.castOf(s.season), Date.now(), this.engine()));
   }
+  /** Partida personalizada: la anfitriona cambia cómo se eligen las rivales o cuáles. */
+  setCustom(c: NonNullable<RoomState["custom"]>) { this.hostDo((s) => (s.phase === "lobby" ? { ...s, custom: c, v: s.v + 1 } : s)); }
   submit(data: Sub) {
     if (!this.state) return;
     const d = { id: this.me, ep: this.state.ep, phase: this.state.phase, data };

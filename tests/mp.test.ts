@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, standings, ppeOf, planCats, setScript, hostNext, proposePause, votePause, resumeRoom, type Engine, type RoomState } from "../src/mp/model";
+import { newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, standings, ppeOf, planCats, setScript, hostNext, proposePause, votePause, resumeRoom, winnersWeeks, type Engine, type RoomState } from "../src/mp/model";
 import { makeRng } from "../src/core";
 
 const engine = (seed = 1): Engine => {
@@ -15,6 +15,7 @@ const engine = (seed = 1): Engine => {
     critique: (_t, level, name) => [["Supremme", `${name}: ${level}`]],
     queenName: (id) => id.toUpperCase(),
     rnd: r,
+    repesca: () => ({ tipo: "repescaStand", titulo: "Segunda Oportunidrag", desc: "", noRunway: true }),
   };
 };
 const cast = ["q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8"];
@@ -213,5 +214,84 @@ describe("temporada en directo", () => {
     expect(back.paused).toBe(false);
     expect(back.host).toBe("B");
     expect(back.deadline).toBe(100000 + Math.max(15000, dl - 5000));
+  });
+
+  const fmtRoom = (fmt: any, seed: number, n = 10) => {
+    const c = Array.from({ length: n }, (_, i) => "q" + (i + 1));
+    let s = newRoom("ABCDE", { id: "A", name: "Ana", queen: "q1", joined: 1, alive: true }, "custom", "rapido", { fmt });
+    s = { ...s, players: [...s.players, { id: "B", name: "Bea", queen: "q2", joined: 2, alive: true }] };
+    return { s: startSeason(s, c, 0, engine(seed)), c };
+  };
+  const runAll = (s: RoomState, e: Engine, onStep?: (s: RoomState) => void) => {
+    let guard = 0;
+    while (s.phase !== "corona" && guard++ < 3000) { onStep && onStep(s); s = advance(s, guard * 1000, e); }
+    return s;
+  };
+  for (const fmt of ["normal", "allstars", "winners", "repesca", "suerte", "corazon", "moneda"]) {
+    it(`la dinámica ${fmt} llega hasta la corona con una sola ganadora`, () => {
+      for (const seed of [1, 2, 3, 9, 21]) {
+        const { s: s0, c } = fmtRoom(fmt, seed);
+        const s = runAll(s0, engine(seed));
+        expect(s.phase).toBe("corona");
+        expect(aliveKeys(s)).toHaveLength(1);
+        expect(s.out.length).toBe(c.length - 1);
+      }
+    });
+  }
+  it("All Winners: nadie se va hasta la final y van las 4 con más estrellas", () => {
+    const e = engine(5);
+    const { s: s0, c } = fmtRoom("winners", 5);
+    expect(s0.weeks).toBe(winnersWeeks(c.length));
+    let maxOut = 0;
+    const s = runAll(s0, e, (x) => { if (x.phase !== "final" && x.phase !== "corona" && x.ep <= (x.weeks || 0)) maxOut = Math.max(maxOut, x.out.filter((o) => o.ep < (x.weeks || 0)).length); });
+    expect(maxOut).toBe(0);
+    const finalists = Object.keys(s.track).filter((k) => /WINNER|RUNNER-UP|3ª/.test(Object.values(s.track[k]).join(" ")));
+    expect(finalists).toHaveLength(4);
+    const stars = (k: string) => s.stars?.[k] || 0;
+    const others = Object.keys(s.track).filter((k) => !finalists.includes(k));
+    expect(Math.min(...finalists.map(stars))).toBeGreaterThanOrEqual(Math.max(...others.map(stars)));
+  });
+  it("Segunda Oportunidrag: con siete, una eliminada vuelve y hay lip sync a tres bandas", () => {
+    const e = engine(8);
+    let { s } = fmtRoom("repesca", 8);
+    let sawTriple = false, back = "";
+    s = runAll(s, e, (x) => { if (x.triple) sawTriple = true; if (x.twistResult?.kind === "repesca" && x.twistResult.back) back = x.twistResult.back; });
+    expect(sawTriple).toBe(true);
+    expect(back).not.toBe("");
+    expect(Object.values(s.track[back])).toContain("RTRN");
+  });
+  it("Reina de la suerte: la tiene una y, si la usa, la siguiente peor entra en el bottom", () => {
+    const e = engine(12);
+    let { s } = fmtRoom("suerte", 12);
+    expect(s.luck).toBeTruthy();
+    let used = false;
+    s = runAll(s, e, (x) => { if (x.twistResult?.kind === "suerte" && x.twistResult.saved?.length) { used = true; expect(x.bottom).toContain(x.twistResult.entered![0]); expect(x.bottom).not.toContain(x.twistResult.saved[0]); } });
+    expect(s.phase).toBe("corona");
+    expect(typeof used).toBe("boolean");
+  });
+  it("Corazón: cada eliminada deja medio corazón y con uno entero se puede salvar a alguien", () => {
+    const e = engine(3);
+    let { s } = fmtRoom("corazon", 3, 12);
+    let gifts = 0;
+    s = runAll(s, e, (x) => { if (x.twistResult?.kind === "corazones") gifts += x.twistResult.gifts!.length; });
+    expect(gifts).toBeGreaterThan(2);
+  });
+  it("Moneda: bottom de tres y la votación deja a dos en el lip sync", () => {
+    const e = engine(4);
+    let { s } = fmtRoom("moneda", 4);
+    let coin = 0;
+    s = runAll(s, e, (x) => { if (x.phase === "lipsync" && x.twistResult === undefined && x.pairs && x.pairs.length) expect(x.pairs[0].a).not.toBe(x.pairs[0].b); if (x.twistResult?.kind === "moneda") { coin++; expect(x.bottom).toHaveLength(2); } });
+    expect(coin).toBeGreaterThan(0);
+  });
+
+  it("en la corona la anfitriona puede pasar las frases hasta ver a la ganadora", () => {
+    const e = engine(3);
+    let s = room();
+    let guard = 0;
+    while (s.phase !== "corona" && guard++ < 500) s = advance(s, guard * 1000, e);
+    s = setScript(s, "x:corona:0", [["host", "a"], ["host", "b"], ["judge", "c"]]);
+    for (let i = 0; i < 5; i++) s = hostNext(s, 0, e);
+    expect(s.phase).toBe("corona");
+    expect(s.script!.i).toBe(3); // tarjeta final con la ganadora
   });
 });

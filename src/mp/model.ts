@@ -3,21 +3,33 @@
 
 import { ppe } from "../core/track";
 
-export type Phase = "lobby" | "maletas" | "anuncio" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "lipsync" | "pintalabios" | "track" | "final" | "corona";
+export type Phase = "lobby" | "maletas" | "anuncio" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
 /** Formato de la temporada: normal (las dos peores hacen lip sync) o All Stars (lip sync del top 2 y la ganadora elimina). */
-export type Formato = "normal" | "allstars";
+export type Formato = "normal" | "allstars" | "winners" | "repesca" | "suerte" | "corazon" | "moneda";
+/** Nombre y explicación de cada dinámica (para elegirla en la partida personalizada). */
+export const FORMATOS: Record<Formato, { n: string; icon: string; d: string }> = {
+  normal: { n: "Clásica", icon: "👑", d: "Las dos peores hacen lip sync y se va la que pierde." },
+  allstars: { n: "All Stars", icon: "💄", d: "Las dos mejores hacen lip sync y la que gana saca su pintalabios." },
+  winners: { n: "All Winners", icon: "⭐", d: "Nadie se va: el top 2 gana estrellas, la del lip sync bloquea a una rival. Las 4 con más estrellas van a la final." },
+  repesca: { n: "Segunda Oportunidrag", icon: "🔁", d: "Cuando quedan siete, las eliminadas vuelven en parejas y una regresa. Lip sync a tres bandas." },
+  suerte: { n: "Reina de la suerte", icon: "🍀", d: "Una reina tiene en secreto la reina de la suerte: puede salvar a quien quiera del lip sync una vez." },
+  corazon: { n: "Temporada del corazón", icon: "❤️", d: "Cada eliminada deja medio corazón. Con uno entero salvas a alguien del bottom." },
+  moneda: { n: "Temporada de la moneda", icon: "🪙", d: "Bottom de tres y moneda al aire: cara, las salvadas votan a quién salvar; cruz, a quién condenar." },
+};
+/** Cuándo llega la Segunda Oportunidrag (reinas en competición). */
+export const REPESCA_AT = 7;
 
 /** Segundos por fase. La suma de un episodio es el tope de tiempo del episodio. */
 export const DURACION: Record<Ritmo, Record<Exclude<Phase, "lobby" | "corona">, number>> = {
   // Las pantallas que se miran (anuncio, críticas, Untucked, veredicto, pintalabios, track) no tienen reloj:
   // las pasa la anfitriona, y todas ven lo mismo que ella. El reloj es solo para lo que se juega.
-  normal: { maletas: 600, anuncio: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 120, decision: 45, pintalabios: 0, track: 0, final: 120 },
-  rapido: { maletas: 420, anuncio: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 90, decision: 30, pintalabios: 0, track: 0, final: 90 },
-  libre: { maletas: 0, anuncio: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, pintalabios: 0, track: 0, final: 0 },
+  normal: { maletas: 600, anuncio: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 120, decision: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, final: 120 },
+  rapido: { maletas: 420, anuncio: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 90, decision: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, final: 90 },
+  libre: { maletas: 0, anuncio: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, comodin: 0, sorpresa: 0, pintalabios: 0, track: 0, final: 0 },
 };
 /** Pantallas que lleva la anfitriona (diálogo sincronizado y botón de seguir). */
-export const WATCH: Phase[] = ["anuncio", "resultados", "untucked", "veredicto", "pintalabios", "track", "corona"];
+export const WATCH: Phase[] = ["anuncio", "resultados", "untucked", "veredicto", "sorpresa", "pintalabios", "track", "corona"];
 export const isWatch = (p: Phase) => WATCH.includes(p);
 /** Con IA (frases escritas) el reto dura más: escribir lleva tiempo. */
 export const IA_EXTRA = 1.75;
@@ -41,7 +53,34 @@ export const NO_PRESENTO = 30;
 export interface Player { id: string; name: string; queen: string | null; joined: number; alive: boolean }
 export interface Row { key: string; score: number; label: string }
 export interface Pair { a: string; b: string; winner?: string }
-export interface Sub { reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean }
+export interface Sub { reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string }
+/** Momento de un giro en el que alguien decide (comodín): la suerte, el corazón, la moneda o el bloqueo del All Winners. */
+export interface Twist {
+  kind: "suerte" | "corazon" | "moneda" | "bloqueo";
+  by: string[];
+  options: string[];
+  picks: Record<string, string>;
+  cara?: boolean;
+  /** All Winners: las del top que se llevan estrella esta semana. */
+  starred?: string[];
+}
+/** Lo que pasó en el giro, para enseñarlo (pantalla «sorpresa», la lleva la anfitriona). */
+export interface TwistResult {
+  kind: "suerte" | "corazon" | "corazones" | "moneda" | "bloqueo" | "repesca";
+  by?: string;
+  saved?: string[];
+  entered?: string[];
+  gifts?: { from: string; to: string }[];
+  full?: string[];
+  votes?: Record<string, string[]>;
+  chosen?: string;
+  cara?: boolean;
+  tie?: boolean;
+  target?: string;
+  stars?: string[];
+  back?: string;
+  pairs?: { c: string; o: string | null; score: number }[];
+}
 /** Guion de una pantalla que se mira: líneas [quién, texto] y por cuál va (la anfitriona lo avanza). */
 export interface Script { key: string; lines: [string, string][]; i: number }
 /** Propuesta de pausa: hace falta el sí de todas. */
@@ -76,6 +115,25 @@ export interface RoomState {
   decision?: Decision;
   reveal?: Reveal;
   plan?: PlanEp[];
+  /** Reinas de la partida (partida personalizada) y cómo se eligen las rivales. */
+  cast?: string[];
+  custom?: { pick: "elegidas" | "azar"; size: number; rivals: string[] };
+  /** En peligro esta semana (los comodines pueden cambiarlo). */
+  bottom?: string[];
+  protectedKeys?: string[];
+  twist?: Twist;
+  twistResult?: TwistResult;
+  stage?: number;
+  triple?: string[];
+  luck?: string | null;
+  hearts?: Record<string, number>;
+  pendingHearts?: { from: string; to: string }[];
+  stars?: Record<string, number>;
+  block?: { ep: number; id: string; by: string };
+  weeks?: number;
+  rp?: { ep: number; pairs: { c: string; o: string | null }[] };
+  rpDone?: boolean;
+  planShift?: number;
   script?: Script;
   pause?: Pause;
   paused?: boolean;
@@ -95,6 +153,8 @@ export interface Engine {
   critique(tipo: string, level: "top" | "mid" | "low", name: string): [string, string][];
   queenName(id: string): string;
   rnd(): number;
+  /** Reto de la Segunda Oportunidrag (stand-up en parejas). */
+  repesca?(): Reto;
 }
 
 export const pkey = (pid: string) => "p:" + pid;
@@ -106,6 +166,13 @@ export function newRoom(code: string, host: Player, season: string, ritmo: Ritmo
   return { v: 1, code, host: host.id, season, ritmo, fmt: opts.fmt || "normal", ia: !!opts.ia, players: [host], npcs: [], out: [], ep: 0, phase: "lobby", deadline: 0, used: [], subs: {}, track: {}, epNames: {} };
 }
 const isAS = (s: Pick<RoomState, "fmt">) => s.fmt === "allstars";
+const isAW = (s: Pick<RoomState, "fmt">) => s.fmt === "winners";
+/** Semanas del All Winners (como en el modo historia: una menos que reinas, entre 4 y 8). */
+export const winnersWeeks = (n: number) => Math.max(4, Math.min(8, n - 1));
+const shuffleWith = <T,>(a: T[], e: Pick<Engine, "rnd">) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(e.rnd() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+const pickWith = <T,>(a: T[], e: Pick<Engine, "rnd">) => a[Math.floor(e.rnd() * a.length)];
+/** Jugadoras eliminadas que vuelven a jugar en la Segunda Oportunidrag (en pareja con una en competición). */
+const rpPlayers = (s: RoomState) => (s.rp && s.rp.ep === s.ep ? s.rp.pairs.map((p) => p.o).filter((k): k is string => !!k && isP(k)).map(idOf) : []);
 
 export const alivePlayers = (s: RoomState) => s.players.filter((p) => p.alive && p.queen);
 export const aliveKeys = (s: RoomState) => [...alivePlayers(s).map((p) => pkey(p.id)), ...s.npcs.map(nkey)];
@@ -121,8 +188,12 @@ export function startSeason(s: RoomState, cast: string[], now: number, e: Engine
   const taken = new Set(s.players.map((p) => p.queen).filter(Boolean) as string[]);
   const players = s.players.map((p) => ({ ...p, alive: !!p.queen }));
   // Se sabe desde el principio qué reto y qué pasarela tiene cada episodio (hasta quedar 4)
-  const plan = makePlan(Math.max(1, cast.length - 4), e);
-  return { ...s, players, npcs: cast.filter((q) => !taken.has(q)), ep: 0, plan, subs: {}, phase: "maletas", deadline: limite(now, DURACION[s.ritmo].maletas), v: s.v + 1 };
+  const weeks = isAW(s) ? winnersWeeks(cast.length) : undefined;
+  const plan = makePlan(Math.max(1, weeks || cast.length - 4), e);
+  const base: RoomState = { ...s, players, cast, npcs: cast.filter((q) => !taken.has(q)), ep: 0, plan, weeks, subs: {}, hearts: {}, pendingHearts: [], stars: {}, phase: "maletas", deadline: limite(now, DURACION[s.ritmo].maletas), v: s.v + 1 };
+  // Reina de la suerte: una de las cajitas la tiene (en secreto)
+  if (s.fmt === "suerte") { const all = aliveKeys(base); base.luck = all[Math.floor(e.rnd() * all.length)]; }
+  return base;
 }
 /** Reparto de retos (sin repetir hasta agotarlos) y una pasarela distinta para cada uno que la tenga. */
 export function makePlan(n: number, e: Pick<Engine, "retos" | "categorias" | "rnd">): PlanEp[] {
@@ -148,7 +219,14 @@ export const planCats = (s: Pick<RoomState, "plan">) => (s.plan || []).map((p) =
 function nextEpisode(s: RoomState, now: number, e: Engine): RoomState {
   const all = e.retos();
   const ep = s.ep + 1;
-  const planned = (s.plan || [])[ep - 1];
+  // Segunda Oportunidrag: cuando quedan siete, vuelven las eliminadas en parejas
+  if (s.fmt === "repesca" && !s.rpDone && aliveKeys(s).length <= REPESCA_AT && s.out.length && e.repesca) {
+    const r = e.repesca();
+    const comps = shuffleWith(aliveKeys(s), e), outs = shuffleWith(s.out.map((o) => o.key), e);
+    const rp = { ep, pairs: comps.map((c, i) => ({ c, o: outs[i] || null })) };
+    return { ...s, ep, reto: r, used: [...s.used, r.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, decision: undefined, twist: undefined, twistResult: undefined, bottom: undefined, triple: undefined, note: undefined, script: undefined, rp, rpDone: true, planShift: (s.planShift || 0) + 1, epNames: { ...s.epNames, [ep]: r.titulo }, phase: "anuncio", deadline: 0, v: s.v + 1 };
+  }
+  const planned = (s.plan || [])[ep - 1 - (s.planShift || 0)];
   let r: Reto;
   if (planned && all.some((x) => x.tipo === planned.tipo)) {
     r = { ...all.find((x) => x.tipo === planned.tipo)! };
@@ -160,15 +238,22 @@ function nextEpisode(s: RoomState, now: number, e: Engine): RoomState {
     if (!r.noRunway) { const cats = e.categorias(); r.cat = cats[Math.floor(e.rnd() * cats.length)]; }
   }
   const secs = dur(s, "anuncio");
-  return { ...s, ep, reto: r, used: [...s.used, r.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, decision: undefined, note: undefined, script: undefined, reveal: s.reveal && s.reveal.ep === s.ep ? s.reveal : undefined, epNames: { ...s.epNames, [ep]: r.titulo }, phase: "anuncio", deadline: limite(now, secs), v: s.v + 1 };
+  return { ...s, ep, reto: r, used: [...s.used, r.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, decision: undefined, twist: undefined, twistResult: undefined, bottom: undefined, triple: undefined, protectedKeys: undefined, rp: undefined, note: undefined, script: undefined, reveal: s.reveal && s.reveal.ep === s.ep ? s.reveal : undefined, epNames: { ...s.epNames, [ep]: r.titulo }, phase: "anuncio", deadline: limite(now, secs), v: s.v + 1 };
 }
 
 /** ¿Han entregado ya todas las que tienen que entregar en esta fase? (para no esperar al tope) */
 export function allIn(s: RoomState): boolean {
   const ps = alivePlayers(s);
   if (s.phase === "maletas") return ps.every((p) => s.subs[p.id]?.ready);
-  if (s.phase === "reto") return ps.every((p) => s.subs[p.id]?.reto != null || s.subs[p.id]?.final != null);
+  const extra = rpPlayers(s);
+  if (s.phase === "reto") return ps.every((p) => s.subs[p.id]?.reto != null || s.subs[p.id]?.final != null) && extra.every((id) => s.subs[id]?.reto != null || s.subs[id]?.final != null);
   if (s.phase === "pasarela") return ps.every((p) => s.subs[p.id]?.final != null);
+  if (s.phase === "comodin") {
+    const t = s.twist;
+    const pls = (t?.by || []).filter(isP);
+    if (!t || !pls.length) return false; // si deciden reinas del juego, se ve el momento hasta el tope
+    return pls.every((k) => s.subs[idOf(k)]?.pick != null);
+  }
   if (s.phase === "decision") {
     const d = s.decision;
     const ps = (d?.top || []).filter(isP);
@@ -176,7 +261,7 @@ export function allIn(s: RoomState): boolean {
     return ps.every((k) => s.subs[idOf(k)]?.elim != null);
   }
   if (s.phase === "lipsync" || s.phase === "final") {
-    const inPairs = (s.pairs || []).filter((x) => !x.winner).flatMap((x) => [x.a, x.b]).filter(isP).map(idOf);
+    const inPairs = [...(s.pairs || []).filter((x) => !x.winner).flatMap((x) => [x.a, x.b]), ...(s.triple || [])].filter(isP).map(idOf);
     // Si solo bailan reinas del juego, se deja verlo hasta el tope
     if (!inPairs.length) return false;
     return inPairs.every((id) => s.subs[id]?.ls != null);
@@ -187,19 +272,27 @@ export function allIn(s: RoomState): boolean {
 /** Notas, etiquetas y críticas de la semana. */
 export function scoreWeek(s: RoomState, e: Engine): RoomState {
   const tipo = s.reto!.tipo;
-  const rows: Row[] = aliveKeys(s).map((k) => ({ key: k, score: isP(k) ? s.subs[idOf(k)]?.final ?? NO_PRESENTO : e.rivalScore(idOf(k), tipo), label: "" }));
+  const own = (k: string) => (isP(k) ? s.subs[idOf(k)]?.final ?? s.subs[idOf(k)]?.reto ?? NO_PRESENTO : e.rivalScore(idOf(k), tipo));
+  // Segunda Oportunidrag: la nota es de la pareja (60 % la que compite, 40 % la eliminada)
+  const pairOf = (k: string) => (s.rp && s.rp.ep === s.ep ? s.rp.pairs.find((p) => p.c === k) : undefined);
+  const rows: Row[] = aliveKeys(s).map((k) => { const pr = pairOf(k); const sc = own(k); return { key: k, score: pr && pr.o ? Math.round(sc * 0.6 + own(pr.o) * 0.4) : sc, label: "" }; });
   rows.sort((a, b) => b.score - a.score || (e.rnd() < 0.5 ? -1 : 1));
   const n = rows.length;
+  // Bottom de tres en la moneda (con seis o más) y en la Segunda Oportunidrag (lip sync a tres bandas)
+  const nb = isAW(s) ? 0 : (s.fmt === "moneda" && n >= 6) || (s.rp && s.rp.ep === s.ep && n >= 5) ? 3 : 2;
+  const blocked = s.block && s.block.ep === s.ep ? s.block.id : null;
   rows.forEach((r, i) => {
-    // All Stars: las dos mejores van al top 2 (lip sync por el poder); la ganadora sale de ese lip sync
-    if (isAS(s)) r.label = i <= 1 ? "TOP2" : i >= n - 2 ? "BTM2" : i <= (n <= 7 ? 2 : 3) ? "HIGH" : i >= n - 3 ? "LOW" : "SAFE";
-    else r.label = i === 0 ? "WIN" : i >= n - 2 ? "BTM2" : i <= (n <= 7 ? 1 : 2) ? "HIGH" : i >= n - 3 ? "LOW" : "SAFE";
+    // All Stars y All Winners: las dos mejores van al top 2; la ganadora sale de ese lip sync
+    if (isAW(s)) r.label = i <= 1 ? (r.key === blocked ? "BTOP" : "TOP2") : i <= (n <= 7 ? 2 : 3) ? "HIGH" : "SAFE";
+    else if (isAS(s)) r.label = i <= 1 ? "TOP2" : i >= n - 2 ? "BTM2" : i <= (n <= 7 ? 2 : 3) ? "HIGH" : i >= n - 3 ? "LOW" : "SAFE";
+    else r.label = i === 0 ? "WIN" : i >= n - nb ? `BTM${nb}` : i <= (n <= 7 ? 1 : 2) ? "HIGH" : i >= n - nb - 1 ? "LOW" : "SAFE";
   });
-  const allCrit = n <= 6;
+  // All Winners: solo críticas para las de arriba (nada de críticas negativas)
+  const allCrit = n <= 6 && !isAW(s);
   const crit = rows
     .filter((r) => allCrit || r.label !== "SAFE")
     .map((r) => {
-      const level = r.label === "WIN" || r.label === "TOP2" || r.label === "HIGH" ? "top" : r.label === "SAFE" ? "mid" : "low";
+      const level = /WIN|TOP2|BTOP|HIGH/.test(r.label) ? "top" : r.label === "SAFE" ? "mid" : "low";
       const nm = isP(r.key) ? e.queenName(queenOfKey(s, r.key)) : e.queenName(idOf(r.key));
       const lines = e.critique(tipo, level, nm);
       // Reto en directo: Supremme le dice lo que el jurado apuntó mientras lo hacía
@@ -234,19 +327,34 @@ export function resolvePairs(s: RoomState, e: Engine): Pair[] {
   });
 }
 
-function eliminate(s: RoomState, key: string, place: string, label = "ELIM"): RoomState {
+function eliminate(s: RoomState, key: string, place: string, label = "ELIM", e?: Pick<Engine, "rnd">): RoomState {
   const players = s.players.map((p) => (pkey(p.id) === key ? { ...p, alive: false } : p));
   const npcs = s.npcs.filter((q) => nkey(q) !== key);
   const track = { ...s.track, [key]: { ...(s.track[key] || {}), [s.ep]: label } };
-  return { ...s, players, npcs, track, out: [...s.out, { key, ep: s.ep, place }] };
+  const t: RoomState = { ...s, players, npcs, track, out: [...s.out, { key, ep: s.ep, place }] };
+  // Si se va la que tenía la reina de la suerte, se pierde
+  if (t.luck === key) t.luck = null;
+  // Temporada del corazón: la que se va deja medio corazón a una compañera (se sabrá la semana que viene)
+  if (t.fmt === "corazon" && e) {
+    const left = aliveKeys(t);
+    if (left.length > 1) t.pendingHearts = [...(t.pendingHearts || []), { from: key, to: pickWith(left, e) }];
+  }
+  return t;
+}
+/** Vuelve a la competición (Segunda Oportunidrag). */
+function revive(s: RoomState, key: string): RoomState {
+  const players = s.players.map((p) => (pkey(p.id) === key ? { ...p, alive: true } : p));
+  const npcs = isP(key) ? s.npcs : [...s.npcs, idOf(key)];
+  const track = { ...s.track, [key]: { ...(s.track[key] || {}), [s.ep]: "RTRN" } };
+  return { ...s, players, npcs, track, out: s.out.filter((o) => o.key !== key) };
 }
 
 // ------------------------------ Track record ------------------------------
 const labelsOf = (s: RoomState, k: string) => Object.values(s.track[k] || {});
 export const ppeOf = (s: RoomState, k: string) => ppe(labelsOf(s, k));
-export const winsOf = (s: RoomState, k: string) => labelsOf(s, k).filter((l) => l === "WIN" || l === "WINNER").length;
+export const winsOf = (s: RoomState, k: string) => labelsOf(s, k).filter((l) => l === "WIN" || l === "BWIN" || l === "WINNER").length;
 /** Orden del último episodio con resultados (como en el modo historia). */
-const ORDER: Record<string, number> = { WINNER: 0, WIN: 1, "RUNNER-UP": 2, TOP2: 3, HIGH: 4, "3ª": 5, SAFE: 6, LOW: 7, BTM2: 8, ELIM: 9 };
+const ORDER: Record<string, number> = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, HIGH: 4, "3ª": 5, SAFE: 6, RTRN: 6.5, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9, ELIMF: 9 };
 /** Clasificación para el track record: arriba las que siguen (por su última semana y su temporada); debajo las eliminadas, de la última a la primera. */
 export function standings(s: RoomState): { key: string; place: string; out: boolean }[] {
   const eps = Object.keys(s.epNames).map(Number).sort((a, b) => a - b);
@@ -255,7 +363,8 @@ export function standings(s: RoomState): { key: string; place: string; out: bool
   const lastScored = [...eps].reverse().find((e) => alive.some((k) => ORDER[(s.track[k] || {})[e]] !== undefined));
   const last = (k: string) => { const l = lastScored != null ? (s.track[k] || {})[lastScored] : undefined; return l && ORDER[l] !== undefined ? ORDER[l] : 7.5; };
   const count = (k: string, re: RegExp) => labelsOf(s, k).filter((l) => re.test(l)).length;
-  const top = alive.slice().sort((a, b) => (s.champion === b ? 1 : 0) - (s.champion === a ? 1 : 0) || last(a) - last(b) || ppeOf(s, b) - ppeOf(s, a) || count(b, /^WIN/) - count(a, /^WIN/) || count(a, /^BTM/) - count(b, /^BTM/));
+  const stars = (k: string) => (s.fmt === "winners" ? s.stars?.[k] || 0 : 0);
+  const top = alive.slice().sort((a, b) => (s.champion === b ? 1 : 0) - (s.champion === a ? 1 : 0) || stars(b) - stars(a) || last(a) - last(b) || ppeOf(s, b) - ppeOf(s, a) || count(b, /^WIN/) - count(a, /^WIN/) || count(a, /^BTM/) - count(b, /^BTM/));
   const gone = s.out.map((o, i) => ({ ...o, i })).sort((a, b) => b.ep - a.ep || b.i - a.i);
   return [
     ...top.map((key, i) => ({ key, place: `${i + 1}º`, out: false })),
@@ -282,8 +391,136 @@ export function autoDecide(s: RoomState, options: string[], e: Pick<Engine, "rnd
   return e.rnd() < 0.22 && strong !== deserved ? strong : deserved;
 }
 
+// ------------------------------ Giros de cada temporada ------------------------------
+const STAGES = ["corazon", "suerte", "moneda"] as const;
+/** Salvar a una del bottom: entra la siguiente con peor nota (que no sea la ganadora ni esté ya salvada). */
+export function saveFromBottom(s: RoomState, key: string): { s: RoomState; entered?: string } {
+  const bottom = s.bottom || [];
+  if (!bottom.includes(key)) return { s };
+  const rows = s.rows || [];
+  const prot = new Set([...(s.protectedKeys || []), key]);
+  const top = rows[0]?.key;
+  const alive = new Set(aliveKeys(s));
+  const cand = rows.slice().reverse().find((r) => !bottom.includes(r.key) && r.key !== top && !prot.has(r.key) && alive.has(r.key));
+  if (!cand) return { s };
+  const track = { ...s.track, [cand.key]: { ...(s.track[cand.key] || {}), [s.ep]: `BTM${bottom.length}` } };
+  return { s: { ...s, bottom: bottom.map((k) => (k === key ? cand.key : k)), protectedKeys: [...prot], track }, entered: cand.key };
+}
+/** Lo que deciden las reinas del juego en cada giro. */
+function npcPicks(s: RoomState, by: string[], kind: Twist["kind"], options: string[], e: Pick<Engine, "rnd">): Record<string, string> {
+  const out: Record<string, string> = {};
+  const late = aliveKeys(s).length <= 6;
+  by.filter((k) => !isP(k)).forEach((k) => {
+    if (kind === "moneda") out[k] = pickWith(options, e);
+    else if (kind === "bloqueo") out[k] = options.slice().sort((a, b) => (s.stars?.[b] || 0) - (s.stars?.[a] || 0) || e.rnd() - 0.5)[0];
+    else if (options.includes(k)) out[k] = k; // si está en el bottom, se salva a sí misma
+    else out[k] = e.rnd() < (kind === "corazon" ? 0.4 : late ? 0.35 : 0.15) ? pickWith(options, e) : "keep";
+  });
+  return out;
+}
+function toComodin(s: RoomState, tw: Twist, stage: number, now: number): RoomState {
+  const anyP = tw.by.some(isP);
+  const subs = Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, pick: undefined }]));
+  return { ...s, twist: tw, stage, subs, phase: "comodin", deadline: anyP ? limite(now, DURACION[s.ritmo].comodin) : now + 7000, v: s.v + 1 };
+}
+function startStage(s: RoomState, i: number, now: number, e: Engine): RoomState | null {
+  const st = STAGES[i];
+  const bottom = s.bottom || [];
+  if (st === "corazon") {
+    if (s.fmt !== "corazon" || !(s.pendingHearts || []).length) return null;
+    const alive = new Set(aliveKeys(s));
+    const gifts = (s.pendingHearts || []).filter((g) => alive.has(g.to));
+    const hearts = { ...(s.hearts || {}) };
+    gifts.forEach((g) => (hearts[g.to] = (hearts[g.to] || 0) + 1));
+    const full = Object.keys(hearts).filter((k) => alive.has(k) && hearts[k] >= 2);
+    const base: RoomState = { ...s, hearts, pendingHearts: [], stage: i, twist: undefined };
+    if (full.length && bottom.length) base.twist = { kind: "corazon", by: full, options: bottom, picks: npcPicks(base, full, "corazon", bottom, e) };
+    if (!gifts.length && !base.twist) return null;
+    return { ...base, twistResult: { kind: "corazones", gifts, full }, phase: "sorpresa", deadline: 0, v: s.v + 1 };
+  }
+  if (st === "suerte") {
+    if (s.fmt !== "suerte" || !s.luck || !aliveKeys(s).includes(s.luck) || aliveKeys(s).length < 4 || !bottom.length) return null;
+    const by = [s.luck];
+    return toComodin(s, { kind: "suerte", by, options: bottom, picks: npcPicks(s, by, "suerte", bottom, e) }, i, now);
+  }
+  if (s.fmt !== "moneda" || bottom.length !== 3) return null;
+  const voters = aliveKeys(s).filter((k) => !bottom.includes(k));
+  return toComodin(s, { kind: "moneda", by: voters, options: bottom, cara: e.rnd() < 0.5, picks: npcPicks(s, voters, "moneda", bottom, e) }, i, now);
+}
+/** Sigue con los giros que falten esta semana y, al final, el lip sync. */
+function continueChain(s: RoomState, from: number, now: number, e: Engine): RoomState {
+  for (let i = from; i < STAGES.length; i++) {
+    const r = startStage(s, i, now, e);
+    if (r) return r;
+  }
+  return toLipsync(s, now);
+}
+function toLipsync(s: RoomState, now: number): RoomState {
+  const b = s.bottom || [];
+  const subs = Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, ls: undefined }]));
+  const triple = b.length === 3 ? b : undefined;
+  const pairs: Pair[] = !triple && b.length === 2 ? [{ a: b[0], b: b[1] }] : [];
+  const anyP = [...b].some(isP);
+  return { ...s, subs, pairs, triple, twist: undefined, twistResult: undefined, phase: "lipsync", deadline: anyP ? limite(now, DURACION[s.ritmo].lipsync) : now + 6000, v: s.v + 1 };
+}
+/** Resuelve un comodín: aplica lo que decidió cada una (o lo decide el juego si no llegó a tiempo). */
+function resolveTwist(s: RoomState, now: number, e: Engine): RoomState {
+  const t = s.twist!;
+  const picks = { ...t.picks };
+  t.by.forEach((k) => {
+    if (picks[k]) return;
+    const pk = isP(k) ? s.subs[idOf(k)]?.pick : undefined;
+    if (pk && (pk === "keep" || t.options.includes(pk))) picks[k] = pk;
+    else picks[k] = t.kind === "moneda" ? pickWith(t.options, e) : t.kind === "bloqueo" ? npcPicks(s, [nkey("x")], "bloqueo", t.options, e)[nkey("x")] : "keep";
+  });
+  let r: RoomState = { ...s, twist: { ...t, picks } };
+  let res: TwistResult;
+  if (t.kind === "suerte" || t.kind === "corazon") {
+    const saved: string[] = [], entered: string[] = [];
+    const hearts = { ...(r.hearts || {}) };
+    t.by.forEach((k) => {
+      if (t.kind === "corazon") hearts[k] = 0; // el corazón entero se usa ahora o se pierde
+      const pk = picks[k];
+      if (pk === "keep") return;
+      const o = saveFromBottom(r, pk);
+      if (o.entered) { r = o.s; saved.push(pk); entered.push(o.entered); if (t.kind === "suerte") r.luck = null; }
+    });
+    if (t.kind === "corazon") r.hearts = hearts;
+    res = { kind: t.kind, by: t.by.find((k) => picks[k] !== "keep") || t.by[0], saved, entered };
+  } else if (t.kind === "moneda") {
+    const votes: Record<string, string[]> = Object.fromEntries(t.options.map((o) => [o, [] as string[]]));
+    t.by.forEach((k) => votes[picks[k]]?.push(k));
+    const max = Math.max(...t.options.map((o) => votes[o].length));
+    const tied = t.options.filter((o) => votes[o].length === max);
+    // Empate: desempata la ganadora de la semana (su voto, si está entre las empatadas)
+    const win = (s.rows || [])[0]?.key;
+    const chosen = tied.length === 1 ? tied[0] : win && tied.includes(picks[win]) ? picks[win] : pickWith(tied, e);
+    const sc = (k: string) => (s.rows || []).find((x) => x.key === k)?.score ?? 0;
+    const rest = t.options.filter((o) => o !== chosen);
+    r.bottom = t.cara ? rest : [chosen, rest.sort((a, b) => sc(a) - sc(b))[0]];
+    res = { kind: "moneda", votes, chosen, cara: t.cara, tie: tied.length > 1 };
+  } else {
+    const by = t.by[0];
+    r.block = { ep: s.ep + 1, id: picks[by], by };
+    res = { kind: "bloqueo", by, target: picks[by], stars: t.starred || [] };
+  }
+  return { ...r, twistResult: res, phase: "sorpresa", deadline: 0, v: s.v + 1 };
+}
+/** Lip sync a tres bandas: se salva una (la jugadora que gane con más nota; si ninguna gana, la mejor del juego). */
+function resolveTriple(s: RoomState, e: Engine): string {
+  const T = s.triple || [];
+  const ls = (k: string) => s.subs[idOf(k)]?.ls;
+  const winners = T.filter((k) => isP(k) && ls(k)?.won).sort((a, b) => (ls(b)?.score || 0) - (ls(a)?.score || 0));
+  if (winners.length) return winners[0];
+  const npcs = T.filter((k) => !isP(k));
+  if (!npcs.length) return T.slice().sort((a, b) => (ls(b)?.score || 0) - (ls(a)?.score || 0))[0];
+  return npcs.slice(1).reduce((best, k) => (e.simLS(queenOfKey(s, best), queenOfKey(s, k)) === queenOfKey(s, best) ? best : k), npcs[0]);
+}
+
 /** Siembra de la final por PPE (1 contra 4, 2 contra 3). */
 function seeds(s: RoomState): string[] {
+  // All Winners: por estrellas
+  if (isAW(s)) return aliveKeys(s).sort((a, b) => (s.stars?.[b] || 0) - (s.stars?.[a] || 0) || ppeOf(s, b) - ppeOf(s, a));
   return aliveKeys(s).sort((a, b) => ppeOf(s, b) - ppeOf(s, a) || winsOf(s, b) - winsOf(s, a));
 }
 
@@ -315,8 +552,22 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       return at("veredicto", D.veredicto, { track: writeTrack(s, s.rows || []) });
     case "veredicto": {
       const rows = s.rows || [];
-      // All Stars: lip sync del top 2 (por el poder); normal: las dos peores, por quedarse
-      const who = rows.filter((r) => r.label === (isAS(s) ? "TOP2" : "BTM2")).map((r) => r.key);
+      if (!isAS(s) && !isAW(s)) {
+        // Normal y temporadas con giro: el bottom, los comodines (corazón, suerte, moneda) y el lip sync
+        const subs = Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, ls: undefined, pick: undefined }]));
+        let t: RoomState = { ...s, subs, bottom: rows.filter((r) => /^BTM/.test(r.label)).map((r) => r.key), protectedKeys: [], stage: undefined, twist: undefined, twistResult: undefined };
+        // Segunda Oportunidrag: vuelve la eliminada de la pareja ganadora (o de la mejor pareja que tenga una)
+        if (s.rp && s.rp.ep === s.ep) {
+          const pr = rows.map((r) => s.rp!.pairs.find((p) => p.c === r.key)).find((p) => p && p.o);
+          const back = pr?.o || undefined;
+          if (back) t = revive(t, back);
+          const pairs = s.rp.pairs.map((p) => ({ ...p, score: rows.find((r) => r.key === p.c)?.score ?? 0 })).sort((a, b) => b.score - a.score);
+          return { ...t, twistResult: { kind: "repesca", back, pairs }, phase: "sorpresa", deadline: 0, v: s.v + 1 };
+        }
+        return continueChain(t, 0, now, e);
+      }
+      // All Stars y All Winners: lip sync del top 2
+      const who = rows.filter((r) => /^(TOP2|BTOP)$/.test(r.label)).map((r) => r.key);
       const pairs: Pair[] = who.length === 2 ? [{ a: who[0], b: who[1] }] : [];
       const next = { ...s, pairs, subs: Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, ls: undefined, elim: undefined }])) };
       // All Stars: antes del lip sync, cada una del top elige en secreto su pintalabios
@@ -332,7 +583,33 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       return { ...next, phase: "lipsync", deadline: limite(now, D.lipsync), v: s.v + 1 };
     }
     case "lipsync": {
+      // Lip sync a tres bandas: se salva una y se van dos
+      if (s.triple && s.triple.length === 3) {
+        const stay = resolveTriple(s, e);
+        const n = aliveKeys(s).length;
+        let t: RoomState = { ...s };
+        const gone = s.triple.filter((k) => k !== stay);
+        gone.forEach((k) => (t = eliminate(t, k, `${n - 1}º/${n}º`, "ELIM", e)));
+        const nm = (k: string) => nameOfKey(t, k, e);
+        return { ...t, triple: undefined, note: `${nm(stay)} se salva en el lip sync a tres bandas. ${gone.map(nm).join(" y ")} se van a casa.`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+      }
       const pairs = resolvePairs(s, e);
+      if (isAW(s)) {
+        // All Winners: la del lip sync se lleva la Legendary Legend Star y bloquea a una rival
+        const p = pairs[0];
+        if (!p || !p.winner) return at("track", D.track, { pairs });
+        const blocked = s.block && s.block.ep === s.ep ? s.block.id : null;
+        const last = s.ep >= (s.weeks || 0);
+        const stars = { ...(s.stars || {}) };
+        const starred = [p.a, p.b].filter((k) => k !== blocked);
+        starred.forEach((k) => (stars[k] = (stars[k] || 0) + (last ? 3 : 1)));
+        const track = { ...s.track, [p.winner]: { ...(s.track[p.winner] || {}), [s.ep]: p.winner === blocked ? "BWIN" : "WIN" } };
+        const options = aliveKeys(s).filter((k) => k !== p.winner && k !== blocked);
+        const base: RoomState = { ...s, pairs, stars, track };
+        // La última semana ya no hay bloqueo: después viene la final
+        if (last || !options.length) return { ...base, twistResult: { kind: "bloqueo", by: p.winner, stars: starred }, phase: "sorpresa", deadline: 0, v: s.v + 1 };
+        return toComodin(base, { kind: "bloqueo", by: [p.winner], options, picks: npcPicks(base, [p.winner], "bloqueo", options, e), starred }, -1, now);
+      }
       if (isAS(s) && s.decision) {
         // La ganadora del lip sync gana el reto y saca su pintalabios: se va la que eligió
         const p = pairs[0];
@@ -343,7 +620,7 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
         const stay = d.options.find((k) => k !== go) || go;
         const kind = decisionKind(s, go, stay);
         let t: RoomState = { ...s, pairs, track: { ...s.track, [p.winner]: { ...(s.track[p.winner] || {}), [s.ep]: "WIN" } } };
-        t = eliminate(t, go, `${aliveKeys(t).length}º`);
+        t = eliminate(t, go, `${aliveKeys(t).length}º`, "ELIM", e);
         const nm = (k: string) => nameOfKey(t, k, e);
         const why = kind === "semana" ? "la peor de la semana" : kind === "trayectoria" ? "ha mirado toda la temporada" : "jugarreta: se quita a una rival fuerte";
         const reveal: Reveal | undefined = d.picks[loser] ? { ep: s.ep, by: loser, go: d.picks[loser], went: go } : undefined;
@@ -352,7 +629,7 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       let t: RoomState = { ...s, pairs };
       pairs.forEach((p) => {
         const loser = p.winner === p.a ? p.b : p.a;
-        t = eliminate(t, loser, `${aliveKeys(t).length}º`);
+        t = eliminate(t, loser, `${aliveKeys(t).length}º`, "ELIM", e);
       });
       const nm = (k: string) => nameOfKey(t, k, e);
       const note = pairs.map((p) => `${nm(p.winner!)} se queda. ${nm(p.winner === p.a ? p.b : p.a)} se va a casa.`).join(" ");
@@ -371,8 +648,25 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
     }
     case "pintalabios":
       return at("track", D.track);
+    case "comodin":
+      return resolveTwist(s, now, e);
+    case "sorpresa": {
+      const k = s.twistResult?.kind;
+      // Corazones destapados: si alguna tiene uno entero, decide ahora
+      if (k === "corazones" && s.twist && s.twist.kind === "corazon") return toComodin({ ...s, twistResult: undefined }, s.twist, s.stage ?? 0, now);
+      if (k === "bloqueo") return at("track", D.track, { twist: undefined, twistResult: undefined });
+      const from = k === "repesca" ? 0 : (s.stage ?? -1) + 1;
+      return continueChain({ ...s, twist: undefined, twistResult: undefined }, from, now, e);
+    }
     case "track": {
-      if (aliveKeys(s).length > 4) return nextEpisode(s, now, e);
+      if (isAW(s) ? s.ep < (s.weeks || 0) : aliveKeys(s).length > 4) return nextEpisode(s, now, e);
+      // All Winners: a la final van las 4 con más estrellas; el resto queda colocada por estrellas
+      if (isAW(s)) {
+        const order = seeds(s);
+        let t: RoomState = s;
+        order.slice(4).reverse().forEach((k) => { const pos = order.indexOf(k) + 1; t = eliminate(t, k, `${pos}º`, "ELIMF"); });
+        s = t;
+      }
       // Gran final: lip syncs eliminatorios entre las cuatro (o tres) últimas
       const sd = seeds(s);
       const ep = s.ep + 1;
@@ -416,7 +710,8 @@ export function tick(s: RoomState, now: number, e: Engine): RoomState {
 export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase, data: Sub): RoomState {
   if (ep !== s.ep || phase !== s.phase) return s;
   const p = s.players.find((x) => x.id === pid);
-  if (!p || !p.alive) return s;
+  // Las eliminadas solo juegan su monólogo de la Segunda Oportunidrag
+  if (!p || (!p.alive && !(rpPlayers(s).includes(pid) && (phase === "reto" || phase === "pasarela")))) return s;
   return { ...s, subs: { ...s.subs, [pid]: { ...(s.subs[pid] || {}), ...data } }, v: s.v + 1 };
 }
 
@@ -428,8 +723,10 @@ export function setScript(s: RoomState, key: string, lines: [string, string][]):
 }
 /** La anfitriona pulsa «seguir»: siguiente línea; al acabar el guion, la tarjeta; desde la tarjeta, la fase siguiente. */
 export function hostNext(s: RoomState, now: number, e: Engine): RoomState {
-  if (!isWatch(s.phase) || s.phase === "corona") return s;
+  if (!isWatch(s.phase)) return s;
   if (s.script && s.script.i < s.script.lines.length) return { ...s, script: { ...s.script, i: s.script.i + 1 }, v: s.v + 1 };
+  // La corona es la última pantalla: se leen las frases, pero no hay fase siguiente
+  if (s.phase === "corona") return s;
   return advance(s, now, e);
 }
 

@@ -2814,3 +2814,30 @@ body.portrait .app-ask-card { width: min(560px, 100%); }
 .mp-saved-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .mp-saved-btns .btn { padding: 8px 14px; font-size: 14px; }
 body.portrait .mp-saved-row { flex-direction: column; align-items: stretch; }
+
+/* ---------- Multijugador: dinámicas y partida personalizada ---------- */
+.mp-season.mp-custom { background: linear-gradient(135deg, #ff4fb0 0%, #8a3cff 55%, #2bb7ff 100%); }
+.mp-customset { text-align: center; }
+.mp-fmts { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin: 12px 0 16px; text-align: left; }
+.mp-fmt { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 16px; border: 2px solid transparent; background: rgba(255,255,255,.75); cursor: pointer; font: inherit; color: var(--ink); transition: transform .15s, border-color .15s; }
+.mp-fmt b { font: 800 15px/1.2 Poppins, sans-serif; }
+.mp-fmt small { color: var(--ink-soft); font-size: 12px; line-height: 1.35; }
+.mp-fmt:hover { transform: translateY(-2px); }
+.mp-fmt.on { border-color: var(--pink); background: #fff; box-shadow: 0 10px 24px -14px rgba(255,61,154,.7); }
+.mp-cfgrow { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+.mp-size { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 700 13px/1.2 Poppins, sans-serif; color: var(--ink); }
+.mp-size span { display: flex; align-items: center; gap: 10px; }
+.mp-size b { font-size: 22px; min-width: 32px; text-align: center; }
+.mp-filter { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 4px 0 10px; }
+.mp-filter .chip { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(59,13,79,.15); background: rgba(255,255,255,.75); font: 700 12px/1 Poppins, sans-serif; color: var(--ink); cursor: pointer; }
+.mp-filter .chip.on { background: var(--ink); color: #fff; }
+.mp-qgrid .queen-card.rival .portrait { filter: grayscale(.4) brightness(.7); }
+.mp-rivals { margin: 6px 0 14px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,.55); }
+.mp-rivals h4 { margin: 0 0 8px; }
+.mp-status { margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; background: rgba(255, 216, 77, .22); border: 1px solid rgba(255,184,0,.45); text-align: left; }
+.mp-status p { margin: 2px 0; font-weight: 600; }
+.mp-gifts { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.mp-stars { margin-top: 10px; }
+body.portrait .mp-fmts { grid-template-columns: 1fr 1fr; }
+.mp-stars span { min-width: 84px; padding: 6px 8px; font-size: 12px; }
+.mp-stars span i { width: 34px; height: 34px; }
