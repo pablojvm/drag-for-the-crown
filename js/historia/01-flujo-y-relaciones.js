@@ -59,7 +59,7 @@
   const META = new Set(["queen", "season", "rivals", "out", "date", "v"]);
   const hasQueen = (v, d = 0) => !!v && typeof v === "object" && d < 5 && ((v.stats && v.sprite && v.id) || Object.values(v).some((x) => hasQueen(x, d + 1)));
   function snapshot() {
-    const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: 3 };
+    const d = { queen: S.queen.id, season: S.season.id, rivals: S.rivals.map((q) => q.id), out: S.out.map((q) => q.id), date: new Date().toISOString(), v: DFTC.SAVE_VERSION };
     Object.keys(S).forEach((k) => {
       const v = S[k];
       if (NO_SAVE.has(k) || META.has(k) || v === undefined || typeof v === "function" || hasQueen(v)) return;
@@ -94,8 +94,9 @@
     }
   }
   const saved = () => {
-    const d = store.get(SAVE_KEY, null);
-    return d && d.v >= 2 && qById(d.queen) && seasonById(d.season) ? d : null;
+    // Las partidas de versiones anteriores se migran al formato actual (src/core/save.ts)
+    const d = DFTC.migrateSave(store.get(SAVE_KEY, null));
+    return d && qById(d.queen) && seasonById(d.season) ? d : null;
   };
   function resume() {
     const d = saved();

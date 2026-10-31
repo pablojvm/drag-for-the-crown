@@ -16,6 +16,14 @@ const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
 const DAILY = Number(Deno.env.get("AI_DAILY_LIMIT") || 150);
 const GLOBAL = Number(Deno.env.get("AI_GLOBAL_LIMIT") || 1400);
 const KEY = Deno.env.get("GEMINI_API_KEY") || "";
+// Tope por conexión (IP con hash): crear invitadas nuevas no da llamadas infinitas
+const IP_LIMIT = Number(Deno.env.get("AI_IP_LIMIT") || 400);
+const ipHash = async (req: Request) => {
+  const ip = (req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "").split(",")[0].trim();
+  if (!ip) return "";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip + (Deno.env.get("SUPABASE_URL") || "")));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+};
 // Modelos sin cuota o que no existen: se saltan un rato (la función vive varios minutos entre llamadas)
 const cool = new Map<string, number>();
 
@@ -41,6 +49,11 @@ Deno.serve(async (req) => {
 
   // Cuota: por jugador y día, y un tope global para no pasarse del plan gratuito
   const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const ip = await ipHash(req);
+  if (ip) {
+    const { data: n } = await admin.rpc("ai_take_ip", { p_ip: ip, p_limit: IP_LIMIT });
+    if (n === -1) return json({ error: "límite diario" }, 403);
+  }
   const { data: q, error: qe } = await admin.rpc("ai_take", { p_user: u.user.id, p_limit: DAILY, p_global: GLOBAL });
   if (qe) return json({ error: "cuota" }, 500);
   const mine = Array.isArray(q) ? q[0]?.mine : (q as any)?.mine;

@@ -8,6 +8,8 @@ const myId = () => {
   if (!id) { id = Math.random().toString(36).slice(2, 10); sessionStorage.setItem("dftc-mp-id", id); }
   return id;
 };
+// La hora de cada movimiento del duelo la pone la anfitriona (su reloj es el que cuenta para los topes)
+const stamp = (d: Sub): Sub => (d && d.duelMove ? { ...d, duelMove: { ...d.duelMove, at: Date.now(), auto: false } } : d);
 const newCode = () => Array.from({ length: 5 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 24)]).join("");
 
 export class Room {
@@ -32,19 +34,24 @@ export class Room {
     this.bus = net && net.enabled && net.sb ? new OnlineBus(code, this.me, net.sb) : new LocalBus(code, this.me);
     this.bus.on("state", (d: { s: RoomState; now: number }, from) => {
       if (!d || !d.s) return;
-      if (this.state && d.s.v <= this.state.v && this.state.code === d.s.code) return;
+      // Solo manda la anfitriona: un estado vale si lo envía quien dice ser la anfitriona. Si ya hay sala, cambiar de
+      // anfitriona solo se acepta cuando la anterior ya no está (el relevo) o cuando lo envía la misma de siempre.
+      if (d.s.host !== from) return;
+      if (this.state && this.state.code !== d.s.code) return;
+      if (this.state && this.state.host !== from && this.bus && this.bus.peers().includes(this.state.host)) return;
+      if (this.state && d.s.v <= this.state.v) return;
       if (d.s.host === from) this.offset = d.now - Date.now();
       this.lastHost = Date.now(); // cualquier estado nuevo cuenta como señal de vida de la sala
       this.state = d.s;
       this.onChange(d.s);
     });
-    this.bus.on("join", (p: Player) => this.hostDo((s) => (s.players.some((x) => x.id === p.id) ? s : { ...s, players: [...s.players, { ...p, queen: null, alive: false }], v: s.v + 1 })));
-    this.bus.on("pick", (d: { id: string; queen: string }) => this.hostDo((s) => (s.phase !== "lobby" || s.players.some((x) => x.queen === d.queen) ? s : { ...s, players: s.players.map((x) => (x.id === d.id ? { ...x, queen: d.queen } : x)), v: s.v + 1 })));
-    this.bus.on("leave", (d: { id: string }) => this.hostDo((s) => (s.phase === "lobby" ? { ...s, players: s.players.filter((x) => x.id !== d.id), v: s.v + 1 } : s)));
-    this.bus.on("submit", (d: { id: string; ep: number; phase: Phase; data: Sub }) => this.hostDo((s) => applySubmit(s, d.id, d.ep, d.phase, d.data)));
-    this.bus.on("chat", (m) => this.onChat(m));
-    this.bus.on("pausa", (d: { id: string }) => this.hostDo((s) => proposePause(s, d.id, Date.now())));
-    this.bus.on("voto", (d: { id: string; yes: boolean }) => this.hostDo((s) => votePause(s, d.id, d.yes, Date.now())));
+    this.bus.on("join", (p: Player, from) => p.id === from && this.hostDo((s) => (s.players.some((x) => x.id === p.id) ? s : { ...s, players: [...s.players, { ...p, queen: null, alive: false }], v: s.v + 1 })));
+    this.bus.on("pick", (d: { id: string; queen: string }, from) => d.id === from && this.hostDo((s) => (s.phase !== "lobby" || s.players.some((x) => x.queen === d.queen) ? s : { ...s, players: s.players.map((x) => (x.id === d.id ? { ...x, queen: d.queen } : x)), v: s.v + 1 })));
+    this.bus.on("leave", (d: { id: string }, from) => d.id === from && this.hostDo((s) => (s.phase === "lobby" ? { ...s, players: s.players.filter((x) => x.id !== d.id), v: s.v + 1 } : s)));
+    this.bus.on("submit", (d: { id: string; ep: number; phase: Phase; data: Sub }, from) => d.id === from && this.hostDo((s) => applySubmit(s, d.id, d.ep, d.phase, stamp(d.data))));
+    this.bus.on("chat", (m, from) => m && m.from === from && this.onChat({ from, name: String(m.name || "").slice(0, 12), text: String(m.text || "").slice(0, 200) }));
+    this.bus.on("pausa", (d: { id: string }, from) => d.id === from && this.hostDo((s) => proposePause(s, d.id, Date.now())));
+    this.bus.on("voto", (d: { id: string; yes: boolean }, from) => d.id === from && this.hostDo((s) => votePause(s, d.id, d.yes, Date.now())));
     this.bus.on("hello", () => this.isHost && this.broadcast());
     this.loop = window.setInterval(() => this.heartbeat(), 500);
   }
@@ -139,7 +146,7 @@ export class Room {
   submit(data: Sub) {
     if (!this.state) return;
     const d = { id: this.me, ep: this.state.ep, phase: this.state.phase, data };
-    if (this.isHost) this.hostDo((s) => applySubmit(s, d.id, d.ep, d.phase, d.data));
+    if (this.isHost) this.hostDo((s) => applySubmit(s, d.id, d.ep, d.phase, stamp(d.data)));
     else this.bus?.send("submit", d);
   }
   chat(name: string, text: string) {

@@ -1,71 +1,47 @@
-# Drag for The Crown!
+# Drag for the Crown
 
-# Descripción
-Drag for the Crown es un minijuego arcade de navegador. Eliges a tu queen y te enfrentas a las otras cinco en 5 rondas, esquivando sus tacones y lanzando los tuyos. La última ronda es el jefe final: *Lip Sync for Your Life*.
+Juego de navegador inspirado en los realities de drag: compites en una temporada entera (retos, pasarela, críticas, untucked y lip syncs) hasta llevarte la corona, sola o con amigas en directo.
 
-# Desarrollo
+**Jugar:** https://pablojvm.github.io/drag-for-the-crown/
 
-Desde la versión 2 el juego se arranca con Vite (`npm install` y `npm run dev`). Todo lo necesario para desarrollar, probar, publicar y activar el servidor está en [DESARROLLO.md](DESARROLLO.md).
+## Modos
 
-# Cómo se juega
+- **Modo historia.** Eliges temporada y reina y juegas la temporada capítulo a capítulo: minirreto, reto (snatch, roast, rusical, actuación, diseño, makeover, impro, Lalaparuza...), pasarela con tus looks, críticas, untucked, veredicto y lip sync. Relaciones con las compañeras, némesis, armario y tienda, y dinámicas especiales por temporada: All Stars (pintalabios), All Winners (estrellas y bloqueos), Segunda Oportunidrag, reina de la suerte, temporada del corazón y de la moneda.
+- **Multijugador en directo.** Cada jugadora es una reina y el resto del reparto lo lleva el juego. La anfitriona lleva el ritmo de las pantallas y las demás ven lo mismo. Incluye todas las dinámicas, partida personalizada, maletas con presupuesto, pausa con acuerdo de todas y lip syncs entre jugadoras paso a paso y a la vez.
+- **Arcade.** El juego original: esquiva tacones y lanza los tuyos en cinco rondas hasta el lip sync final.
 
-- Muévete con las flechas (o WASD) por la mitad inferior de la pasarela.
-- Lanza tacones con Espacio (mantén pulsado para disparo continuo).
-- Usa el poder especial de tu reina con `E` (o Shift) cuando la barra esté llena.
-- `P` / `Esc` para pausar y `M` para silenciar.
-- En móvil aparecen controles táctiles.
+Opcional: retos escritos con IA (Gemini con Groq de respaldo, con límite diario), cuenta con Google, partida en la nube y Hall of Fame mundial.
 
-# Funcionalidades
+## Desarrollo
 
-- Modo campaña por temporadas: eliges franquicia, temporada y una reina de su reparto. Te enfrentas al resto del reparto en el orden real de expulsión y la ganadora es la jefa final. Ganar una temporada desbloquea la siguiente, que es algo más difícil.
-- Disponibles: Drag Race España (temporadas 1 a 5) y Drag Race España All Stars 1, con sus 58 reinas. El resto de franquicias aparecen como "Próximamente".
-- Cada reina tiene estadísticas (según su mejor puesto en el programa) y un poder especial.
+```bash
+npm install
+npm run dev        # http://localhost:8000
+npm run check      # tipos
+npm run lint       # ESLint (TypeScript estricto, código antiguo solo errores reales)
+npm test           # tests de reglas (Vitest)
+npm run build && npm run preview
+npm run e2e        # una temporada del modo historia en un navegador
+npm run e2e:mp     # dos jugadoras y un duelo de lip sync
+```
 
-# Cómo añadir fotos, audios y frases
+Las pruebas en navegador usan Playwright (`npx playwright install chromium` la primera vez). El despliegue a GitHub Pages lo hace el workflow en cada push a `main`, y antes pasa tipos, lint, tests y pruebas en navegador.
 
-Todo está en `js/reinas.js`. Cada reina tiene un `id` (por ejemplo `pitita`):
+Más detalle (servidor, claves, Supabase): [DESARROLLO.md](DESARROLLO.md).
 
-- Foto de cuerpo entero sin fondo: `public/images/queens/<id>.png` y pon `foto: true`.
-- Retrato para la tarjeta: `public/images/queens/<id>_retrato.jpg` y pon `retrato: true`.
-- Audio con su frase: `public/audio/queens/<id>.mp3` y pon `audio: true`.
-- Frase: escríbela en `frase`.
+## Estructura
 
-Mientras una reina no tenga foto, aparece con una silueta provisional con sus iniciales.
+| Carpeta | Qué hay |
+| --- | --- |
+| `src/core/` | Reglas puras en TypeScript con tests: azar con semilla, dado, cuadro de eliminatorias, track record, flujo del episodio, partidas guardadas |
+| `src/mp/` | Multijugador: reglas de la sala (`model.ts`), conexión (`room.ts`, `bus.ts`) y pantallas (`ui.ts`) |
+| `src/net/` | Cuentas, nube y captura de errores (Supabase) |
+| `js/historia/` | Motor del modo historia (código antiguo, se irá pasando a `src/core`) |
+| `js/` | Arcade, menús, diálogos y datos de las reinas |
+| `supabase/` | Migraciones de la base de datos y la función de IA |
+| `tools/` | Pruebas en navegador y revisión del modo historia |
+| `public/` | Imágenes, audio, estilos y service worker |
 
-- Al elegir reina se despliega su ficha con estadísticas y poder.
-- Pantalla de puntuaciones (Hall of Fame) con el Top 10, nombre del jugador, estadísticas de carrera y progreso de desbloqueos.
+## Hoja de ruta
 
-- 5 rondas con dificultad creciente: cada rival tiene barra de vida, su propio movimiento (rebote, onda, embestida, figura en ocho) y su patrón de ataque (disparo recto, dirigido, abanico, ráfagas y combinación en el jefe final).
-- Puntuación con combos (hasta x8), bonus por eliminar rival, ronda sin daño ("Flawless") y vidas restantes.
-- Power-ups: pintalabios (+1 vida) y corona (doble tacón durante 7 s).
-- Invulnerabilidad breve tras recibir un golpe.
-- Récord guardado en el navegador y pantalla final con estadísticas (puntos, precisión, combo máximo, tiempo).
-- Efectos: partículas de purpurina, textos flotantes, temblor de cámara, focos animados y pasarela en perspectiva.
-- Pausa automática al cambiar de pestaña.
-- Escalado a cualquier tamaño de pantalla y controles táctiles.
-
-# Tecnologías
-
-- HTML, CSS y JavaScript sin frameworks.
-- Canvas 2D para el juego y bucle con `requestAnimationFrame` basado en delta time.
-- Web Audio API para efectos sintetizados y `Audio` para música y voces.
-- `localStorage` para el récord y la preferencia de sonido.
-
-# Estructura
-
-- `js/config.js`: constantes, queens, configuración de rondas y utilidades.
-- `js/audio.js`: música, voces y efectos de sonido.
-- `js/effects.js`: partículas, textos flotantes, temblor y fondo animado.
-- `js/entities.js`: jugadora, rivales, tacones y power-ups.
-- `js/game.js`: bucle, estados, colisiones, puntuación y HUD.
-- `js/ui.js`: pantallas, elección de queen, pausa, sonido, escalado y controles táctiles.
-
-# ENLACES IMPORTANTES
-
-## DEPLOY
-
-- https://pablojvm.github.io/drag-for-the-crown/
-
-## DIAPOSITIVAS
-
-- https://www.canva.com/design/DAGm8fj9BcM/hBqL4XWOZ9aIYhxzIkVhKw/edit?utm_content=DAGm8fj9BcM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+El plan de profesionalización (auditoría, nuevo motor con Phaser 4 + React + Colyseus y fases) está en el documento de auditoría del proyecto.

@@ -23,11 +23,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run lint
       - run: npm test
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+      # Pruebas en un navegador de verdad: una temporada del modo historia y un duelo del multijugador
+      - run: npx playwright install --with-deps chromium
+      - name: Pruebas en navegador
+        run: |
+          npx vite preview --port 4173 --strictPort &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/ >/dev/null && break; sleep 2; done
+          npm run e2e
+          npm run e2e:mp
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

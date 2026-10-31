@@ -55,7 +55,11 @@ export const NO_PRESENTO = 30;
 export interface Player { id: string; name: string; queen: string | null; joined: number; alive: boolean }
 export interface Row { key: string; score: number; label: string }
 export interface Pair { a: string; b: string; winner?: string }
-export interface Sub { reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string; box?: number; heart?: string }
+/** Lip sync entre dos jugadoras: cada paso lo eligen las dos a la vez y no se pasa al siguiente hasta que han elegido ambas. */
+export interface DuelMove { tag: string; imp: number; msg: string; energy?: number; at?: number; auto?: boolean }
+export const DUEL_STEPS = 6;
+export const DUEL_STEP_MS = 25000;
+export interface Sub { reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string; box?: number; heart?: string; duel?: DuelMove[]; duelMove?: DuelMove; duelStep?: number }
 /** Momento de un giro en el que alguien decide (comodín): la suerte, el corazón, la moneda o el bloqueo del All Winners. */
 export interface Twist {
   kind: "suerte" | "corazon" | "moneda" | "bloqueo" | "corte";
@@ -136,6 +140,9 @@ export interface RoomState {
   stage?: number;
   triple?: string[];
   luck?: string | null;
+  /** Lip sync entre jugadoras: cuándo empezó la fase (para el tope de cada paso). */
+  duelAt?: number;
+  duelKey?: string;
   /** Reina de la suerte: las cajitas del primer día (en una está la suerte). */
   boxes?: { n: number; win: number; owners?: Record<number, string> };
   hearts?: Record<string, number>;
@@ -882,11 +889,61 @@ export function tick(s: RoomState, now: number, e: Engine): RoomState {
   if (s.phase === "lobby" || s.phase === "corona" || s.pause || s.paused) return s;
   // Cajitas: cuando todas han elegido, unos segundos para ver lo que hay en la tuya
   if (s.phase === "cajas" && alivePlayers(s).every((p) => s.subs[p.id]?.box != null) && (!s.deadline || s.deadline > now + CAJAS_VER)) return { ...s, deadline: now + CAJAS_VER, v: s.v + 1 };
+  // Duelos entre jugadoras: el reloj de la fase no corta a nadie a mitad; cada paso tiene su propio tope
+  const duels = (s.pairs || []).filter((p) => !p.winner && isP(p.a) && isP(p.b) && ["lipsync", "final", "lalaparuza"].includes(s.phase));
+  if (duels.length) {
+    const key = `${s.ep}:${s.phase}:${s.finalStage || 0}`;
+    if (s.duelKey !== key) return { ...s, duelKey: key, duelAt: now, v: s.v + 1 };
+    const t = s.ritmo === "libre" ? s : duelTimeouts(s, now);
+    if (t !== s) return t;
+    const open = duels.some((p) => (s.subs[idOf(p.a)]?.duel || []).length < DUEL_STEPS || (s.subs[idOf(p.b)]?.duel || []).length < DUEL_STEPS);
+    if (open && s.deadline > 0 && s.deadline - now < DUEL_STEP_MS) return { ...s, deadline: now + DUEL_STEP_MS + 5000, v: s.v + 1 };
+  }
   if ((s.deadline > 0 && now >= s.deadline) || allIn(s)) return advance(s, now, e);
   return s;
 }
 
 /** Aplica una entrega de una jugadora (solo cuenta la de la fase y episodio actuales). */
+/** La pareja de lip sync de una jugadora si su rival también es jugadora (duelo sincronizado). */
+export function duelOf(s: RoomState, key: string): Pair | undefined {
+  if (!["lipsync", "final", "lalaparuza"].includes(s.phase)) return undefined;
+  return (s.pairs || []).find((p) => !p.winner && (p.a === key || p.b === key) && isP(p.a) && isP(p.b));
+}
+const movesOf = (s: RoomState, key: string) => s.subs[idOf(key)]?.duel || [];
+/** Apunta un movimiento del duelo (solo el del paso que toca y solo si la rival ya ha hecho el anterior). */
+function addDuelMove(s: RoomState, key: string, step: number, mv: DuelMove): RoomState {
+  const p = duelOf(s, key);
+  if (!p) return s;
+  const other = p.a === key ? p.b : p.a;
+  const mine = movesOf(s, key), theirs = movesOf(s, other);
+  if (step !== mine.length || mine.length >= DUEL_STEPS || theirs.length < mine.length) return s;
+  const move: DuelMove = { tag: String(mv.tag).slice(0, 20), imp: Math.max(0, Math.min(90, Number(mv.imp) || 0)), msg: String(mv.msg || "").slice(0, 200), energy: Math.max(0, Math.min(100, Number(mv.energy ?? mine.at(-1)?.energy ?? 100))), at: mv.at, auto: mv.auto };
+  const subs = { ...s.subs, [idOf(key)]: { ...(s.subs[idOf(key)] || {}), duel: [...mine, move] } };
+  let t: RoomState = { ...s, subs, v: s.v + 1 };
+  // Las dos han terminado: gana la que más ha conectado con el público
+  const ma = movesOf(t, p.a), mb = movesOf(t, p.b);
+  if (ma.length >= DUEL_STEPS && mb.length >= DUEL_STEPS) {
+    const sa = Math.round(ma.reduce((x, m) => x + m.imp, 0)), sb = Math.round(mb.reduce((x, m) => x + m.imp, 0));
+    t = { ...t, subs: { ...t.subs, [idOf(p.a)]: { ...t.subs[idOf(p.a)], ls: { won: sa > sb, score: sa } }, [idOf(p.b)]: { ...t.subs[idOf(p.b)], ls: { won: sb > sa, score: sb } } } };
+  }
+  return t;
+}
+/** Si una de las dos no elige a tiempo, se queda quieta en ese paso (y el duelo sigue). */
+export function duelTimeouts(s: RoomState, now: number): RoomState {
+  let t = s;
+  for (const p of s.pairs || []) {
+    if (p.winner || !isP(p.a) || !isP(p.b) || !["lipsync", "final", "lalaparuza"].includes(s.phase)) continue;
+    const ma = movesOf(t, p.a), mb = movesOf(t, p.b);
+    if (ma.length >= DUEL_STEPS && mb.length >= DUEL_STEPS) continue;
+    const last = Math.max(0, ...[...ma, ...mb].map((m) => m.at || 0)) || t.duelAt || now;
+    if (now - last < DUEL_STEP_MS) continue;
+    const idle: DuelMove = { tag: "Quieta", imp: 2, msg: "Se queda quieta: no le ha dado tiempo a elegir.", at: now, auto: true };
+    // La que va por detrás (o las dos, si ninguna ha elegido) se queda quieta en ese paso
+    if (ma.length <= mb.length) t = addDuelMove(t, p.a, ma.length, idle);
+    if (mb.length <= ma.length) t = addDuelMove(t, p.b, mb.length, idle);
+  }
+  return t;
+}
 export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase, data: Sub): RoomState {
   // Temporada del corazón: la jugadora eliminada elige a quién deja su medio corazón (hasta que se destapa)
   if (data.heart) {
@@ -897,6 +954,7 @@ export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase,
     return { ...s, pendingHearts: ph.map((g, j) => (j === i ? { ...g, to: data.heart!, chosen: true } : g)), v: s.v + 1 };
   }
   if (ep !== s.ep || phase !== s.phase) return s;
+  if (data.duelMove) return addDuelMove(s, pkey(pid), data.duelStep ?? -1, data.duelMove);
   const p = s.players.find((x) => x.id === pid);
   // Las eliminadas solo juegan su monólogo de la Segunda Oportunidrag
   if (!p || (!p.alive && !(rpPlayers(s).includes(pid) && (phase === "reto" || phase === "pasarela")))) return s;

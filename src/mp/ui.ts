@@ -2,7 +2,7 @@
 import { Room } from "./room";
 import { carousel } from "../ui/carousel";
 import { ask } from "../ui/confirm";
-import { type LzMatch, DURACION, IA_EXTRA, FORMATOS, topeEpisodio, alivePlayers, aliveKeys, standings, ppeOf, planCats, isWatch, isP, idOf, pkey, type RoomState, type Engine, type Ritmo, type Formato } from "./model";
+import { type LzMatch, type DuelMove, DUEL_STEP_MS, DURACION, IA_EXTRA, FORMATOS, topeEpisodio, alivePlayers, aliveKeys, standings, ppeOf, planCats, isWatch, isP, idOf, pkey, type RoomState, type Engine, type Ritmo, type Formato } from "./model";
 
 const W = window as any;
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T | null;
@@ -724,6 +724,7 @@ function lalaparuza(s: RoomState, myKey: string | null) {
   const pairs = s.pairs || [];
   const mine = myKey ? pairs.find((p) => p.a === myKey || p.b === myKey) : null;
   const rn = lzName(s, L.round);
+  if (mine && myKey && isP(mine.a) && isP(mine.b) && !(s.subs[room.me] || {}).ls) return duel(s, mine, myKey, `🏆 Lalaparuza · ${rn}`);
   if (mine && !(s.subs[room.me] || {}).ls) {
     const rival = mine.a === myKey ? mine.b : mine.a;
     return play(s, `lalaparuza${L.round}` as any, (el) => api().lipsyncShow(el, keyQueen(s, rival), { eyebrow: `🏆 Lalaparuza · ${rn}`, curtain: "LALAPARUZA", note: "La que pierda se queda fuera del torneo." }, (won: boolean, score: number) => { playing = null; room.submit({ ls: { won, score } }); }));
@@ -731,6 +732,34 @@ function lalaparuza(s: RoomState, myKey: string | null) {
   const out = myKey && Object.prototype.hasOwnProperty.call(L.reached, myKey);
   const intro = L.round === (L.rounds[0].length ? 0 : 1) ? `<p class="muted">Eliminatorias de lip sync con todo el reparto. El cuadro se ordena por la temporada${L.rounds[0].length ? ": las últimas van a la ronda previa" : ""}. ${s.fmt === "allstars" || s.fmt === "winners" ? "Las dos que lleguen a la final son el top 2" : "La que gane el torneo gana el reto"}; las que caigan pronto, al bottom.</p>` : "";
   info(`<p class="eyebrow">🏆 Lalaparuza · cuadro del torneo</p><h3>${esc(rn)}${pairs.length === 1 ? `: ${esc(keyName(s, pairs[0].a))} vs ${esc(keyName(s, pairs[0].b))}` : ""}</h3>${intro}${mine ? `<p class="twist-note">¡Hecho! Esperando a que terminen los demás duelos...</p>` : out ? `<p class="muted">💔 Estás fuera del torneo. El resto se decide sin ti.</p>` : ""}${lzBracket(s)}<p class="muted">${pairs.some((p) => isP(p.a) || isP(p.b)) ? "Las jugadoras están bailando su lip sync..." : "Las reinas lo dan todo en el escenario..."}</p>${pairs.some((p) => isP(p.a) || isP(p.b)) ? skipBtn(s) : ""}`, undefined, "lz-card");
+}
+// Lip sync entre dos jugadoras: las dos eligen cada movimiento a la vez; no se ve el de la otra hasta que las dos han elegido
+const DUEL_PH = ["Inicio", "Puente", "Clímax"];
+const duelSeed = (s: RoomState, p: { a: string; b: string }, k: number) => { let h = 7; for (const c of `${s.code}:${s.ep}:${s.phase}:${s.finalStage || 0}:${p.a}:${p.b}:${k}`) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 3; };
+function duel(s: RoomState, p: { a: string; b: string }, myKey: string, eyebrow: string) {
+  const other = p.a === myKey ? p.b : p.a;
+  const mv = (k: string) => s.subs[idOf(k)]?.duel || [];
+  const mine = mv(myKey), theirs = mv(other);
+  const shown = Math.min(mine.length, theirs.length);
+  const tot = (list: DuelMove[]) => list.slice(0, shown).reduce((x, m) => x + m.imp, 0);
+  const tm = tot(mine), tt = tot(theirs), mx = Math.max(tm, tt, 120);
+  const energy = mine.at(-1)?.energy ?? 100, last = mine.at(-1)?.tag || "";
+  const step = mine.length;
+  const pi = Math.min(2, Math.floor(step / 2)), clim = pi === 2;
+  const stage = `<div class="ls-stage"><div class="ls-q me"><img src="${Q(keyQueen(s, myKey)).sprite || Q(keyQueen(s, myKey)).photo}" alt=""><b>Tú</b></div><div class="ls-vs">VS</div><div class="ls-q rival"><img src="${Q(keyQueen(s, other)).sprite || Q(keyQueen(s, other)).photo}" alt=""><b>${esc(keyName(s, other))}</b></div></div>
+    <div class="ls-crowd"><span>👏 Público</span><div class="ls-bar"><i class="me" style="width:${(tm / mx) * 100}%"></i></div><div class="ls-bar"><i class="rv" style="width:${(tt / mx) * 100}%"></i></div></div>`;
+  const lastRow = shown ? `<div class="mp-duel-last"><p><b>Tú:</b> ${esc(mine[shown - 1].msg)}</p><p><b>${esc(keyName(s, other))}:</b> ${esc(theirs[shown - 1].msg)}</p></div>` : `<p class="muted">Las dos elegís cada movimiento a la vez. Alterna (repetir aburre al público) y guarda 45 de energía para un truco en el clímax.</p>`;
+  const meter = `<p class="mp-duel-energy">⚡ Energía: <b>${energy}</b> · Paso ${Math.min(step + 1, 6)}/6</p>`;
+  if (step >= 6) return info(`<p class="eyebrow">${esc(eyebrow)}</p><h3>¡Terminado! Esperando el veredicto...</h3>${stage}${lastRow}`);
+  if (step > theirs.length) return info(`<p class="eyebrow">${esc(eyebrow)} · ${DUEL_PH.at(pi)} ${(step % 2) + 1}/2</p><h3>Esperando a que ${esc(keyName(s, other))} elija su movimiento...</h3>${stage}${lastRow}${meter}<p class="muted">Si no elige en ${Math.round(DUEL_STEP_MS / 1000)} segundos, se queda quieta.</p>`);
+  const emote = duelSeed(s, p, step);
+  const opts: { k: string; t: string; d: string }[] = api().lsOptions(emote, clim, last);
+  info(`<p class="eyebrow">${esc(eyebrow)} · ${DUEL_PH.at(pi)} de la canción ${(step % 2) + 1}/2</p><h3>Tú vs ${esc(keyName(s, other))}</h3>${stage}${lastRow}${meter}<div class="choice-col mp-duel-opts">${opts.map((o) => `<button class="btn btn-ghost role" data-duel="${o.k}"><b>${esc(o.t)}</b><small>${esc(o.d)}</small></button>`).join("")}</div><p class="muted">⏱ Tienes ${Math.round(DUEL_STEP_MS / 1000)} segundos para elegir.</p>`, () =>
+    document.querySelectorAll<HTMLElement>("[data-duel]").forEach((b) => (b.onclick = () => {
+      document.querySelectorAll<HTMLButtonElement>("[data-duel]").forEach((x) => (x.disabled = true));
+      const r = api().lsMove(b.dataset.duel!, emote, clim, energy, last);
+      room.submit({ duelStep: step, duelMove: { tag: r.tag, imp: r.imp, msg: r.msg, energy: r.energy } });
+    })));
 }
 // All Winners: nombre de la eliminatoria y de la ronda
 const brLabel = (s: RoomState) => (s.bracket ? `${s.bracket.kind === "qosd" ? "💅 QoSDADHH" : "👑 Reina de reinas"} · ${s.bracket.alive.length === 2 ? "la final" : `ronda ${s.bracket.round}`}` : "");
@@ -747,6 +776,8 @@ function lipsync(s: RoomState, myKey: string | null) {
   }
   const pairs = s.pairs || [];
   const mine = myKey ? pairs.find((p) => (p.a === myKey || p.b === myKey) && !p.winner) : null;
+  // Contra otra jugadora: duelo a la vez, paso a paso
+  if (mine && myKey && isP(mine.a) && isP(mine.b) && !(s.subs[room.me] || {}).ls) return duel(s, mine, myKey, s.phase === "final" ? (brLabel(s) || (s.finalStage === 2 ? "👑 Lip sync por la corona" : "Gran final · semifinal")) : AS(s) ? "💄 Lip sync por el poder" : s.fmt === "winners" ? "⭐ Lip sync por la estrella" : "💔 Lip sync for your life");
   if (mine && !(s.subs[room.me] || {}).ls) {
     const rivalKey = mine.a === myKey ? mine.b : mine.a;
     const br = s.phase === "final" ? brLabel(s) : null;

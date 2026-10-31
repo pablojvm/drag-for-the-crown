@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 const LEGACY = ["reinas", "config", "audio", "extras", "effects", "entities", "game", "ui", "dialogos", "doll", "atelier3d", "ia"];
 const HISTORIA_DIR = "js/historia";
 // Lo que se deja en window para la consola y las pruebas automáticas
-const EXPOSE = ["Story", "UI", "IA", "Game", "store", "Closet", "allSeasons", "seasonById", "FRANCHISES", "TEMPORADAS_ES", "PORTADAS"];
+const EXPOSE = ["Story", "UI", "IA", "Game", "store", "Closet", "Toast", "allSeasons", "seasonById", "FRANCHISES", "TEMPORADAS_ES", "PORTADAS"];
 
 function legacy(): Plugin {
   const ID = "virtual:legacy";
@@ -34,7 +34,11 @@ function cacheBust(): Plugin {
   return { name: "dftc-cache-bust", apply: "build", transformIndexHtml: (html) => html.replace(/(href|src)="(\.?\/(?:styles\/style\.css|js\/claves\.js))"/g, `$1="$2?v=${v}"`) };
 }
 
+const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+const VERSION = `${pkg.version}+${new Date().toISOString().slice(0, 10)}`;
+
 export default defineConfig({
+  define: { __DFTC_VERSION__: JSON.stringify(VERSION) },
   // GitHub Pages sirve el juego en /drag-for-the-crown/; rutas relativas para que funcione en cualquier sitio
   base: "./",
   plugins: [legacy(), cacheBust()],

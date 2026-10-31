@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, standings, ppeOf, planCats, setScript, hostNext, proposePause, votePause, resumeRoom, winnersWeeks, type Engine, type RoomState } from "../src/mp/model";
+import { newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, standings, ppeOf, setScript, hostNext, proposePause, votePause, resumeRoom, winnersWeeks, type Engine, type RoomState } from "../src/mp/model";
 import { makeRng } from "../src/core";
 
 const engine = (seed = 1): Engine => {
@@ -325,9 +325,9 @@ describe("temporada en directo", () => {
   });
   it("Corazón: cada eliminada deja medio corazón y con uno entero se puede salvar a alguien", () => {
     const e = engine(3);
-    let { s } = fmtRoom("corazon", 3, 12);
+    const { s } = fmtRoom("corazon", 3, 12);
     let gifts = 0;
-    s = runAll(s, e, (x) => { if (x.twistResult?.kind === "corazones") gifts += x.twistResult.gifts!.length; });
+    runAll(s, e, (x) => { if (x.twistResult?.kind === "corazones") gifts += x.twistResult.gifts!.length; });
     expect(gifts).toBeGreaterThan(2);
   });
   it("Corazón: la jugadora eliminada elige a quién deja su medio corazón y se destapa con su grabación", () => {
@@ -406,11 +406,47 @@ describe("temporada en directo", () => {
     }
     expect(saw && pre).toBe(true);
   });
+  it("Lip sync entre dos jugadoras: van paso a paso a la vez y gana la que más conecta", () => {
+    const e = engine(3);
+    let { s } = fmtRoom("normal", 3);
+    let guard = 0;
+    while (s.phase !== "lipsync" && guard++ < 500) s = advance(s, guard * 1000, e);
+    const A = pkey("A"), B = pkey("B");
+    s = { ...s, pairs: [{ a: A, b: B }], players: s.players.map((p) => ({ ...p, alive: true })), subs: {} };
+    const mv = (imp: number) => ({ tag: "Cara", imp, msg: "ok", energy: 90 });
+    s = applySubmit(s, "A", s.ep, "lipsync", { duelStep: 0, duelMove: mv(10) });
+    // No puede adelantarse: hasta que B no elija, el paso 1 de A no cuenta
+    expect(applySubmit(s, "A", s.ep, "lipsync", { duelStep: 1, duelMove: mv(10) }).subs.A!.duel).toHaveLength(1);
+    for (let k = 0; k < 6; k++) {
+      if (k > 0) s = applySubmit(s, "A", s.ep, "lipsync", { duelStep: k, duelMove: mv(10) });
+      s = applySubmit(s, "B", s.ep, "lipsync", { duelStep: k, duelMove: mv(12) });
+    }
+    expect(s.subs.A!.ls!.score).toBe(60);
+    expect(s.subs.B!.ls!.won).toBe(true);
+    expect(allIn(s)).toBe(true);
+    s = advance(s, 1e9, e);
+    expect(s.out.at(-1)!.key).toBe(A);
+  });
+  it("Lip sync entre dos jugadoras: si una no elige a tiempo se queda quieta y el reloj no corta el duelo", () => {
+    const e = engine(5);
+    let { s } = fmtRoom("normal", 5);
+    let guard = 0;
+    while (s.phase !== "lipsync" && guard++ < 500) s = advance(s, guard * 1000, e);
+    const A = pkey("A"), B = pkey("B");
+    s = { ...s, pairs: [{ a: A, b: B }], players: s.players.map((p) => ({ ...p, alive: true })), subs: {}, deadline: 100_000 };
+    s = tick(s, 90_000, e); // arranca el reloj del duelo
+    s = applySubmit(s, "A", s.ep, "lipsync", { duelStep: 0, duelMove: { tag: "Cara", imp: 10, msg: "", at: 90_000 } });
+    s = tick(s, 99_000, e);
+    expect(s.phase).toBe("lipsync"); // el tope de la fase se alarga mientras dure el duelo
+    expect(s.deadline).toBeGreaterThan(100_000);
+    s = tick(s, 116_000, e);
+    expect(s.subs.B!.duel![0].auto).toBe(true);
+  });
   it("Moneda: bottom de tres y la votación deja a dos en el lip sync", () => {
     const e = engine(4);
-    let { s } = fmtRoom("moneda", 4);
+    const { s } = fmtRoom("moneda", 4);
     let coin = 0;
-    s = runAll(s, e, (x) => { if (x.phase === "lipsync" && x.twistResult === undefined && x.pairs && x.pairs.length) expect(x.pairs[0].a).not.toBe(x.pairs[0].b); if (x.twistResult?.kind === "moneda") { coin++; expect(x.bottom).toHaveLength(2); } });
+    runAll(s, e, (x) => { if (x.phase === "lipsync" && x.twistResult === undefined && x.pairs && x.pairs.length) expect(x.pairs[0].a).not.toBe(x.pairs[0].b); if (x.twistResult?.kind === "moneda") { coin++; expect(x.bottom).toHaveLength(2); } });
     expect(coin).toBeGreaterThan(0);
   });
 

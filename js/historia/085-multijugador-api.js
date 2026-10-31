@@ -144,6 +144,29 @@
     lipsync(el, rivalId, cb) { runLipsync(el, qById(rivalId), (won, score) => { cleanup = null; cb(!!won, Math.round(score || 0)); }); },
     /** Temporada del corazón: la grabación de la eliminada (r1 es ella; {dest}, a quien se lo deja). */
     heartVideo(fav) { return [...pickFresh(CORAZON_VIDEO.intro), ...pickFresh(CORAZON_VIDEO[fav ? "cariño" : "estrategia"])]; },
+    /** Lip sync entre dos jugadoras: las tres opciones de un paso (el truco del paso lo elige la sala, igual para las dos). */
+    lsOptions(emoteIdx, clim, lastTag) {
+      const [, t, at] = EMOTES[emoteIdx % EMOTES.length];
+      return [
+        { k: "Emote", t, d: `Energía −45 · ${ATTR_NAMES[at]}${clim ? " · ¡Momento perfecto!" : " · Mejor en el clímax"}` },
+        { k: "Cara", t: "💗 Conexión emocional", d: `Energía −10 · Carisma ${A("carisma")}${lastTag === "Cara" ? " · ⚠️ ya lo has hecho" : ""}` },
+        { k: "Escenario", t: "🌀 Uso del espacio", d: `Energía −15 · Performance ${A("performance")}${lastTag === "Escenario" ? " · ⚠️ ya lo has hecho" : ""}` },
+      ];
+    },
+    /** Resultado de un movimiento del duelo con los atributos de tu reina (las mismas reglas que el lip sync de siempre). */
+    lsMove(kind, emoteIdx, clim, energy, lastTag) {
+      if (kind === "Emote") {
+        const [, , at, dif, top] = EMOTES[emoteIdx % EMOTES.length];
+        if (energy < 45) return { tag: "Emote", imp: 4, energy: Math.max(0, energy - 10), msg: "Sin fuelle: el truco se queda a medias." };
+        const c = check([at], clim ? dif : dif + 8);
+        return { tag: "Emote", imp: c.ok ? (clim ? top : 24) : 6, energy: energy - 45, msg: c.ok ? (clim ? "¡El público se levanta!" : "Impresiona... aunque era pronto.") : "¡Uf! Se le va el truco." };
+      }
+      const cara = kind === "Cara";
+      const cost = cara ? 10 : 15, rep = lastTag === kind;
+      if (energy < cost) return { tag: kind, imp: 2, energy, msg: "Sin energía: ni se mueve." };
+      const imp = (cara ? 8 + A("carisma") * 1.6 : 12 + A("performance") * 2) * (rep ? REPITE : 1);
+      return { tag: kind, imp: Math.round(imp * 10) / 10, energy: energy - cost, msg: rep ? "Repite movimiento... el público ya lo ha visto." : cara ? "Cada palabra la siente. Se le ve en los ojos." : "Se come el escenario de punta a punta." };
+    },
     /** Premio del multijugador: lentejuelas al monedero de siempre. */
     reward(n, why) { const got = Wallet.add(n); if (got) Toast.show(`✨ +${got} lentejuelas`, why); return got; },
     /** Nota final de la semana de la jugadora (el dado manda, su juego lo mueve). */

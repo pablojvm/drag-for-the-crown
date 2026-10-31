@@ -656,7 +656,7 @@ const UI = (() => {
     $("#btn-play-label").textContent = "Arcade";
   });
   show("menu");
-  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("./sw.js").catch(() => {});
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register(`./sw.js?v=${typeof __DFTC_VERSION__ === "string" ? encodeURIComponent(__DFTC_VERSION__) : "dev"}`).catch(() => {});
 
   return { showPause, show, scoresTab: (t) => (scoresTab = t), get mode() { return mode; } };
 })();
