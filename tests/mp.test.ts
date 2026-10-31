@@ -306,6 +306,23 @@ describe("temporada en directo", () => {
     expect(s.phase).toBe("corona");
     expect(typeof used).toBe("boolean");
   });
+  it("Reina de la suerte: antes del primer episodio cada jugadora elige su cajita", () => {
+    const e = engine(7);
+    let { s } = fmtRoom("suerte", 7);
+    s = advance(s, 1000, e); // maletas -> cajas
+    expect(s.phase).toBe("cajas");
+    const win = s.boxes!.win;
+    s = applySubmit(s, "A", s.ep, "cajas", { box: win });
+    expect(applySubmit(s, "B", s.ep, "cajas", { box: win }).subs.B?.box).toBeUndefined(); // ya cogida
+    s = applySubmit(s, "B", s.ep, "cajas", { box: (win + 1) % s.boxes!.n });
+    s = tick(s, 2000, e);
+    expect(s.phase).toBe("cajas"); // un momento para ver tu caja
+    expect(s.deadline).toBe(5500);
+    s = tick(s, 6000, e);
+    expect(s.phase).toBe("anuncio");
+    expect(s.luck).toBe(pkey("A"));
+    expect(Object.keys(s.boxes!.owners!)).toHaveLength(s.boxes!.n);
+  });
   it("Corazón: cada eliminada deja medio corazón y con uno entero se puede salvar a alguien", () => {
     const e = engine(3);
     let { s } = fmtRoom("corazon", 3, 12);

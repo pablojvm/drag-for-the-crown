@@ -3,7 +3,7 @@
 
 import { ppe } from "../core/track";
 
-export type Phase = "lobby" | "maletas" | "anuncio" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "final" | "corona";
+export type Phase = "lobby" | "maletas" | "cajas" | "anuncio" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
 /** Formato de la temporada: normal (las dos peores hacen lip sync) o All Stars (lip sync del top 2 y la ganadora elimina). */
 export type Formato = "normal" | "allstars" | "winners" | "repesca" | "suerte" | "corazon" | "moneda";
@@ -21,12 +21,13 @@ export const FORMATOS: Record<Formato, { n: string; icon: string; d: string }> =
 export const REPESCA_AT = 7;
 
 /** Segundos por fase. La suma de un episodio es el tope de tiempo del episodio. */
+const CAJAS_VER = 3500;
 export const DURACION: Record<Ritmo, Record<Exclude<Phase, "lobby" | "corona">, number>> = {
   // Las pantallas que se miran (anuncio, críticas, Untucked, veredicto, pintalabios, track) no tienen reloj:
   // las pasa la anfitriona, y todas ven lo mismo que ella. El reloj es solo para lo que se juega.
-  normal: { maletas: 600, anuncio: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 120, decision: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, final: 120 },
-  rapido: { maletas: 420, anuncio: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 90, decision: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, final: 90 },
-  libre: { maletas: 0, anuncio: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, comodin: 0, sorpresa: 0, pintalabios: 0, track: 0, final: 0 },
+  normal: { cajas: 60, maletas: 600, anuncio: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 120, decision: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, final: 120 },
+  rapido: { cajas: 40, maletas: 420, anuncio: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 90, decision: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, final: 90 },
+  libre: { cajas: 0, maletas: 0, anuncio: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, comodin: 0, sorpresa: 0, pintalabios: 0, track: 0, final: 0 },
 };
 /** Pantallas que lleva la anfitriona (diálogo sincronizado y botón de seguir). */
 export const WATCH: Phase[] = ["anuncio", "resultados", "untucked", "veredicto", "sorpresa", "pintalabios", "track", "corona"];
@@ -53,7 +54,7 @@ export const NO_PRESENTO = 30;
 export interface Player { id: string; name: string; queen: string | null; joined: number; alive: boolean }
 export interface Row { key: string; score: number; label: string }
 export interface Pair { a: string; b: string; winner?: string }
-export interface Sub { reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string }
+export interface Sub { reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string; box?: number }
 /** Momento de un giro en el que alguien decide (comodín): la suerte, el corazón, la moneda o el bloqueo del All Winners. */
 export interface Twist {
   kind: "suerte" | "corazon" | "moneda" | "bloqueo" | "corte";
@@ -129,6 +130,8 @@ export interface RoomState {
   stage?: number;
   triple?: string[];
   luck?: string | null;
+  /** Reina de la suerte: las cajitas del primer día (en una está la suerte). */
+  boxes?: { n: number; win: number; owners?: Record<number, string> };
   hearts?: Record<string, number>;
   pendingHearts?: { from: string; to: string }[];
   stars?: Record<string, number>;
@@ -251,6 +254,7 @@ function nextEpisode(s: RoomState, now: number, e: Engine): RoomState {
 export function allIn(s: RoomState): boolean {
   const ps = alivePlayers(s);
   if (s.phase === "maletas") return ps.every((p) => s.subs[p.id]?.ready);
+  if (s.phase === "cajas") return false; // se espera un momento para que cada una vea su caja (ver tick)
   const extra = rpPlayers(s);
   if (s.phase === "reto") return ps.every((p) => s.subs[p.id]?.reto != null || s.subs[p.id]?.final != null) && extra.every((id) => s.subs[id]?.reto != null || s.subs[id]?.final != null);
   if (s.phase === "pasarela") return ps.every((p) => s.subs[p.id]?.final != null);
@@ -622,7 +626,22 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
   const at = (phase: Phase, secs: number, extra: Partial<RoomState> = {}): RoomState => ({ ...s, script: undefined, ...extra, phase, deadline: limite(now, secs), v: s.v + 1 });
   switch (s.phase) {
     case "maletas":
+      // Reina de la suerte: antes del primer episodio, cada una elige su cajita (como en el modo historia)
+      if (s.fmt === "suerte" && !s.boxes) {
+        const n = aliveKeys(s).length;
+        return { ...s, subs: {}, boxes: { n, win: Math.floor(e.rnd() * n) }, phase: "cajas", deadline: limite(now, D.cajas), v: s.v + 1 };
+      }
       return nextEpisode({ ...s, subs: {} }, now, e);
+    case "cajas": {
+      // Las que no han elegido y las reinas del juego se quedan con las cajas que sobran
+      const b = s.boxes!;
+      const owners: Record<number, string> = {};
+      alivePlayers(s).forEach((p) => { const x = s.subs[p.id]?.box; if (x != null && x >= 0 && x < b.n && !owners[x]) owners[x] = pkey(p.id); });
+      const rest = aliveKeys(s).filter((k) => !Object.values(owners).includes(k));
+      const free = Array.from({ length: b.n }, (_, i) => i).filter((i) => !owners[i]);
+      rest.forEach((k) => { const j = Math.floor(e.rnd() * free.length); owners[free.splice(j, 1)[0]] = k; });
+      return nextEpisode({ ...s, subs: {}, boxes: { ...b, owners }, luck: owners[b.win] || s.luck }, now, e);
+    }
     case "anuncio":
       return at("reto", dur(s, "reto"));
     case "reto":
@@ -786,6 +805,8 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
 /** Una vuelta del reloj de la anfitriona: avanza si se acabó el tiempo o ya han entregado todas. */
 export function tick(s: RoomState, now: number, e: Engine): RoomState {
   if (s.phase === "lobby" || s.phase === "corona" || s.pause || s.paused) return s;
+  // Cajitas: cuando todas han elegido, unos segundos para ver lo que hay en la tuya
+  if (s.phase === "cajas" && alivePlayers(s).every((p) => s.subs[p.id]?.box != null) && (!s.deadline || s.deadline > now + CAJAS_VER)) return { ...s, deadline: now + CAJAS_VER, v: s.v + 1 };
   if ((s.deadline > 0 && now >= s.deadline) || allIn(s)) return advance(s, now, e);
   return s;
 }
@@ -796,6 +817,8 @@ export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase,
   const p = s.players.find((x) => x.id === pid);
   // Las eliminadas solo juegan su monólogo de la Segunda Oportunidrag
   if (!p || (!p.alive && !(rpPlayers(s).includes(pid) && (phase === "reto" || phase === "pasarela")))) return s;
+  // Cajitas: cada caja es de una sola (gana la primera que la coge) y no se cambia
+  if (phase === "cajas" && data.box != null && (s.subs[pid]?.box != null || Object.values(s.subs).some((x) => x.box === data.box))) return s;
   return { ...s, subs: { ...s.subs, [pid]: { ...(s.subs[pid] || {}), ...data } }, v: s.v + 1 };
 }
 

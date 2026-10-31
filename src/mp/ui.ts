@@ -63,7 +63,7 @@ function header(s: RoomState | null) {
   if (ex && $("#screen-story")?.classList.contains("mp")) ex.innerHTML = s && !s.paused ? "<i>←</i><span>Salir de la sala</span>" : "<i>←</i><span>Volver</span>";
   const se = s ? W.seasonById(s.season) : null;
   $("#story-season")!.textContent = s ? `👯 Temporada en directo · ${s.season === CUSTOM ? `Personalizada · ${FORMATOS[(s.fmt || "normal") as Formato].n}` : se ? se.name : ""} · Sala ${s.code}` : "👯 Temporada en directo";
-  const title: Record<string, string> = { lobby: "Sala de espera", maletas: "Maletas", anuncio: `Episodio ${s?.ep}`, reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && (s.fmt === "allstars" || s.fmt === "winners") ? "Lip sync por el poder" : s?.triple ? "Lip sync a tres bandas" : "Lip sync for your life", decision: "Los pintalabios", pintalabios: "El pintalabios", comodin: s?.twist ? ({ suerte: "La reina de la suerte", corazon: "El corazón", moneda: "La moneda", bloqueo: "El bloqueo", corte: "El corte del top 4" } as Record<string, string>)[s.twist.kind] : "Momento clave", sorpresa: "¡Sorpresa!", track: "Track record", final: "Gran final", corona: "¡Tenemos ganadora!" };
+  const title: Record<string, string> = { lobby: "Sala de espera", maletas: "Maletas", cajas: "La reina de la suerte", anuncio: `Episodio ${s?.ep}`, reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && (s.fmt === "allstars" || s.fmt === "winners") ? "Lip sync por el poder" : s?.triple ? "Lip sync a tres bandas" : "Lip sync for your life", decision: "Los pintalabios", pintalabios: "El pintalabios", comodin: s?.twist ? ({ suerte: "La reina de la suerte", corazon: "El corazón", moneda: "La moneda", bloqueo: "El bloqueo", corte: "El corte del top 4" } as Record<string, string>)[s.twist.kind] : "Momento clave", sorpresa: "¡Sorpresa!", track: "Track record", final: "Gran final", corona: "¡Tenemos ganadora!" };
   $("#story-ep")!.innerHTML = `${esc(s ? (s.paused ? "Pausada" : title[s.phase]) : "Multijugador")} <span class="mp-timer" id="mp-timer"></span>`;
   // Pausa (con acuerdo de todas): solo con la temporada en marcha
   let pb = $("#mp-pause");
@@ -320,6 +320,7 @@ function render(s: RoomState) {
   const sub = s.subs[room.me] || {};
   if (s.phase === "lobby") { api().scene("werkroom"); return lobby(s); }
   if (s.phase === "maletas") return maletas(s, me);
+  if (s.phase === "cajas") { api().scene("werkroom"); return cajas(s, me); }
   // La ganadora del capítulo anterior (reparte papeles en el Rusical): "me" si eres tú
   function prevWinner(s: RoomState): string | null {
     const k = Object.keys(s.track).find((k) => ["WIN", "BWIN"].includes((s.track[k] || {})[s.ep - 1]) && aliveKeys(s).includes(k));
@@ -335,7 +336,7 @@ function render(s: RoomState) {
       if (AS(s) && s.ep === 1) lines.push(["host", "Recordad: esto es un All Stars. Las dos mejores de cada semana harán un lip sync por el poder, y antes cada una elegirá en secreto su pintalabios."]);
       // Partida personalizada: se presenta la dinámica elegida
       if (s.season === CUSTOM && s.ep === 1) lines.splice(1, 0, ["host", `¡Bienvenidas a una temporada muy especial! Reinas de todas las ediciones... y la dinámica: ${FORMATOS[(s.fmt || "normal") as Formato].n}.`], ["judge", FORMATOS[(s.fmt || "normal") as Formato].d]);
-      if (s.fmt === "suerte" && s.ep === 1) lines.push(["host", "Cada una ha cogido una cajita. En una está la reina de la suerte: quien la tenga podrá salvar a quien quiera del lip sync, una vez. Es secreto."]);
+      if (s.fmt === "suerte" && s.ep === 1) lines.push(["host", "Ya tenéis vuestras cajitas. Quien tenga la reina de la suerte podrá salvar a quien quiera del lip sync, una vez. Y es secreto: que nadie diga nada."]);
       if (s.rp && s.rp.ep === s.ep) lines.splice(1, 0, ["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["host", "Cada una de vosotras hará un monólogo con una de ellas. La eliminada de la pareja ganadora... vuelve a la competición."]);
       return lines;
     }, () => `${myStatus(s)}<p class="eyebrow">Episodio ${s.ep}${s.fmt && s.fmt !== "normal" ? ` · ${FORMATOS[s.fmt as Formato].icon} ${FORMATOS[s.fmt as Formato].n}` : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}${me ? " Tu look ya está en la maleta." : ""}</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Para jugar el reto tenéis ${Math.round(((DURACION[s.ritmo].reto * (s.ia ? IA_EXTRA : 1)) / 60))} minutos.`}</p>`);
@@ -412,6 +413,25 @@ function render(s: RoomState) {
 let crownShown = false;
 let pendingLocal: any = null;
 
+// Reina de la suerte: antes del episodio 1 cada una elige su cajita (solo ve lo que hay en la suya)
+function cajas(s: RoomState, me: { id: string } | null) {
+  const b = s.boxes!;
+  const mine = s.subs[room.me]?.box;
+  const ownerOf = (i: number) => s.players.find((p) => s.subs[p.id]?.box === i);
+  const ps = alivePlayers(s);
+  const done = ps.filter((p) => s.subs[p.id]?.box != null);
+  const boxes = Array.from({ length: b.n }, (_, i) => {
+    const o = ownerOf(i);
+    if (mine === i) return `<button class="box open mine" disabled style="--i:${i}">${i === b.win ? "🍀" : "✖"}</button>`;
+    if (o) return `<button class="box closed" disabled style="--i:${i}" title="${esc(o.name)}">🎁<small>${esc(o.name)}</small></button>`;
+    return `<button class="box" data-box="${i}" ${me && mine == null ? "" : "disabled"} style="--i:${i}">🎁</button>`;
+  }).join("");
+  const res = mine == null ? "" : mine === b.win
+    ? `<p class="twist-note">🍀 <b>¡Te ha tocado a TI!</b> Nadie lo sabe. Guárdala para el momento justo.</p>`
+    : `<p class="muted">✖ Tu caja está vacía. Alguna compañera la tiene... pero nadie dice quién.</p>`;
+  info(`<p class="eyebrow">🍀 La reina de la suerte</p><h3>${me && mine == null ? "Elige tu cajita" : "Las reinas eligen su cajita"}</h3><p>En una de ellas está la reina de la suerte: podrá usarla una vez para salvarse, o salvar a una compañera, del lip sync.</p><div class="boxes">${boxes}</div>${res}<p class="muted">${done.length}/${ps.length} han elegido. Las cajas que sobren se las quedan las demás reinas.</p>${room.isHost && done.length < ps.length ? `<button class="btn btn-ghost" id="mp-skip">Seguir sin esperar</button>` : ""}`, () =>
+    document.querySelectorAll<HTMLElement>("[data-box]").forEach((x) => (x.onclick = () => { room.submit({ box: +x.dataset.box! }); })));
+}
 // Antes del episodio 1: cada una prepara sus maletas con el presupuesto de la sala
 function maletas(s: RoomState, me: { id: string } | null) {
   api().scene("lounge");
