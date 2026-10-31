@@ -15,3 +15,7 @@ export * from "./runway";
 export * from "./temas";
 export * from "./guion";
 export * from "./concepto";
+export * from "./reinas";
+export * from "./textos";
+export * from "./maxi";
+export * as temporada from "./temporada";

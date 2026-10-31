@@ -3,7 +3,8 @@ import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 
 import type { RunwayState } from "./game/runway";
-export type Screen = "boot" | "menu" | "arcade" | "result" | "lipsync" | "runway";
+import type { TsView } from "./game/temporada";
+export type Screen = "boot" | "menu" | "arcade" | "result" | "lipsync" | "runway" | "temporada";
 export interface LipSyncState {
   rivalId: string;
   step: number;
@@ -38,13 +39,17 @@ export interface GameState {
   ls: LipSyncState | null;
   rw: RunwayState | null;
   best: number;
+  /** Modo temporada: lo que se ve (la partida en sí vive en game/temporada.ts). */
+  ts: TsView | null;
+  /** Si el lip sync o la pasarela son parte de la temporada: texto del botón para volver. */
+  back: string | null;
 }
 
 const readBest = () => { try { return Number(localStorage.getItem("dftc-next-best")) || 0; } catch { return 0; } };
 
 export const store = createStore<GameState>(() => ({
   screen: "boot", loading: 0, queenId: "jimbo", lives: 3, score: 0, combo: 0, round: 1,
-  rivalName: "", rivalHp: 1, rivalMax: 1, paused: false, special: 0, powerName: "", activePower: null, doubleOn: false, muted: false, result: null, ls: null, rw: null, best: readBest(),
+  rivalName: "", rivalHp: 1, rivalMax: 1, paused: false, special: 0, powerName: "", activePower: null, doubleOn: false, muted: false, result: null, ls: null, rw: null, best: readBest(), ts: null, back: null,
 }));
 
 export const set = (p: Partial<GameState>) => store.setState(p);

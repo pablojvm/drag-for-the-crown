@@ -16,9 +16,9 @@ export class Menu extends Phaser.Scene {
     logo.setScale(Math.min((W * 0.5) / logo.width, (H * 0.28) / logo.height));
     this.tweens.add({ targets: logo, scale: logo.scale * 1.04, duration: 1400, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     // Dos reinas a los lados del panel, bailando (la elegida a la izquierda)
-    const pick = get().queenId;
-    const other = ARCADE_QUEENS.find((q) => q.id !== pick)!;
-    [ARCADE_QUEENS.find((q) => q.id === pick)!, other].forEach((q, i) => {
+    const mine = ARCADE_QUEENS.find((q) => q.id === get().queenId) || ARCADE_QUEENS[0];
+    const other = ARCADE_QUEENS.find((q) => q !== mine)!;
+    [mine, other].forEach((q, i) => {
       const x = W * (i === 0 ? 0.1 : 0.9), y = H * 0.98;
       const img = this.add.image(x, y, `q-${q.id}`).setOrigin(0.5, 1);
       img.setScale((H * 0.55) / img.height);

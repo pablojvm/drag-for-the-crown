@@ -1,12 +1,16 @@
 // Escena del lip sync: las dos reinas en el escenario reaccionan a cada movimiento. Los botones son de React.
 import Phaser from "phaser";
 import { store, get } from "../../store";
+import { loadQueens } from "../queens";
 
 export class LipSync extends Phaser.Scene {
   private me!: Phaser.GameObjects.Image;
   private them!: Phaser.GameObjects.Image;
   private sparks!: Phaser.GameObjects.Particles.ParticleEmitter;
   constructor() { super("LipSync"); }
+  preload() {
+    loadQueens(this, [get().queenId, get().ls?.rivalId]);
+  }
   create() {
     const { width: W, height: H } = this.scale;
     const ls = get().ls!;

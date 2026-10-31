@@ -40,6 +40,7 @@ jobs:
           npm run e2e:mp
           npm run e2e:next
           npm run e2e:jurado
+          npm run e2e:temporada
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

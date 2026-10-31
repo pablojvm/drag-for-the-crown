@@ -235,7 +235,7 @@
     const beats = gk === "teletienda" ? [`«¡Llame ya! Solo hoy: ${S.weekProd}!»`, GENEROS.teletienda[1][1], GENEROS.teletienda[1][2]] : GENEROS[gk][1];
     const steps = beats.map((b, n) => () => ({
       q: `🎬 Escena ${n + 1}: ${b}`,
-      sub: `Es un ${genero[0]}. ¿Con qué intención lo dices?`,
+      sub: `Es ${/^(telenovela|parodia)/.test(genero[0]) ? "una" : "un"} ${genero[0]}. ¿Con qué intención lo dices?`,
       opts: INT.map(([k, t]) => ({ t, go: () => (k === genero[1] || (n === 2 && k === "absurdo") ? { pts: 90 + A("carisma"), msg: "¡Corten! Toma buena." } : { pts: 48, msg: "La directora frunce el ceño." }) })),
     }));
     steps.splice(2, 0, () => ({

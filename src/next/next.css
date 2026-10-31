@@ -100,3 +100,70 @@ html, body { margin: 0; height: 100%; background: var(--nx-bg); color: var(--nx-
 .nx-dots i:nth-child(3) { animation-delay: 0.3s; }
 @keyframes nx-dot { from { opacity: 0.3; transform: translateY(0); } to { opacity: 1; transform: translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) { .nx-dots i { animation: none; } }
+/* Modo temporada */
+.nx-btn.gold { background: linear-gradient(90deg, #ffb800, var(--nx-gold)); color: var(--nx-ink); box-shadow: 0 10px 24px -10px rgba(255, 184, 0, 0.8); }
+.nx-season-row { margin-top: 10px; }
+.nx-ts { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; pointer-events: none; }
+.nx-ts-panel { width: min(820px, 100%); max-height: calc(100% - 8px); overflow-y: auto; display: grid; gap: 12px; text-align: left; }
+.nx-ts-panel > h2, .nx-ts-panel > .nx-eyebrow { text-align: center; }
+.nx-ts-panel .nx-row { justify-content: center; }
+.nx-ts-panel > .nx-btn { justify-self: center; }
+.nx-chip { display: inline-block; border: 0; border-radius: 99px; padding: 6px 12px; margin: 2px; background: #fff; color: var(--nx-ink); font: 600 12px/1.2 Poppins, sans-serif; box-shadow: inset 0 0 0 1.5px rgba(255, 61, 154, 0.35); cursor: default; }
+button.nx-chip { cursor: pointer; }
+button.nx-chip:focus-visible, .nx-ts-season:focus-visible, .nx-ts-cast button:focus-visible { outline: 3px solid var(--nx-gold); outline-offset: 2px; }
+.nx-ts-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; font: 600 12px/1.2 Poppins, sans-serif; color: var(--nx-muted); text-transform: uppercase; letter-spacing: 1px; }
+.nx-ts-seasons { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.nx-ts-season { border: 2px solid rgba(255, 61, 154, 0.3); border-radius: 16px; background: #fff; padding: 8px; display: grid; gap: 4px; cursor: pointer; font-family: Poppins, sans-serif; color: var(--nx-ink); text-align: center; transition: transform 0.12s, border-color 0.12s; }
+.nx-ts-season img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; }
+.nx-ts-season small { color: var(--nx-muted); }
+.nx-ts-season:hover { transform: translateY(-2px); border-color: var(--nx-pink); }
+.nx-ts-cast { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.nx-ts-cast button { border: 2px solid transparent; border-radius: 14px; background: #fff; padding: 5px; display: grid; gap: 4px; cursor: pointer; font: 600 11px/1.2 Poppins, sans-serif; color: var(--nx-ink); }
+.nx-ts-cast button img { width: 100%; aspect-ratio: 5 / 6; object-fit: cover; border-radius: 10px; background: #f3e6ef; }
+.nx-ts-cast button.on { border-color: var(--nx-pink); box-shadow: 0 0 0 3px rgba(255, 61, 154, 0.25); }
+.nx-ts-attrs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.nx-ts-attrs span { display: grid; place-items: center; min-width: 86px; padding: 6px 10px; border-radius: 12px; background: #fff; }
+.nx-ts-attrs small { color: var(--nx-muted); font-size: 11px; }
+.nx-ts-attrs b { font: 400 20px Bungee, sans-serif; color: var(--nx-pink); }
+.nx-ts-chips { text-align: center; margin: 0; }
+.nx-ts-panel > .nx-muted { text-align: center; margin: 0; }
+.nx-ts-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; counter-reset: r; }
+.nx-ts-rows li { display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 12px; background: #fff; font-size: 14px; }
+.nx-ts-rows li.me { box-shadow: inset 0 0 0 2px var(--nx-pink); font-weight: 600; }
+.nx-ts-rows em { font-style: normal; font-weight: 600; }
+.lab-win em, td.lab-win, td.lab-winner { color: #1f6fd1; }
+.lab-high em, td.lab-high { color: #1f7a3a; }
+.lab-low em, td.lab-low { color: #b05a00; }
+.lab-btm2 em, .lab-btm3 em, td.lab-btm2, td.lab-btm3 { color: #c2185b; }
+td.lab-elim { color: #8a8a8a; }
+.nx-ts-crit { display: grid; gap: 6px; }
+.nx-ts-crit p { margin: 0; font-size: 14px; line-height: 1.45; }
+.nx-ts-crit b { color: var(--nx-pink); margin-right: 4px; }
+.nx-ts-call { margin: 0; text-align: center; font-weight: 600; }
+.nx-ts-final { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.nx-ts-final li { padding: 10px 14px; border-radius: 12px; background: #fff; text-align: center; }
+.nx-ts-final li.now { box-shadow: inset 0 0 0 2px var(--nx-gold); font-weight: 600; }
+.nx-ts-final i { color: var(--nx-muted); margin: 0 6px; }
+.nx-ts-track { overflow-x: auto; }
+.nx-ts-track table { border-collapse: collapse; width: 100%; font-size: 12px; background: #fff; border-radius: 12px; }
+.nx-ts-track th, .nx-ts-track td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #f1e3ec; white-space: nowrap; font-weight: 600; }
+.nx-ts-track td:first-child, .nx-ts-track th:first-child { text-align: left; }
+.nx-ts-track tr.me td:first-child { color: var(--nx-pink); }
+.nx-maxi { display: grid; gap: 8px; }
+.nx-maxi h3 { margin: 0; font-size: 18px; line-height: 1.35; }
+.nx-maxi .nx-muted { margin: 0; }
+.nx-maxi-opts { display: grid; gap: 8px; }
+.nx-maxi-opts .nx-opt { text-align: left; }
+.nx-opt.picked { border-color: var(--nx-pink); box-shadow: 0 0 0 3px rgba(255, 61, 154, 0.25); }
+.nx-opt.dim { opacity: 0.45; }
+.nx-opt:disabled { cursor: default; transform: none; }
+.nx-maxi-msg { margin: 0; min-height: 2.8em; white-space: pre-line; font-weight: 600; }
+.nx-ts-focus { display: grid; gap: 4px; }
+.nx-ts-focus small { color: var(--nx-muted); }
+.nx-ts-focus div { position: relative; height: 10px; border-radius: 99px; background: #f1e3ec; overflow: hidden; }
+.nx-ts-focus i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--nx-pink), var(--nx-gold)); transition: width 0.3s; }
+.nx-ts-focus em { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--nx-ink); opacity: 0.5; }
+@media (prefers-reduced-motion: reduce) { .nx-ts-focus i { transition: none; } }
+.nx-ts-panel > .nx-score { text-align: center; margin: 0; }
+/* En pantallas anchas el panel deja sitio a tu reina, a la izquierda */
+@media (min-width: 1000px) { .nx-ts { padding-left: max(16px, 22vw); padding-right: 24px; } }

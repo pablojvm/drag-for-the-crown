@@ -1,12 +1,16 @@
 // Escena de la pasarela: la reina sale del fondo, avanza por la pasarela y remata con pose, comedia o reveal.
 import Phaser from "phaser";
 import { store, get } from "../../store";
+import { loadQueens } from "../queens";
 
 export class Runway extends Phaser.Scene {
   private q!: Phaser.GameObjects.Image;
   private sparks!: Phaser.GameObjects.Particles.ParticleEmitter;
   private baseScale = 1;
   constructor() { super("Runway"); }
+  preload() {
+    loadQueens(this, [get().queenId]);
+  }
   create() {
     const { width: W, height: H } = this.scale;
     const bg = this.add.image(W / 2, H / 2, "stage");

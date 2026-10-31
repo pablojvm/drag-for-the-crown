@@ -872,17 +872,14 @@
   // ===========================================================================
   //  ATRIBUTOS, MOTOR DE DECISIONES, MAXI RETOS, PASARELA Y LIP SYNC
   // ===========================================================================
-  const ATTR_NAMES = { comedia: "Comedia", carisma: "Carisma", estilo: "Estilo", performance: "Performance", maquillaje: "Maquillaje" };
+  // Atributos (1-10): salen de las estadísticas de la reina, con su toque propio (src/core/reinas.ts)
+  const ATTR_NAMES = DFTC.ATTR_NAMES;
+  const baseAttrs = (q, st) => DFTC.baseAttrs(q.id, st);
   const hashN = (str, k) => {
     let h = 7;
     for (const c of str + k) h = (h * 31 + c.charCodeAt(0)) >>> 0;
     return h % 4;
   };
-  // Atributos (1-10): salen de las estadísticas de la reina, con su toque propio
-  function baseAttrs(q, st) {
-    const f = (v, k) => clamp(Math.round(v * 1.5 + hashN(q.id, k) - 0.5), 2, 10);
-    return { comedia: f(st.rate, "c"), carisma: f(st.lives, "k"), estilo: f(st.power, "e"), performance: f(st.speed, "p"), maquillaje: f((st.power + st.rate) / 2, "m") };
-  }
   // Ficha de modo historia para la pantalla de elegir reina
   function preview(q) {
     const t = traitsOf(q);

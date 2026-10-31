@@ -1,6 +1,7 @@
 // Lip sync del motor nuevo: las reglas son las del núcleo (src/core/lipsync.ts); aquí solo se lleva la partida.
 import { lsMove, rivalStrength, LS_STEPS, EMOTES, type LsKind, type LsAttrs } from "../../core/lipsync";
 import { ARCADE_QUEENS, type ArcadeQueen } from "./data";
+import { queenOf } from "./queens";
 import { get, set } from "../store";
 
 /** Atributos de lip sync (1 a 10) a partir de las estadísticas del arcade (1 a 5). */
@@ -22,19 +23,20 @@ const YOU: Record<string, string> = {
 };
 const toYou = (msg: string) => YOU[msg] || msg;
 
-export function startLipSync(queenId: string, rnd: () => number = Math.random) {
+/** Empieza un lip sync. Sin rival, una del arcade al azar; `form` es la racha de la rival en la temporada. */
+export function startLipSync(queenId: string, rnd: () => number = Math.random, o: { rivalId?: string; form?: number } = {}) {
   const others = ARCADE_QUEENS.filter((q) => q.id !== queenId);
-  const rv = others[Math.floor(rnd() * others.length)];
-  set({ screen: "lipsync", queenId, result: null, ls: { rivalId: rv.id, step: 0, energy: 100, lastTag: "", mine: 0, rival: rivalStrength(lsAttrs(rv), { noise: rnd() * 24 - 12 }), emote: Math.floor(rnd() * EMOTES.length), last: null, anim: 0, done: false } });
+  const rivalId = o.rivalId || others[Math.floor(rnd() * others.length)].id;
+  set({ screen: "lipsync", queenId, result: null, ls: { rivalId, step: 0, energy: 100, lastTag: "", mine: 0, rival: rivalStrength(queenOf(rivalId).ls, { noise: rnd() * 24 - 12, form: o.form || 0 }), emote: Math.floor(rnd() * EMOTES.length), last: null, anim: 0, done: false } });
 }
 
 export function lipSyncMove(kind: LsKind, rnd: () => number = Math.random) {
   const ls = get().ls;
   if (!ls || ls.done) return;
-  const me = ARCADE_QUEENS.find((q) => q.id === get().queenId)!;
-  const rv = ARCADE_QUEENS.find((q) => q.id === ls.rivalId)!;
+  const me = queenOf(get().queenId);
+  const rv = queenOf(ls.rivalId);
   const clim = ls.step >= 4;
-  const m = lsMove({ kind, emote: ls.emote, clim, energy: ls.energy, lastTag: ls.lastTag, attrs: lsAttrs(me), roll: rnd() });
+  const m = lsMove({ kind, emote: ls.emote, clim, energy: ls.energy, lastTag: ls.lastTag, attrs: me.ls, roll: rnd() });
   const pi = Math.min(2, Math.floor(ls.step / 2));
   const them = RIVAL_LINES[pi][Math.floor(rnd() * 2)].replace("{r}", rv.name);
   const step = ls.step + 1;

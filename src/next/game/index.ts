@@ -5,6 +5,7 @@ import { Menu } from "./scenes/Menu";
 import { Arcade } from "./scenes/Arcade";
 import { LipSync } from "./scenes/LipSync";
 import { Runway } from "./scenes/Runway";
+import { Plato } from "./scenes/Plato";
 import { startRunway } from "./runway";
 import { startLipSync } from "./lipsync";
 import { listen, send } from "../bridge";
@@ -17,7 +18,7 @@ export function startGame(parent: HTMLElement) {
     backgroundColor: "#14031f",
     scale: { mode: Phaser.Scale.RESIZE, width: parent.clientWidth, height: parent.clientHeight },
     physics: { default: "arcade", arcade: { debug: false } },
-    scene: [Boot, Menu, Arcade, LipSync, Runway],
+    scene: [Boot, Menu, Arcade, LipSync, Runway, Plato],
   });
   // Cambia de escena; si ya es la que está en marcha (otra pasarela, revancha), la reinicia
   const go = (key: string) => {
@@ -27,9 +28,10 @@ export function startGame(parent: HTMLElement) {
   };
   const off = listen((c) => {
     if (c.type === "start") { set({ queenId: c.queenId }); go("Arcade"); }
-    if (c.type === "lipsync") { startLipSync(c.queenId); go("LipSync"); }
-    if (c.type === "runway") { startRunway(c.queenId); go("Runway"); }
-    if (c.type === "menu") { set({ screen: "menu", paused: false }); go("Menu"); }
+    if (c.type === "lipsync") { set({ back: null }); startLipSync(c.queenId); go("LipSync"); }
+    if (c.type === "runway") { set({ back: null }); startRunway(c.queenId); go("Runway"); }
+    if (c.type === "menu") { set({ screen: "menu", paused: false, back: null }); go("Menu"); }
+    if (c.type === "scene") go(c.key);
     if (c.type === "mute") game.sound.mute = c.on;
   });
   // Al perder el foco, pausa (como el juego de siempre)

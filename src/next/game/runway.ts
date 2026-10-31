@@ -5,8 +5,8 @@ import { TAGS, WALKS, VOICEOVERS, VOICE_OFF, walkPoints, momentPoints, voicePoin
 import { momentsPrompt, parseMoments, judgePrompt, parseVerdict, conceptScore, anaBonus, REVEAL_OPT, type AnaQA, type MomentKey } from "../../core/concepto";
 import { cleanLine } from "../../core/guion";
 import { TEMAS_PASARELA } from "../../core/temas";
-import { ARCADE_QUEENS, LOOK_PIECES } from "./data";
-import { lsAttrs } from "./lipsync";
+import { LOOK_PIECES } from "./data";
+import { queenOf } from "./queens";
 import { ask, juradoListo } from "./jurado";
 import { get, set } from "../store";
 
@@ -44,9 +44,9 @@ export interface RunwayState {
 const shuffle = <T,>(a: T[], rnd: () => number = Math.random) => a.map((v) => [rnd(), v] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
 let seq = 0;
 
-export function startRunway(queenId: string, rnd: () => number = Math.random, mode: RunwayState["mode"] = juradoListo() ? "concepto" : "clasica") {
+export function startRunway(queenId: string, rnd: () => number = Math.random, mode: RunwayState["mode"] = juradoListo() ? "concepto" : "clasica", temaName?: string) {
   const temas = TEMAS_PASARELA.filter((t) => !t.rv);
-  const tema = temas[Math.floor(rnd() * temas.length)];
+  const tema = temas.find((t) => t.n === temaName) || temas[Math.floor(rnd() * temas.length)];
   const catTag = tema.tag;
   const others = shuffle(TAGS.filter((t) => t !== catTag), rnd).slice(0, 2);
   const otherTag = shuffle(TAGS.filter((t) => t !== catTag), rnd)[0];
@@ -66,7 +66,7 @@ const next = (p: Partial<RunwayState>) => { const rw = get().rw!; set({ rw: { ..
 /** Cambia el estado sin mover a la reina (esperas, textos). */
 const patch = (p: Partial<RunwayState>) => set({ rw: { ...get().rw!, ...p } });
 const still = (id: number) => get().rw?.id === id;
-const attrs = () => lsAttrs(ARCADE_QUEENS.find((x) => x.id === get().queenId)!);
+const attrs = () => queenOf(get().queenId).ls;
 
 export function chooseLook(tag: Tag) {
   const rw = get().rw;

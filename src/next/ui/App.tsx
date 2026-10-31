@@ -10,6 +10,9 @@ import { lipSyncMove, rivalSoFar } from "../game/lipsync";
 import { EMOTES, LS_PHASES, LS_STEPS, REPITE, type LsKind } from "../../core/lipsync";
 import { chooseLook, chooseWalk, chooseMoment, chooseVoice, submitConcept, chooseConceptMoment, answerAna, WALK_OPTS } from "../game/runway";
 import { MOMENT_NAMES } from "../../core/concepto";
+import { queenOf } from "../game/queens";
+import { backFromScene, openSeasons, resume, hasSaved } from "../game/temporada";
+import { TemporadaUI } from "./Temporada";
 
 export function App() {
   const host = useRef<HTMLDivElement>(null);
@@ -32,6 +35,7 @@ export function App() {
         {screen === "result" && <Result />}
         {screen === "lipsync" && <LipSyncUI />}
         {screen === "runway" && <RunwayUI />}
+        {screen === "temporada" && <TemporadaUI />}
       </div>
     </div>
   );
@@ -53,7 +57,8 @@ function Stat({ label, v }: { label: string; v: number }) {
 
 function MenuUI() {
   const best = useGame((s) => s.best);
-  const [pick, setPick] = useState(useGame((s) => s.queenId));
+  const start = useGame((s) => s.queenId);
+  const [pick, setPick] = useState(ARCADE_QUEENS.some((x) => x.id === start) ? start : ARCADE_QUEENS[0].id);
   const q = ARCADE_QUEENS.find((x) => x.id === pick)!;
   return (
     <div className="nx-menu">
@@ -76,6 +81,10 @@ function MenuUI() {
           <button className="nx-btn" onClick={() => send({ type: "start", queenId: pick })}>Arcade</button>
           <button className="nx-btn ghost" onClick={() => send({ type: "lipsync", queenId: pick })}>💋 Lip sync</button>
           <button className="nx-btn ghost" onClick={() => send({ type: "runway", queenId: pick })}>👠 Pasarela</button>
+        </div>
+        <div className="nx-row nx-season-row">
+          <button className="nx-btn gold" onClick={openSeasons}>👑 Modo temporada</button>
+          {hasSaved() && <button className="nx-btn ghost" onClick={resume}>Seguir la temporada</button>}
         </div>
         <p className="nx-muted">Flechas o WASD para moverte, Espacio para lanzar tacones, E para el poder, P para pausar. En el móvil, arrastra el dedo.{best ? ` · Récord: ${best}` : ""}</p>
         <a className="nx-link" href="./index.html">Volver al juego completo (historia y multijugador)</a>
@@ -116,9 +125,10 @@ function Hud() {
 // Lip sync: seis movimientos (inicio, puente y clímax). Gana la que más conecta con el público.
 function LipSyncUI() {
   const ls = useGame((s) => s.ls);
+  const back = useGame((s) => s.back);
   const queenId = useGame((s) => s.queenId);
   if (!ls) return null;
-  const me = ARCADE_QUEENS.find((q) => q.id === queenId)!, rv = ARCADE_QUEENS.find((q) => q.id === ls.rivalId)!;
+  const me = queenOf(queenId), rv = queenOf(ls.rivalId);
   const theirs = rivalSoFar(ls), mx = Math.max(ls.mine, ls.rival, 120);
   const pi = Math.min(2, Math.floor(ls.step / 2)), clim = pi === 2;
   const [, emoteName, emoteAttr] = EMOTES[ls.emote];
@@ -144,8 +154,12 @@ function LipSyncUI() {
             <p className="nx-eyebrow">Lip sync for your life</p>
             <h2>{won ? "¡Shantay, you stay! 💃" : "Sashay away..."}</h2>
             <p className="nx-muted">Tú: {Math.round(ls.mine)} · {rv.name}: {Math.round(ls.rival)}</p>
-            <button className="nx-btn" onClick={() => send({ type: "lipsync", queenId })}>Otro lip sync</button>
-            <button className="nx-btn ghost" onClick={() => send({ type: "menu" })}>Menú</button>
+            {back ? <button className="nx-btn" onClick={backFromScene}>{back}</button> : (
+              <>
+                <button className="nx-btn" onClick={() => send({ type: "lipsync", queenId })}>Otro lip sync</button>
+                <button className="nx-btn ghost" onClick={() => send({ type: "menu" })}>Menú</button>
+              </>
+            )}
           </div>
         ) : (
           <div className="nx-panel">
@@ -167,6 +181,7 @@ const TAG_ICON: Record<string, string> = { Glamour: "💎", Camp: "🤡", Edgy: 
 const CLASSIC_TITLES = ["Elige tu look", "¿Cómo sales a la pasarela?", "Final de pasarela: ¡tu momento!", "🎙️ Tu voz en off..."];
 function RunwayUI() {
   const rw = useGame((s) => s.rw);
+  const back = useGame((s) => s.back);
   const queenId = useGame((s) => s.queenId);
   const [concept, setConcept] = useState("");
   const conceptRef = useRef<HTMLInputElement>(null);
@@ -192,8 +207,12 @@ function RunwayUI() {
             {rw.lines?.supreme && <p className="nx-jury"><b>Supremme</b> {rw.lines.supreme}</p>}
             {rw.lines?.ana && <p className="nx-jury"><b>Ana</b> {rw.lines.ana}</p>}
             <p className="nx-muted">{rw.msg}</p>
-            <button className="nx-btn" onClick={() => send({ type: "runway", queenId })}>Otra pasarela</button>
-            <button className="nx-btn ghost" onClick={() => send({ type: "menu" })}>Menú</button>
+            {back ? <button className="nx-btn" onClick={backFromScene}>{back}</button> : (
+              <>
+                <button className="nx-btn" onClick={() => send({ type: "runway", queenId })}>Otra pasarela</button>
+                <button className="nx-btn ghost" onClick={() => send({ type: "menu" })}>Menú</button>
+              </>
+            )}
           </div>
         ) : rw.waiting ? (
           <div className="nx-panel small" aria-live="polite">
