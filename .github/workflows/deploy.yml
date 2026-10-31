@@ -31,16 +31,19 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       # Pruebas en un navegador de verdad: una temporada del modo historia y un duelo del multijugador
       - run: npx playwright install --with-deps chromium
-      - name: Pruebas en navegador
-        run: |
-          npx vite preview --port 4173 --strictPort &
-          for i in $(seq 1 30); do curl -sf http://localhost:4173/ >/dev/null && break; sleep 2; done
-          npm run e2e
-          npm run e2e:moneda
-          npm run e2e:mp
-          npm run e2e:next
-          npm run e2e:jurado
-          npm run e2e:temporada
+      # Cada prueba en su paso: si una falla, se ve cuál y el final de su salida queda como anotación
+      - name: "Prueba: modo historia"
+        run: bash tools/ci-e2e.sh historia npm run e2e
+      - name: "Prueba: temporada de la moneda"
+        run: bash tools/ci-e2e.sh moneda npm run e2e:moneda
+      - name: "Prueba: multijugador"
+        run: bash tools/ci-e2e.sh multijugador npm run e2e:mp
+      - name: "Prueba: motor nuevo"
+        run: bash tools/ci-e2e.sh motor-nuevo npm run e2e:next
+      - name: "Prueba: pasarela con concepto"
+        run: bash tools/ci-e2e.sh jurado npm run e2e:jurado
+      - name: "Prueba: modo temporada"
+        run: bash tools/ci-e2e.sh temporada npm run e2e:temporada
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

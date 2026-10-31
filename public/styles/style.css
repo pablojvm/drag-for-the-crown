@@ -2494,6 +2494,7 @@ html, body { overflow: hidden; }
 .mode-slide:focus-visible { outline: 4px solid var(--gold); outline-offset: 6px; }
 .s-arcade { --a: #ffc93c; --b: #ff6b3d; --glow: rgba(255,120,40,.55); }
 .s-mp { --a: #b07bff; --b: #2bb8d6; --glow: rgba(90,90,230,.5); }
+.s-next { --a: #ff3d9a; --b: #ffb800; --glow: rgba(255,90,140,.55); text-decoration: none; color: inherit; }
 .ms-num { position: absolute; z-index: 1; right: 34px; bottom: 6px; font: 400 150px/1 "Bungee", sans-serif; color: transparent; -webkit-text-stroke: 2px rgba(255,255,255,.35); pointer-events: none; }
 .ms-copy { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 10px; width: 400px; padding: 52px 0 0 52px; }
 .ms-kicker { font-size: 14px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; opacity: .9; }

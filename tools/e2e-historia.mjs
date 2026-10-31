@@ -26,7 +26,8 @@ await page.locator("#queen-grid > *").nth(0).click();
 // JURADO=1: la pasarela con concepto, con un jurado de prueba (el resto de textos, los de siempre)
 if (process.env.JURADO) await page.evaluate(() => {
   window.__jurado = 0;
-  IA.ready = () => true;
+  // Solo en la pasarela: el resto del capítulo sigue con los textos de siempre (más rápido)
+  IA.ready = () => !!window.__rwOn;
   IA.chat = async (system) => {
     if (/coreógrafa/.test(system)) return { entrada: ["Salgo despacio", "Paso firme", "Bailando"], detalle: ["Enseño la espalda", "Giro", "Peluca"], final: ["Pose", "Guiño", "Drama"], pregunta: "Por qué ese tejido", respuestas: [{ t: "Cae como el agua", calidad: "buena" }, { t: "Me gusta", calidad: "regular" }, { t: "No sé", calidad: "mala" }] };
     if (/valorando una pasarela/.test(system)) { window.__jurado++; return { concepto: 80, coherencia: 80, desfile: 80, supreme: "Bien", ana: "Muy bien" }; }
@@ -60,7 +61,12 @@ for (let i = 0; i < 9000 && !done; i++) {
     if (mem.length) { mem[Math.floor(Math.random() * mem.length)].click(); return ""; }
     for (const s of ["#lf-classic", "#dr-go", "#story-ls", "#rw-done", "#ut-skip", ".dlg-choices button[data-k]", ".dlg", ".siren-card #story-go", "#story-go", "#story-next", "#track-next", "#hub-skip", "[data-o]", "[data-st]", "[data-p]", ".dc-opt:not(.picked):not(.dim)", ".es-opt", "#pa-go", ".mq-c", ".sg-opt", ".rw-opt", "#rw-done", "[data-j]", "[data-qa]", "#lv-done", "#mini-btn.go", "#pz-btn", ".bl-pad"]) {
       const e = q(s);
-      if (e) { e.click(); return ""; }
+      if (e) {
+        if (s === "#dr-go") window.__rwOn = true;
+        if (s === "#rw-done") window.__rwOn = false;
+        e.click();
+        return "";
+      }
     }
     const b = [...document.querySelectorAll(".story-card .btn-primary, .mg .btn-primary")].find((x) => x.offsetParent && !x.disabled);
     if (b) { b.click(); return ""; }
