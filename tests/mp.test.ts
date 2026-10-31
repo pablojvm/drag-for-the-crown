@@ -251,6 +251,43 @@ describe("temporada en directo", () => {
     const others = Object.keys(s.track).filter((k) => !finalists.includes(k));
     expect(Math.min(...finalists.map(stars))).toBeGreaterThanOrEqual(Math.max(...others.map(stars)));
   });
+  it("All Winners: final como en la historia (QoSDADHH para las demás, puestos por tramos)", () => {
+    for (const seed of [2, 5, 9]) {
+      const e = engine(seed);
+      const { s: s0, c } = fmtRoom("winners", seed);
+      let sawQ = false;
+      const s = runAll(s0, e, (x) => { if (x.bracket?.kind === "qosd") sawQ = true; });
+      expect(sawQ).toBe(true);
+      const labs = Object.values(s.track).map((t) => Object.values(t).join(" "));
+      expect(labs.filter((l) => /QOSD/.test(l))).toHaveLength(1);
+      expect(labs.filter((l) => /ELIMF/.test(l))).toHaveLength(c.length - 5);
+      const tier = `5º/${c.length}º`;
+      expect(s.out.filter((o) => o.place === tier)).toHaveLength(c.length - 4);
+      // En la clasificación, la QoSDADHH va justo detrás de las cuatro de la final
+      expect(s.track[standings(s)[4].key][s.ep]).toBe("QOSD");
+    }
+  });
+  it("All Winners: con empate en el corte decide la jugadora con más estrellas", () => {
+    const e = engine(4);
+    const { s: s0, c } = fmtRoom("winners", 4, 8);
+    let s = s0;
+    let guard = 0;
+    while (!(s.phase === "track" && s.ep >= (s.weeks || 0)) && guard++ < 3000) s = advance(s, guard * 1000, e);
+    const keys = aliveKeys(s);
+    const A = pkey("A");
+    const stars: Record<string, number> = Object.fromEntries(keys.map((k) => [k, k === A ? 9 : 2]));
+    s = advance({ ...s, stars }, 1e9, e);
+    expect(s.phase).toBe("comodin");
+    expect(s.twist?.kind).toBe("corte");
+    expect(s.twist?.need).toBe(3);
+    const pick = s.twist!.options.filter((k) => k !== A).slice(-3);
+    s = applySubmit(s, "A", s.ep, "comodin", { pick: pick.join(",") });
+    s = advance(s, 1e9 + 1000, e);
+    expect(s.awFinal!.top.sort()).toEqual([A, ...pick].sort());
+    s = runAll(s, e);
+    expect(s.phase).toBe("corona");
+    expect(c.length).toBe(8);
+  });
   it("Segunda Oportunidrag: con siete, una eliminada vuelve y hay lip sync a tres bandas", () => {
     const e = engine(8);
     let { s } = fmtRoom("repesca", 8);

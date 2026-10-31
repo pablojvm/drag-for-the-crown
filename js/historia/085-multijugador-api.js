@@ -134,6 +134,8 @@
       // Segunda Oportunidrag: con quién haces el monólogo
       S.rp = extra.partner ? { ep: S.ep, pairs: { me: extra.partner }, ps: {} } : null;
       S.meOut = !!extra.out;
+      // Quien reparte papeles (Rusical): la ganadora del capítulo anterior
+      S.miniWin = extra.giver || null;
       S.juryNotes = null; S.liveEp = 0;
       // Si se hizo en directo, lo que pensó el jurado viaja con la nota para las críticas
       RETOS[tipo].run(el, (raw) => { cleanup = null; cb(Math.round(raw), S.liveEp === S.ep ? juryTxt() : ""); });

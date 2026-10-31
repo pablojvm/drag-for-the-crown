@@ -56,7 +56,10 @@ export interface Pair { a: string; b: string; winner?: string }
 export interface Sub { reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string }
 /** Momento de un giro en el que alguien decide (comodín): la suerte, el corazón, la moneda o el bloqueo del All Winners. */
 export interface Twist {
-  kind: "suerte" | "corazon" | "moneda" | "bloqueo";
+  kind: "suerte" | "corazon" | "moneda" | "bloqueo" | "corte";
+  /** All Winners, empate en el corte del top 4: cuántas elige y las que ya están dentro. */
+  need?: number;
+  sure?: string[];
   by: string[];
   options: string[];
   picks: Record<string, string>;
@@ -138,6 +141,9 @@ export interface RoomState {
   pause?: Pause;
   paused?: boolean;
   finalStage?: number;
+  /** All Winners: eliminatoria de lip syncs (primero la QoSDADHH y luego la corona). */
+  bracket?: { kind: "qosd" | "corona"; seeds: string[]; alive: string[]; round: number; bye?: string };
+  awFinal?: { top: string[]; bottom: string[]; tierB: string; qosd?: string };
   track: Record<string, Record<number, string>>;
   epNames: Record<number, string>;
   champion?: string;
@@ -283,7 +289,8 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
   const blocked = s.block && s.block.ep === s.ep ? s.block.id : null;
   rows.forEach((r, i) => {
     // All Stars y All Winners: las dos mejores van al top 2; la ganadora sale de ese lip sync
-    if (isAW(s)) r.label = i <= 1 ? (r.key === blocked ? "BTOP" : "TOP2") : i <= (n <= 7 ? 2 : 3) ? "HIGH" : "SAFE";
+    // Como en la historia: las dos siguientes al top 2 reciben críticas especialmente buenas (con seis o más)
+    if (isAW(s)) r.label = i <= 1 ? (r.key === blocked ? "BTOP" : "TOP2") : (i <= 3 && n >= 6) || (i === 2 && n > 7) ? "HIGH" : "SAFE";
     else if (isAS(s)) r.label = i <= 1 ? "TOP2" : i >= n - 2 ? "BTM2" : i <= (n <= 7 ? 2 : 3) ? "HIGH" : i >= n - 3 ? "LOW" : "SAFE";
     else r.label = i === 0 ? "WIN" : i >= n - nb ? `BTM${nb}` : i <= (n <= 7 ? 1 : 2) ? "HIGH" : i >= n - nb - 1 ? "LOW" : "SAFE";
   });
@@ -354,7 +361,7 @@ const labelsOf = (s: RoomState, k: string) => Object.values(s.track[k] || {});
 export const ppeOf = (s: RoomState, k: string) => ppe(labelsOf(s, k));
 export const winsOf = (s: RoomState, k: string) => labelsOf(s, k).filter((l) => l === "WIN" || l === "BWIN" || l === "WINNER").length;
 /** Orden del último episodio con resultados (como en el modo historia). */
-const ORDER: Record<string, number> = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, HIGH: 4, "3ª": 5, SAFE: 6, RTRN: 6.5, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9, ELIMF: 9 };
+const ORDER: Record<string, number> = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, HIGH: 4, "3ª": 5, QOSD: 5.5, SAFE: 6, RTRN: 6.5, LOW: 7, BTM2: 8, BTM3: 8, ELIMF: 8.5, ELIM: 9 };
 /** Clasificación para el track record: arriba las que siguen (por su última semana y su temporada); debajo las eliminadas, de la última a la primera. */
 export function standings(s: RoomState): { key: string; place: string; out: boolean }[] {
   const eps = Object.keys(s.epNames).map(Number).sort((a, b) => a - b);
@@ -466,6 +473,14 @@ function toLipsync(s: RoomState, now: number): RoomState {
 /** Resuelve un comodín: aplica lo que decidió cada una (o lo decide el juego si no llegó a tiempo). */
 function resolveTwist(s: RoomState, now: number, e: Engine): RoomState {
   const t = s.twist!;
+  if (t.kind === "corte") {
+    // La que más estrellas tiene elige quién pasa el corte; si no llega a tiempo, pasan las de mejor PPE
+    const by = t.by[0], need = t.need || 1;
+    const raw = (isP(by) ? s.subs[idOf(by)]?.pick : "") || "";
+    let picked = [...new Set(raw.split(","))].filter((k) => t.options.includes(k)).slice(0, need);
+    if (picked.length < need) picked = [...picked, ...t.options.filter((k) => !picked.includes(k)).sort((a, b) => ppeOf(s, b) - ppeOf(s, a))].slice(0, need);
+    return awStart({ ...s, twist: undefined }, [...(t.sure || []), ...picked], now, e, { chooser: by, picked, tied: t.options });
+  }
   const picks = { ...t.picks };
   t.by.forEach((k) => {
     if (picks[k]) return;
@@ -518,6 +533,79 @@ function resolveTriple(s: RoomState, e: Engine): string {
 }
 
 /** Siembra de la final por PPE (1 contra 4, 2 contra 3). */
+// ------------------------------ Gran final de All Winners ------------------------------
+// Igual que en el modo historia: las 4 con más estrellas van por la corona (si hay empate en el corte, decide la que más tiene);
+// las demás se juegan la Queen of She Done Already Done Had Herses. Las dos son eliminatorias de lip syncs (1ª-4ª, 2ª-3ª; la mejor descansa si sois impares).
+function awCut(s: RoomState, now: number, e: Engine): RoomState {
+  const ranked = seeds(s);
+  const st = (k: string) => s.stars?.[k] || 0;
+  const TOP = Math.min(4, ranked.length);
+  const stars4 = ranked.length > TOP ? st(ranked[TOP - 1]) : -1;
+  const sure = ranked.filter((k) => st(k) > stars4).slice(0, TOP);
+  const tied = ranked.filter((k) => st(k) === stars4);
+  const ep = s.ep + 1;
+  const base: RoomState = { ...s, ep, epNames: { ...s.epNames, [ep]: "Gran final" }, reto: undefined, rows: undefined, crit: undefined, subs: {} };
+  if (stars4 >= 0 && sure.length < TOP && tied.length > TOP - sure.length) {
+    const need = TOP - sure.length, chooser = ranked[0];
+    if (isP(chooser) && !tied.includes(chooser)) return toComodin(base, { kind: "corte", by: [chooser], options: tied, picks: {}, need, sure }, -1, now);
+    const picked = [...(tied.includes(chooser) ? [chooser] : []), ...tied.filter((k) => k !== chooser).sort((a, b) => ppeOf(s, b) - ppeOf(s, a))].slice(0, need);
+    return awStart(base, [...sure, ...picked], now, e, { chooser, picked, tied });
+  }
+  return awStart(base, ranked.slice(0, TOP), now, e);
+}
+function awStart(s: RoomState, top: string[], now: number, e: Engine, cut?: { chooser: string; picked: string[]; tied: string[] }): RoomState {
+  const ranked = seeds(s);
+  const topS = ranked.filter((k) => top.includes(k)), bottom = ranked.filter((k) => !top.includes(k));
+  const tierB = bottom.length > 1 ? `${topS.length + 1}º/${topS.length + bottom.length}º` : `${topS.length + 1}º`;
+  const nm = (k: string) => nameOfKey(s, k, e);
+  const list = (ks: string[]) => ks.map(nm).join(", ").replace(/, ([^,]*)$/, " y $1");
+  const stars4 = cut ? s.stars?.[cut.tied[0]] || 0 : 0;
+  const left = cut ? cut.tied.filter((k) => !cut.picked.includes(k)) : [];
+  const note = [
+    cut ? `Empate a ${stars4} ${stars4 === 1 ? "estrella" : "estrellas"} entre ${list(cut.tied)}: decide ${nm(cut.chooser)}, la que más estrellas tiene, y elige a ${list(cut.picked)}.${left.length ? ` ${list(left)}, os jugáis el otro título.` : ""}` : "",
+    `${list(topS)}: sois las ${topS.length} con más estrellas. Os jugáis la corona de Reina de reinas.`,
+    bottom.length ? `${list(bottom)}: os jugáis el título de Queen of She Done Already Done Had Herses. Porque ya lo habíais hecho todo.` : "",
+  ].filter(Boolean).join(" ");
+  let t: RoomState = { ...s, awFinal: { top: topS, bottom, tierB } };
+  if (bottom.length === 1) t = { ...eliminate(t, bottom[0], tierB, "QOSD"), awFinal: { top: topS, bottom, tierB, qosd: bottom[0] } };
+  const br = bottom.length >= 2 ? { kind: "qosd" as const, seeds: bottom, alive: bottom, round: 1 } : { kind: "corona" as const, seeds: topS, alive: topS, round: 1 };
+  return bracketRound({ ...t, bracket: br }, now, e, note);
+}
+function bracketRound(s: RoomState, now: number, e: Engine, note: string): RoomState {
+  const b = s.bracket!;
+  const al = b.seeds.filter((k) => b.alive.includes(k));
+  const bye = al.length % 2 ? al[0] : undefined;
+  const pool = al.filter((k) => k !== bye);
+  const pairs: Pair[] = [];
+  for (let i = 0; i < pool.length / 2; i++) pairs.push({ a: pool[i], b: pool[pool.length - 1 - i] });
+  const anyP = pairs.some((p) => isP(p.a) || isP(p.b));
+  const rest = bye ? `${nameOfKey(s, bye, e)} descansa esta ronda.` : "";
+  return { ...s, bracket: { ...b, alive: al, bye }, pairs, finalStage: (b.kind === "qosd" ? 100 : 200) + b.round, subs: {}, note: [note, rest].filter(Boolean).join(" "), phase: "final", deadline: anyP ? limite(now, DURACION[s.ritmo].final) : now + 8000, v: s.v + 1 };
+}
+function bracketNext(s: RoomState, now: number, e: Engine): RoomState {
+  const b = s.bracket!, af = s.awFinal!;
+  const pairs = resolvePairs(s, e);
+  let t: RoomState = { ...s, pairs };
+  const winners = pairs.map((p) => p.winner!);
+  const losers = pairs.map((p) => (p.winner === p.a ? p.b : p.a));
+  const alive = [...(b.bye ? [b.bye] : []), ...winners];
+  const nm = (k: string) => nameOfKey(t, k, e);
+  const list = (ks: string[]) => ks.map(nm).join(", ").replace(/, ([^,]*)$/, " y $1");
+  const duels = pairs.map((p) => `${nm(p.winner!)} gana a ${nm(p.winner === p.a ? p.b : p.a)}.`).join(" ");
+  if (b.kind === "qosd") {
+    losers.forEach((l) => (t = eliminate(t, l, af.tierB, "ELIMF")));
+    if (alive.length > 1) return bracketRound({ ...t, bracket: { ...b, alive, round: b.round + 1 } }, now, e, duels);
+    t = { ...eliminate(t, alive[0], af.tierB, "QOSD"), awFinal: { ...af, qosd: alive[0] } };
+    return bracketRound({ ...t, bracket: { kind: "corona", seeds: af.top, alive: af.top, round: 1 } }, now, e, `${duels} 💅 ${nm(alive[0])} se lleva el título de QoSDADHH. Ahora, la final por la corona: ${list(af.top)}.`);
+  }
+  if (alive.length > 1) {
+    losers.forEach((l) => (t = eliminate(t, l, af.top.length > 3 ? "3º/4º" : "3º", "3ª")));
+    return bracketRound({ ...t, bracket: { ...b, alive, round: b.round + 1 } }, now, e, duels);
+  }
+  t = eliminate(t, losers[0], "2º", "RUNNER-UP");
+  t = { ...t, track: { ...t.track, [alive[0]]: { ...(t.track[alive[0]] || {}), [s.ep]: "WINNER" } } };
+  return { ...t, champion: alive[0], phase: "corona", deadline: 0, v: s.v + 1 };
+}
 function seeds(s: RoomState): string[] {
   // All Winners: por estrellas
   if (isAW(s)) return aliveKeys(s).sort((a, b) => (s.stars?.[b] || 0) - (s.stars?.[a] || 0) || ppeOf(s, b) - ppeOf(s, a));
@@ -660,13 +748,8 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
     }
     case "track": {
       if (isAW(s) ? s.ep < (s.weeks || 0) : aliveKeys(s).length > 4) return nextEpisode(s, now, e);
-      // All Winners: a la final van las 4 con más estrellas; el resto queda colocada por estrellas
-      if (isAW(s)) {
-        const order = seeds(s);
-        let t: RoomState = s;
-        order.slice(4).reverse().forEach((k) => { const pos = order.indexOf(k) + 1; t = eliminate(t, k, `${pos}º`, "ELIMF"); });
-        s = t;
-      }
+      // All Winners: como en el All Stars 7 (corte del top 4 por estrellas, QoSDADHH y corona)
+      if (isAW(s)) return awCut(s, now, e);
       // Gran final: lip syncs eliminatorios entre las cuatro (o tres) últimas
       const sd = seeds(s);
       const ep = s.ep + 1;
@@ -676,6 +759,7 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       return { ...s, ep, epNames: { ...s.epNames, [ep]: "Gran final" }, reto: undefined, rows: undefined, crit: undefined, pairs, finalStage: sd.length === 2 ? 2 : 1, note: bye ? `${nameOfKey(s, bye, e)} pasa directa a la final.` : undefined, subs: {}, phase: "final", deadline: anyP ? limite(now, D.final) : now + 8000, v: s.v + 1 };
     }
     case "final": {
+      if (s.bracket) return bracketNext(s, now, e);
       const pairs = resolvePairs(s, e);
       let t: RoomState = { ...s, pairs };
       if (s.finalStage === 1) {

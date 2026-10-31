@@ -1031,7 +1031,7 @@ Devuelve JSON {"titulo":"...","sinopsis":"...","papeles":[{"papel":"...","descri
           <div class="story-card live">
             <p class="eyebrow">🎭 El Rusical · los papeles</p>
             ${head}
-            <p class="twist-note">Reparte los papeles ${iWin ? "<b>tú</b>, que has ganado el minirreto" : `<b>${esc(winQ.name)}</b>, que ha ganado el minirreto`}.</p>
+            <p class="twist-note">Reparte los papeles ${iWin ? `<b>tú</b>, que ${S.mp ? "ganaste el capítulo anterior" : "has ganado el minirreto"}` : `<b>${esc(winQ.name)}</b>, que ha ganado el minirreto`}.</p>
             <p>Habla con tus compañeras para saber qué papel quiere cada una:</p>
             <div class="live-log">${mates.filter((q) => known.has(q.id)).map((q) => `<p class="lv rival"><b>${esc(q.name)} · quiere ${esc(P(want[q.id]))}</b>${esc(said[q.id])}</p>`).join("")}</div>
             <div class="choice-col">${mates.filter((q) => !known.has(q.id)).map((q) => `<button class="btn btn-ghost" data-m="${q.id}">💬 Hablar con ${esc(q.name)}${q === winQ ? " (la que reparte)" : ""}</button>`).join("")}
@@ -1045,6 +1045,8 @@ Devuelve JSON {"titulo":"...","sinopsis":"...","papeles":[{"papel":"...","descri
         el.innerHTML = `
           <div class="story-card live">
             <p class="eyebrow">🎭 El Rusical · tu petición</p>
+            ${head}
+            <p class="twist-note">Reparte los papeles <b>${esc(winQ.name)}</b>${S.miniWin ? (S.mp ? ", que ganó el capítulo anterior" : ", que ha ganado el minirreto") : ""}.</p>
             <h3>¿Qué papel le pides a ${esc(winQ.name)}?</h3>
             <div class="choice-col">${roles.map((r, i) => `<button class="btn btn-ghost role" data-r="${i}"><b>${esc(P(r))} · ${esc(str(r.peso || "medio"))}</b><small>${count(r)} estrofas${mates.filter((q) => known.has(q.id) && want[q.id] === r).map((q) => ` · lo quiere ${esc(q.name)}`).join("")}</small></button>`).join("")}</div>
           </div>`;
@@ -1112,7 +1114,8 @@ Devuelve JSON {"titulo":"...","sinopsis":"...","papeles":[{"papel":"...","descri
         if (!count(mine)) { const ex = letra.find((l) => !cast[str(l.papel)]) || letra[letra.length - 1]; ex.papel = mine.papel; }
         el.querySelector("#rs-sing").addEventListener("click", () => sing(g, mine, cast, ""));
       };
-      talk();
+      // Si no repartes tú, solo tienes que pedirle tu papel a la que reparte
+      if (iWin) talk(); else { known.add(winQ.id); ask(); }
       function sing(g, mine, cast, note) {
         let li = 0;
         const log = [];

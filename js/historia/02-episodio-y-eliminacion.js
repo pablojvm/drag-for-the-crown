@@ -356,6 +356,12 @@
     const anuncio = () => S.curTipo === "repescaStand"
       ? dialog([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", `Esta semana: ${S.curTitulo}. Cada una de vosotras hará un monólogo con una de ellas.`], ["host", "La eliminada de la pareja ganadora... vuelve a la competición. Y las reinas de las tres peores parejas harán un lip sync a tres bandas: solo se salva una."], ...(S.flags.immune ? [["host", `${S.flags.immune === "me" ? "{yo}" : (qById(S.flags.immune) || {}).name}, tú ganaste la semana pasada: esta semana no compites. Serás nuestra maestra de ceremonias.`]] : [])], ctx, then)
       : dialog(pickFresh(HISTORIA.anuncio), ctx, then);
+    // All Stars: nada más entrar, Supremme pregunta a la que perdió el lip sync qué pintalabios había elegido
+    const P = S.asPending && S.asPending.ep === S.ep - 1 ? S.asPending : null;
+    if (S.ep !== 1 && P) {
+      const who = P.by === "me" ? S.queen.name : (qById(P.by) || {}).name || "";
+      return siren(() => dialog([...sirena, ["host", `Antes de nada... ${who}, la semana pasada no llegamos a verlo. ¿A quién habías elegido tú?`]], ctx, () => revealPendingLipstick(() => dialog(pickFresh(HISTORIA.tallerHost), ctx, anuncio))));
+    }
     if (S.ep !== 1) return siren(() => dialog([...sirena, ...pickFresh(HISTORIA.tallerHost)], ctx, anuncio));
     // Primer día: bienvenida de la temporada (y la caja de la suerte si toca)
     siren(() => dialog([...sirena, ...seasonInfo().intro], ctx, () => (twistOf() === "suerte" && S.luck === undefined ? pickLuckBox(anuncio) : anuncio())));
@@ -381,6 +387,14 @@
   }
 
   // Parejas o grupos para el reto. Si has ganado el minirreto, eliges tú a tus compañeras; si no, las reparte Supremme
+  // Orden de las reinas que siguen en competición según el capítulo anterior (ganadora primero). null si no hay capítulo anterior
+  const PREV_ORDER = ["WIN", "BWIN", "TOP2", "BTOP", "HIGH", "RTRN", "SAFE", "MC", "LOW", "BTM2", "BTM3", "BTM4"];
+  function prevRank(pool) {
+    if (!S.ep || S.ep <= 1) return null;
+    const at = (q) => { const l = (S.track[keyOf(q)] || {})[S.ep - 1]; const i = PREV_ORDER.indexOf(l); return i < 0 ? 99 : i; };
+    if (!pool.some((q) => at(q) < 99)) return null;
+    return pool.map((q) => ({ q, i: at(q), r: Math.random() })).sort((a, b) => a.i - b.i || a.r - b.r).map((x) => x.q);
+  }
   const GROUP_NAMES = ["Rosa", "Oro", "Turquesa", "Lila", "Coral", "Esmeralda"];
   const groupWord = (size) => (size === 2 ? "Pareja" : "Grupo");
   function formChallengeGroups(size, then) {
@@ -404,7 +418,8 @@
     // Elección por turnos: las mejores del minirreto son capitanas y van eligiendo de una en una (ronda tras ronda)
     const byKey = (k) => (k === "me" ? S.queen : qById(k));
     const nG = Math.max(2, Math.floor(all.length / size));
-    const rank = (S.miniRank || []).map(byKey).filter((q) => q && all.includes(q));
+    const prev = prevRank(all);
+    const rank = prev || (S.miniRank || []).map(byKey).filter((q) => q && all.includes(q));
     const caps = [...rank, ...shuffle(all.filter((q) => !rank.includes(q)))].slice(0, nG);
     const groups = caps.map((c) => [c]);
     const pool = all.filter((q) => !caps.includes(q));
@@ -419,7 +434,7 @@
         <div class="story-card">
           <p class="eyebrow">${size === 2 ? "Reto por parejas" : "Reto por grupos"} · eligen las capitanas</p>
           <h3>${myTurn ? "Te toca elegir" : "Las capitanas eligen por turnos"}</h3>
-          <p class="muted">Capitanas por orden del minirreto: ${caps.map((c) => `<b>${esc(nm(c))}</b>`).join(", ")}. Cada una elige a una por turno.</p>
+          <p class="muted">Capitanas ${prev ? "por cómo quedaron el capítulo anterior" : "por orden del minirreto"}: ${caps.map((c) => `<b>${esc(nm(c))}</b>`).join(", ")}. Cada una elige a una por turno.</p>
           <div class="groups-grid">${groups.map((g, i) => `<div class="group-col ${g.includes(S.queen) ? "mine" : ""} ${i === turn % nG && !full() ? "on" : ""}" style="--i:${i}"><b>${groupWord(size)} ${GROUP_NAMES[i % GROUP_NAMES.length]}</b>${g.map((q) => `<span><i style="background-image:url('${photo(q)}')"></i>${esc(nm(q))}${q === caps[i] ? " 👑" : ""}</span>`).join("")}</div>`).join("")}</div>
           ${log.length ? `<p class="muted">${esc(log[log.length - 1])}</p>` : ""}
           ${myTurn ? `<div class="hub-grid">${pool.map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}</button>`).join("")}</div>` : `<div class="ia-dots"><i></i><i></i><i></i></div>`}
@@ -1586,7 +1601,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">💄 Lo que no se vio</p>
-        <h3>${P.by === "me" ? "¿A quién habías elegido tú?" : `¿A quién había elegido ${esc(nm(P.by))}?`}</h3>
+        <h3>${P.by === "me" ? "Saca tu pintalabios" : `${esc(nm(P.by))} saca su pintalabios`}</h3>
         <div class="ls-reveal">${lipstickHTML(nm(P.go), "reveal")}</div>
         <p>${esc(by)} decía <b>«${esc(nm(P.go))}»</b>. ${same ? "Las dos habían elegido a la misma reina." : P.go === "me" ? "Si hubiera ganado ella, te habrías ido tú." : `Si ${P.by === "me" ? "hubieras" : "hubiera"} ganado, se habría ido ${esc(nm(P.go))} en lugar de ${esc(nm(P.went))}.`}</p>
         <button class="btn btn-primary" id="story-next">Continuar</button>

@@ -1,6 +1,22 @@
   // ------------------------- Capitanas y equipos ---------------------------
   // Minirreto previo: las dos mejores son capitanas y eligen equipo por turnos
   function captains(then) {
+    // Desde el segundo capítulo, las capitanas son las dos mejores del capítulo anterior
+    const prev = prevRank([S.queen, ...S.rivals]);
+    if (prev) {
+      const caps = prev.slice(0, 2), nm = (q) => (q === S.queen ? "tú" : q.name);
+      return dialog([["host", "Reinas, esta semana trabajaréis en equipos."], ["host", `Las capitanas serán las mejores de la semana pasada: ${caps.map((q) => (q === S.queen ? S.queen.name : q.name)).join(" y ")}.`]], ctxWith(pick1(S.rivals)), () => {
+        body().innerHTML = `
+          <div class="story-card">
+            <p class="eyebrow">Capitanas</p>
+            <h3>${caps.includes(S.queen) ? "¡Eres capitana! 👑" : `Capitanas: ${esc(caps[0].name)} y ${esc(caps[1].name)}`}</h3>
+            <p class="muted">Por cómo quedasteis el capítulo anterior. Elige primero ${esc(nm(caps[0]))}.</p>
+            <ol class="ranking">${caps.map((q, k) => `<li style="--i:${k}" class="${q === S.queen ? "me" : ""}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><b class="tag win">Capitana</b></li>`).join("")}</ol>
+            <button class="btn btn-primary" id="story-next">Elegir equipos</button>
+          </div>`;
+        $("#story-next").addEventListener("click", () => draft(caps[0], caps[1], then));
+      });
+    }
     dialog(pickFresh(CAPITANAS.intro), ctxWith(pick1(S.rivals)), () => {
       body().innerHTML = `<div id="story-play"></div>`;
       Music.play("reto");

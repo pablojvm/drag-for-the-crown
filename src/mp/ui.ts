@@ -63,7 +63,7 @@ function header(s: RoomState | null) {
   if (ex && $("#screen-story")?.classList.contains("mp")) ex.innerHTML = s && !s.paused ? "<i>←</i><span>Salir de la sala</span>" : "<i>←</i><span>Volver</span>";
   const se = s ? W.seasonById(s.season) : null;
   $("#story-season")!.textContent = s ? `👯 Temporada en directo · ${s.season === CUSTOM ? `Personalizada · ${FORMATOS[(s.fmt || "normal") as Formato].n}` : se ? se.name : ""} · Sala ${s.code}` : "👯 Temporada en directo";
-  const title: Record<string, string> = { lobby: "Sala de espera", maletas: "Maletas", anuncio: `Episodio ${s?.ep}`, reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && (s.fmt === "allstars" || s.fmt === "winners") ? "Lip sync por el poder" : s?.triple ? "Lip sync a tres bandas" : "Lip sync for your life", decision: "Los pintalabios", pintalabios: "El pintalabios", comodin: s?.twist ? ({ suerte: "La reina de la suerte", corazon: "El corazón", moneda: "La moneda", bloqueo: "El bloqueo" } as Record<string, string>)[s.twist.kind] : "Momento clave", sorpresa: "¡Sorpresa!", track: "Track record", final: "Gran final", corona: "¡Tenemos ganadora!" };
+  const title: Record<string, string> = { lobby: "Sala de espera", maletas: "Maletas", anuncio: `Episodio ${s?.ep}`, reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && (s.fmt === "allstars" || s.fmt === "winners") ? "Lip sync por el poder" : s?.triple ? "Lip sync a tres bandas" : "Lip sync for your life", decision: "Los pintalabios", pintalabios: "El pintalabios", comodin: s?.twist ? ({ suerte: "La reina de la suerte", corazon: "El corazón", moneda: "La moneda", bloqueo: "El bloqueo", corte: "El corte del top 4" } as Record<string, string>)[s.twist.kind] : "Momento clave", sorpresa: "¡Sorpresa!", track: "Track record", final: "Gran final", corona: "¡Tenemos ganadora!" };
   $("#story-ep")!.innerHTML = `${esc(s ? (s.paused ? "Pausada" : title[s.phase]) : "Multijugador")} <span class="mp-timer" id="mp-timer"></span>`;
   // Pausa (con acuerdo de todas): solo con la temporada en marcha
   let pb = $("#mp-pause");
@@ -187,6 +187,13 @@ function savedHTML() {
 
 // ---------------------------------- Con sala ----------------------------------
 const AS = (s: RoomState) => s.fmt === "allstars";
+// Quién se salva antes de las críticas y quién las recibe (en orden alfabético de clave: que el orden no delate posiciones)
+const callOf = (s: RoomState) => {
+  const crit = new Set((s.crit || []).map((c) => c.key));
+  const keys = (s.rows || []).map((r) => r.key).sort();
+  const judged = keys.filter((k) => crit.has(k)), safe = keys.filter((k) => !crit.has(k));
+  return { safe, judged, allCrit: !safe.length && s.fmt !== "winners" && keys.length <= 6 };
+};
 const names = (s: RoomState, ks: string[]) => ks.map((k) => keyName(s, k)).join(", ").replace(/, ([^,]*)$/, " y $1");
 const SPEAKER: Record<string, string> = { Supremme: "host", "Supremme de Luxe": "host", "Ana Locking": "judge", "Javier Ambrossi": "ambrossi", "Javier Calvo": "calvo" };
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
@@ -219,6 +226,8 @@ const loadLocal = (code: string) => { try { return JSON.parse(localStorage.getIt
 // ------------------------------ Pantallas que lleva la anfitriona ------------------------------
 // La anfitriona pasa cada línea y cada tarjeta; las demás ven exactamente lo mismo que ella.
 let typedKey = "";
+// Tarjetas que se intercalan entre las frases del guion (la línea lleva "@nombre" como hablante)
+const SIREN = (ctl: string) => `<div class="story-card siren-card"><div class="siren-light">🚨</div><p class="siren-msg">📢 «¡Agárrate las bragas, marichocho!»</p><p class="muted">Suena la sirena del taller...</p>${ctl}</div>`;
 function watch(s: RoomState, set: string, build: () => [string, string][], card: () => string, after?: () => void) {
   api().scene(set);
   const key = `${s.ep}:${s.phase}:${s.finalStage || 0}`;
@@ -232,6 +241,17 @@ function watch(s: RoomState, set: string, build: () => [string, string][], card:
     : `<p class="mp-follow">👑 ${esc(hostName(s))} lleva el ritmo</p>`;
   if (i < lines.length) {
     const [who, txt] = lines[i];
+    if (who.startsWith("@")) {
+      if (who === "@call") {
+        const { safe, judged } = callOf(s);
+        const mine = pkey(room.me), alive = (s.rows || []).some((r) => r.key === mine);
+        body().innerHTML = `<div class="story-card mp-card call"><p class="eyebrow">${esc(s.reto?.titulo || "")} · la pasarela ha terminado</p><h3>Supremme tiene algo que deciros...</h3>${judged.length ? `<p><b>${s.fmt === "winners" ? "Reciben las críticas del jurado" : safe.length ? "Las mejores y las peores de hoy" : "Todas recibís valoración"}</b></p><div class="call-faces">${judged.map((k) => face(s, k)).join("")}</div>` : ""}${safe.length ? `<p><b>Estáis a salvo</b></p><div class="call-faces safe">${safe.map((k) => face(s, k)).join("")}</div>` : ""}${alive ? `<p class="call-me">${safe.includes(mine) ? "✨ Estás a salvo esta semana." : "👀 Te toca escuchar al jurado."}</p>` : ""}<div class="mp-hostbar">${ctl}</div></div>`;
+        return;
+      }
+      body().innerHTML = who === "@siren" ? SIREN(`<div class="mp-hostbar">${ctl}</div>`) : `<div class="story-card mp-card">${revealHTML(s)}<div class="mp-hostbar">${ctl}</div></div>`;
+      if (who === "@siren" && typedKey !== `${key}:${i}`) { typedKey = `${key}:${i}`; const snd = (window as any).Sound; snd && snd.countdown && snd.countdown(true); }
+      return;
+    }
     const w = api().speaker(who);
     const lineKey = `${key}:${i}`;
     body().innerHTML = `
@@ -300,18 +320,25 @@ function render(s: RoomState) {
   const sub = s.subs[room.me] || {};
   if (s.phase === "lobby") { api().scene("werkroom"); return lobby(s); }
   if (s.phase === "maletas") return maletas(s, me);
+  // La ganadora del capítulo anterior (reparte papeles en el Rusical): "me" si eres tú
+  function prevWinner(s: RoomState): string | null {
+    const k = Object.keys(s.track).find((k) => ["WIN", "BWIN"].includes((s.track[k] || {})[s.ep - 1]) && aliveKeys(s).includes(k));
+    return !k ? null : k === pkey(room.me) ? "me" : keyQueen(s, k);
+  }
   if (s.phase === "anuncio") {
     const rv = revealOf(s);
     return watch(s, "werkroom", () => {
-      const lines: [string, string][] = [...(rv ? [["host", `Antes de empezar... ${keyName(s, rv.by)}, ¿a quién habías elegido tú la semana pasada?`] as [string, string]] : []), ...api().announceLines(s.ep, s.season)];
+      // Como en la historia: suena la sirena, entra Supremme y, en All Stars, pregunta por el pintalabios que no se vio
+      const base: [string, string][] = api().announceLines(s.ep, s.season);
+      const lines: [string, string][] = [["@siren", ""], ...base.slice(0, 1), ...(rv ? [["host", `Antes de nada... ${keyName(s, rv.by)}, la semana pasada no llegamos a verlo. ¿A quién habías elegido tú?`], ["@reveal", ""]] as [string, string][] : []), ...base.slice(1)];
       if (s.reto!.cat) lines.push(["judge", `Y en la pasarela quiero veros con «${s.reto!.cat.n}». ${s.reto!.cat.d || ""}`.trim()]);
       if (AS(s) && s.ep === 1) lines.push(["host", "Recordad: esto es un All Stars. Las dos mejores de cada semana harán un lip sync por el poder, y antes cada una elegirá en secreto su pintalabios."]);
       // Partida personalizada: se presenta la dinámica elegida
-      if (s.season === CUSTOM && s.ep === 1) lines.unshift(["host", `¡Bienvenidas a una temporada muy especial! Reinas de todas las ediciones... y la dinámica: ${FORMATOS[(s.fmt || "normal") as Formato].n}.`], ["judge", FORMATOS[(s.fmt || "normal") as Formato].d]);
+      if (s.season === CUSTOM && s.ep === 1) lines.splice(1, 0, ["host", `¡Bienvenidas a una temporada muy especial! Reinas de todas las ediciones... y la dinámica: ${FORMATOS[(s.fmt || "normal") as Formato].n}.`], ["judge", FORMATOS[(s.fmt || "normal") as Formato].d]);
       if (s.fmt === "suerte" && s.ep === 1) lines.push(["host", "Cada una ha cogido una cajita. En una está la reina de la suerte: quien la tenga podrá salvar a quien quiera del lip sync, una vez. Es secreto."]);
-      if (s.rp && s.rp.ep === s.ep) lines.unshift(["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["host", "Cada una de vosotras hará un monólogo con una de ellas. La eliminada de la pareja ganadora... vuelve a la competición."]);
+      if (s.rp && s.rp.ep === s.ep) lines.splice(1, 0, ["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["host", "Cada una de vosotras hará un monólogo con una de ellas. La eliminada de la pareja ganadora... vuelve a la competición."]);
       return lines;
-    }, () => `${revealHTML(s)}${myStatus(s)}<p class="eyebrow">Episodio ${s.ep}${s.fmt && s.fmt !== "normal" ? ` · ${FORMATOS[s.fmt as Formato].icon} ${FORMATOS[s.fmt as Formato].n}` : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}${me ? " Tu look ya está en la maleta." : ""}</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Para jugar el reto tenéis ${Math.round(((DURACION[s.ritmo].reto * (s.ia ? IA_EXTRA : 1)) / 60))} minutos.`}</p>`);
+    }, () => `${myStatus(s)}<p class="eyebrow">Episodio ${s.ep}${s.fmt && s.fmt !== "normal" ? ` · ${FORMATOS[s.fmt as Formato].icon} ${FORMATOS[s.fmt as Formato].n}` : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}${me ? " Tu look ya está en la maleta." : ""}</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Para jugar el reto tenéis ${Math.round(((DURACION[s.ritmo].reto * (s.ia ? IA_EXTRA : 1)) / 60))} minutos.`}</p>`);
   }
   if (s.phase === "reto") {
     api().scene("werkroom");
@@ -322,7 +349,7 @@ function render(s: RoomState) {
     if ((me || outPlays) && sub.reto == null && sub.final == null) return play(s, "reto", (el) => api().play(s.reto!.tipo, s.reto!.titulo, el, (raw: number, jury: string) => {
       const data = s.reto!.noRunway ? { reto: raw, jury, final: api().finalScore(s.reto!.tipo, raw, null, !!jury) } : { reto: raw, jury };
       playing = null; room.submit(data);
-    }, { partner: partnerKey ? keyQueen(s, partnerKey) : null, out: outPlays }));
+    }, { partner: partnerKey ? keyQueen(s, partnerKey) : null, out: outPlays, giver: prevWinner(s) }));
     return waiting(s, "reto");
   }
   if (s.phase === "pasarela") {
@@ -335,8 +362,15 @@ function render(s: RoomState) {
     return waiting(s, "pasarela");
   }
   if (s.phase === "resultados") {
+    // Como en la historia: primero se dice quién está a salvo y quiénes son las mejores y las peores; luego, sus críticas
+    const { safe, judged, allCrit } = callOf(s);
     return watch(s, "panel", () => {
-      const lines: [string, string][] = [["host", pick(["Reinas, ha llegado el momento de las críticas.", "Vamos con las valoraciones del jurado.", "Señoritas, el jurado tiene mucho que decir."])]];
+      const sh = <T,>(a: T[]) => a.map((x) => [Math.random(), x] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+      const n = (s.rows || []).length;
+      const safeL: [string, string][] = safe.length ? [["host", `${names(s, sh(safe))}: estáis salvadas. Podéis volver al backstage.`]] : [];
+      const judgedL: [string, string][] = [["host", allCrit ? `Quedáis ${n}: a partir de ahora ya no hay salvadas. ${names(s, sh(judged))}, todas recibís la valoración del jurado.` : s.fmt === "winners" ? `${names(s, sh(judged))}: esta semana recibís las críticas del jurado.` : `${names(s, sh(judged))}... sois las mejores y las peores del programa de hoy.`]];
+      const lines: [string, string][] = [["host", "Reinas, la pasarela ha terminado. Tengo algo que deciros..."], ...(Math.random() < 0.5 ? [...safeL, ...judgedL] : [...judgedL, ...(safe.length ? [["host", `Las demás, ${names(s, sh(safe))}: estáis a salvo.`] as [string, string]] : [])]), ["@call", ""]];
+      if (safe.length) lines.push(["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."]);
       (s.crit || []).forEach((c) => c.lines.forEach(([who, t]) => lines.push([SPEAKER[who] || "host", t])));
       return lines;
     }, () => `<p class="eyebrow">Las críticas del jurado</p><div class="mp-crit">${(s.crit || []).map((c) => `<div class="mp-crit-row">${face(s, c.key)}<div>${c.lines.map(([who, t]) => `<p><b>${esc(who)}:</b> ${esc(t)}</p>`).join("")}</div></div>`).join("")}</div>`);
@@ -366,8 +400,11 @@ function render(s: RoomState) {
   if (s.phase === "corona") {
     savedPut(`${s.code}:${room.me}`, null);
     const champ = keyName(s, s.champion!);
-    return watch(s, "stage", () => [["host", "Reinas, ha llegado el momento."], ["host", `La ganadora de esta temporada en directo es... ¡${champ}!`], ["judge", "Larga vida a la reina."]],
-      () => `<p class="eyebrow">Gran final</p><h3>👑 ${esc(champ)}${keyPlayer(s, s.champion!) ? ` (${esc(keyPlayer(s, s.champion!))})` : ""}, ¡eres la ganadora!</h3>${track(s)}<button class="btn btn-primary" id="mp-exit2">Salir</button>`,
+    const qd = s.fmt === "winners" && s.awFinal?.qosd ? keyName(s, s.awFinal.qosd) : "";
+    return watch(s, "stage", () => s.fmt === "winners"
+      ? [["host", "Reinas, ha llegado el momento."], ...(qd ? [["host", `${qd}, tú ya eres la Queen of She Done Already Done Had Herses.`] as [string, string]] : []), ["host", `La corona de Reina de reinas es para... ¡${champ}!`], ["judge", "Larga vida a la reina de reinas."]]
+      : [["host", "Reinas, ha llegado el momento."], ["host", `La ganadora de esta temporada en directo es... ¡${champ}!`], ["judge", "Larga vida a la reina."]],
+      () => `<p class="eyebrow">Gran final${s.fmt === "winners" ? " · All Winners" : ""}</p>${qd ? `<p class="twist-note">💅 QoSDADHH: <b>${esc(qd)}</b></p>` : ""}<h3>👑 ${esc(champ)}${keyPlayer(s, s.champion!) ? ` (${esc(keyPlayer(s, s.champion!))})` : ""}, ¡eres la ganadora!</h3>${track(s)}<button class="btn btn-primary" id="mp-exit2">Salir</button>`,
       () => { $("#mp-exit2")!.onclick = exit; if (!crownShown) { crownShown = true; W.Confetti?.burst?.(2500); } });
   }
 }
@@ -421,6 +458,20 @@ function comodin(s: RoomState) {
   const opts = (keep: string | null, verb: (k: string) => string) => `<div class="hub-grid ${t.options.length === 2 ? "two" : ""}">${t.options.map((k, i) => `<button class="hub-q" style="--i:${i}" data-pick="${esc(k)}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(verb(k))}</span>${keyPlayer(s, k) ? `<small>${esc(keyPlayer(s, k))}</small>` : ""}${t.kind === "bloqueo" ? `<small>⭐ ${s.stars?.[k] || 0}</small>` : ""}</button>`).join("")}</div>${keep ? `<button class="btn btn-primary" data-pick="keep">${esc(keep)}</button>` : ""}`;
   const bind = () => document.querySelectorAll<HTMLElement>("[data-pick]").forEach((b) => (b.onclick = () => { playing = null; room.submit({ pick: b.dataset.pick! }); info(`<p class="eyebrow">✔ Decidido</p><h3>Esperando a las demás...</h3>`); }));
   const wait = (h: string) => info(`${h}<div class="call-faces">${t.by.filter(isP).map((k) => face(s, k, done.includes(k) ? "ok" : "wait")).join("")}</div>${skipBtn(s)}`);
+  // All Winners: empate en el corte del top 4 (decide la que más estrellas tiene)
+  if (t.kind === "corte") {
+    const need = t.need || 1;
+    const intro = `Empate a ${s.stars?.[t.options[0]] || 0} ⭐ entre ${esc(names(s, t.options))}.`;
+    if (iDecide) {
+      const chosen: string[] = [];
+      return info(`<p class="eyebrow">👑 Gran final All Winners</p><h3>Empate en el corte: decides tú</h3><p>Tienes más estrellas que nadie. ${intro} Elige ${need === 1 ? "quién pasa" : `a las ${need} que pasan`} a la final por la corona.</p><div class="hub-grid">${t.options.map((k, i) => `<button class="hub-q" style="--i:${i}" data-cut="${esc(k)}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(keyName(s, k))}</span><small>PPE ${ppeOf(s, k).toFixed(2).replace(".", ",")}</small></button>`).join("")}</div>${starsTable(s)}`, () =>
+        document.querySelectorAll<HTMLButtonElement>("[data-cut]").forEach((b) => (b.onclick = () => {
+          chosen.push(b.dataset.cut!); b.disabled = true;
+          if (chosen.length === need) { playing = null; room.submit({ pick: chosen.join(",") }); info(`<p class="eyebrow">✔ Decidido</p><h3>Esperando...</h3>`); }
+        })));
+    }
+    return wait(`<p class="eyebrow">👑 Gran final All Winners</p><h3>Empate en el corte del top 4</h3><p>${intro} Decide <b>${esc(keyName(s, t.by[0]))}</b>, la que más estrellas tiene.</p>${starsTable(s)}`);
+  }
   const bottomTxt = t.options.map((k) => `<b>${esc(nameIs(s, k))}</b>`).join(" y ");
   if (t.kind === "suerte") {
     if (iDecide) return info(`<p class="eyebrow">🍀 Solo tú sabes que la tienes</p><h3>¿Sacas la reina de la suerte?</h3><p>En el bottom: ${bottomTxt}. Si salvas a alguien, entra la siguiente con peor nota. Solo se usa una vez.</p>${opts("Me la guardo (silencio...)", (k) => (k === mineKey ? "🍀 Salvarme" : `🍀 Salvar a ${keyName(s, k)}`))}`, bind);
@@ -578,6 +629,8 @@ function drawChat() {
   box.innerHTML = chatLog.slice(-40).map((m) => `<p class="${m.me ? "me" : ""}"><b>${esc(m.name)}:</b> ${esc(m.text)}</p>`).join("") || `<p class="muted">Nadie ha dicho nada todavía.</p>`;
   box.scrollTop = box.scrollHeight;
 }
+// All Winners: nombre de la eliminatoria y de la ronda
+const brLabel = (s: RoomState) => (s.bracket ? `${s.bracket.kind === "qosd" ? "💅 QoSDADHH" : "👑 Reina de reinas"} · ${s.bracket.alive.length === 2 ? "la final" : `ronda ${s.bracket.round}`}` : "");
 function lipsync(s: RoomState, myKey: string | null) {
   // Lip sync a tres bandas: cada jugadora baila contra la más fuerte de las otras dos
   if (s.triple) {
@@ -593,7 +646,9 @@ function lipsync(s: RoomState, myKey: string | null) {
   const mine = myKey ? pairs.find((p) => (p.a === myKey || p.b === myKey) && !p.winner) : null;
   if (mine && !(s.subs[room.me] || {}).ls) {
     const rivalKey = mine.a === myKey ? mine.b : mine.a;
-    const o = s.phase === "final"
+    const br = s.phase === "final" ? brLabel(s) : null;
+    const o = br ? { eyebrow: br, curtain: s.bracket!.alive.length === 2 ? (s.bracket!.kind === "qosd" ? "QoSDADHH" : "REINA DE REINAS") : "GRAN FINAL", note: `${s.note ? s.note + " " : ""}La que pierda se queda fuera.` }
+      : s.phase === "final"
       ? { eyebrow: s.finalStage === 2 ? "👑 Lip sync por la corona" : "Gran final · semifinal", curtain: s.finalStage === 2 ? "LIP SYNC POR LA CORONA" : "LIP SYNC", note: "" }
       : AS(s) ? { eyebrow: "💄 Lip sync por el poder", curtain: "LIP SYNC POR EL PODER", note: "La que gane se lleva el reto y saca su pintalabios." }
       : s.fmt === "winners" ? { eyebrow: "⭐ Lip sync por la estrella", curtain: "LIP SYNC POR LA ESTRELLA", note: "La que gane bloquea a una rival." }
@@ -601,13 +656,13 @@ function lipsync(s: RoomState, myKey: string | null) {
     return play(s, s.phase, (el) => api().lipsyncShow(el, keyQueen(s, rivalKey), o, (won: boolean, score: number) => { playing = null; room.submit({ ls: { won, score } }); }));
   }
   if (myKey && pairs.some((p) => p.a === myKey || p.b === myKey) && (s.subs[room.me] || {}).ls) return info(`<p class="eyebrow">💄 Lip sync</p><h3>¡Hecho! Esperando el veredicto...</h3>`);
-  info(`${s.phase === "final" && s.finalStage === 1 ? revealHTML(s) : ""}<p class="eyebrow">${s.phase === "final" ? (s.finalStage === 2 ? "👑 Lip sync por la corona" : "Gran final · semifinales") : AS(s) ? "💄 Lip sync por el poder" : s.fmt === "winners" ? "⭐ Lip sync por la estrella" : "Lip sync for your life"}</p>${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${pairs.map((p) => `<div class="mp-vs">${face(s, p.a)}${s.fmt === "winners" && s.phase === "lipsync" ? `<img class="ll-vs" src="./images/legendary-star.png?v=2" alt="Legendary Legend Star">` : "<span>VS</span>"}${face(s, p.b)}</div>`).join("")}<p class="muted">${pairs.some((p) => isP(p.a) || isP(p.b)) ? "Las jugadoras del lip sync están bailando..." : "Las reinas lo dan todo en el escenario..."}</p>${pairs.some((p) => isP(p.a) || isP(p.b)) ? skipBtn(s) : ""}`);
+  info(`${s.phase === "final" && s.finalStage === 1 ? revealHTML(s) : ""}<p class="eyebrow">${s.phase === "final" && brLabel(s) ? brLabel(s) : s.phase === "final" ? (s.finalStage === 2 ? "👑 Lip sync por la corona" : "Gran final · semifinales") : AS(s) ? "💄 Lip sync por el poder" : s.fmt === "winners" ? "⭐ Lip sync por la estrella" : "Lip sync for your life"}</p>${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${pairs.map((p) => `<div class="mp-vs">${face(s, p.a)}${s.fmt === "winners" && s.phase === "lipsync" ? `<img class="ll-vs" src="./images/legendary-star.png?v=2" alt="Legendary Legend Star">` : "<span>VS</span>"}${face(s, p.b)}</div>`).join("")}<p class="muted">${pairs.some((p) => isP(p.a) || isP(p.b)) ? "Las jugadoras del lip sync están bailando..." : "Las reinas lo dan todo en el escenario..."}</p>${pairs.some((p) => isP(p.a) || isP(p.b)) ? skipBtn(s) : ""}`);
 }
 function track(s: RoomState) {
   const eps = Object.keys(s.epNames).map(Number).sort((a, b) => a - b);
   const rows = standings(s);
-  const cls = (l: string) => ({ WIN: "t-win", BWIN: "t-win t-blocked", WINNER: "t-win", TOP2: "t-top2", BTOP: "t-top2 t-blocked", HIGH: "t-high", SAFE: "t-safe", LOW: "t-low", BTM2: "t-btm", BTM3: "t-btm", ELIM: "t-elim", ELIMF: "t-elim", RTRN: "t-rtrn", "RUNNER-UP": "t-runner", "3ª": "t-third" } as Record<string, string>)[l] || "t-none";
-  const lab = (l: string) => ({ WINNER: "GANADORA", "RUNNER-UP": "FINALISTA", "3ª": "3ª/4ª", BWIN: "WIN", BTOP: "TOP2", ELIMF: "FUERA" } as Record<string, string>)[l] || l;
+  const cls = (l: string) => ({ WIN: "t-win", BWIN: "t-win t-blocked", WINNER: "t-win", TOP2: "t-top2", BTOP: "t-top2 t-blocked", HIGH: "t-high", SAFE: "t-safe", LOW: "t-low", BTM2: "t-btm", BTM3: "t-btm", ELIM: "t-elim", ELIMF: "t-elim", RTRN: "t-rtrn", "RUNNER-UP": "t-runner", "3ª": "t-third", QOSD: "t-qosd" } as Record<string, string>)[l] || "t-none";
+  const lab = (l: string) => ({ WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", "3ª": "3ª/4ª", BWIN: "WIN", BTOP: "TOP2", ELIMF: "ELIMINADA", QOSD: "QoSDADHH" } as Record<string, string>)[l] || l;
   const AW = s.fmt === "winners";
   const lastEp = (k: string) => Math.max(0, ...eps.filter((e) => (s.track[k] || {})[e]));
   return `<div class="track-wrap"><table class="track"><thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(s.epNames[e])}</small></th>`).join("")}${AW ? "<th>⭐</th>" : ""}<th>PPE</th></tr></thead><tbody>${rows
