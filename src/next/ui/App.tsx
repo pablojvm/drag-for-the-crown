@@ -4,11 +4,12 @@ import { startGame } from "../game";
 import { send } from "../bridge";
 import { useGame, setMuted } from "../store";
 import { unlockAudio } from "../game/sfx";
-import { ARCADE_QUEENS } from "../game/data";
+import { ARCADE_QUEENS, LOOK_PIECES } from "../game/data";
 import { startLives } from "../game/rules";
 import { lipSyncMove, rivalSoFar } from "../game/lipsync";
 import { EMOTES, LS_PHASES, LS_STEPS, REPITE, type LsKind } from "../../core/lipsync";
-import { chooseLook, chooseWalk, chooseMoment, chooseVoice, WALK_OPTS } from "../game/runway";
+import { chooseLook, chooseWalk, chooseMoment, chooseVoice, submitConcept, chooseConceptMoment, answerAna, WALK_OPTS } from "../game/runway";
+import { MOMENT_NAMES } from "../../core/concepto";
 
 export function App() {
   const host = useRef<HTMLDivElement>(null);
@@ -161,13 +162,20 @@ function LipSyncUI() {
   );
 }
 
-// Pasarela: estilo del look, paso, momento final y voz en off. El jurado valora que todo cuente la misma historia.
+// Pasarela. Con el jurado en directo: look, concepto, tres momentos y la pregunta de Ana. Sin él, la clásica.
 const TAG_ICON: Record<string, string> = { Glamour: "💎", Camp: "🤡", Edgy: "⛓️", "Folclórico": "💃", Futurista: "🚀" };
+const CLASSIC_TITLES = ["Elige tu look", "¿Cómo sales a la pasarela?", "Final de pasarela: ¡tu momento!", "🎙️ Tu voz en off..."];
 function RunwayUI() {
   const rw = useGame((s) => s.rw);
   const queenId = useGame((s) => s.queenId);
+  const [concept, setConcept] = useState("");
+  const conceptRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (rw?.mode === "concepto" && rw.step === 1) conceptRef.current?.focus({ preventScroll: true }); }, [rw?.mode, rw?.step]);
+  useEffect(() => { if (rw?.step === 0) setConcept(""); }, [rw?.id, rw?.step]);
   if (!rw) return null;
-  const title = ["Elige tu look", "¿Cómo sales a la pasarela?", "Final de pasarela: ¡tu momento!", "🎙️ Tu voz en off..."][rw.step] || "";
+  const cc = rw.mode === "concepto";
+  const title = cc ? (rw.step === 0 ? "Elige tu look" : rw.step === 1 ? "💭 ¿Cuál es el concepto de tu look?" : rw.step <= 4 ? MOMENT_NAMES[rw.moments[rw.step - 2]?.k] : "👓 Ana Locking te pregunta") : CLASSIC_TITLES[rw.step] || "";
+  const total = cc ? (rw.step < 2 || rw.qa ? 6 : 5) : 4;
   const verdict = (n: number) => (n >= 85 ? "¡Look de ganadora! 👑" : n >= 70 ? "Muy bien, entre las mejores" : n >= 55 ? "Correcta, sin brillar" : "El jurado no lo ha entendido");
   return (
     <>
@@ -176,26 +184,46 @@ function RunwayUI() {
         <MuteBtn />
       </div>
       <div className="nx-ls-panel">
-        {rw.step >= 4 ? (
+        {rw.done ? (
           <div className="nx-panel small">
             <p className="nx-eyebrow">El jurado ha visto tu pasarela</p>
             <h2>{verdict(rw.score || 0)}</h2>
             <p className="nx-score">{rw.score} / 100</p>
+            {rw.lines?.supreme && <p className="nx-jury"><b>Supremme</b> {rw.lines.supreme}</p>}
+            {rw.lines?.ana && <p className="nx-jury"><b>Ana</b> {rw.lines.ana}</p>}
             <p className="nx-muted">{rw.msg}</p>
             <button className="nx-btn" onClick={() => send({ type: "runway", queenId })}>Otra pasarela</button>
             <button className="nx-btn ghost" onClick={() => send({ type: "menu" })}>Menú</button>
           </div>
+        ) : rw.waiting ? (
+          <div className="nx-panel small" aria-live="polite">
+            <p className="nx-eyebrow">{rw.step >= 4 ? "Fin de tu pasarela" : "Entre bastidores"}</p>
+            <h2 className="nx-step-title">{rw.step >= 4 ? "El jurado toma nota..." : "Preparando tu desfile..."}</h2>
+            <div className="nx-dots" aria-hidden="true"><i /><i /><i /></div>
+          </div>
         ) : (
           <div className="nx-panel">
-            <p className="nx-eyebrow">Paso {rw.step + 1} de 4</p>
+            <p className="nx-eyebrow">Paso {Math.min(rw.step + 1, total)} de {total}</p>
             <h2 className="nx-step-title">{title}</h2>
+            {cc && rw.step <= 1 && <p className="nx-muted nx-theme">{rw.theme}</p>}
+            {cc && rw.step === 5 && rw.qa && <p className="nx-quote">{rw.qa.q}</p>}
             {rw.msg && <p className={`nx-ls-last ${rw.good ? "good" : "meh"}`}>{rw.msg}</p>}
-            <div className="nx-ls-opts">
-              {rw.step === 0 && rw.lookOpts.map((t) => <button key={t} className="nx-opt" onClick={() => chooseLook(t)}><b>{TAG_ICON[t]} {t}</b><small>Look de estilo {t.toLowerCase()}</small></button>)}
-              {rw.step === 1 && WALK_OPTS.map(([k, ico, t]) => <button key={k} className="nx-opt" onClick={() => chooseWalk(k)}><b>{ico} {t}</b></button>)}
-              {rw.step === 2 && ([["pose", "🖼️ Pose", "Segura"], ["comedia", "🤡 Comedia", "Si el look es camp, triunfa"], ["reveal", "🎁 Reveal", "Arriesgado: performance y carisma"]] as const).map(([k, t, d]) => <button key={k} className="nx-opt" onClick={() => chooseMoment(k)}><b>{t}</b><small>{d}</small></button>)}
-              {rw.step === 3 && rw.voices.map((v) => <button key={v.k} className="nx-opt" onClick={() => chooseVoice(v.k)}><b>{v.t}</b></button>)}
-            </div>
+            {cc && rw.step === 1 ? (
+              <form className="nx-concept" onSubmit={(e) => { e.preventDefault(); void submitConcept(concept); }}>
+                <label className="nx-sr" htmlFor="nx-concept">Concepto de tu look</label>
+                <input id="nx-concept" ref={conceptRef} maxLength={140} autoComplete="off" value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Ej.: una sirena atrapada en una red de pesca de lujo" />
+                <button className="nx-btn" disabled={!concept.trim()}>Salir a la pasarela</button>
+              </form>
+            ) : (
+              <div className="nx-ls-opts">
+                {rw.step === 0 && rw.lookOpts.map((t) => <button key={t} className="nx-opt" onClick={() => chooseLook(t)}><b>{TAG_ICON[t]} {t}</b><small>{cc ? LOOK_PIECES[t].join(" · ") : `Look de estilo ${t.toLowerCase()}`}</small></button>)}
+                {!cc && rw.step === 1 && WALK_OPTS.map(([k, ico, t]) => <button key={k} className="nx-opt" onClick={() => chooseWalk(k)}><b>{ico} {t}</b></button>)}
+                {!cc && rw.step === 2 && ([["pose", "🖼️ Pose", "Segura"], ["comedia", "🤡 Comedia", "Si el look es camp, triunfa"], ["reveal", "🎁 Reveal", "Arriesgado: performance y carisma"]] as const).map(([k, t, d]) => <button key={k} className="nx-opt" onClick={() => chooseMoment(k)}><b>{t}</b><small>{d}</small></button>)}
+                {!cc && rw.step === 3 && rw.voices.map((v) => <button key={v.k} className="nx-opt" onClick={() => chooseVoice(v.k)}><b>{v.t}</b></button>)}
+                {cc && rw.step >= 2 && rw.step <= 4 && rw.moments[rw.step - 2]?.opts.map((o, j) => <button key={o} className="nx-opt" onClick={() => chooseConceptMoment(j)}><b>{o}</b></button>)}
+                {cc && rw.step === 5 && rw.qa?.a.map((x, j) => <button key={x.t} className="nx-opt" onClick={() => answerAna(j)}><b>{x.t}</b></button>)}
+              </div>
+            )}
           </div>
         )}
       </div>

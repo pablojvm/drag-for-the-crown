@@ -12,3 +12,6 @@ export * from "./finales";
 export * from "./dinamicas";
 export * from "./lipsync";
 export * from "./runway";
+export * from "./temas";
+export * from "./guion";
+export * from "./concepto";

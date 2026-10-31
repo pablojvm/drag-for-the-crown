@@ -19,11 +19,17 @@ export function startGame(parent: HTMLElement) {
     physics: { default: "arcade", arcade: { debug: false } },
     scene: [Boot, Menu, Arcade, LipSync, Runway],
   });
+  // Cambia de escena; si ya es la que está en marcha (otra pasarela, revancha), la reinicia
+  const go = (key: string) => {
+    game.scene.getScenes(true).forEach((s) => { if (s.scene.key !== key) s.scene.stop(); });
+    if (game.scene.isActive(key)) game.scene.getScene(key).scene.restart();
+    else game.scene.start(key);
+  };
   const off = listen((c) => {
-    if (c.type === "start") { set({ queenId: c.queenId }); game.scene.getScenes(true).forEach((s) => s.scene.stop()); game.scene.start("Arcade"); }
-    if (c.type === "lipsync") { game.scene.getScenes(true).forEach((s) => s.scene.stop()); startLipSync(c.queenId); game.scene.start("LipSync"); }
-    if (c.type === "runway") { game.scene.getScenes(true).forEach((s) => s.scene.stop()); startRunway(c.queenId); game.scene.start("Runway"); }
-    if (c.type === "menu") { game.scene.getScenes(true).forEach((s) => s.scene.stop()); set({ screen: "menu", paused: false }); game.scene.start("Menu"); }
+    if (c.type === "start") { set({ queenId: c.queenId }); go("Arcade"); }
+    if (c.type === "lipsync") { startLipSync(c.queenId); go("LipSync"); }
+    if (c.type === "runway") { startRunway(c.queenId); go("Runway"); }
+    if (c.type === "menu") { set({ screen: "menu", paused: false }); go("Menu"); }
     if (c.type === "mute") game.sound.mute = c.on;
   });
   // Al perder el foco, pausa (como el juego de siempre)

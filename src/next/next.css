@@ -84,3 +84,19 @@ html, body { margin: 0; height: 100%; background: var(--nx-bg); color: var(--nx-
 .nx-ls-last.meh { color: #9a4a00; }
 .nx-ls-opts:has(> :nth-child(4)) { grid-template-columns: repeat(4, 1fr); }
 @media (max-width: 560px) { .nx-ls-opts:has(> :nth-child(4)) { grid-template-columns: 1fr 1fr; } }
+/* Pasarela con concepto */
+.nx-theme { margin: 0 0 10px; font-size: 13.5px; line-height: 1.4; }
+.nx-quote { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+.nx-jury { display: grid; grid-template-columns: 84px 1fr; gap: 8px; margin: 6px 0; font-size: 14px; line-height: 1.4; text-align: left; }
+.nx-jury b { color: var(--nx-pink); }
+.nx-concept { display: flex; gap: 8px; flex-wrap: wrap; }
+.nx-concept input { flex: 1 1 260px; min-width: 0; padding: 12px 14px; border: 2px solid rgba(255, 61, 154, 0.35); border-radius: 14px; font: 400 16px Poppins, sans-serif; color: var(--nx-ink); background: #fff; }
+.nx-concept input:focus-visible { outline: 3px solid var(--nx-gold); outline-offset: 2px; border-color: var(--nx-pink); }
+.nx-concept .nx-btn:disabled { opacity: 0.5; cursor: default; }
+.nx-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.nx-dots { display: flex; gap: 8px; justify-content: center; padding: 8px 0 4px; }
+.nx-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--nx-pink); animation: nx-dot 0.9s ease-in-out infinite alternate; }
+.nx-dots i:nth-child(2) { animation-delay: 0.15s; }
+.nx-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes nx-dot { from { opacity: 0.3; transform: translateY(0); } to { opacity: 1; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .nx-dots i { animation: none; } }

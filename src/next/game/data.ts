@@ -10,3 +10,12 @@ export const ARCADE_QUEENS: ArcadeQueen[] = [
   { id: "plastique", name: "Plastique Tiara", sprite: "images/drags/plastiqueTiara.png", stats: { speed: 5, rate: 4, power: 2, lives: 2 }, power: { id: "triple", name: "Muñeca de porcelana", desc: "Triple tacón durante 6 s." } },
   { id: "angeria", name: "Angeria Paris VanMichael", sprite: "images/drags/angeriaPVM.png", stats: { speed: 3, rate: 2, power: 5, lives: 3 }, power: { id: "homing", name: "Alas de ángel", desc: "Tus tacones persiguen a la rival durante 6 s." } },
 ];
+
+/** Lo que lleva cada estilo de look en la pasarela (el jurado lo tiene en cuenta). */
+export const LOOK_PIECES: Record<string, string[]> = {
+  Glamour: ["vestido sirena de lentejuelas", "peluca de ondas al agua", "guantes de ópera"],
+  Camp: ["vestido de volantes de colores imposibles", "peluca cardada gigante", "bolso con forma de tarta"],
+  Edgy: ["mono de cuero con tachuelas", "cresta negra", "botas de plataforma"],
+  "Folclórico": ["bata de cola de lunares", "peineta con flores", "mantón bordado"],
+  Futurista: ["traje metalizado con hombreras de cromo", "peluca plateada geométrica", "gafas de luces"],
+};

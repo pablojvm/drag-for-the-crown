@@ -23,6 +23,16 @@ await page.click("#btn-story");
 await page.locator(".franchise-card").nth(0).click();
 await page.locator(".season-card").nth(SEASON).click();
 await page.locator("#queen-grid > *").nth(0).click();
+// JURADO=1: la pasarela con concepto, con un jurado de prueba (el resto de textos, los de siempre)
+if (process.env.JURADO) await page.evaluate(() => {
+  window.__jurado = 0;
+  IA.ready = () => true;
+  IA.chat = async (system) => {
+    if (/coreógrafa/.test(system)) return { entrada: ["Salgo despacio", "Paso firme", "Bailando"], detalle: ["Enseño la espalda", "Giro", "Peluca"], final: ["Pose", "Guiño", "Drama"], pregunta: "Por qué ese tejido", respuestas: [{ t: "Cae como el agua", calidad: "buena" }, { t: "Me gusta", calidad: "regular" }, { t: "No sé", calidad: "mala" }] };
+    if (/valorando una pasarela/.test(system)) { window.__jurado++; return { concepto: 80, coherencia: 80, desfile: 80, supreme: "Bien", ana: "Muy bien" }; }
+    return null;
+  };
+});
 await page.click("#btn-start");
 
 const VALID = /^(WIN|TOP2|BTOP|HIGH|SAFE|LOW|BTM2|BTM3|ELIM|BWIN)$/;
@@ -39,6 +49,8 @@ for (let i = 0; i < 9000 && !done; i++) {
   });
   const r = await page.evaluate(() => {
     const q = (s) => document.querySelector(s);
+    const cp = q("#rw-cp");
+    if (cp && !cp.value) { cp.value = "Una sirena en una red de pesca de lujo"; cp.form.requestSubmit(); return ""; }
     const nx = q("#ls-next");
     if (nx && !nx.disabled) { nx.click(); return "look"; }
     const falta = q(".ls-sel li:not(.ok)");
@@ -46,7 +58,7 @@ for (let i = 0; i < 9000 && !done; i++) {
     if (document.querySelector("#screen-game.active") && window.Game && Game._debug) { Game._debug().win(); return ""; }
     const mem = [...document.querySelectorAll(".mem-card:not(.open):not(.done)")];
     if (mem.length) { mem[Math.floor(Math.random() * mem.length)].click(); return ""; }
-    for (const s of ["#dr-go", "#story-ls", "#rw-done", "#ut-skip", ".dlg-choices button[data-k]", ".dlg", ".siren-card #story-go", "#story-go", "#story-next", "#track-next", "#hub-skip", "[data-o]", "[data-st]", "[data-p]", ".dc-opt:not(.picked):not(.dim)", ".es-opt", "#pa-go", ".mq-c", ".sg-opt", ".rw-opt", "#rw-done", "#lv-done", "#mini-btn.go", "#pz-btn", ".bl-pad"]) {
+    for (const s of ["#lf-classic", "#dr-go", "#story-ls", "#rw-done", "#ut-skip", ".dlg-choices button[data-k]", ".dlg", ".siren-card #story-go", "#story-go", "#story-next", "#track-next", "#hub-skip", "[data-o]", "[data-st]", "[data-p]", ".dc-opt:not(.picked):not(.dim)", ".es-opt", "#pa-go", ".mq-c", ".sg-opt", ".rw-opt", "#rw-done", "[data-j]", "[data-qa]", "#lv-done", "#mini-btn.go", "#pz-btn", ".bl-pad"]) {
       const e = q(s);
       if (e) { e.click(); return ""; }
     }
@@ -60,10 +72,11 @@ for (let i = 0; i < 9000 && !done; i++) {
   if (r === "look") looks++;
   if (process.env.SHOTS && i % 600 === 0) await page.screenshot({ path: `/tmp/eh-${i}.png` });
 }
+const jurado = process.env.JURADO ? await page.evaluate(() => window.__jurado) : null;
 await browser.close();
 const labs = done || [];
 const bad = labs.filter((l) => !VALID.test(l));
-const ok = looks > 0 && labs.length > 3 && labs.filter((l) => /^(WIN|TOP2)$/.test(l)).length >= 1 && !bad.length && !errors.length;
-console.log(`Looks: ${looks} · capítulo 1 en el track record: ${labs.length ? labs.join(" ") : "no"} · etiquetas raras: ${bad.length} · errores: ${errors.length}`);
+const ok = looks > 0 && labs.length > 3 && labs.filter((l) => /^(WIN|TOP2)$/.test(l)).length >= 1 && !bad.length && !errors.length && (jurado === null || jurado > 0);
+console.log(`Looks: ${looks} · capítulo 1 en el track record: ${labs.length ? labs.join(" ") : "no"} · etiquetas raras: ${bad.length}${jurado === null ? "" : ` · pasarelas con concepto: ${jurado}`} · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
 process.exit(ok ? 0 : 1);

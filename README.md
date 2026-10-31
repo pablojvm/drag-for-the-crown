@@ -24,7 +24,8 @@ npm run build && npm run preview
 npm run e2e        # un capítulo entero del modo historia en un navegador
 npm run e2e:moneda # lo mismo en la temporada de la moneda (bottom de tres y votación)
 npm run e2e:mp     # dos jugadoras y un duelo de lip sync
-npm run e2e:next   # el motor nuevo (Phaser 4 + React): arcade con poderes, un lip sync y una pasarela
+npm run e2e:next   # el motor nuevo (Phaser 4 + React): arcade con poderes, un lip sync y las dos pasarelas
+npm run e2e:jurado # un capítulo con la pasarela con concepto (jurado de prueba)
 ```
 
 Las pruebas en navegador usan Playwright (`npx playwright install chromium` la primera vez). El despliegue a GitHub Pages lo hace el workflow en cada push a `main`, y antes pasa tipos, lint, tests y pruebas en navegador.
@@ -35,10 +36,10 @@ Más detalle (servidor, claves, Supabase): [DESARROLLO.md](DESARROLLO.md).
 
 | Carpeta | Qué hay |
 | --- | --- |
-| `src/core/` | Reglas puras en TypeScript con tests, compartidas por la historia y el multijugador: resultados de la semana, lip sync, pasarela, dinámicas de temporada (suerte, corazón, moneda, pintalabios), finales, Lalaparuza, azar con semilla, dado, cuadro, track record, flujo del episodio, partidas guardadas |
+| `src/core/` | Reglas puras en TypeScript con tests, compartidas por la historia y el multijugador: resultados de la semana, lip sync, pasarela (clásica y con concepto), temáticas, voz del guion, dinámicas de temporada (suerte, corazón, moneda, pintalabios), finales, Lalaparuza, azar con semilla, dado, cuadro, track record, flujo del episodio, partidas guardadas |
 | `src/mp/` | Multijugador: reglas de la sala (`model.ts`), conexión (`room.ts`, `bus.ts`) y pantallas (`ui.ts`) |
 | `src/net/` | Cuentas, nube y captura de errores (Supabase) |
-| `src/next/` | Motor nuevo en construcción: Phaser 4 (escenas) + React (interfaz) + Zustand (estado). Se abre en `next.html`: arcade con poderes, power-ups y sonido, el lip sync y la pasarela (con las reglas de `src/core/lipsync.ts` y `src/core/runway.ts`) |
+| `src/next/` | Motor nuevo en construcción: Phaser 4 (escenas) + React (interfaz) + Zustand (estado). Se abre en `next.html`: arcade con poderes, power-ups y sonido, el lip sync y la pasarela con concepto (con las reglas de `src/core/lipsync.ts`, `src/core/runway.ts` y `src/core/concepto.ts`; sin conexión, la pasarela clásica) |
 | `js/historia/` | Motor del modo historia (código antiguo, se irá pasando a `src/core`) |
 | `js/` | Arcade, menús, diálogos y datos de las reinas |
 | `supabase/` | Migraciones de la base de datos y la función de IA |

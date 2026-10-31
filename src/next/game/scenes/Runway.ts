@@ -26,11 +26,12 @@ export class Runway extends Phaser.Scene {
     this.tweens.add({ targets: this.q, alpha: 1, duration: 500 });
     this.sparks = this.add.particles(0, 0, "spark", { lifespan: 900, speed: { min: 120, max: 380 }, scale: { start: 0.9, end: 0 }, tint: [0xffd84d, 0xff5fa2, 0x6ee7ff], blendMode: "ADD", emitting: false });
     let n = get().rw?.animN ?? 0;
-    const unsub = store.subscribe((s) => { if (!s.rw || s.rw.animN === n) return; n = s.rw.animN; this.act(s.rw.anim, s.rw.step); });
+    const unsub = store.subscribe((s) => { if (!s.rw || s.rw.animN === n) return; n = s.rw.animN; this.act(s.rw.anim, s.rw.pos); });
     this.events.once("shutdown", unsub);
     this.scale.on("resize", () => this.scene.restart());
   }
   private act(anim: string, step: number) {
+    if (!anim) return;
     const H = this.scale.height;
     // Cada paso la acerca: del fondo (pequeña) a primer plano (grande)
     const target = [0.42, 0.54, 0.66, 0.7, 0.7][Math.min(4, step)]; // por encima del panel de opciones
@@ -42,6 +43,11 @@ export class Runway extends Phaser.Scene {
       this.tweens.add({ targets: this.q, y: H * target, scale: sc, duration: 500 });
       this.tweens.add({ targets: this.q, scaleX: { from: sc, to: -sc }, duration: 260, yoyo: true, repeat: 1, delay: 500, onComplete: () => this.q.setScale(sc) });
       this.time.delayedCall(900, () => { this.sparks.explode(70, this.q.x, this.q.y - this.q.displayHeight * 0.5); this.cameras.main.flash(300, 255, 216, 77); });
+    }
+    if (anim === "detalle") {
+      // Giro para enseñar el detalle del look
+      this.tweens.add({ targets: this.q, y: H * target, duration: 600 });
+      this.tweens.add({ targets: this.q, scaleX: { from: sc, to: -sc }, scaleY: sc, duration: 320, yoyo: true, delay: 200, onComplete: () => this.q.setScale(sc) });
     }
     if (anim === "stuck") { this.tweens.add({ targets: this.q, y: H * target, scale: sc, duration: 500 }); this.time.delayedCall(500, () => this.cameras.main.shake(350, 0.012)); }
     if (anim === "voice") this.tweens.add({ targets: this.q, y: this.q.y - 10, duration: 300, yoyo: true, repeat: 2 });

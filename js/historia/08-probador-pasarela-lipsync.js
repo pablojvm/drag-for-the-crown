@@ -238,20 +238,14 @@
     async function moments(concept) {
       flags.concepto = concept;
       el.querySelector(".rw-panel").innerHTML = `<div class="ia-dots"><i></i><i></i><i></i></div>`;
-      const r = await IA.chat(
-        "Eres coreógrafa de pasarela de Drag Race España. Propones momentos de desfile concretos y visuales, coherentes con el concepto y las piezas.",
-        `Categoría: «${cat}»${TH ? ` (${TH.d})` : ""}.${S.ballCtx ? ` ${S.ballCtx}` : ""} Piezas: ${pieces.join(", ")}. Concepto de la reina: «${concept}».
-Propón 3 opciones para cada momento del desfile: "entrada" (cómo sale), "detalle" (qué enseña a mitad de pasarela) y "final" (cómo remata en la marca). Cada opción en máximo 10 palabras; una de las tres debe encajar mucho mejor con el concepto que las otras.
-Añade "pregunta": lo que le pregunta Ana Locking sobre una pieza concreta de su look (tejido, construcción, silueta o elección), máximo 15 palabras, y "respuestas": 3 respuestas posibles de la reina (máximo 18 palabras cada una), una con argumento de moda sólido ("buena"), una emocional pero algo vaga ("regular") y una vacía o que se contradice ("mala").
-Devuelve JSON {"entrada":["...","...","..."],"detalle":["...","...","..."],"final":["...","...","..."],"pregunta":"...","respuestas":[{"t":"...","calidad":"buena|regular|mala"}]}`,
-        { json: true, max: 800, temp: 0.9 },
-      );
-      qa = r && str(r.pregunta) && Array.isArray(r.respuestas) && r.respuestas.filter((x) => x && str(x.t)).length >= 3 ? { q: ((t) => (/^¿/.test(t) ? t : `¿${t.replace(/[?.]*$/, "")}?`))(IA.clean(str(r.pregunta))), a: shuffle(r.respuestas.filter((x) => x && str(x.t)).slice(0, 3)).map((x) => ({ t: IA.clean(str(x.t)).slice(0, 140), k: str(x.calidad) })) } : null;
-      const def = { entrada: ["Paso firme y mirada a cámara", "Entrada lenta y misteriosa", "Salgo bailando"], detalle: ["Giro para enseñar la espalda", "Juego con el accesorio", "Me toco la peluca con descaro"], final: ["Pose congelada", "Guiño al jurado", "Me tiro al suelo con drama"] };
-      const M = ["entrada", "detalle", "final"].map((k) => ({ k, opts: (r && Array.isArray(r[k]) && r[k].length >= 2 ? r[k].map(str) : def[k]).slice(0, 3).map(IA.clean) }));
-      if (S.revealImg) M[2].opts.push("🎁 ¡Hacer el reveal!");
+      const ctx = { cat, theme: TH ? TH.d : "", ballCtx: S.ballCtx || "", pieces };
+      const P = DFTC.momentsPrompt({ ...ctx, concept });
+      const r = await IA.chat(P.system, P.user, P.opts);
+      const got = DFTC.parseMoments(r, { clean: IA.clean, shuffle, reveal: !!S.revealImg });
+      qa = got.qa;
+      const M = got.moments;
       const picks = [];
-      const NAMES = { entrada: "🚶 La entrada", detalle: "✨ A mitad de pasarela", final: "📸 En la marca" };
+      const NAMES = DFTC.MOMENT_NAMES;
       const CLS = ["pos1", "pos2", "pos2"];
       const step = (i) => {
         if (i >= M.length) return qa ? askAna(concept, picks) : judge(concept, picks);
@@ -262,7 +256,7 @@ Devuelve JSON {"entrada":["...","...","..."],"detalle":["...","...","..."],"fina
           picks.push(`${m.k}: ${o}`);
           const doll = el.querySelector("#rw-doll");
           doll.className = `rw-doll rw-queen ${CLS[i]} ${i === 0 ? `walk-${WALK_OF_TAG[lookTag] || "fuerte"}` : i === 2 ? "pose" : ""}`;
-          if (o.startsWith("🎁")) {
+          if (o === DFTC.REVEAL_OPT) {
             flags.reveal = true;
             doll.classList.add("spin");
             later(() => {
@@ -285,28 +279,18 @@ Devuelve JSON {"entrada":["...","...","..."],"detalle":["...","...","..."],"fina
       el.querySelector(".rw-panel").innerHTML = `<h4>👓 Ana Locking te pregunta</h4><p class="rw-quote">${esc(qa.q)}</p><div class="choice-col">${qa.a.map((x, j) => `<button class="btn btn-ghost rwc" data-qa="${j}">${esc(x.t)}</button>`).join("")}</div>`;
       el.querySelectorAll("[data-qa]").forEach((b) => b.addEventListener("click", () => {
         const x = qa.a[+b.dataset.qa];
-        anaBonus = /buena/.test(x.k) ? 6 : /mala/.test(x.k) ? -6 : 0;
+        anaBonus = DFTC.anaBonus(x.k);
         anaAnswer = `Ana le preguntó «${qa.q}» y respondió: «${x.t}».`;
         judge(concept, picks);
       }));
     }
     async function judge(concept, picks) {
       el.querySelector(".rw-panel").innerHTML = `<h4>El jurado toma nota...</h4><div class="ia-dots"><i></i><i></i><i></i></div>`;
-      const r = await IA.chat(
-        "Eres el jurado de Drag Race España valorando una pasarela: Supremme de Luxe (espectáculo y actitud) y Ana Locking (moda, construcción y coherencia). Sois exigentes: un concepto genérico o que no tiene nada que ver con lo que lleva puntúa bajo. Pero la temática es un punto de partida, no una lista de requisitos: cada reina la interpreta a su manera.",
-        `Categoría: «${cat}»${TH ? ` (${TH.d})` : ""}.${S.ballCtx ? ` ${S.ballCtx}` : ""} Lo que lleva: ${pieces.join(", ")}. Concepto que defiende: «${concept}». Su desfile: ${picks.join("; ")}.${flags.reveal ? " Hace un reveal." : ""}${anaAnswer ? ` ${anaAnswer} Tenlo en cuenta en la coherencia y en lo que dice Ana.` : ""}
-La temática está abierta a interpretaciones: cualquier lectura vale si el concepto la justifica y el look la cuenta. No penalices por no usar los ejemplos de la descripción; premia las interpretaciones propias y bien defendidas.
-Valora de 0 a 100: "concepto" (originalidad y fuerza de la idea), "coherencia" (si el concepto es una interpretación defendible de la temática y si lo que lleva lo cuenta) y "desfile" (si los momentos elegidos cuentan esa historia). Añade "supreme" y "ana": una frase de cada una, máximo 25 palabras, dirigida a la reina.
-Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..."}`,
-        { json: true, max: 400, temp: 0.6 },
-      );
-      const n = (v, d) => clamp(Math.round(v != null && Number.isFinite(+v) ? +v : d), 0, 100);
-      const c1 = n(r && r.concepto, 55), c2 = n(r && r.coherencia, 55), c3 = n(r && r.desfile, 55);
-      let score = c1 * 0.35 + c2 * 0.4 + c3 * 0.25 + (A("estilo") - 5) + (A("performance") - 5) * 0.5;
-      if (flags.reveal && /reveal/i.test(cat)) score += 6;
-      score += anaBonus;
-      score = clamp(Math.round(score), 0, 100);
-      flags.critica = r ? `${str(r.supreme)} ${str(r.ana)}` : null;
+      const P = DFTC.judgePrompt({ cat, theme: TH ? TH.d : "", ballCtx: S.ballCtx || "", pieces, concept, picks, reveal: !!flags.reveal, anaAnswer });
+      const r = await IA.chat(P.system, P.user, P.opts);
+      const v = DFTC.parseVerdict(r);
+      const score = DFTC.conceptScore({ v, estilo: A("estilo"), performance: A("performance"), reveal: !!flags.reveal, cat, ana: anaBonus });
+      flags.critica = r ? `${v.supreme} ${v.ana}` : null;
       // El jurado no dice nada todavía: su opinión llega en las valoraciones
       el.querySelector(".rw-panel").innerHTML = `
         <h4>⚖️ Fin de tu pasarela</h4>
