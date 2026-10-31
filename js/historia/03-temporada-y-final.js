@@ -359,10 +359,11 @@
     const ppeOf = (q) => DFTC.ppe(Object.values(S.track[keyOf(q)] || {}));
     const byMerit = (a, b) => starsOf(b) - starsOf(a) || ppeOf(b) - ppeOf(a);
     const ranked = all.slice().sort(byMerit);
-    const TOP = Math.min(4, all.length);
-    const stars4 = ranked.length > TOP ? starsOf(ranked[TOP - 1]) : -1;
-    const sure = ranked.filter((q) => starsOf(q) > stars4).slice(0, TOP);
-    const tied = ranked.filter((q) => starsOf(q) === stars4);
+    // Corte del top 4: regla compartida con el multijugador (src/core/finales.ts)
+    const cut = DFTC.allWinnersCut(ranked.map(keyOf), (k) => (S.stars || {})[k] || 0);
+    const byKey = (k) => ranked.find((q) => keyOf(q) === k);
+    const TOP = cut.TOP, stars4 = cut.stars4;
+    const sure = cut.sure.map(byKey), tied = cut.tied.map(byKey);
     const chooser = ranked[0];
     const tbl = (list, title) => standingsHTML(list, new Map(all.map((q) => [q, starsOf(q)])), title).replace(/👑/g, "⭐");
 
@@ -431,8 +432,7 @@
       const bottomSeeded = bottom.slice().sort(byMerit);
       const finishAll = (qd, crown) => {
         const fp = {};
-        const lastB = TOP + bottom.length;
-        const tierB = bottom.length > 1 ? `${TOP + 1}º/${lastB}º` : `${TOP + 1}º`;
+        const tierB = DFTC.allWinnersTier(TOP, bottom.length);
         top.forEach((q) => {
           const k = keyOf(q);
           if (q === crown.champ) { fp[k] = { o: 1, r: "1º" }; mark(q, "WINNER"); }
@@ -476,7 +476,7 @@
     }
 
     // Empate en el corte del top 4: decide la que más estrellas tiene
-    if (stars4 >= 0 && sure.length < TOP && tied.length > TOP - sure.length) {
+    if (cut.tie) {
       const need = TOP - sure.length;
       const opts = tied.filter((q) => q !== chooser);
       // Las demás eligen por PPE; si una candidata eres tú, cuenta lo bien que os lleváis

@@ -3,6 +3,8 @@
 
 import { ppe } from "../core/track";
 import { buildBracket } from "../core/bracket";
+import { bottomSize, weekLabels, allCritiqued } from "../core/week";
+import { allWinnersCut, allWinnersTier, lalaScore } from "../core/finales";
 
 export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
@@ -314,17 +316,13 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
   rows.sort((a, b) => b.score - a.score || (e.rnd() < 0.5 ? -1 : 1));
   const n = rows.length;
   // Bottom de tres en la moneda (con seis o más) y en la Segunda Oportunidrag (lip sync a tres bandas)
-  const nb = isAW(s) ? 0 : (s.fmt === "moneda" && n >= 6) || (s.rp && s.rp.ep === s.ep && n >= 5) ? 3 : 2;
+  // Las mismas reglas que el modo historia (src/core/week.ts)
+  const twist = s.fmt || "normal";
+  const nb = bottomSize({ twist, n, repescaWeek: !!(s.rp && s.rp.ep === s.ep) });
   const blocked = s.block && s.block.ep === s.ep ? s.block.id : null;
-  rows.forEach((r, i) => {
-    // All Stars y All Winners: las dos mejores van al top 2; la ganadora sale de ese lip sync
-    // Como en la historia: las dos siguientes al top 2 reciben críticas especialmente buenas (con seis o más)
-    if (isAW(s)) r.label = i <= 1 ? (r.key === blocked ? "BTOP" : "TOP2") : (i <= 3 && n >= 6) || (i === 2 && n > 7) ? "HIGH" : "SAFE";
-    else if (isAS(s)) r.label = i <= 1 ? "TOP2" : i >= n - 2 ? "BTM2" : i <= (n <= 7 ? 2 : 3) ? "HIGH" : i >= n - 3 ? "LOW" : "SAFE";
-    else r.label = i === 0 ? "WIN" : i >= n - nb ? `BTM${nb}` : i <= (n <= 7 ? 1 : 2) ? "HIGH" : i >= n - nb - 1 ? "LOW" : "SAFE";
-  });
-  // All Winners: solo críticas para las de arriba (nada de críticas negativas)
-  const allCrit = n <= 6 && !isAW(s);
+  const labels = weekLabels(rows.map((r) => ({ key: r.key })), { twist, nb, bottom: rows.slice(n - nb).map((r) => r.key), blocked });
+  rows.forEach((r, i) => (r.label = labels[i]));
+  const allCrit = allCritiqued(n, twist);
   const crit = rows
     .filter((r) => allCrit || r.label !== "SAFE")
     .map((r) => {
@@ -608,9 +606,8 @@ function lzNext(s: RoomState, now: number, e: Engine): RoomState {
   last.forEach((k) => (reached[k] = R + 1));
   const score: Record<string, number> = {};
   aliveKeys(s).forEach((k) => {
-    const base = k === champ ? 95 : top2 && top2.includes(k) ? 93 : 42 + ((reached[k] ?? 0) / R) * 46;
-    const tweak = isP(k) ? Math.max(-4, Math.min(4, ((ls[k] ?? 50) - 50) * 0.08)) : Math.max(-4, Math.min(4, (e.rivalScore(idOf(k), LALA.tipo) - 55) * 0.08));
-    score[k] = Math.round(Math.max(0, Math.min(99, base + tweak)));
+    const tweak = isP(k) ? ((ls[k] ?? 50) - 50) * 0.08 : (e.rivalScore(idOf(k), LALA.tipo) - 55) * 0.08;
+    score[k] = lalaScore({ reached: reached[k] ?? 0, R, champ: k === champ, top2: !!top2 && top2.includes(k), tweak });
   });
   t = { ...t, lala: { ...t.lala!, reached, champ, top2, done: true, score } };
   // Sin pasarela: directas a las críticas
@@ -621,25 +618,20 @@ function lzNext(s: RoomState, now: number, e: Engine): RoomState {
 // las demás se juegan la Queen of She Done Already Done Had Herses. Las dos son eliminatorias de lip syncs (1ª-4ª, 2ª-3ª; la mejor descansa si sois impares).
 function awCut(s: RoomState, now: number, e: Engine): RoomState {
   const ranked = seeds(s);
-  const st = (k: string) => s.stars?.[k] || 0;
-  const TOP = Math.min(4, ranked.length);
-  const stars4 = ranked.length > TOP ? st(ranked[TOP - 1]) : -1;
-  const sure = ranked.filter((k) => st(k) > stars4).slice(0, TOP);
-  const tied = ranked.filter((k) => st(k) === stars4);
+  const { sure, tied, tie, need, chooser, direct } = allWinnersCut(ranked, (k) => s.stars?.[k] || 0);
   const ep = s.ep + 1;
   const base: RoomState = { ...s, ep, epNames: { ...s.epNames, [ep]: "Gran final" }, reto: undefined, rows: undefined, crit: undefined, subs: {} };
-  if (stars4 >= 0 && sure.length < TOP && tied.length > TOP - sure.length) {
-    const need = TOP - sure.length, chooser = ranked[0];
+  if (tie) {
     if (isP(chooser) && !tied.includes(chooser)) return toComodin(base, { kind: "corte", by: [chooser], options: tied, picks: {}, need, sure }, -1, now);
     const picked = [...(tied.includes(chooser) ? [chooser] : []), ...tied.filter((k) => k !== chooser).sort((a, b) => ppeOf(s, b) - ppeOf(s, a))].slice(0, need);
     return awStart(base, [...sure, ...picked], now, e, { chooser, picked, tied });
   }
-  return awStart(base, ranked.slice(0, TOP), now, e);
+  return awStart(base, direct, now, e);
 }
 function awStart(s: RoomState, top: string[], now: number, e: Engine, cut?: { chooser: string; picked: string[]; tied: string[] }): RoomState {
   const ranked = seeds(s);
   const topS = ranked.filter((k) => top.includes(k)), bottom = ranked.filter((k) => !top.includes(k));
-  const tierB = bottom.length > 1 ? `${topS.length + 1}º/${topS.length + bottom.length}º` : `${topS.length + 1}º`;
+  const tierB = allWinnersTier(topS.length, bottom.length);
   const nm = (k: string) => nameOfKey(s, k, e);
   const list = (ks: string[]) => ks.map(nm).join(", ").replace(/, ([^,]*)$/, " y $1");
   const stars4 = cut ? s.stars?.[cut.tied[0]] || 0 : 0;

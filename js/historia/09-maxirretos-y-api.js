@@ -483,10 +483,11 @@
     // Nota según hasta dónde llega cada una (la ganadora arriba, las que caen en la primera ronda abajo)
     function finish() {
       // reached: 0 = cae en la ronda previa, r = cae en esa ronda del cuadro, R+1 = campeona
-      const base = (q) => (q === champ ? 95 : top2 && top2.includes(q) ? 93 : 42 + (reached.get(q) / R) * 46);
+      // Nota por ronda alcanzada: regla compartida con el multijugador (src/core/finales.ts)
+      const lz = (q, tweak) => DFTC.lalaScore({ reached: reached.get(q), R, champ: q === champ, top2: !!top2 && top2.includes(q), tweak });
       const score = {};
-      all.forEach((q) => { if (q !== ME) score[q.id] = Math.round(clamp(base(q) + clamp((rivalScore(q) - 55) * 0.08, -4, 4), 0, 99)); });
-      score.me = Math.round(base(ME));
+      all.forEach((q) => { if (q !== ME) score[q.id] = lz(q, (rivalScore(q) - 55) * 0.08); });
+      score.me = lz(ME, 0);
       S.lalaRes = { ep: S.ep, done: true, score, champ: champ ? (champ === ME ? "me" : champ.id) : null };
       if (top2) logEv(`Lalaparuza: ${top2.map((q) => (q === ME ? S.queen.name : q.name)).join(" y ")} llegan a la final y se juegan el poder`);
       else logEv(`Lalaparuza: gana ${champ === ME ? S.queen.name : champ.name}; ${S.queen.name} llega a ${reached.get(ME) > R ? "la victoria" : rName(reached.get(ME)).toLowerCase()}`);

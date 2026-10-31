@@ -388,12 +388,10 @@
 
   // Parejas o grupos para el reto. Si has ganado el minirreto, eliges tú a tus compañeras; si no, las reparte Supremme
   // Orden de las reinas que siguen en competición según el capítulo anterior (ganadora primero). null si no hay capítulo anterior
-  const PREV_ORDER = ["WIN", "BWIN", "TOP2", "BTOP", "HIGH", "RTRN", "SAFE", "MC", "LOW", "BTM2", "BTM3", "BTM4"];
   function prevRank(pool) {
     if (!S.ep || S.ep <= 1) return null;
-    const at = (q) => { const l = (S.track[keyOf(q)] || {})[S.ep - 1]; const i = PREV_ORDER.indexOf(l); return i < 0 ? 99 : i; };
-    if (!pool.some((q) => at(q) < 99)) return null;
-    return pool.map((q) => ({ q, i: at(q), r: Math.random() })).sort((a, b) => a.i - b.i || a.r - b.r).map((x) => x.q);
+    const order = DFTC.previousRank(pool.map(keyOf), (k) => (S.track[k] || {})[S.ep - 1], Math.random);
+    return order ? order.map((k) => pool.find((q) => keyOf(q) === k)) : null;
   }
   const GROUP_NAMES = ["Rosa", "Oro", "Turquesa", "Lila", "Coral", "Esmeralda"];
   const groupWord = (size) => (size === 2 ? "Pareja" : "Grupo");
@@ -650,13 +648,9 @@
     const allCrit = n <= 6 && twistOf() !== "winners";
     const winner = rows[0];
     const tw = twistOf();
-    // T6: bottom de tres (luego decide la moneda)
-    let nb = tw === "moneda" && n >= 6 ? 3 : 2;
-    // Segunda Oportunidrag: bottom de tres y lip sync a tres bandas
-    if (S.curTipo === "repescaStand" && repescaNow() && n >= 5) nb = 3;
-    if (groupOf) { const lastSize = rows.filter((r) => groupOf.get(r) === nGroups - 1).length; nb = Math.max(1, Math.min(nb, lastSize)); }
-    // All Winners: no hay bottom ni críticas negativas (solo top 2, altas y salvadas)
-    if (tw === "winners") nb = 0;
+    // Tamaño del bottom: regla compartida con el multijugador (src/core/week.ts)
+    const lastGroupSize = groupOf ? rows.filter((r) => groupOf.get(r) === nGroups - 1).length : undefined;
+    const nb = DFTC.bottomSize({ twist: tw, n, repescaWeek: S.curTipo === "repescaStand" && repescaNow(), lastGroupSize });
     let bottomRows = rows.slice(n - nb);
     const notes = [];
     // El reto anterior a la Segunda Oportunidrag da inmunidad para esa semana
@@ -723,31 +717,14 @@
       const labs = new Map();
       let marked = false;
       const applyMarks = () => { if (marked) return; marked = true; rows.forEach((r) => mark(r.q, labs.get(r))); payout(); };
-      rows.forEach((r, k) => {
-        let lab;
-        if (asLike(tw) && top2.includes(r)) lab = "TOP2";
-        else if (r === winner) lab = "WIN";
-        else if (bottomRows.includes(r)) lab = `BTM${nb}`;
-        else if (r.protected) lab = `BTM${nb}`;
-        else if (groupOf) lab = groupOf.get(r) === 0 ? (k <= (n <= 7 ? 1 : 2) ? "HIGH" : "SAFE") : groupOf.get(r) === nGroups - 1 ? "LOW" : "SAFE";
-        else if (k <= (n <= 7 ? 1 : 2)) lab = "HIGH";
-        else if (k >= n - nb - 1) lab = "LOW";
-        else lab = "SAFE";
-        if (tw === "winners") {
-          if (lab === "LOW" || /^BTM/.test(lab)) lab = "SAFE";
-          // Reto en grupo: arriba solo el grupo ganador (sus dos mejores, top 2; el resto, HIGH); las demás, salvadas
-          // Por parejas (y algún trío): la segunda pareja también queda en HIGH
-          if (blocks) {
-            const pairs = blocks.length > 1 && groupOf && S.cSize === 2;
-            lab = /TOP2|BTOP/.test(lab) ? lab : blocks[0].rows.includes(r) || (pairs && blocks[1].rows.includes(r)) ? "HIGH" : "SAFE";
-          }
-          // Reto individual: las dos siguientes al top 2 reciben críticas especialmente buenas
-          if (!blocks && lab === "SAFE" && k >= 2 && k <= 3 && n >= 6) lab = "HIGH";
-          // La bloqueada puede quedar en el top, pero sin estrella (en rojo en el track record)
-          if (lab === "TOP2" && S.block && S.block.ep === S.ep && S.block.id === keyOf(r.q)) lab = "BTOP";
-        }
-        labs.set(r, lab);
+      // Etiquetas de la semana: regla compartida con el multijugador (src/core/week.ts)
+      const L = DFTC.weekLabels(rows.map((r) => ({ key: keyOf(r.q), protected: !!r.protected, group: groupOf ? groupOf.get(r) : undefined })), {
+        twist: tw, nb, bottom: bottomRows.map((r) => keyOf(r.q)),
+        nGroups: groupOf ? nGroups : undefined, pairs: !!groupOf && S.cSize === 2,
+        blocks: blocks ? blocks.map((b) => b.rows.map((r) => keyOf(r.q))) : undefined,
+        blocked: S.block && S.block.ep === S.ep ? S.block.id : null,
       });
+      rows.forEach((r, k) => labs.set(r, L[k]));
       const labOf = labs;
       const nm = (r) => esc(r.me ? "Tú" : r.q.name);
       const faces = (list, cls = "") => `<div class="call-faces ${cls}">${list.map((r, k) => `<span class="${r.me ? "me" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}</span>`).join("")}</div>`;

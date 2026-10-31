@@ -21,7 +21,7 @@ npm run check      # tipos
 npm run lint       # ESLint (TypeScript estricto, código antiguo solo errores reales)
 npm test           # tests de reglas (Vitest)
 npm run build && npm run preview
-npm run e2e        # una temporada del modo historia en un navegador
+npm run e2e        # un capítulo entero del modo historia en un navegador
 npm run e2e:mp     # dos jugadoras y un duelo de lip sync
 ```
 
@@ -33,7 +33,7 @@ Más detalle (servidor, claves, Supabase): [DESARROLLO.md](DESARROLLO.md).
 
 | Carpeta | Qué hay |
 | --- | --- |
-| `src/core/` | Reglas puras en TypeScript con tests: azar con semilla, dado, cuadro de eliminatorias, track record, flujo del episodio, partidas guardadas |
+| `src/core/` | Reglas puras en TypeScript con tests, compartidas por la historia y el multijugador: resultados de la semana, finales, Lalaparuza, azar con semilla, dado, cuadro, track record, flujo del episodio, partidas guardadas |
 | `src/mp/` | Multijugador: reglas de la sala (`model.ts`), conexión (`room.ts`, `bus.ts`) y pantallas (`ui.ts`) |
 | `src/net/` | Cuentas, nube y captura de errores (Supabase) |
 | `js/historia/` | Motor del modo historia (código antiguo, se irá pasando a `src/core`) |
