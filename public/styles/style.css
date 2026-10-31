@@ -2847,3 +2847,8 @@ body.portrait .mp-fmts { grid-template-columns: 1fr 1fr; }
 /* Multijugador, temporada del corazón: la eliminada elige a quién deja su medio corazón */
 .mp-heart-pick { border: 2px dashed rgba(255,61,154,.45); border-radius: 18px; padding: 12px; margin: 10px 0 14px; background: rgba(255,255,255,.55); }
 .mp-heart-pick h4 { margin: 4px 0; }
+/* Multijugador: la moneda salta sin taparse con el título */
+.mp-card .coin-wrap { margin-top: 26px; }
+.mp-card .mp-track-peek { margin-top: 10px; }
+.track-modal .track-card { width: min(1100px, 100%); box-sizing: border-box; min-width: 0; }
+.track-modal .track-card .track-wrap { max-width: 100%; overflow-x: auto; }

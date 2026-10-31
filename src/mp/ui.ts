@@ -478,7 +478,7 @@ function comodin(s: RoomState) {
   const done = t.by.filter((k) => !isP(k) || (s.subs[idOf(k)] || {}).pick != null);
   const opts = (keep: string | null, verb: (k: string) => string) => `<div class="hub-grid ${t.options.length === 2 ? "two" : ""}">${t.options.map((k, i) => `<button class="hub-q" style="--i:${i}" data-pick="${esc(k)}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(verb(k))}</span>${keyPlayer(s, k) ? `<small>${esc(keyPlayer(s, k))}</small>` : ""}${t.kind === "bloqueo" ? `<small>⭐ ${s.stars?.[k] || 0}</small>` : ""}</button>`).join("")}</div>${keep ? `<button class="btn btn-primary" data-pick="keep">${esc(keep)}</button>` : ""}`;
   const bind = () => document.querySelectorAll<HTMLElement>("[data-pick]").forEach((b) => (b.onclick = () => { playing = null; room.submit({ pick: b.dataset.pick! }); info(`<p class="eyebrow">✔ Decidido</p><h3>Esperando a las demás...</h3>`); }));
-  const wait = (h: string) => info(`${h}<div class="call-faces">${t.by.filter(isP).map((k) => face(s, k, done.includes(k) ? "ok" : "wait")).join("")}</div>${skipBtn(s)}`);
+  const wait = (h: string) => info(`${h}<div class="call-faces">${t.by.filter(isP).map((k) => face(s, k, done.includes(k) ? "ok" : "wait")).join("")}</div>${trackPeek()}${skipBtn(s)}`);
   // All Winners: empate en el corte del top 4 (decide la que más estrellas tiene)
   if (t.kind === "corte") {
     const need = t.need || 1;
@@ -495,24 +495,41 @@ function comodin(s: RoomState) {
   }
   const bottomTxt = t.options.map((k) => `<b>${esc(nameIs(s, k))}</b>`).join(" y ");
   if (t.kind === "suerte") {
-    if (iDecide) return info(`<p class="eyebrow">🍀 Solo tú sabes que la tienes</p><h3>¿Sacas la reina de la suerte?</h3><p>En el bottom: ${bottomTxt}. Si salvas a alguien, entra la siguiente con peor nota. Solo se usa una vez.</p>${opts("Me la guardo (silencio...)", (k) => (k === mineKey ? "🍀 Salvarme" : `🍀 Salvar a ${keyName(s, k)}`))}`, bind);
+    if (iDecide) return info(`<p class="eyebrow">🍀 Solo tú sabes que la tienes</p><h3>¿Sacas la reina de la suerte?</h3><p>En el bottom: ${bottomTxt}. Si salvas a alguien, entra la siguiente con peor nota. Solo se usa una vez.</p>${opts("Me la guardo (silencio...)", (k) => (k === mineKey ? "🍀 Salvarme" : `🍀 Salvar a ${keyName(s, k)}`))}${trackPeek()}`, bind);
     return info(`<p class="eyebrow">🍀 La reina de la suerte</p><h3>Supremme pregunta...</h3><p>«Reinas, antes del lip sync: si alguna tiene la reina de la suerte y quiere usarla, que la saque AHORA.»</p><p class="muted">Silencio en el escenario...</p>`);
   }
   if (t.kind === "corazon") {
-    if (iDecide) return info(`<p class="eyebrow">❤️ ¡Tienes un corazón entero!</p><h3>¿Lo usas ahora?</h3><p>Solo puedes usarlo en este momento: si no lo usas, <b>se pierde</b>. En el bottom: ${bottomTxt}.</p>${opts("No usarlo (se pierde)", (k) => (k === mineKey ? "❤️ Salvarme" : `❤️ Salvar a ${keyName(s, k)}`))}`, bind);
+    if (iDecide) return info(`<p class="eyebrow">❤️ ¡Tienes un corazón entero!</p><h3>¿Lo usas ahora?</h3><p>Solo puedes usarlo en este momento: si no lo usas, <b>se pierde</b>. En el bottom: ${bottomTxt}.</p>${opts("No usarlo (se pierde)", (k) => (k === mineKey ? "❤️ Salvarme" : `❤️ Salvar a ${keyName(s, k)}`))}${trackPeek()}`, bind);
     return wait(`<p class="eyebrow">❤️ El corazón</p><h3>${esc(names(s, t.by))} ${t.by.length > 1 ? "tienen" : "tiene"} un corazón entero</h3><p>En el bottom: ${bottomTxt}. ¿Lo usará?</p>`);
   }
   if (t.kind === "moneda") {
     const verb = t.cara ? "SALVAR" : "CONDENAR al lip sync";
-    const coin = `<div class="coin-wrap"><div class="coin ${t.cara ? "cara" : "cruz"}"><b>CARA</b><b>CRUZ</b></div></div><p class="coin-res">¡Ha salido <b>${t.cara ? "CARA" : "CRUZ"}</b>!</p>`;
-    if (iDecide) return info(`<p class="eyebrow">🪙 La moneda · tu voto es público</p>${coin}<h3>¿A quién quieres ${verb}?</h3>${opts(null, (k) => keyName(s, k))}`, bind);
+    // La moneda gira una sola vez: si la pantalla se repinta (otra vota), sigue por donde iba
+    const ck = `${s.code}:${s.ep}:${s.stage}`;
+    if (!coinAt[ck]) coinAt[ck] = Date.now();
+    const el = Date.now() - coinAt[ck];
+    const coin = `<div class="coin-wrap"><div class="coin ${t.cara ? "cara" : "cruz"}" style="animation-delay:-${el}ms"><b>CARA</b><b>CRUZ</b></div></div><p class="coin-res" style="animation-delay:${1500 - el}ms">¡Ha salido <b>${t.cara ? "CARA" : "CRUZ"}</b>!</p><p>${t.cara ? "Las compañeras salvadas votan a la cara a qué reina del bottom quieren <b>SALVAR</b>." : "Las compañeras salvadas votan a la cara a qué reina del bottom quieren <b>CONDENAR</b> al lip sync."}</p>`;
+    if (iDecide) return info(`<p class="eyebrow">🪙 La moneda · tu voto es público</p>${coin}<h3>¿A quién quieres ${verb}?</h3><p class="muted">Todas verán lo que votas.</p>${opts(null, (k) => keyName(s, k))}${trackPeek()}`, bind);
     if (t.options.includes(mineKey)) return wait(`<p class="eyebrow">🪙 La moneda</p>${coin}<h3>Las salvadas votan a quién ${t.cara ? "salvar" : "condenar"}...</h3><p>Estás en el bottom de tres: ${bottomTxt}.</p>`);
     return wait(`<p class="eyebrow">🪙 La moneda</p>${coin}<h3>Las salvadas votan a quién ${t.cara ? "salvar" : "condenar"}</h3><p>En el bottom de tres: ${bottomTxt}.</p>`);
   }
   // All Winners: el bloqueo
-  if (iDecide) return info(`<p class="eyebrow">⭐ Has ganado el lip sync</p><h3>¿A quién bloqueas?</h3><p>La semana que viene no podrá ganar estrella, aunque llegue al top.</p>${opts(null, (k) => keyName(s, k))}${starsTable(s)}`, bind);
+  if (iDecide) return info(`<p class="eyebrow">⭐ Has ganado el lip sync</p><h3>¿A quién bloqueas?</h3><p>La semana que viene no podrá ganar estrella, aunque llegue al top.</p>${opts(null, (k) => keyName(s, k))}${starsTable(s)}${trackPeek()}`, bind);
   return wait(`<p class="eyebrow">⭐ El bloqueo</p><h3>${esc(keyName(s, t.by[0]))} elige a quién bloquear</h3><p class="muted">La bloqueada no podrá ganar estrella la semana que viene.</p>${starsTable(s)}`);
 }
+// Ver el track record sin salir de la pantalla (como en la historia)
+const coinAt: Record<string, number> = {};
+const trackPeek = () => `<button class="btn btn-ghost small-btn mp-track-peek" type="button">📊 Ver track record</button>`;
+document.addEventListener("click", (e) => {
+  if (!(e.target as HTMLElement).closest?.(".mp-track-peek") || !room.state) return;
+  e.stopPropagation();
+  const m = document.createElement("div");
+  m.className = "track-modal";
+  m.innerHTML = `<div class="story-card track-card"><h3>Track record</h3>${track(room.state)}${room.state.fmt === "corazon" ? heartsTable(room.state) : ""}${starsTable(room.state)}<button class="btn btn-primary" id="tm-close">Cerrar</button></div>`;
+  document.body.append(m);
+  m.querySelector("#tm-close")!.addEventListener("click", () => m.remove());
+  m.addEventListener("click", (ev) => { if (ev.target === m) m.remove(); });
+}, true);
 // All Winners: tabla de estrellas
 const starsTable = (s: RoomState) => {
   if (s.fmt !== "winners") return "";
@@ -595,7 +612,7 @@ function decision(s: RoomState) {
   if (mePick) {
     if (playing && playing.phase === "decision" && playing.ep === s.ep) return;
     playing = { ep: s.ep, phase: "decision" };
-    return info(`<p class="eyebrow">💄 Elige tu pintalabios</p><h3>Si ganas el lip sync, ¿a quién mandas a casa?</h3><p>Tu rival también elige el suyo en secreto. Puedes mirar la semana, la temporada... o hacer la jugarreta.</p>
+    return info(`<p class="eyebrow">💄 Elige tu pintalabios</p><h3>Si ganas el lip sync, ¿a quién mandas a casa?</h3><p>Tu rival también elige el suyo en secreto. Puedes mirar la semana, la temporada... o hacer la jugarreta.</p>${trackPeek()}
       <div class="ls-pick">${d.options.map((k, i) => `<button class="ls-choice" style="--i:${i}" data-k="${esc(k)}">${lipstick(keyName(s, k))}<span class="ls-face"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i>${keyPlayer(s, k) ? esc(keyPlayer(s, k)) : ""}</span><em class="as-tag ${k === worst ? "worst" : "ok"}">${k === worst ? "📉 La peor esta semana" : "Mejor esta semana"}</em><em class="as-tag ok">📈 PPE ${ppeTxt(k)}</em></button>`).join("")}</div>
       <details class="mp-track-peek"><summary>📊 Ver track record</summary>${track(s)}</details>`, () => {
       document.querySelectorAll<HTMLElement>(".ls-choice[data-k]").forEach((b) => (b.onclick = () => { playing = null; room.submit({ elim: b.dataset.k! }); info(`<p class="eyebrow">💄 Pintalabios guardado</p><h3>Si ganas, se va ${esc(keyName(s, b.dataset.k!))}</h3><p class="muted">Esperando a que tu rival elija el suyo...</p>`); }));
