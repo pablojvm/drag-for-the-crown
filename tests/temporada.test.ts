@@ -36,6 +36,114 @@ describe("retos por decisiones", () => {
   });
 });
 
+/** Juega una temporada entera con las reglas del núcleo (tus decisiones, al azar). */
+function simSeason(seasonId: string, seed: number) {
+  const rnd = makeRng(seed);
+  const t = T.seasonById(seasonId)!;
+  let s = T.nextWeek(T.newSeason(seasonId, t.cast[seed % t.cast.length], seed, rnd), rnd);
+  const seen = new Set<string>();
+  for (let guard = 0; guard < 60 && s.phase !== "fin"; guard++) {
+    seen.add(s.phase);
+    if (s.phase === "regreso") {
+      const [a, b] = T.repescaPair(s, rnd);
+      s = T.repescaResult(s, T.simLipSync(s, a, b, rnd)[0]);
+      if (s.meOut) s.phase = "fuera";
+      if (s.phase === "veredicto") s = T.nextWeek(s, rnd);
+      else s = T.nextWeek({ ...s, phase: "veredicto" }, rnd);
+      continue;
+    }
+    if (s.phase === "final") {
+      for (const [a, b] of s.final!.pairs) s = T.settleSemi(s, T.simLipSync(s, a, b, rnd)[0]);
+      s = T.crown(s, T.simLipSync(s, s.final!.semis[0], s.final!.semis[1], rnd)[0]);
+      break;
+    }
+    s.week!.reto = Math.round(rnd() * 100);
+    s.week!.runway = Math.round(rnd() * 100);
+    s = T.scoreWeek(s, rnd);
+    s = T.rivalsDecide(s, rnd);
+    const dec = T.myDecision(s);
+    if (dec === "moneda") { s = T.flipCoin(s, rnd, s.week!.bottom![0]); expect(s.week!.bottom!.length).toBe(2); }
+    if ((dec === "suerte" || dec === "corazon") && rnd() < 0.5) s = T.saveFromBottom(s, s.week!.bottom!.includes(T.ME) ? T.ME : s.week!.bottom![0], T.ME, dec);
+    const [a, b] = s.week!.bottom!;
+    const [win, lose] = T.simLipSync(s, a, b, rnd);
+    s = T.lipSyncResult(s, win, lose, rnd);
+    if (s.phase === "pintalabios") s = T.lipstick(s, s.week!.rows!.filter((r) => /^BTM/.test(s.week!.labels![r.key])).at(-1)!.key);
+    if (s.phase === "bloqueo") s = T.block(s, s.alive.find((k) => k !== T.ME)!);
+    if (s.heartFrom) s = T.giveHeart(s, s.heartFrom, null, rnd);
+    Object.values(s.hearts).forEach((h) => expect(h).toBeGreaterThanOrEqual(0));
+    s = T.nextWeek({ ...s, phase: s.phase === "fuera" ? "veredicto" : s.phase }, rnd);
+  }
+  return { s, seen };
+}
+
+describe("temporadas con dinámicas", () => {
+  for (const id of ["es1", "es3", "es4", "es5", "es6", "esas1", "esaw"]) {
+    it(`${id} (${T.twistOf(id)}) se juega entera y corona a una ganadora`, () => {
+      for (const seed of [11, 12, 13]) {
+        const { s } = simSeason(id, seed);
+        expect(s.phase).toBe("fin");
+        const winners = Object.entries(s.track).filter(([, t]) => t.includes("WINNER"));
+        expect(winners.length).toBe(1);
+        // El track record va por episodios: nadie tiene más columnas que episodios
+        Object.values(s.track).forEach((t) => expect(t.length).toBeLessThanOrEqual(s.ep));
+        if (s.twist === "winners") {
+          expect(s.out.length).toBe(0);
+          expect(Object.values(s.stars).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
+        }
+        if (s.twist === "repesca") expect(s.repescaDone).toBe(true);
+        if (s.twist === "allstars") expect(Object.values(s.track).some((t) => t.includes("TOP2"))).toBe(true);
+      }
+    });
+  }
+  it("la moneda deja un bottom de tres y manda a dos al lip sync", () => {
+    const rnd = makeRng(5);
+    let s = T.nextWeek(T.newSeason("es6", T.seasonById("es6")!.cast[0], 5, rnd), rnd);
+    s.week!.reto = 50; s.week!.runway = 50;
+    s = T.scoreWeek(s, rnd);
+    expect(s.week!.bottom!.length).toBe(3);
+    s = T.flipCoin(s, rnd);
+    expect(s.week!.coin!.pair.length).toBe(2);
+    expect(s.week!.bottom).toEqual(s.week!.coin!.pair);
+  });
+  it("la reina de la suerte salva a una del bottom y entra la siguiente peor", () => {
+    const rnd = makeRng(8);
+    let s = T.nextWeek(T.newSeason("es4", T.seasonById("es4")!.cast[0], 8, rnd), rnd);
+    s.luck = T.ME;
+    s.week!.reto = 50; s.week!.runway = 50;
+    s = T.scoreWeek(s, rnd);
+    const before = s.week!.bottom!.slice();
+    s = T.saveFromBottom(s, before[0], T.ME, "suerte");
+    expect(s.luck).toBeNull();
+    expect(s.week!.bottom).not.toContain(before[0]);
+    expect(s.week!.bottom!.length).toBe(2);
+  });
+  it("en el Untucked, hablar con alguien del bottom une más; la primera enemiga es tu némesis", () => {
+    const rnd = makeRng(3);
+    let s = T.nextWeek(T.newSeason("es1", "inti", 3, rnd), rnd);
+    s.week!.reto = 50; s.week!.runway = 50;
+    s = T.scoreWeek(s, rnd);
+    const opts = T.untuckedOptions(s, rnd);
+    expect(opts.length).toBeGreaterThan(0);
+    const sc = T.untuckedScene(s, opts[0], rnd);
+    sc.lines.forEach(([, t]) => expect(t).not.toMatch(/\{(r1|yo)\}/));
+    s = T.changeRel(s, opts[0].key, -2);
+    expect(s.nemesis).toBe(opts[0].key);
+  });
+  it("retos en equipo: dos equipos con todas y el equipo ganador arriba", () => {
+    const rnd = makeRng(4);
+    let s = T.newSeason("es2", T.seasonById("es2")!.cast[0], 4, rnd);
+    s = { ...s, plan: ["equipos", ...s.plan] };
+    s = T.nextWeek(s, rnd);
+    expect(s.week!.teams![0]).toContain(T.ME);
+    expect(s.week!.teams![0].length + s.week!.teams![1].length).toBe(s.alive.length);
+    s.week!.reto = 50; s.week!.runway = 50;
+    s = T.scoreWeek(s, rnd);
+    const winTeam = s.week!.teams![s.week!.winTeam!];
+    expect(winTeam).toContain(s.week!.rows![0].key);
+    s.week!.bottom!.forEach((k) => expect(winTeam).not.toContain(k));
+  });
+});
+
 describe("temporada", () => {
   it("los datos de las reinas: mismos puntos para todas y atributos de 2 a 10", () => {
     for (const id of Object.keys(REINAS_ES)) {
@@ -48,7 +156,7 @@ describe("temporada", () => {
   it("una temporada entera: una eliminada por semana, final a cuatro y una ganadora", () => {
     for (const seed of [1, 2, 3, 4, 5]) {
       const rnd = makeRng(seed);
-      const season = T.playableSeasons()[0];
+      const season = T.seasonById("es1")!;
       let s = T.nextWeek(T.newSeason(season.id, season.cast[0], seed, rnd), rnd);
       let weeks = 0;
       while (s.phase !== "fin" && s.phase !== "final") {
@@ -62,9 +170,10 @@ describe("temporada", () => {
         const [win, lose] = T.simLipSync(s, a, b, rnd);
         s = T.settleWeek(s, win, lose);
         weeks++;
-        if (s.phase === "veredicto") s = T.nextWeek(s, rnd);
+        if (s.meOut) break;
+        s = T.nextWeek(s, rnd);
       }
-      if (s.phase === "fin") {
+      if (s.meOut) {
         expect(s.place).toBeGreaterThan(T.FINAL_AT);
         expect(s.track[T.ME].at(-1)).toBe("ELIM");
         continue;
@@ -83,7 +192,7 @@ describe("temporada", () => {
   });
   it("las críticas usan el nombre de la reina y no dejan marcas sin rellenar", () => {
     const rnd = makeRng(9);
-    const season = T.playableSeasons()[1];
+    const season = T.seasonById("es2")!;
     let s = T.nextWeek(T.newSeason(season.id, season.cast[2], 9, rnd), rnd);
     s.week!.reto = 50;
     s.week!.runway = 50;

@@ -167,3 +167,17 @@ td.lab-elim { color: #8a8a8a; }
 .nx-ts-panel > .nx-score { text-align: center; margin: 0; }
 /* En pantallas anchas el panel deja sitio a tu reina, a la izquierda */
 @media (min-width: 1000px) { .nx-ts { padding-left: max(16px, 22vw); padding-right: 24px; } }
+.nx-ts-strip { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.nx-ts-strip span { position: relative; width: 38px; height: 38px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px #fff; background: #f3e6ef; }
+.nx-ts-strip span img { width: 100%; height: 100%; object-fit: cover; }
+.nx-ts-strip span.me { box-shadow: 0 0 0 3px var(--nx-pink); }
+.nx-ts-strip span.ally { box-shadow: 0 0 0 3px #2fb36b; }
+.nx-ts-strip span.enemy { box-shadow: 0 0 0 3px #c2185b; }
+.nx-ts-strip em { position: absolute; right: 0; bottom: 0; min-width: 16px; padding: 0 3px; border-radius: 8px; background: var(--nx-gold); color: var(--nx-ink); font: 700 10px/16px Poppins, sans-serif; font-style: normal; text-align: center; }
+.nx-ts-teams { display: grid; gap: 4px; }
+.nx-ts-teams p { margin: 0; padding: 8px 12px; border-radius: 12px; background: #fff; font-size: 14px; }
+.nx-ts-teams b { color: var(--nx-pink); }
+.nx-ts-dialog { display: grid; gap: 6px; }
+.nx-ts-dialog p { margin: 0; padding: 8px 12px; border-radius: 12px; background: #fff; font-size: 14px; line-height: 1.45; }
+.nx-ts-dialog b { color: var(--nx-pink); margin-right: 6px; }
+.nx-maxi-opts.many { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }

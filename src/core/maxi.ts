@@ -3,15 +3,24 @@
 // Aquí están el motor y los retos clásicos (sin textos en directo); los usa el motor nuevo.
 import { ATTR_NAMES, type Attrs, type QAttr } from "./reinas";
 import { COMEDIA, ROAST, SNATCH_PERSONAJES, SNATCH_PREGUNTAS, SNATCH_PLANAS } from "./textos";
+import { TEMAS_PASARELA } from "./temas";
 
 export interface StepResult { pts?: number; msg?: string; w?: number; /** Cambio de relación con una compañera (por su clave). */ rel?: { key: string; d: number } }
 export interface Opt { t: string; d?: string; go: (st: StepsState) => StepResult }
 export interface Step { q?: string; sub?: string; opts: Opt[] }
 export type StepFn = (st: StepsState) => Step | null;
 export interface StepsState { total: number; wsum: number; focus: number; [k: string]: any }
-export interface Maxi { tipo: string; title: string; icon: string; meters?: "focus"[]; steps: StepFn[] }
+export interface Maxi { tipo: string; title: string; icon: string; meters?: "focus"[]; steps: StepFn[]; /** Ajuste final de la nota (p. ej. el techo de un papel secundario). */ finish?: (st: StepsState, base: number) => number }
 export interface Mate { key: string; name: string }
-export interface MaxiCtx { attrs: Attrs; rnd: () => number; mates: Mate[] }
+export interface MaxiCtx {
+  attrs: Attrs;
+  rnd: () => number;
+  mates: Mate[];
+  /** Tu equipo (sin ti), en los retos por equipos. */
+  team?: Mate[];
+  /** Quién reparte los papeles (la ganadora de la semana anterior, si no eres tú) y cuánto te quiere. */
+  giver?: (Mate & { rel: number }) | null;
+}
 
 export const newSteps = (): StepsState => ({ total: 0, wsum: 0, focus: 50 });
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -31,7 +40,10 @@ export function applyPick(st: StepsState, r: StepResult) {
     st.wsum += w;
   }
 }
-export const stepsScore = (st: StepsState) => clamp(st.wsum ? st.total / st.wsum : 50, 0, 100);
+export const stepsScore = (st: StepsState, m?: Maxi) => {
+  const base = st.wsum ? st.total / st.wsum : 50;
+  return clamp(m?.finish ? m.finish(st, base) : base, 0, 100);
+};
 
 // ---------- Retos clásicos ----------
 function kit(c: MaxiCtx) {
@@ -245,12 +257,170 @@ export function actuacion(c: MaxiCtx): Maxi {
   return { tipo: "actuacion", title: `Reto de interpretación: ${genero[0]}`, icon: "🎬", steps };
 }
 
+export function rusical(c: MaxiCtx): Maxi {
+  const { pick, shuffle, chk, res } = kit(c);
+  const tema = pick(["la revista de los 70", "la movida madrileña", "una diva de la copla", "el destape", "las verbenas de agosto"]);
+  const MOODS: [string, string][] = [["dramatica", "🎭 Dramática"], ["alegre", "🌈 Alegre"], ["agresiva", "🔥 Agresiva"]];
+  const STANZAS: [string, string][] = [
+    ["«Me dejaste en la estación con la maleta y el corazón…»", "dramatica"],
+    ["«¡Que suenen las castañuelas, que hoy me caso con la verbena!»", "alegre"],
+    ["«A mí nadie me pisa el escenario, cariño, ni aunque lleves tacones de diario»", "agresiva"],
+    ["«Bajo la luna de Cádiz lloré por un marinero…»", "dramatica"],
+    ["«Brilla, brilla, lentejuela, que la noche es pa' la abuela»", "alegre"],
+  ];
+  const st2 = shuffle(STANZAS).slice(0, 2);
+  const ROLE: Record<string, string> = { main: "el principal", comic: "el cómico", sec: "un secundario" };
+  // Los papeles los reparte la ganadora de la semana anterior: si no os lleváis bien, puede no darte el que pides
+  const askRole = (s: StepsState, role: string, msg: string): StepResult => {
+    const g = c.giver;
+    if (g && g.rel < 1 && c.rnd() < 0.45) {
+      s.role = pick(["main", "comic", "sec"].filter((r) => r !== role));
+      return { msg: `${g.name} reparte y no te da ese papel. Te toca ${ROLE[s.role]}.` };
+    }
+    s.role = role;
+    return { msg: g ? `${g.name} te lo da. ${msg}` : msg };
+  };
+  const steps: StepFn[] = [
+    () => ({
+      q: `🎬 Reparto de papeles: Rusical sobre ${tema}`,
+      sub: c.giver ? `Reparte ${c.giver.name}, la ganadora de la semana pasada.` : undefined,
+      opts: [
+        { t: "👑 Pedir el principal", d: "Alto riesgo, alta recompensa", go: (s) => askRole(s, "main", "Toda la presión es tuya.") },
+        { t: "🤡 Pedir el cómico", d: "Tira de Comedia", go: (s) => askRole(s, "comic", "A hacer reír.") },
+        { t: "🙂 Pedir un secundario", d: "Poco riesgo, pero con techo", go: (s) => askRole(s, "sec", "Discreta, pero segura.") },
+      ],
+    }),
+  ];
+  [0, 1].forEach((n) => {
+    steps.push((st) => ({
+      q: `🕺 Número ${n + 1}: llega tu momento de baile`,
+      opts: [
+        { t: "✅ Paso limpio", d: "Seguro", go: () => ({ pts: st.role === "sec" ? 65 : 60, msg: "Limpio y a tiempo." }) },
+        { t: "🌀 Truco arriesgado (split / pirueta)", d: "Performance", go: () => res(chk([st.role === "comic" ? "comedia" : "performance"], st.role === "main" ? 55 : 60), st.role === "main" ? 100 : 88, st.role === "main" ? 10 : 25, "¡El público se viene arriba!", "Resbalón en mitad del número...") },
+      ],
+    }));
+    steps.push((st) => {
+      const [line, mood] = st2[n];
+      return {
+        q: `🎶 Estrofa: ${line}`,
+        sub: "¿Con qué intención haces el playback?",
+        opts: MOODS.map(([k, t]) => ({ t, go: () => (k === mood ? { pts: st.role === "comic" ? 85 + c.attrs.comedia : 92, msg: "Intención perfecta: se te cree cada palabra." } : { pts: 40, msg: "La cara dice una cosa y la letra otra." }) })),
+      };
+    });
+  });
+  return { tipo: "rusical", title: `El Rusical: ${tema}`, icon: "🎭", steps, finish: (st, base) => (st.role === "sec" ? Math.min(base, 72) : st.role === "main" ? base * 1.08 : base) };
+}
+
+export function equipos(c: MaxiCtx): Maxi {
+  const { pick, chk, res } = kit(c);
+  const mate = pick(c.team && c.team.length ? c.team : c.mates);
+  const steps: StepFn[] = [
+    () => ({
+      q: "✍️ Escribe tu estrofa del himno",
+      sub: "¿Qué tono le das?",
+      opts: [
+        { t: "💪 Empoderada", d: "Carisma", go: () => res(chk(["carisma"], 52), 90, 35, "«¡Nadie me apaga la luz!» Suena a himno.", "Suena a frase de taza.") },
+        { t: "🤪 Cómica / absurda", d: "Comedia", go: () => res(chk(["comedia"], 52), 92, 30, "El estudio entero se ríe.", "Nadie pilla la rima.") },
+        { t: "😎 Chula (chulapa)", d: "Carisma + Comedia", go: () => res(chk(["carisma", "comedia"], 58), 96, 28, "¡Estrofa redonda!", "Se queda en chulería sin gracia.") },
+      ],
+    }),
+    () => ({
+      q: "🎧 Grabación en el estudio",
+      opts: [
+        { t: "🎤 Hacer voces y armonías", d: "Performance", go: () => res(chk(["performance"], 55), 85, 40, "La productora aplaude.", "Desafinas un poco...") },
+        { t: "🗣️ Recitado con actitud", d: "Carisma", go: () => res(chk(["carisma"], 50), 80, 45, "Actitud de sobra.", "Monótono.") },
+      ],
+    }),
+    () => ({
+      q: "📍 Coreografía en directo: ¿dónde te colocas?",
+      opts: [
+        { t: "⭐ En el centro", d: "Robas miradas · exige Performance alta", go: () => res(chk(["performance"], 64), 98, 25, "Todas las cámaras son para ti.", "En el centro... y fuera de ritmo.") },
+        { t: "↔️ A los lados", d: "Más seguro", go: () => ({ pts: 64, msg: "Cumples sin riesgos." }) },
+      ],
+    }),
+    () => ({
+      q: `😱 ¡${mate.name} se equivoca de paso!`,
+      opts: [
+        { t: "🤝 Corregir la formación", d: "Ayudas al grupo", go: () => ({ pts: 74, msg: "Lo disimuláis entre las dos. Equipo.", rel: { key: mate.key, d: 1 } }) },
+        { t: "💃 Aprovechar para destacar", d: "Carisma · a costa de ella", go: () => ({ ...res(chk(["carisma"], 55), 95, 35, "Todo el mundo te mira a ti.", "Se nota que la has dejado tirada."), rel: { key: mate.key, d: -1 } }) },
+      ],
+    }),
+  ];
+  return { tipo: "equipos", title: "Girl Groups: el himno de la temporada", icon: "🎤", steps };
+}
+
+export function materiales(c: MaxiCtx): Maxi {
+  const { chk, res } = kit(c);
+  const LOTS = [
+    { k: "flex", t: "🛍️ Lote flexible", d: "Bolsas de patatas, cortinas, globos. Fácil de coser.", diff: 0, aud: 0 },
+    { k: "rig", t: "🪣 Lote rígido", d: "Tapones, tornillos, macetas. Más audaz, más difícil.", diff: 12, aud: 10 },
+    { k: "abs", t: "🍝 Lote absurdo", d: "Espaguetis, peluches, esponjas. ¡Máxima audacia!", diff: 24, aud: 22 },
+  ];
+  const lot = (s: StepsState) => s.lot || LOTS[0];
+  const steps: StepFn[] = [
+    () => ({ q: "📦 Reclama tu lote de materiales", sub: "Cuanto más raro, más te lo premian... si consigues que no se rompa.", opts: LOTS.map((l) => ({ t: l.t, d: l.d, go: (s) => ((s.lot = l), {}) })) }),
+    (s) => ({
+      q: "🧵 A la máquina de coser",
+      sub: `${lot(s).t.slice(3)}: ¿cómo lo montas?`,
+      opts: [
+        { t: "🪡 Costuras dobles, sin prisa", d: "Estilo · más seguro", go: (st) => { const k = chk(["estilo"], 44 + lot(st).diff); st.roto = !k.ok && lot(st).aud > 0 && c.rnd() < 0.4; return res(k, 82, 45, "Aguanta como una armadura.", "Se te tuerce una manga."); } },
+        { t: "✂️ Silueta imposible", d: "Estilo · más difícil y más vistoso", go: (st) => { const k = chk(["estilo"], 56 + lot(st).diff); st.roto = !k.ok && lot(st).aud > 0; return res(k, 96, 30, "¡Nadie se cree que eso sean " + lot(st).t.slice(3).toLowerCase() + "!", "Las costuras no lo van a soportar..."); } },
+      ],
+    }),
+    (s) =>
+      s.roto
+        ? { q: "💥 ¡El vestido se rompe a mitad de pasarela!", sub: "El material era demasiado difícil y las costuras no aguantan.", opts: [
+            { t: "😎 Seguir como si nada", d: "Carisma", go: () => ({ ...res(chk(["carisma"], 55), 60, 20, "Lo conviertes en parte del número.", "Lo das todo... con medio vestido."), w: 2 }) },
+            { t: "🙈 Sujetarlo y acabar rápido", go: () => ({ pts: 25, w: 2, msg: "Se nota el apuro." }) },
+          ] }
+        : { q: "👠 Desfile del look imposible", opts: [
+            { t: "📣 Contar de qué está hecho", d: "Carisma", go: () => res(chk(["carisma"], 50), 90, 50, "El jurado alucina con los materiales.", "Explicas demasiado.") },
+            { t: "💃 Que hable el look", d: "Seguro", go: () => ({ pts: 70, msg: "Elegante." }) },
+          ] },
+  ];
+  return { tipo: "materiales", title: "Reto de materiales imposibles", icon: "🧰", steps, finish: (st, base) => base + (st.roto ? 0 : lot(st).aud * 0.5) };
+}
+
+/** Looks del Ball según el estilo que pide cada categoría. */
+const BALL_LOOKS: Record<string, string[]> = {
+  Glamour: ["Vestido sirena de lentejuelas", "Capa de terciopelo con cola", "Corsé joya con guantes de ópera"],
+  Camp: ["Vestido-tarta de tres pisos", "Mono de flecos arcoíris", "Peluca gigante con lazos"],
+  Edgy: ["Mono de cuero con tachuelas", "Gabardina de látex", "Corsé de cadenas"],
+  "Folclórico": ["Bata de cola de lunares", "Mantón bordado convertido en vestido", "Traje de luces reinventado"],
+  Futurista: ["Traje de cromo con hombreras", "Vestido de leds", "Mono holográfico"],
+};
+export function ball(c: MaxiCtx): Maxi {
+  const { pick, shuffle, chk, res } = kit(c);
+  const cats = shuffle(TEMAS_PASARELA.filter((t) => !t.rv)).slice(0, 3);
+  const tags = Object.keys(BALL_LOOKS);
+  const steps: StepFn[] = cats.map((t, n): StepFn => () => {
+    const other = shuffle(tags.filter((x) => x !== t.tag)).slice(0, 2);
+    const opts: Opt[] = shuffle([
+      { t: `✨ ${pick(BALL_LOOKS[t.tag])}`, go: () => res(chk(["estilo"], 48), 96, 70, "Clavado: es justo lo que pedía la categoría.", "Buena idea, mal acabado.") },
+      ...other.map((x) => ({ t: `👗 ${pick(BALL_LOOKS[x])}`, go: () => ({ pts: 45, msg: "Bonito... pero no es esta categoría." }) })),
+    ]);
+    return { q: `👑 Categoría ${n + 1} de 3: «${t.n}»`, sub: t.d, opts };
+  });
+  steps.push(() => ({
+    q: "🎀 Remate del Ball: ¿qué cuentan tus tres looks juntos?",
+    opts: [
+      { t: "📖 Una historia de principio a fin", d: "Estilo + Carisma", go: () => res(chk(["estilo", "carisma"], 55), 95, 45, "¡Los tres looks cuentan la misma historia!", "Cada look va por su lado.") },
+      { t: "🎨 Tres looks independientes", d: "Seguro", go: () => ({ pts: 62, msg: "Correcto, sin hilo." }) },
+    ],
+  }));
+  return { tipo: "ball", title: "El Ball: tres looks, tres categorías", icon: "👑", steps };
+}
+
 /** Retos del motor nuevo, con los atributos que cuentan en cada uno. */
-export const MAXI: Record<string, { titulo: string; attrs: QAttr[]; make: (c: MaxiCtx) => Maxi }> = {
+export const MAXI: Record<string, { titulo: string; attrs: QAttr[]; make: (c: MaxiCtx) => Maxi; team?: boolean; noRunway?: boolean }> = {
   snatch: { titulo: "Snatch Game", attrs: ["comedia", "carisma"], make: snatch },
   roast: { titulo: "El roast de Supremme", attrs: ["comedia"], make: roast },
   impro: { titulo: "Improvisación: presentadoras en directo", attrs: ["comedia", "carisma"], make: impro },
   makeover: { titulo: "Makeover: tu familia drag", attrs: ["maquillaje", "carisma"], make: makeover },
   publicidad: { titulo: "Publicidad: el anuncio falso", attrs: ["carisma", "comedia"], make: publicidad },
   actuacion: { titulo: "Reto de interpretación", attrs: ["carisma", "comedia"], make: actuacion },
+  rusical: { titulo: "El Rusical", attrs: ["performance", "comedia"], make: rusical },
+  equipos: { titulo: "Girl Groups: el himno de la temporada", attrs: ["performance", "carisma"], make: equipos, team: true },
+  materiales: { titulo: "Reto de materiales imposibles", attrs: ["estilo"], make: materiales },
+  ball: { titulo: "El Ball: tres looks, tres categorías", attrs: ["estilo"], make: ball, noRunway: true },
 };
