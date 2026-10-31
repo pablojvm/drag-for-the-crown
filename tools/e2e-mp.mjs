@@ -13,6 +13,7 @@ await ctx.addInitScript(() => {
   Object.defineProperty(window, "DFTC_NET", { configurable: true, set(v) { this._n = v; if (v) Object.defineProperty(v, "enabled", { value: false, configurable: true }); }, get() { return this._n; } });
 });
 const errors = [];
+await ctx.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
 const open = async () => {
   const p = await ctx.newPage();
   p.on("pageerror", (e) => errors.push(e.message));
