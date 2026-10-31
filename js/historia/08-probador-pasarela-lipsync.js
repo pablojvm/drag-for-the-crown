@@ -410,16 +410,16 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
 
   // ------------------------------ Lip sync (energía) ------------------------------
   // Cada truco tira de algo distinto: la revelación del look (Estilo), la caída (Performance, difícil) y el split (Performance, más seguro)
-  const EMOTES = [["revelacion", "🎁 Revelación", "estilo", 52, 66], ["caida", "💥 La caída (death drop)", "performance", 56, 76], ["split", "🤸 Split", "performance", 46, 60]];
-  // Repetir el mismo movimiento dos veces seguidas aburre al público (antes bastaba con repetir "Uso del espacio" para ganar siempre)
-  const REPITE = 0.65;
+  // Las reglas del lip sync (trucos, energía, repetir, fuerza de la rival) viven en src/core/lipsync.ts
+  const EMOTES = DFTC.EMOTES;
+  const REPITE = DFTC.REPITE;
   function runLipsync(el, rival, done, songPick, bonus = 0) {
     const ra = attrsOf(rival);
     const song = songPick || null;
     // Escala pensada para que, con atributos iguales, la jugadora gane algo más de la mitad de las veces
     // Calibrado con simulación: con atributos parecidos, jugando bien (alternando y guardando un truco para el clímax) ganas ~3 de cada 4;
     // repitiendo siempre lo mismo o al azar, casi nunca. La racha de la rival y la dificultad de la temporada pesan, pero menos que antes
-    let rival_ = clamp(35 + (ra.performance + ra.carisma) * 6.5 + clamp(S.form[rival.id] || 0, -6, 6) + seasonBoost() * 0.5 + rnd(-12, 12), 45, 175);
+    let rival_ = DFTC.rivalStrength(ra, { form: S.form[rival.id] || 0, boost: seasonBoost(), noise: rnd(-12, 12) });
     const PH = ["Inicio", "Puente", "Clímax"];
     let cfgTop = null;
     const steps = [];
@@ -427,20 +427,20 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
       [0, 1].forEach((j) => steps.push((st) => {
         const clim = pi === 2;
         const opts = [
-          ...EMOTES.map(([k, t, at, dif, top]) => ({
+          ...EMOTES.map(([k, t, at], ei) => ({
             t: `${t}`, d: `Energía −45 · ${ATTR_NAMES[at]}${clim ? " · ¡Momento perfecto!" : " · Mejor en el clímax"}`, tag: "Emote",
             go: (s) => {
               s.lastTag = "Emote";
-              if (s.energy < 45) { s.energy = Math.max(0, s.energy - 10); s.mine += 4; return { pts: 20, msg: "Sin fuelle: el truco se queda a medias." }; }
-              s.energy -= 45;
-              const c = check([at], clim ? dif : dif + 8);
-              const imp = c.ok ? (clim ? top : 24) : 6;
-              s.mine += imp;
-              return { pts: c.ok ? (clim ? 100 : 70) : 20, msg: `${c.txt}<br>${c.ok ? (clim ? "¡El público se levanta!" : "Impresiona... aunque era pronto.") : "¡Uf! Se te va el truco."}` };
+              const m = DFTC.lsMove({ kind: "Emote", emote: ei, clim, energy: s.energy, lastTag: "", attrs: attrsOf(S.queen), roll: Math.random() });
+              s.energy = m.energy;
+              s.mine += m.imp;
+              if (m.imp === 4) return { pts: 20, msg: "Sin fuelle: el truco se queda a medias." };
+              const txt = `🎲 ${ATTR_NAMES[at]} → ${m.ok ? "✅ te sale" : "❌ no te sale"}`;
+              return { pts: m.ok ? (clim ? 100 : 70) : 20, msg: `${txt}<br>${m.ok ? (clim ? "¡El público se levanta!" : "Impresiona... aunque era pronto.") : "¡Uf! Se te va el truco."}` };
             },
           })),
-          { t: "💗 Conexión emocional", d: `Energía −10 · Carisma ${A("carisma")}${st.lastTag === "Cara" ? " · ⚠️ ya lo has hecho" : ""}`, tag: "Cara", go: (s) => { const rep = s.lastTag === "Cara"; s.lastTag = "Cara"; if (s.energy < 10) { s.mine += 2; return { pts: 20, msg: "Estás agotada: ni la cara te responde." }; } s.energy -= 10; const imp = (8 + A("carisma") * 1.6) * (rep ? REPITE : 1); s.mine += imp; return { pts: rep ? 35 : 55 + A("carisma") * 4, msg: rep ? "Otra vez la misma cara... el público ya lo ha visto." : "Cada palabra la sientes. Se te ve en los ojos." }; } },
-          { t: "🌀 Uso del espacio", d: `Energía −15 · Performance ${A("performance")}${st.lastTag === "Escenario" ? " · ⚠️ ya lo has hecho" : ""}`, tag: "Escenario", go: (s) => { const rep = s.lastTag === "Escenario"; s.lastTag = "Escenario"; if (s.energy < 15) { s.mine += 2; return { pts: 20, msg: "Sin energía para moverte." }; } s.energy -= 15; const imp = (12 + A("performance") * 2) * (rep ? REPITE : 1); s.mine += imp; return { pts: rep ? 35 : 55 + A("performance") * 4, msg: rep ? "Otra vuelta por el escenario... el público se empieza a aburrir." : "Te comes el escenario de punta a punta." }; } },
+          { t: "💗 Conexión emocional", d: `Energía −10 · Carisma ${A("carisma")}${st.lastTag === "Cara" ? " · ⚠️ ya lo has hecho" : ""}`, tag: "Cara", go: (s) => { const rep = s.lastTag === "Cara"; const m = DFTC.lsMove({ kind: "Cara", emote: 0, clim, energy: s.energy, lastTag: s.lastTag, attrs: attrsOf(S.queen), roll: 0 }); s.lastTag = "Cara"; s.energy = m.energy; s.mine += m.imp; if (!m.ok) return { pts: 20, msg: "Estás agotada: ni la cara te responde." }; return { pts: rep ? 35 : 55 + A("carisma") * 4, msg: rep ? "Otra vez la misma cara... el público ya lo ha visto." : "Cada palabra la sientes. Se te ve en los ojos." }; } },
+          { t: "🌀 Uso del espacio", d: `Energía −15 · Performance ${A("performance")}${st.lastTag === "Escenario" ? " · ⚠️ ya lo has hecho" : ""}`, tag: "Escenario", go: (s) => { const rep = s.lastTag === "Escenario"; const m = DFTC.lsMove({ kind: "Escenario", emote: 0, clim, energy: s.energy, lastTag: s.lastTag, attrs: attrsOf(S.queen), roll: 0 }); s.lastTag = "Escenario"; s.energy = m.energy; s.mine += m.imp; if (!m.ok) return { pts: 20, msg: "Sin energía para moverte." }; return { pts: rep ? 35 : 55 + A("performance") * 4, msg: rep ? "Otra vuelta por el escenario... el público se empieza a aburrir." : "Te comes el escenario de punta a punta." }; } },
         ];
         // Solo un emote al azar por turno para que haya que pensar
         const em = pick1(opts.slice(0, 3));

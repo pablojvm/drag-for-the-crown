@@ -155,17 +155,9 @@
     },
     /** Resultado de un movimiento del duelo con los atributos de tu reina (las mismas reglas que el lip sync de siempre). */
     lsMove(kind, emoteIdx, clim, energy, lastTag) {
-      if (kind === "Emote") {
-        const [, , at, dif, top] = EMOTES[emoteIdx % EMOTES.length];
-        if (energy < 45) return { tag: "Emote", imp: 4, energy: Math.max(0, energy - 10), msg: "Sin fuelle: el truco se queda a medias." };
-        const c = check([at], clim ? dif : dif + 8);
-        return { tag: "Emote", imp: c.ok ? (clim ? top : 24) : 6, energy: energy - 45, msg: c.ok ? (clim ? "¡El público se levanta!" : "Impresiona... aunque era pronto.") : "¡Uf! Se le va el truco." };
-      }
-      const cara = kind === "Cara";
-      const cost = cara ? 10 : 15, rep = lastTag === kind;
-      if (energy < cost) return { tag: kind, imp: 2, energy, msg: "Sin energía: ni se mueve." };
-      const imp = (cara ? 8 + A("carisma") * 1.6 : 12 + A("performance") * 2) * (rep ? REPITE : 1);
-      return { tag: kind, imp: Math.round(imp * 10) / 10, energy: energy - cost, msg: rep ? "Repite movimiento... el público ya lo ha visto." : cara ? "Cada palabra la siente. Se le ve en los ojos." : "Se come el escenario de punta a punta." };
+      // Reglas compartidas (src/core/lipsync.ts) con los atributos de tu reina
+      const m = DFTC.lsMove({ kind, emote: emoteIdx, clim, energy, lastTag, attrs: attrsOf(S.queen), roll: Math.random() });
+      return { tag: m.tag, imp: m.imp, energy: m.energy, msg: m.msg };
     },
     /** Premio del multijugador: lentejuelas al monedero de siempre. */
     reward(n, why) { const got = Wallet.add(n); if (got) Toast.show(`✨ +${got} lentejuelas`, why); return got; },

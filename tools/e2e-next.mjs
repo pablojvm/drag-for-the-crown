@@ -1,5 +1,5 @@
 // Prueba del motor nuevo (Phaser 4 + React): carga, menú, eliges reina, juegas el arcade un rato
-// (moviéndote y lanzando tacones) y comprueba que el marcador cambia y no hay errores.
+// (moviéndote, lanzando tacones y usando el poder) y juega un lip sync entero. Falla si hay errores.
 //   node tools/e2e-next.mjs [http://localhost:4173/] [carpeta-capturas]
 import { chromium } from "playwright";
 
@@ -19,8 +19,16 @@ await page.click(".nx-btn");
 await page.waitForSelector(".nx-hud", { timeout: 10000 });
 await page.waitForTimeout(1500);
 // Jugar 12 segundos: moverse a izquierda y derecha lanzando tacones
+let powered = null;
 await page.keyboard.down("Space");
 for (let i = 0; i < 12; i++) {
+  if (i === 2) {
+    // Con la barra llena, E lanza el poder de la reina (Plastique: triple tacón)
+    await page.evaluate(() => window.__dftcNext.setState({ special: 1 }));
+    await page.keyboard.press("e");
+    await page.waitForTimeout(200);
+    powered = await page.evaluate(() => window.__dftcNext.getState().activePower);
+  }
   if (i === 4 && SHOTS) await page.screenshot({ path: `${SHOTS}/next-hud.png` });
   await page.keyboard.down(i % 2 ? "ArrowLeft" : "ArrowRight");
   await page.waitForTimeout(500);
@@ -35,8 +43,20 @@ const onScreen = await page.evaluate(() => !!document.querySelector(".nx-hud, .n
 if (await page.$(".nx-hud")) await page.keyboard.press("p");
 await page.waitForTimeout(300);
 const paused = await page.evaluate(() => !!document.querySelector(".nx-dim"));
+// Volver al menú y jugar un lip sync entero (seis movimientos)
+await page.getByRole("button", { name: "Menú" }).click();
+await page.waitForSelector(".nx-queens button", { timeout: 10000 });
+await page.getByRole("button", { name: /Lip sync/ }).click();
+await page.waitForSelector(".nx-opt", { timeout: 10000 });
+for (let k = 0; k < 6; k++) {
+  await page.locator(".nx-opt").nth([1, 2, 1, 2, 0, 1][k]).click();
+  await page.waitForTimeout(450);
+  if (k === 2 && SHOTS) await page.screenshot({ path: `${SHOTS}/next-lipsync.png` });
+}
+const lsEnd = (await page.locator(".nx-ls-panel h2").textContent({ timeout: 5000 }).catch(() => "")) || "";
+if (SHOTS) await page.screenshot({ path: `${SHOTS}/next-lipsync-end.png` });
 await browser.close();
-const ok = score > 0 && onScreen && paused && !errors.length;
-console.log(`Motor nuevo · puntos tras jugar: ${score} · pausa o resultado: ${paused ? "sí" : "no"} · errores: ${errors.length}`);
+const ok = score > 0 && onScreen && paused && powered === "triple" && /Shantay|Sashay/.test(lsEnd) && !errors.length;
+console.log(`Motor nuevo · puntos tras jugar: ${score} · poder: ${powered || "no"} · pausa o resultado: ${paused ? "sí" : "no"} · lip sync: «${lsEnd.trim()}» · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
 process.exit(ok ? 0 : 1);

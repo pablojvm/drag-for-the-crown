@@ -2,13 +2,23 @@
 import { useEffect, useRef, useState } from "react";
 import { startGame } from "../game";
 import { send } from "../bridge";
-import { useGame } from "../store";
+import { useGame, setMuted } from "../store";
+import { unlockAudio } from "../game/sfx";
 import { ARCADE_QUEENS } from "../game/data";
 import { startLives } from "../game/rules";
+import { lipSyncMove, rivalSoFar } from "../game/lipsync";
+import { EMOTES, LS_PHASES, LS_STEPS, REPITE, type LsKind } from "../../core/lipsync";
 
 export function App() {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => (host.current ? startGame(host.current) : undefined), []);
+  // El audio arranca con el primer gesto (los navegadores no dejan antes)
+  useEffect(() => {
+    const go = () => unlockAudio();
+    window.addEventListener("pointerdown", go);
+    window.addEventListener("keydown", go);
+    return () => { window.removeEventListener("pointerdown", go); window.removeEventListener("keydown", go); };
+  }, []);
   const screen = useGame((s) => s.screen);
   return (
     <div className="nx-root">
@@ -18,6 +28,7 @@ export function App() {
         {screen === "menu" && <MenuUI />}
         {screen === "arcade" && <Hud />}
         {screen === "result" && <Result />}
+        {screen === "lipsync" && <LipSyncUI />}
       </div>
     </div>
   );
@@ -53,12 +64,16 @@ function MenuUI() {
             </button>
           ))}
         </div>
+        <p className="nx-power"><b>✨ {q.power.name}:</b> {q.power.desc}</p>
         <div className="nx-stats">
           <Stat label="Velocidad" v={q.stats.speed} /><Stat label="Cadencia" v={q.stats.rate} /><Stat label="Poder" v={q.stats.power} />
           <span className="nx-stat"><small>Vidas</small><b>{"❤️".repeat(startLives(q))}</b></span>
         </div>
-        <button className="nx-btn" onClick={() => send({ type: "start", queenId: pick })}>¡A la pasarela!</button>
-        <p className="nx-muted">Flechas o WASD para moverte, Espacio para lanzar tacones, P para pausar. En el móvil, arrastra el dedo.{best ? ` · Récord: ${best}` : ""}</p>
+        <div className="nx-row">
+          <button className="nx-btn" onClick={() => send({ type: "start", queenId: pick })}>Arcade</button>
+          <button className="nx-btn ghost" onClick={() => send({ type: "lipsync", queenId: pick })}>💋 Lip sync</button>
+        </div>
+        <p className="nx-muted">Flechas o WASD para moverte, Espacio para lanzar tacones, E para el poder, P para pausar. En el móvil, arrastra el dedo.{best ? ` · Récord: ${best}` : ""}</p>
         <a className="nx-link" href="./index.html">Volver al juego completo (historia y multijugador)</a>
       </div>
     </div>
@@ -72,7 +87,15 @@ function Hud() {
       <div className="nx-hud">
         <div className="nx-hud-l"><span aria-label={`${s.lives} vidas`}>{"❤️".repeat(Math.max(0, s.lives))}</span><b>{s.score.toLocaleString("es-ES")}</b>{s.combo > 1 && <em>x{Math.min(8, s.combo)}</em>}</div>
         <div className="nx-hud-r"><small>Ronda {s.round}/5 · {s.rivalName}</small><div className="nx-bar rival"><i style={{ width: `${(s.rivalHp / s.rivalMax) * 100}%` }} /></div></div>
+        <MuteBtn />
         <button className="nx-round" aria-label="Pausa" onClick={() => send({ type: "pause", on: true })}>⏸</button>
+      </div>
+      <div className="nx-power-hud">
+        {s.activePower && <span className="nx-chip">✨ {s.powerName}</span>}
+        {s.doubleOn && <span className="nx-chip gold">⭐ Doble tacón</span>}
+        <button className={`nx-special ${s.special >= 1 ? "ready" : ""}`} disabled={s.special < 1} onClick={() => send({ type: "special" })} aria-label={s.special >= 1 ? `Usar poder: ${s.powerName}` : "Poder cargando"}>
+          <i style={{ height: `${s.special * 100}%` }} /><span>✨</span>
+        </button>
       </div>
       {s.paused && (
         <div className="nx-center nx-dim">
@@ -84,6 +107,60 @@ function Hud() {
       )}
     </>
   );
+}
+
+// Lip sync: seis movimientos (inicio, puente y clímax). Gana la que más conecta con el público.
+function LipSyncUI() {
+  const ls = useGame((s) => s.ls);
+  const queenId = useGame((s) => s.queenId);
+  if (!ls) return null;
+  const me = ARCADE_QUEENS.find((q) => q.id === queenId)!, rv = ARCADE_QUEENS.find((q) => q.id === ls.rivalId)!;
+  const theirs = rivalSoFar(ls), mx = Math.max(ls.mine, ls.rival, 120);
+  const pi = Math.min(2, Math.floor(ls.step / 2)), clim = pi === 2;
+  const [, emoteName, emoteAttr] = EMOTES[ls.emote];
+  const opts: { k: LsKind; t: string; d: string }[] = [
+    { k: "Emote", t: emoteName, d: `Energía −45 · ${emoteAttr}${clim ? " · ¡momento perfecto!" : " · mejor en el clímax"}` },
+    { k: "Cara", t: "💗 Conexión emocional", d: `Energía −10${ls.lastTag === "Cara" ? ` · ⚠️ repetir resta (×${REPITE})` : ""}` },
+    { k: "Escenario", t: "🌀 Uso del espacio", d: `Energía −15${ls.lastTag === "Escenario" ? ` · ⚠️ repetir resta (×${REPITE})` : ""}` },
+  ];
+  const won = ls.mine >= ls.rival;
+  return (
+    <>
+      <div className="nx-hud">
+        <div className="nx-ls-crowd">
+          <small>👏 Público · {me.name} vs {rv.name}</small>
+          <div className="nx-bar"><i style={{ width: `${(ls.mine / mx) * 100}%` }} /></div>
+          <div className="nx-bar rival-ls"><i style={{ width: `${(theirs / mx) * 100}%` }} /></div>
+        </div>
+        <MuteBtn />
+      </div>
+      <div className="nx-ls-panel">
+        {ls.done ? (
+          <div className="nx-panel small">
+            <p className="nx-eyebrow">Lip sync for your life</p>
+            <h2>{won ? "¡Shantay, you stay! 💃" : "Sashay away..."}</h2>
+            <p className="nx-muted">Tú: {Math.round(ls.mine)} · {rv.name}: {Math.round(ls.rival)}</p>
+            <button className="nx-btn" onClick={() => send({ type: "lipsync", queenId })}>Otro lip sync</button>
+            <button className="nx-btn ghost" onClick={() => send({ type: "menu" })}>Menú</button>
+          </div>
+        ) : (
+          <div className="nx-panel">
+            <p className="nx-eyebrow">🎵 {LS_PHASES[pi]} de la canción · {(ls.step % 2) + 1}/2 · ⚡ Energía {ls.energy}</p>
+            {ls.last ? <p className="nx-ls-last"><b>Tú:</b> {ls.last.me} <b>{rv.name}:</b> {ls.last.them}</p> : <p className="nx-ls-last">Alterna movimientos (repetir aburre) y guarda 45 de energía para un truco en el clímax.</p>}
+            <div className="nx-ls-opts">
+              {opts.map((o) => <button key={o.k} className="nx-opt" onClick={() => lipSyncMove(o.k)}><b>{o.t}</b><small>{o.d}</small></button>)}
+            </div>
+            <small className="nx-muted">Paso {ls.step + 1} de {LS_STEPS}</small>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function MuteBtn() {
+  const muted = useGame((s) => s.muted);
+  return <button className="nx-round" aria-label={muted ? "Activar sonido" : "Silenciar"} onClick={() => setMuted(!muted)}>{muted ? "🔇" : "🔊"}</button>;
 }
 
 function Result() {

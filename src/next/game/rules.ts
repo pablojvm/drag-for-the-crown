@@ -35,3 +35,15 @@ export const roundBonus = (o: { round: number; flawless: boolean; lives: number 
 
 /** Rivales del arcade para una reina: el resto del reparto en orden fijo. */
 export const rivalsOf = (id: string) => ARCADE_QUEENS.filter((q) => q.id !== id);
+
+/** Poder especial: cada tacón que acierta carga un 10 % de la barra. */
+export const SPECIAL_PER_HIT = 0.1;
+/** Probabilidad de que un acierto suelte un power-up. */
+export const POWERUP_CHANCE = 0.16;
+/** Qué power-up cae: vida si te falta alguna (la mitad de las veces) o doble tacón. */
+export const powerupType = (lives: number, r: number): "life" | "double" => (lives < MAX_LIVES && r < 0.5 ? "life" : "double");
+/** Cuánto dura cada poder (ms); los instantáneos, 0. */
+export const POWER_MS: Record<string, number> = { shield: 5000, slowmo: 5000, triple: 6000, homing: 6000, fan: 0, sponge: 0 };
+export const DOUBLE_MS = 7000;
+/** Puntos por cada tacón absorbido con la esponja. */
+export const SPONGE_POINTS = 75;

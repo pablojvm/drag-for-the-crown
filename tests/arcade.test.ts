@@ -24,3 +24,17 @@ describe("arcade (motor nuevo)", () => {
     expect(roundBonus({ round: 2, flawless: true, lives: 3 })).toBe(2600);
   });
 });
+
+import { powerupType, SPECIAL_PER_HIT, POWER_MS } from "../src/next/game/rules";
+describe("arcade: poderes y power-ups", () => {
+  it("la barra del poder se llena con 10 aciertos", () => expect(Math.round(1 / SPECIAL_PER_HIT)).toBe(10));
+  it("con las vidas al máximo solo cae el doble tacón", () => {
+    expect(powerupType(5, 0.1)).toBe("double");
+    expect(powerupType(2, 0.1)).toBe("life");
+    expect(powerupType(2, 0.9)).toBe("double");
+  });
+  it("cada reina tiene su poder y los que duran tienen tiempo", () => {
+    ARCADE_QUEENS.forEach((q) => expect(POWER_MS[q.power.id]).toBeDefined());
+    expect(POWER_MS.shield).toBe(5000);
+  });
+});

@@ -2,7 +2,19 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 
-export type Screen = "boot" | "menu" | "arcade" | "result";
+export type Screen = "boot" | "menu" | "arcade" | "result" | "lipsync";
+export interface LipSyncState {
+  rivalId: string;
+  step: number;
+  energy: number;
+  lastTag: string;
+  mine: number;
+  rival: number; // fuerza total de la rival (se va viendo según avanza la canción)
+  emote: number; // truco que toca en este paso
+  last: { me: string; them: string } | null;
+  anim: number; // cambia en cada movimiento: Phaser anima a las dos reinas
+  done: boolean;
+}
 export interface GameState {
   screen: Screen;
   loading: number;
@@ -15,8 +27,14 @@ export interface GameState {
   rivalHp: number;
   rivalMax: number;
   paused: boolean;
+  /** Carga del poder especial (0 a 1) y qué poder hay activo ahora (con su fin, en ms del juego). */
+  special: number;
+  powerName: string;
+  activePower: string | null;
+  doubleOn: boolean;
   muted: boolean;
   result: { won: boolean; score: number; round: number } | null;
+  ls: LipSyncState | null;
   best: number;
 }
 
@@ -24,10 +42,17 @@ const readBest = () => { try { return Number(localStorage.getItem("dftc-next-bes
 
 export const store = createStore<GameState>(() => ({
   screen: "boot", loading: 0, queenId: "jimbo", lives: 3, score: 0, combo: 0, round: 1,
-  rivalName: "", rivalHp: 1, rivalMax: 1, paused: false, muted: false, result: null, best: readBest(),
+  rivalName: "", rivalHp: 1, rivalMax: 1, paused: false, special: 0, powerName: "", activePower: null, doubleOn: false, muted: false, result: null, ls: null, best: readBest(),
 }));
 
 export const set = (p: Partial<GameState>) => store.setState(p);
+const readMuted = () => { try { return localStorage.getItem("dftc-next-muted") === "1"; } catch { return false; } };
+store.setState({ muted: readMuted() });
+/** Silenciar o no (se recuerda en este navegador). */
+export function setMuted(on: boolean) {
+  set({ muted: on });
+  try { localStorage.setItem("dftc-next-muted", on ? "1" : "0"); } catch { /* sin almacenamiento */ }
+}
 (globalThis as any).__dftcNext = store; // para las pruebas en navegador
 export const get = () => store.getState();
 export const useGame = <T,>(sel: (s: GameState) => T) => useStore(store, sel);

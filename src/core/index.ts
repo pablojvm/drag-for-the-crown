@@ -10,3 +10,4 @@ export * from "./save";
 export * from "./week";
 export * from "./finales";
 export * from "./dinamicas";
+export * from "./lipsync";
