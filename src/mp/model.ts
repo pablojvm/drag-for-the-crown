@@ -54,7 +54,7 @@ export const NO_PRESENTO = 30;
 export interface Player { id: string; name: string; queen: string | null; joined: number; alive: boolean }
 export interface Row { key: string; score: number; label: string }
 export interface Pair { a: string; b: string; winner?: string }
-export interface Sub { reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string; box?: number }
+export interface Sub { reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string; box?: number; heart?: string }
 /** Momento de un giro en el que alguien decide (comodín): la suerte, el corazón, la moneda o el bloqueo del All Winners. */
 export interface Twist {
   kind: "suerte" | "corazon" | "moneda" | "bloqueo" | "corte";
@@ -69,12 +69,14 @@ export interface Twist {
   starred?: string[];
 }
 /** Lo que pasó en el giro, para enseñarlo (pantalla «sorpresa», la lleva la anfitriona). */
+/** Medio corazón que deja una eliminada (se destapa con su grabación la semana siguiente). */
+export interface Gift { from: string; to: string; ep?: number; chosen?: boolean }
 export interface TwistResult {
   kind: "suerte" | "corazon" | "corazones" | "moneda" | "bloqueo" | "repesca";
   by?: string;
   saved?: string[];
   entered?: string[];
-  gifts?: { from: string; to: string }[];
+  gifts?: Gift[];
   full?: string[];
   votes?: Record<string, string[]>;
   chosen?: string;
@@ -133,7 +135,7 @@ export interface RoomState {
   /** Reina de la suerte: las cajitas del primer día (en una está la suerte). */
   boxes?: { n: number; win: number; owners?: Record<number, string> };
   hearts?: Record<string, number>;
-  pendingHearts?: { from: string; to: string }[];
+  pendingHearts?: Gift[];
   stars?: Record<string, number>;
   block?: { ep: number; id: string; by: string };
   weeks?: number;
@@ -348,7 +350,7 @@ function eliminate(s: RoomState, key: string, place: string, label = "ELIM", e?:
   // Temporada del corazón: la que se va deja medio corazón a una compañera (se sabrá la semana que viene)
   if (t.fmt === "corazon" && e) {
     const left = aliveKeys(t);
-    if (left.length > 1) t.pendingHearts = [...(t.pendingHearts || []), { from: key, to: pickWith(left, e) }];
+    if (left.length > 1) t.pendingHearts = [...(t.pendingHearts || []), { from: key, to: pickWith(left, e), ep: s.ep }];
   }
   return t;
 }
@@ -813,6 +815,14 @@ export function tick(s: RoomState, now: number, e: Engine): RoomState {
 
 /** Aplica una entrega de una jugadora (solo cuenta la de la fase y episodio actuales). */
 export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase, data: Sub): RoomState {
+  // Temporada del corazón: la jugadora eliminada elige a quién deja su medio corazón (hasta que se destapa)
+  if (data.heart) {
+    const k = pkey(pid);
+    const ph = s.pendingHearts || [];
+    const i = ph.findIndex((g) => g.from === k && !g.chosen);
+    if (i < 0 || data.heart === k || !aliveKeys(s).includes(data.heart)) return s;
+    return { ...s, pendingHearts: ph.map((g, j) => (j === i ? { ...g, to: data.heart!, chosen: true } : g)), v: s.v + 1 };
+  }
   if (ep !== s.ep || phase !== s.phase) return s;
   const p = s.players.find((x) => x.id === pid);
   // Las eliminadas solo juegan su monólogo de la Segunda Oportunidrag

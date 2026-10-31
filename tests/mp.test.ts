@@ -330,6 +330,43 @@ describe("temporada en directo", () => {
     s = runAll(s, e, (x) => { if (x.twistResult?.kind === "corazones") gifts += x.twistResult.gifts!.length; });
     expect(gifts).toBeGreaterThan(2);
   });
+  it("Corazón: la jugadora eliminada elige a quién deja su medio corazón y se destapa con su grabación", () => {
+    for (const seed of [3, 5, 8, 13]) {
+      const e = engine(seed);
+      let { s } = fmtRoom("corazon", seed, 12);
+      let guard = 0, target = "", seen = false;
+      while (s.phase !== "corona" && guard++ < 3000) {
+        const mine = (s.pendingHearts || []).find((g) => g.from === pkey("A"));
+        if (mine && !mine.chosen) {
+          target = aliveKeys(s).find((k) => k !== mine.to) || mine.to;
+          s = applySubmit(s, "A", s.ep, s.phase, { heart: target });
+          expect(s.pendingHearts!.find((g) => g.from === pkey("A"))!.to).toBe(target);
+          // No se puede cambiar una vez grabado
+          expect(applySubmit(s, "A", s.ep, s.phase, { heart: mine.to }).pendingHearts!.find((g) => g.from === pkey("A"))!.to).toBe(target);
+        }
+        if (s.twistResult?.kind === "corazones") { const g = s.twistResult.gifts!.find((x) => x.from === pkey("A")); if (g) { expect(g.to).toBe(target); expect(g.chosen).toBe(true); seen = true; } }
+        s = advance(s, guard * 1000, e);
+      }
+      if (target) expect(seen).toBe(true);
+    }
+  });
+  it("Moneda: el voto de una jugadora cuenta y es público", () => {
+    for (const seed of [4, 6, 11]) {
+      const e = engine(seed);
+      let { s } = fmtRoom("moneda", seed);
+      let guard = 0, voted = "", checked = false;
+      while (s.phase !== "corona" && guard++ < 3000) {
+        if ((s.phase === "reto" || s.phase === "pasarela") && !s.subs.A?.final) s = applySubmit(s, "A", s.ep, s.phase, { reto: 95, final: 95 });
+        if (s.phase === "comodin" && s.twist?.kind === "moneda" && s.twist.by.includes(pkey("A")) && !voted) {
+          voted = s.twist.options[0];
+          s = applySubmit(s, "A", s.ep, "comodin", { pick: voted });
+        }
+        if (s.twistResult?.kind === "moneda" && voted && !checked) { expect(s.twistResult.votes![voted]).toContain(pkey("A")); checked = true; }
+        s = advance(s, guard * 1000, e);
+      }
+      expect(checked).toBe(true);
+    }
+  });
   it("Moneda: bottom de tres y la votación deja a dos en el lip sync", () => {
     const e = engine(4);
     let { s } = fmtRoom("moneda", 4);

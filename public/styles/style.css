@@ -2844,3 +2844,6 @@ body.portrait .mp-fmts { grid-template-columns: 1fr 1fr; }
 /* Multijugador: cajitas de la reina de la suerte con el nombre de quien la ha cogido */
 .box.closed { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; opacity: .75; cursor: default; }
 .box.closed small { font-size: 11px; font-weight: 700; max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Multijugador, temporada del corazón: la eliminada elige a quién deja su medio corazón */
+.mp-heart-pick { border: 2px dashed rgba(255,61,154,.45); border-radius: 18px; padding: 12px; margin: 10px 0 14px; background: rgba(255,255,255,.55); }
+.mp-heart-pick h4 { margin: 4px 0; }

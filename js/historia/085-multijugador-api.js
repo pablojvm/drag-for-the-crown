@@ -142,6 +142,8 @@
     },
     runway(el, cat, cb) { runRunwayNew(el, cat, (walk) => { cleanup = null; cb(Math.round(walk)); }); },
     lipsync(el, rivalId, cb) { runLipsync(el, qById(rivalId), (won, score) => { cleanup = null; cb(!!won, Math.round(score || 0)); }); },
+    /** Temporada del corazón: la grabación de la eliminada (r1 es ella; {dest}, a quien se lo deja). */
+    heartVideo(fav) { return [...pickFresh(CORAZON_VIDEO.intro), ...pickFresh(CORAZON_VIDEO[fav ? "cariño" : "estrategia"])]; },
     /** Premio del multijugador: lentejuelas al monedero de siempre. */
     reward(n, why) { const got = Wallet.add(n); if (got) Toast.show(`✨ +${got} lentejuelas`, why); return got; },
     /** Nota final de la semana de la jugadora (el dado manda, su juego lo mueve). */

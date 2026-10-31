@@ -339,7 +339,7 @@ function render(s: RoomState) {
       if (s.fmt === "suerte" && s.ep === 1) lines.push(["host", "Ya tenéis vuestras cajitas. Quien tenga la reina de la suerte podrá salvar a quien quiera del lip sync, una vez. Y es secreto: que nadie diga nada."]);
       if (s.rp && s.rp.ep === s.ep) lines.splice(1, 0, ["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["host", "Cada una de vosotras hará un monólogo con una de ellas. La eliminada de la pareja ganadora... vuelve a la competición."]);
       return lines;
-    }, () => `${myStatus(s)}<p class="eyebrow">Episodio ${s.ep}${s.fmt && s.fmt !== "normal" ? ` · ${FORMATOS[s.fmt as Formato].icon} ${FORMATOS[s.fmt as Formato].n}` : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}${me ? " Tu look ya está en la maleta." : ""}</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Para jugar el reto tenéis ${Math.round(((DURACION[s.ritmo].reto * (s.ia ? IA_EXTRA : 1)) / 60))} minutos.`}</p>`);
+    }, () => `${heartChoice(s)}${myStatus(s)}<p class="eyebrow">Episodio ${s.ep}${s.fmt && s.fmt !== "normal" ? ` · ${FORMATOS[s.fmt as Formato].icon} ${FORMATOS[s.fmt as Formato].n}` : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}${me ? " Tu look ya está en la maleta." : ""}</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Para jugar el reto tenéis ${Math.round(((DURACION[s.ritmo].reto * (s.ia ? IA_EXTRA : 1)) / 60))} minutos.`}</p>`);
   }
   if (s.phase === "reto") {
     api().scene("werkroom");
@@ -397,7 +397,7 @@ function render(s: RoomState) {
   if (s.phase === "comodin") { api().scene("panel"); return comodin(s); }
   if (s.phase === "sorpresa") return sorpresa(s);
   if (s.phase === "pintalabios") return lipstickReveal(s);
-  if (s.phase === "track") return watch(s, "werkroom", () => [], () => `${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}<h3>Track record</h3>${track(s)}${s.fmt === "corazon" ? heartsTable(s) : ""}${s.fmt === "winners" && s.ep >= (s.weeks || 0) ? `<p class="twist-note">⭐ Se acabaron las semanas: las 4 con más estrellas van a la gran final.</p>` : ""}`);
+  if (s.phase === "track") return watch(s, "werkroom", () => [], () => `${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${heartNote(s)}${heartChoice(s)}<h3>Track record</h3>${track(s)}${s.fmt === "corazon" ? heartsTable(s) : ""}${s.fmt === "winners" && s.ep >= (s.weeks || 0) ? `<p class="twist-note">⭐ Se acabaron las semanas: las 4 con más estrellas van a la gran final.</p>` : ""}`);
   if (s.phase === "corona") {
     savedPut(`${s.code}:${room.me}`, null);
     payout(s);
@@ -530,7 +530,17 @@ function sorpresa(s: RoomState) {
       () => `<p class="eyebrow">🔁 Segunda Oportunidrag · ranking por parejas</p>${back ? `<h3>¡${esc(nm(back))} vuelve a la competición!</h3>` : "<h3>Nadie vuelve esta vez</h3>"}<ol class="rp-rank">${(r.pairs || []).map((p, k) => `<li class="${k === 0 ? "win" : ""}" style="--i:${k}"><b class="rp-pos">${k + 1}º</b><span class="rp-q"><i style="background-image:url('${Q(keyQueen(s, p.c)).photo}')"></i><em>${esc(nm(p.c))}</em></span><span class="rp-plus">+</span><span class="rp-q">${p.o ? `<i style="background-image:url('${Q(keyQueen(s, p.o)).photo}')"></i><em>${esc(nm(p.o))}</em>` : `<i class="none"></i><em>sola</em>`}</span><span class="rp-res">${k === 0 && p.o ? "🔁 vuelve" : ""}</span></li>`).join("")}</ol><p class="muted">Las tres peores parejas van al lip sync a tres bandas: se salva una y se van dos.</p>`);
   }
   if (r.kind === "corazones") {
-    return watch(s, "panel", () => [["host", "Pero antes del lip sync... esta es la temporada del corazón."], ...(r.gifts || []).map((g) => ["host", `${nm(g.from)} dejó su medio corazón a... ¡${nm(g.to)}!`] as [string, string]), ...(r.full?.length ? [["host", `${names(s, r.full)}: ${r.full.length > 1 ? "tenéis" : "tienes"} un corazón entero. Solo vale ahora.`] as [string, string]] : [])],
+    // Como en la historia: la grabación de cada eliminada destapa a quién dejó su medio corazón
+    return watch(s, "panel", () => {
+      const lines: [string, string][] = [["host", "Pero antes del lip sync... esta es la temporada del corazón."]];
+      (r.gifts || []).forEach((g) => {
+        const vid: [string, string][] = api().heartVideo(g.chosen || Math.random() < 0.5);
+        vid.forEach(([w, t]) => lines.push([w === "r1" ? `q:${keyQueen(s, g.from)}` : w, t.replace(/\{dest\}/g, nm(g.to)).replace(/\{r1\}/g, nm(g.from))]));
+        lines.push(["host", `💔 Medio corazón para ${nm(g.to)}.`]);
+      });
+      if (r.full?.length) lines.push(["host", `${names(s, r.full)}: ${r.full.length > 1 ? "tenéis" : "tienes"} un corazón entero. Solo vale ahora: si no se usa, se pierde.`]);
+      return lines;
+    },
       () => `<p class="eyebrow">❤️ Los medios corazones</p><div class="mp-gifts">${(r.gifts || []).map((g) => `<div class="mp-vs">${face(s, g.from, "gone")}<span>💔→</span>${face(s, g.to)}</div>`).join("")}</div>${heartsTable(s)}${r.full?.length ? `<p class="twist-note">❤️ ${esc(names(s, r.full))} ${r.full.length > 1 ? "tienen" : "tiene"} un corazón entero: puede salvar a alguien del bottom ahora.</p>` : ""}`);
   }
   if (r.kind === "suerte") {
@@ -546,7 +556,7 @@ function sorpresa(s: RoomState) {
   if (r.kind === "moneda") {
     const ch = r.chosen!;
     return watch(s, "panel", () => [["host", r.cara ? "Ha salido CARA: votos para salvar." : "Ha salido CRUZ: votos para condenar."], ["host", r.cara ? `${nm(ch)} se salva.` : `${nm(ch)} va directa al lip sync.`]],
-      () => `<p class="eyebrow">🪙 ${r.cara ? "Cara: votos para salvar" : "Cruz: votos para condenar"}</p><h3>${esc(r.cara ? `${nm(ch)} se salva` : `${nm(ch)} va directa al lip sync`)}</h3>${r.tie ? `<p class="twist-note">⚖️ Hubo empate: desempata la ganadora de la semana.</p>` : ""}<div class="votes">${Object.entries(r.votes || {}).map(([k, vs]) => `<div class="vote-col ${k === ch ? "top" : ""}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><b>${esc(nm(k))}</b><span>${vs.length} voto${vs.length === 1 ? "" : "s"}</span><div class="voters">${vs.map((v) => `<img src="${Q(keyQueen(s, v)).photo}" title="${esc(nm(v))}">`).join("")}</div></div>`).join("")}</div><p>Al lip sync: <b>${(s.bottom || []).map((k) => esc(nm(k))).join("</b> y <b>")}</b>.</p>`);
+      () => `<p class="eyebrow">🪙 ${r.cara ? "Cara: votos para salvar" : "Cruz: votos para condenar"}</p><h3>${esc(r.cara ? `${nm(ch)} se salva` : `${nm(ch)} va directa al lip sync`)}</h3>${r.tie ? `<p class="twist-note">⚖️ Hubo empate: desempata con su voto la ganadora de la semana${s.rows?.[0] ? `, <b>${esc(nm(s.rows[0].key))}</b>` : ""}: ${r.cara ? "salva a" : "condena a"} <b>${esc(nm(ch))}</b>.</p>` : ""}<div class="votes">${Object.entries(r.votes || {}).map(([k, vs]) => `<div class="vote-col ${k === ch ? "top" : ""}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><b>${esc(nm(k))}</b><span>${vs.length} voto${vs.length === 1 ? "" : "s"}</span><div class="voters">${vs.map((v) => `<img src="${Q(keyQueen(s, v)).photo}" title="${esc(nm(v))}">`).join("")}</div></div>`).join("")}</div><p>Al lip sync: <b>${(s.bottom || []).map((k) => esc(nm(k))).join("</b> y <b>")}</b>.</p>`);
   }
   // All Winners: estrellas y bloqueo
   return watch(s, "panel", () => [["host", `${(r.stars || []).length ? `${names(s, r.stars || [])}: ${(r.stars || []).length > 1 ? "os lleváis" : "te llevas"} la Legendary Legend Star.` : "Esta semana no hay estrella para la bloqueada."}`], ...(r.target ? [["host", `${nm(r.by!)} bloquea a ${nm(r.target)}: la semana que viene no podrá ganar estrella.`] as [string, string]] : [])],
@@ -557,6 +567,21 @@ const heartsTable = (s: RoomState) => {
   return list.length ? `<p class="muted">${list.map((k) => `${esc(keyName(s, k))}: ${"❤️".repeat(Math.floor((s.hearts![k]) / 2))}${s.hearts![k] % 2 ? "💔" : ""}`).join(" · ")}</p>` : "";
 };
 
+// Temporada del corazón: la que se va deja medio corazón (se sabrá la semana que viene con su grabación)
+const heartNote = (s: RoomState) => {
+  if (s.fmt !== "corazon") return "";
+  const gone = (s.pendingHearts || []).filter((g) => g.ep === s.ep && g.from !== pkey(room.me));
+  return gone.map((g) => `<p class="twist-note">💔 ${esc(keyName(s, g.from))} deja su medio corazón a alguien... Lo sabréis la semana que viene.</p>`).join("");
+};
+// Si la eliminada eres tú, eliges a quién se lo dejas (hasta que se destape)
+const heartChoice = (s: RoomState) => {
+  if (s.fmt !== "corazon") return "";
+  const g = (s.pendingHearts || []).find((x) => x.from === pkey(room.me));
+  if (!g) return "";
+  if (g.chosen) return `<p class="twist-note">📼 Has grabado tu mensaje: tu medio corazón es para <b>${esc(keyName(s, g.to))}</b>. Se destapará la semana que viene.</p>`;
+  return `<div class="mp-heart-pick"><p class="eyebrow">📼 Tu grabación</p><h4>¿A quién dejas tu medio corazón?</h4><p class="muted">Nadie lo sabrá hasta que pongan tu vídeo la semana que viene. Si no eliges, se elige al azar.</p><div class="hub-grid">${aliveKeys(s).map((k, i) => `<button class="hub-q" style="--i:${i}" data-heart="${esc(k)}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(keyName(s, k))}</span>${keyPlayer(s, k) ? `<small>${esc(keyPlayer(s, k))}</small>` : ""}${s.hearts?.[k] ? `<small>${s.hearts[k] % 2 ? "💔" : "❤️"} ya tiene</small>` : ""}</button>`).join("")}</div></div>`;
+};
+document.addEventListener("click", (e) => { const b = (e.target as HTMLElement).closest?.("[data-heart]") as HTMLElement | null; if (b) room.submit({ heart: b.dataset.heart! }); });
 // All Stars: pintalabios (tubo negro con el nombre de la elegida)
 const lipstick = (name: string, cls = "") => `<div class="lipstick ${cls}" role="img" aria-label="Pintalabios: ${esc(name)}"><span class="ls-cap"></span><span class="ls-band"></span><span class="ls-body"><b class="${name.length > 15 ? "xlong" : name.length > 10 ? "long" : ""}">${esc(name)}</b></span></div>`;
 // Antes del lip sync: las dos del top eligen en secreto (cada una ve su propia pantalla)
