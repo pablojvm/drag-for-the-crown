@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from "vite";
+import react from "@vitejs/plugin-react";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -41,8 +42,9 @@ export default defineConfig({
   define: { __DFTC_VERSION__: JSON.stringify(VERSION) },
   // GitHub Pages sirve el juego en /drag-for-the-crown/; rutas relativas para que funcione en cualquier sitio
   base: "./",
-  plugins: [legacy(), cacheBust()],
-  build: { outDir: "dist", sourcemap: true, chunkSizeWarningLimit: 2000 },
+  plugins: [legacy(), cacheBust(), react()],
+  // Dos entradas: el juego actual (index.html) y el motor nuevo en construcción (next.html)
+  build: { outDir: "dist", sourcemap: true, chunkSizeWarningLimit: 2000, rollupOptions: { input: { main: resolve("index.html"), next: resolve("next.html") } } },
   server: { port: 8000 },
   test: { include: ["tests/**/*.test.ts"] },
 } as any);

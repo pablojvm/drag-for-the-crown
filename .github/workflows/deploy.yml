@@ -38,6 +38,7 @@ jobs:
           npm run e2e
           npm run e2e:moneda
           npm run e2e:mp
+          npm run e2e:next
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
