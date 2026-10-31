@@ -367,6 +367,45 @@ describe("temporada en directo", () => {
       expect(checked).toBe(true);
     }
   });
+  it("Lalaparuza: cuando quedan 8 hay torneo de lip syncs y la campeona gana el reto", () => {
+    for (const seed of [1, 4, 9]) {
+      const e = engine(seed);
+      let { s } = fmtRoom("normal", seed, 10);
+      let guard = 0, saw = false;
+      while (s.phase !== "corona" && guard++ < 3000) {
+        if (s.phase === "anuncio" && s.reto?.tipo === "lalaparuza") expect(aliveKeys(s)).toHaveLength(8);
+        if (s.phase === "resultados" && s.lala?.done) {
+          saw = true;
+          expect(s.rows![0].key).toBe(s.lala.champ);
+          expect(s.rows![0].label).toBe("WIN");
+        }
+        s = advance(s, guard * 1000, e);
+      }
+      expect(saw).toBe(true);
+      expect(Object.values(s.epNames)).toContain("Lalaparuza: el torneo de lip syncs");
+    }
+  });
+  it("Lalaparuza en All Stars: las dos finalistas son el top 2", () => {
+    const e = engine(2);
+    let { s } = fmtRoom("allstars", 2, 10);
+    let guard = 0, saw = false;
+    while (s.phase !== "corona" && guard++ < 3000) {
+      if (s.phase === "resultados" && s.lala?.done) { saw = true; expect(s.rows!.slice(0, 2).map((r) => r.key).sort()).toEqual(s.lala.top2!.slice().sort()); }
+      s = advance(s, guard * 1000, e);
+    }
+    expect(saw).toBe(true);
+  });
+  it("Lalaparuza en All Winners: una semana al azar, con ronda previa si no sois potencia de 2", () => {
+    const e = engine(6);
+    let { s } = fmtRoom("winners", 6, 10);
+    let guard = 0, pre = false, saw = false;
+    while (s.phase !== "corona" && guard++ < 3000) {
+      if (s.phase === "lalaparuza" && s.lala!.round === 0) pre = true;
+      if (s.phase === "resultados" && s.lala?.done) saw = true;
+      s = advance(s, guard * 1000, e);
+    }
+    expect(saw && pre).toBe(true);
+  });
   it("Moneda: bottom de tres y la votación deja a dos en el lip sync", () => {
     const e = engine(4);
     let { s } = fmtRoom("moneda", 4);

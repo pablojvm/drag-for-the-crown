@@ -2,7 +2,7 @@
 import { Room } from "./room";
 import { carousel } from "../ui/carousel";
 import { ask } from "../ui/confirm";
-import { DURACION, IA_EXTRA, FORMATOS, topeEpisodio, alivePlayers, aliveKeys, standings, ppeOf, planCats, isWatch, isP, idOf, pkey, type RoomState, type Engine, type Ritmo, type Formato } from "./model";
+import { type LzMatch, DURACION, IA_EXTRA, FORMATOS, topeEpisodio, alivePlayers, aliveKeys, standings, ppeOf, planCats, isWatch, isP, idOf, pkey, type RoomState, type Engine, type Ritmo, type Formato } from "./model";
 
 const W = window as any;
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T | null;
@@ -63,7 +63,7 @@ function header(s: RoomState | null) {
   if (ex && $("#screen-story")?.classList.contains("mp")) ex.innerHTML = s && !s.paused ? "<i>←</i><span>Salir de la sala</span>" : "<i>←</i><span>Volver</span>";
   const se = s ? W.seasonById(s.season) : null;
   $("#story-season")!.textContent = s ? `👯 Temporada en directo · ${s.season === CUSTOM ? `Personalizada · ${FORMATOS[(s.fmt || "normal") as Formato].n}` : se ? se.name : ""} · Sala ${s.code}` : "👯 Temporada en directo";
-  const title: Record<string, string> = { lobby: "Sala de espera", maletas: "Maletas", cajas: "La reina de la suerte", anuncio: `Episodio ${s?.ep}`, reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && (s.fmt === "allstars" || s.fmt === "winners") ? "Lip sync por el poder" : s?.triple ? "Lip sync a tres bandas" : "Lip sync for your life", decision: "Los pintalabios", pintalabios: "El pintalabios", comodin: s?.twist ? ({ suerte: "La reina de la suerte", corazon: "El corazón", moneda: "La moneda", bloqueo: "El bloqueo", corte: "El corte del top 4" } as Record<string, string>)[s.twist.kind] : "Momento clave", sorpresa: "¡Sorpresa!", track: "Track record", final: "Gran final", corona: "¡Tenemos ganadora!" };
+  const title: Record<string, string> = { lobby: "Sala de espera", maletas: "Maletas", cajas: "La reina de la suerte", lalaparuza: "Lalaparuza", anuncio: `Episodio ${s?.ep}`, reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && (s.fmt === "allstars" || s.fmt === "winners") ? "Lip sync por el poder" : s?.triple ? "Lip sync a tres bandas" : "Lip sync for your life", decision: "Los pintalabios", pintalabios: "El pintalabios", comodin: s?.twist ? ({ suerte: "La reina de la suerte", corazon: "El corazón", moneda: "La moneda", bloqueo: "El bloqueo", corte: "El corte del top 4" } as Record<string, string>)[s.twist.kind] : "Momento clave", sorpresa: "¡Sorpresa!", track: "Track record", final: "Gran final", corona: "¡Tenemos ganadora!" };
   $("#story-ep")!.innerHTML = `${esc(s ? (s.paused ? "Pausada" : title[s.phase]) : "Multijugador")} <span class="mp-timer" id="mp-timer"></span>`;
   // Pausa (con acuerdo de todas): solo con la temporada en marcha
   let pb = $("#mp-pause");
@@ -242,10 +242,14 @@ function watch(s: RoomState, set: string, build: () => [string, string][], card:
   if (i < lines.length) {
     const [who, txt] = lines[i];
     if (who.startsWith("@")) {
+      if (who === "@lala" && s.lala) {
+        body().innerHTML = `<div class="story-card mp-card lz-card"><p class="eyebrow">🏆 Lalaparuza · así ha quedado el cuadro</p><h3>${s.lala.champ ? `🏆 ${esc(keyName(s, s.lala.champ))}` : `💄 ${esc(names(s, s.lala.top2 || []))}`}</h3>${lzBracket(s)}<div class="mp-hostbar">${ctl}</div></div>`;
+        return;
+      }
       if (who === "@call") {
         const { safe, judged } = callOf(s);
         const mine = pkey(room.me), alive = (s.rows || []).some((r) => r.key === mine);
-        body().innerHTML = `<div class="story-card mp-card call"><p class="eyebrow">${esc(s.reto?.titulo || "")} · la pasarela ha terminado</p><h3>Supremme tiene algo que deciros...</h3>${judged.length ? `<p><b>${s.fmt === "winners" ? "Reciben las críticas del jurado" : safe.length ? "Las mejores y las peores de hoy" : "Todas recibís valoración"}</b></p><div class="call-faces">${judged.map((k) => face(s, k)).join("")}</div>` : ""}${safe.length ? `<p><b>Estáis a salvo</b></p><div class="call-faces safe">${safe.map((k) => face(s, k)).join("")}</div>` : ""}${alive ? `<p class="call-me">${safe.includes(mine) ? "✨ Estás a salvo esta semana." : "👀 Te toca escuchar al jurado."}</p>` : ""}<div class="mp-hostbar">${ctl}</div></div>`;
+        body().innerHTML = `<div class="story-card mp-card call"><p class="eyebrow">${esc(s.reto?.titulo || "")} · ${s.lala?.done ? "el torneo ha terminado" : "la pasarela ha terminado"}</p><h3>Supremme tiene algo que deciros...</h3>${judged.length ? `<p><b>${s.fmt === "winners" ? "Reciben las críticas del jurado" : safe.length ? "Las mejores y las peores de hoy" : "Todas recibís valoración"}</b></p><div class="call-faces">${judged.map((k) => face(s, k)).join("")}</div>` : ""}${safe.length ? `<p><b>Estáis a salvo</b></p><div class="call-faces safe">${safe.map((k) => face(s, k)).join("")}</div>` : ""}${alive ? `<p class="call-me">${safe.includes(mine) ? "✨ Estás a salvo esta semana." : "👀 Te toca escuchar al jurado."}</p>` : ""}<div class="mp-hostbar">${ctl}</div></div>`;
         return;
       }
       body().innerHTML = who === "@siren" ? SIREN(`<div class="mp-hostbar">${ctl}</div>`) : `<div class="story-card mp-card">${revealHTML(s)}<div class="mp-hostbar">${ctl}</div></div>`;
@@ -339,7 +343,7 @@ function render(s: RoomState) {
       if (s.fmt === "suerte" && s.ep === 1) lines.push(["host", "Ya tenéis vuestras cajitas. Quien tenga la reina de la suerte podrá salvar a quien quiera del lip sync, una vez. Y es secreto: que nadie diga nada."]);
       if (s.rp && s.rp.ep === s.ep) lines.splice(1, 0, ["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["host", "Cada una de vosotras hará un monólogo con una de ellas. La eliminada de la pareja ganadora... vuelve a la competición."]);
       return lines;
-    }, () => `${heartChoice(s)}${myStatus(s)}<p class="eyebrow">Episodio ${s.ep}${s.fmt && s.fmt !== "normal" ? ` · ${FORMATOS[s.fmt as Formato].icon} ${FORMATOS[s.fmt as Formato].n}` : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}${me ? " Tu look ya está en la maleta." : ""}</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Para jugar el reto tenéis ${Math.round(((DURACION[s.ritmo].reto * (s.ia ? IA_EXTRA : 1)) / 60))} minutos.`}</p>`);
+    }, () => `${heartChoice(s)}${myStatus(s)}<p class="eyebrow">Episodio ${s.ep}${s.fmt && s.fmt !== "normal" ? ` · ${FORMATOS[s.fmt as Formato].icon} ${FORMATOS[s.fmt as Formato].n}` : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}${me ? " Tu look ya está en la maleta." : ""}</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.reto!.tipo === "lalaparuza" ? "Hoy no hay taller ni pasarela: lip syncs eliminatorios, ronda a ronda." : s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Para jugar el reto tenéis ${Math.round(((DURACION[s.ritmo].reto * (s.ia ? IA_EXTRA : 1)) / 60))} minutos.`}</p>`);
   }
   if (s.phase === "reto") {
     api().scene("werkroom");
@@ -370,7 +374,9 @@ function render(s: RoomState) {
       const n = (s.rows || []).length;
       const safeL: [string, string][] = safe.length ? [["host", `${names(s, sh(safe))}: estáis salvadas. Podéis volver al backstage.`]] : [];
       const judgedL: [string, string][] = [["host", allCrit ? `Quedáis ${n}: a partir de ahora ya no hay salvadas. ${names(s, sh(judged))}, todas recibís la valoración del jurado.` : s.fmt === "winners" ? `${names(s, sh(judged))}: esta semana recibís las críticas del jurado.` : `${names(s, sh(judged))}... sois las mejores y las peores del programa de hoy.`]];
-      const lines: [string, string][] = [["host", "Reinas, la pasarela ha terminado. Tengo algo que deciros..."], ...(Math.random() < 0.5 ? [...safeL, ...judgedL] : [...judgedL, ...(safe.length ? [["host", `Las demás, ${names(s, sh(safe))}: estáis a salvo.`] as [string, string]] : [])]), ["@call", ""]];
+      // Lalaparuza: primero, cómo ha quedado el cuadro
+      const lz: [string, string][] = s.lala?.done ? [["host", s.lala.champ ? `¡${keyName(s, s.lala.champ)} gana la Lalaparuza!` : `${names(s, s.lala.top2 || [])} llegan a la final del torneo.`], ["@lala", ""]] : [];
+      const lines: [string, string][] = [...lz, ["host", s.lala?.done ? "Reinas, el torneo ha terminado. Tengo algo que deciros..." : "Reinas, la pasarela ha terminado. Tengo algo que deciros..."], ...(Math.random() < 0.5 ? [...safeL, ...judgedL] : [...judgedL, ...(safe.length ? [["host", `Las demás, ${names(s, sh(safe))}: estáis a salvo.`] as [string, string]] : [])]), ["@call", ""]];
       if (safe.length) lines.push(["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."]);
       (s.crit || []).forEach((c) => c.lines.forEach(([who, t]) => lines.push([SPEAKER[who] || "host", t])));
       return lines;
@@ -392,6 +398,7 @@ function render(s: RoomState) {
       : [["host", "Reinas, he tomado algunas decisiones."], ["host", `${names(s, of("WIN"))}, ¡enhorabuena, has ganado el reto!`], ["host", triple ? (s.fmt === "moneda" ? `${names(s, btm)}: sois el bottom de tres... y esta es la temporada de la moneda.` : `${names(s, btm)}: vais al lip sync a tres bandas. Se salva una y se van dos.`) : `${names(s, btm)}: es la hora de que hagáis el lip sync for your life.`]],
     () => `<p class="eyebrow">Las decisiones del jurado</p><div class="verdict">${AS(s) || AW ? grp(["TOP2", "BTOP"], AW ? "⭐ Top 2: lip sync por la estrella" : "💄 Top 2: lip sync por el poder", "win") : grp(["WIN"], "👑 Ganadora del reto", "win")}${grp(["HIGH"], "✨ Buen trabajo, estáis a salvo", "high")}${grp(["SAFE"], "🙂 A salvo", "high")}${grp(["LOW"], "😬 A salvo... por los pelos", "low")}${grp(["BTM2", "BTM3"], AS(s) ? "💔 Bottom: una se irá con el pintalabios" : triple ? (s.fmt === "moneda" ? "🪙 Bottom de tres: decide la moneda" : "💔 Lip sync a tres bandas") : "💔 Bottom: lip sync for your life", "btm")}</div>${block ? `<p class="muted">🚫 ${esc(keyName(s, block.id))} estaba bloqueada esta semana.</p>` : ""}${starsTable(s)}`);
   }
+  if (s.phase === "lalaparuza") { api().scene("stage"); return lalaparuza(s, me ? pkey(me.id) : null); }
   if (s.phase === "lipsync" || s.phase === "final") { api().scene("stage"); return lipsync(s, me ? pkey(me.id) : null); }
   if (s.phase === "decision") { api().scene("panel"); return decision(s); }
   if (s.phase === "comodin") { api().scene("panel"); return comodin(s); }
@@ -691,6 +698,39 @@ function drawChat() {
   if (!box) return;
   box.innerHTML = chatLog.slice(-40).map((m) => `<p class="${m.me ? "me" : ""}"><b>${esc(m.name)}:</b> ${esc(m.text)}</p>`).join("") || `<p class="muted">Nadie ha dicho nada todavía.</p>`;
   box.scrollTop = box.scrollHeight;
+}
+// Lalaparuza: el cuadro del torneo (igual que en la historia) y, si te toca, tu lip sync
+function lzName(s: RoomState, r: number) { const R = s.lala!.R; return r === 0 ? "Ronda previa" : r === R ? "Final" : r === R - 1 ? "Semifinal" : r === R - 2 ? "Cuartos" : "Octavos"; }
+function lzBracket(s: RoomState) {
+  const L = s.lala!, R = L.R, mine = pkey(room.me);
+  const AWS = s.fmt === "allstars" || s.fmt === "winners";
+  const box = (m: LzMatch | undefined, r: number) => {
+    if (!m || (!m.a && !m.b)) return `<div class="lz-m lz-r${Math.min(r, 3)} empty"><span>&nbsp;</span><span>&nbsp;</span></div>`;
+    const live = r === L.round && m.a && m.b && !m.w && s.phase === "lalaparuza";
+    const row = (k: string | null) => (k ? `<span class="${k === mine ? "me" : ""} ${m.w ? (m.w === k ? "win" : "lose") : ""}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i>${esc(keyName(s, k))}</span>` : `<span class="wait">por decidir</span>`);
+    return `<div class="lz-m lz-r${Math.min(r, 3)} ${live ? "live" : ""}">${row(m.a)}${row(m.b)}</div>`;
+  };
+  const col = (r: number, ms: LzMatch[], side: string) => `<div class="lz-col ${side}${r === 0 ? " pre" : ""}"><b class="lz-rn">${lzName(s, r)}</b>${ms.map((m) => box(m, r)).join("")}</div>`;
+  const left: string[] = [], right: string[] = [];
+  for (let r = 1; r < R; r++) { const ms = L.rounds[r], h = ms.length / 2; left.push(col(r, ms.slice(0, h), "l")); right.unshift(col(r, ms.slice(h), "r")); }
+  const pre = L.rounds[0];
+  if (pre.length) { const P = L.rounds[1].length * 2; const pl = pre.filter((m) => m.slot! < P / 2), pr = pre.filter((m) => m.slot! >= P / 2); if (pl.length) left.unshift(col(0, pl, "l")); if (pr.length) right.push(col(0, pr, "r")); }
+  const champ = L.champ ? keyName(s, L.champ) : "";
+  const cols = [...left, `<div class="lz-col lz-center"><div class="lz-trophy">${AWS ? "💄" : "🏆"}<b>${champ ? esc(champ) : AWS ? "Lip sync por el poder" : "Ganadora"}</b></div>${box(L.rounds[R][0], R)}<b class="lz-rn">Final</b></div>`, ...right];
+  return `<div class="lz-scroll"><div class="lz-bracket" style="--cols:${cols.length}">${cols.join("")}</div></div>`;
+}
+function lalaparuza(s: RoomState, myKey: string | null) {
+  const L = s.lala!;
+  const pairs = s.pairs || [];
+  const mine = myKey ? pairs.find((p) => p.a === myKey || p.b === myKey) : null;
+  const rn = lzName(s, L.round);
+  if (mine && !(s.subs[room.me] || {}).ls) {
+    const rival = mine.a === myKey ? mine.b : mine.a;
+    return play(s, `lalaparuza${L.round}` as any, (el) => api().lipsyncShow(el, keyQueen(s, rival), { eyebrow: `🏆 Lalaparuza · ${rn}`, curtain: "LALAPARUZA", note: "La que pierda se queda fuera del torneo." }, (won: boolean, score: number) => { playing = null; room.submit({ ls: { won, score } }); }));
+  }
+  const out = myKey && Object.prototype.hasOwnProperty.call(L.reached, myKey);
+  const intro = L.round === (L.rounds[0].length ? 0 : 1) ? `<p class="muted">Eliminatorias de lip sync con todo el reparto. El cuadro se ordena por la temporada${L.rounds[0].length ? ": las últimas van a la ronda previa" : ""}. ${s.fmt === "allstars" || s.fmt === "winners" ? "Las dos que lleguen a la final son el top 2" : "La que gane el torneo gana el reto"}; las que caigan pronto, al bottom.</p>` : "";
+  info(`<p class="eyebrow">🏆 Lalaparuza · cuadro del torneo</p><h3>${esc(rn)}${pairs.length === 1 ? `: ${esc(keyName(s, pairs[0].a))} vs ${esc(keyName(s, pairs[0].b))}` : ""}</h3>${intro}${mine ? `<p class="twist-note">¡Hecho! Esperando a que terminen los demás duelos...</p>` : out ? `<p class="muted">💔 Estás fuera del torneo. El resto se decide sin ti.</p>` : ""}${lzBracket(s)}<p class="muted">${pairs.some((p) => isP(p.a) || isP(p.b)) ? "Las jugadoras están bailando su lip sync..." : "Las reinas lo dan todo en el escenario..."}</p>${pairs.some((p) => isP(p.a) || isP(p.b)) ? skipBtn(s) : ""}`, undefined, "lz-card");
 }
 // All Winners: nombre de la eliminatoria y de la ronda
 const brLabel = (s: RoomState) => (s.bracket ? `${s.bracket.kind === "qosd" ? "💅 QoSDADHH" : "👑 Reina de reinas"} · ${s.bracket.alive.length === 2 ? "la final" : `ronda ${s.bracket.round}`}` : "");
