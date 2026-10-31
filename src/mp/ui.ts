@@ -399,12 +399,13 @@ function render(s: RoomState) {
   if (s.phase === "track") return watch(s, "werkroom", () => [], () => `${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}<h3>Track record</h3>${track(s)}${s.fmt === "corazon" ? heartsTable(s) : ""}${s.fmt === "winners" && s.ep >= (s.weeks || 0) ? `<p class="twist-note">⭐ Se acabaron las semanas: las 4 con más estrellas van a la gran final.</p>` : ""}`);
   if (s.phase === "corona") {
     savedPut(`${s.code}:${room.me}`, null);
+    payout(s);
     const champ = keyName(s, s.champion!);
     const qd = s.fmt === "winners" && s.awFinal?.qosd ? keyName(s, s.awFinal.qosd) : "";
     return watch(s, "stage", () => s.fmt === "winners"
       ? [["host", "Reinas, ha llegado el momento."], ...(qd ? [["host", `${qd}, tú ya eres la Queen of She Done Already Done Had Herses.`] as [string, string]] : []), ["host", `La corona de Reina de reinas es para... ¡${champ}!`], ["judge", "Larga vida a la reina de reinas."]]
       : [["host", "Reinas, ha llegado el momento."], ["host", `La ganadora de esta temporada en directo es... ¡${champ}!`], ["judge", "Larga vida a la reina."]],
-      () => `<p class="eyebrow">Gran final${s.fmt === "winners" ? " · All Winners" : ""}</p>${qd ? `<p class="twist-note">💅 QoSDADHH: <b>${esc(qd)}</b></p>` : ""}<h3>👑 ${esc(champ)}${keyPlayer(s, s.champion!) ? ` (${esc(keyPlayer(s, s.champion!))})` : ""}, ¡eres la ganadora!</h3>${track(s)}<button class="btn btn-primary" id="mp-exit2">Salir</button>`,
+      () => `<p class="eyebrow">Gran final${s.fmt === "winners" ? " · All Winners" : ""}</p>${qd ? `<p class="twist-note">💅 QoSDADHH: <b>${esc(qd)}</b></p>` : ""}<h3>👑 ${esc(champ)}${keyPlayer(s, s.champion!) ? ` (${esc(keyPlayer(s, s.champion!))})` : ""}, ¡eres la ganadora!</h3>${track(s)}${W.store?.get(`dftc-mp-paid:${s.code}:${room.me}`, 0) ? `<p class="twist-note">✨ Te llevas <b>${W.store.get(`dftc-mp-paid:${s.code}:${room.me}`, 0)}</b> lentejuelas para la tienda.</p>` : ""}<button class="btn btn-primary" id="mp-exit2">Salir</button>`,
       () => { $("#mp-exit2")!.onclick = exit; if (!crownShown) { crownShown = true; W.Confetti?.burst?.(2500); } });
   }
 }
@@ -767,7 +768,24 @@ function lobby(s: RoomState) {
   }, "mp-lobby");
 }
 
+// Lo que se gana en el multijugador va a tus lentejuelas (las mismas del modo historia y la tienda)
+const PAY: Record<string, number> = { WIN: 25, BWIN: 25, TOP2: 20, BTOP: 20, HIGH: 18, SAFE: 15, RTRN: 15, LOW: 12, BTM2: 10, BTM3: 10, ELIM: 10, ELIMF: 10, "3ª": 20, QOSD: 25, "RUNNER-UP": 30, WINNER: 60 };
+function payout(s: RoomState | null) {
+  if (!s || s.phase === "lobby" || s.phase === "maletas") return;
+  const mine = pkey(room.me);
+  if (!s.track[mine]) return;
+  const key = `dftc-mp-paid:${s.code}:${room.me}`;
+  if (W.store?.get(key, false)) return;
+  const labs = Object.values(s.track[mine] || {}) as string[];
+  const n = 20 + labs.reduce((a, l) => a + (PAY[l] || 0), 0);
+  W.store?.set(key, n);
+  const won = s.champion === mine;
+  api().reward(n, won ? "¡Corona en directo!" : "Por tu temporada en directo");
+}
 function exit() {
+  // Si sales eliminada (o al final), te llevas lo ganado
+  const st = room.state, meP = st?.players.find((p) => p.id === room.me);
+  if (st && (st.phase === "corona" || (meP && !meP.alive))) payout(st);
   if (playing) api().abort();
   playing = null;
   room.leave();

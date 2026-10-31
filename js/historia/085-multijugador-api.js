@@ -142,6 +142,8 @@
     },
     runway(el, cat, cb) { runRunwayNew(el, cat, (walk) => { cleanup = null; cb(Math.round(walk)); }); },
     lipsync(el, rivalId, cb) { runLipsync(el, qById(rivalId), (won, score) => { cleanup = null; cb(!!won, Math.round(score || 0)); }); },
+    /** Premio del multijugador: lentejuelas al monedero de siempre. */
+    reward(n, why) { const got = Wallet.add(n); if (got) Toast.show(`✨ +${got} lentejuelas`, why); return got; },
     /** Nota final de la semana de la jugadora (el dado manda, su juego lo mueve). */
     finalScore(tipo, raw, walk, live) {
       S.curTipo = tipo;
