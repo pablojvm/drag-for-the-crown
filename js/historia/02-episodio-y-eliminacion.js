@@ -662,7 +662,10 @@
     const immuneNote = tw === "repesca" && S.flags.immuneEp === S.ep ? (winner.me ? "🎤 <b>Ganas la inmunidad</b>: la semana que viene no compites, serás la <b>maestra de ceremonias</b>." : `🎤 <b>${esc(winner.q.name)}</b> gana la inmunidad: la semana que viene no compite, será la <b>maestra de ceremonias</b>.`) : "";
     // Salvar a una del bottom: entra la siguiente peor que no esté ya dentro
     const saveRow = (row, how) => {
-      const next = rows.slice(0, n - 1).reverse().find((r) => !bottomRows.includes(r) && r !== winner && !r.protected);
+      // Regla compartida con el multijugador (src/core/dinamicas.ts)
+      const byK = (k) => rows.find((r) => keyOf(r.q) === k);
+      const R = DFTC.rescueFromBottom({ order: rows.map((r) => keyOf(r.q)), bottom: bottomRows.map((r) => keyOf(r.q)), save: keyOf(row.q), protectedKeys: rows.filter((r) => r.protected).map((r) => keyOf(r.q)), winner: keyOf(winner.q) });
+      const next = R ? byK(R.entered) : null;
       if (!next) return false;
       row.protected = true;
       bottomRows = bottomRows.map((b) => (b === row ? next : b));
@@ -1108,6 +1111,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     Music.play("tension");
     const tally = (myVote) => {
       const votes = new Map(three.map((q) => [q, []]));
+      const picks = {};
       voters.forEach((v) => {
         let choice;
         if (v === S.queen) choice = myVote;
@@ -1119,10 +1123,15 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           choice = cara ? sorted[0] : sorted[sorted.length - 1];
         }
         votes.get(choice).push(v);
+        picks[keyOf(v)] = keyOf(choice);
       });
+      // Recuento, empate y quiénes bailan: regla compartida con el multijugador (src/core/dinamicas.ts)
+      const byK = (k) => three.find((q) => keyOf(q) === k);
+      const coin = (breakTie) => DFTC.coinResult({ cara, options: three.map(keyOf), picks, scoreOf: (k) => scoreOf(byK(k)), breakTie });
       // ¿Empate? Desempata la ganadora de la semana
+      const first = coin((t) => t[0]);
       const maxV = Math.max(...three.map((q) => votes.get(q).length));
-      const tied = three.filter((q) => votes.get(q).length === maxV);
+      const tied = first.tied.map(byK);
       if (tied.length === 1) return resolve(tied[0], "");
       const dec = winner.q;
       const tieNote = (c) => `<p class="twist-note">⚖️ Empate a ${maxV} voto${maxV === 1 ? "" : "s"} entre ${tied.map((q) => `<b>${esc(q === S.queen ? "ti" : q.name)}</b>`).join(" y ")}. ${winner.me ? "Como ganadora de la semana, has desempatado tú" : `Desempata la ganadora de la semana, <b>${esc(dec.name)}</b>`}: ${cara ? "salva a" : "condena a"} <b>${esc(c === S.queen ? "ti" : c.name)}</b>.</p>`;
@@ -1153,9 +1162,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       if (c === S.queen) changeRel(dec, cara ? 1 : -1);
       resolve(c, tieNote(c));
       function resolve(chosen, tieNote) {
-      let pair;
-      if (cara) pair = three.filter((q) => q !== chosen);
-      else pair = [chosen, three.filter((q) => q !== chosen).sort((a, b) => scoreOf(a) - scoreOf(b))[0]];
+      const pair = coin(() => keyOf(chosen)).pair.map(byK);
       // Votar a la cara tiene consecuencias
       if (meVoter && myVote !== S.queen) {
         changeRel(myVote, cara ? 2 : -2);
@@ -1456,8 +1463,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
   // - "jugarreta": se va la que lo hizo mejor esta semana Y tiene mejor (o igual) temporada: quitarse a una rival fuerte
   const asPPE = (q) => DFTC.ppe(Object.values(S.track[keyOf(q)] || {}));
   const asStrength = (q) => { const v = Object.values(S.track[keyOf(q)] || {}); return asPPE(q) * 2 + v.filter((l) => l === "WIN" || l === "TOP2").length; };
-  const PPE_MARGEN = 0.25;
-  const asKind = (go, stay, sOf) => (sOf(go) <= sOf(stay) ? "semana" : asPPE(go) < asPPE(stay) - PPE_MARGEN ? "trayectoria" : "jugarreta");
+  const asKind = (go, stay, sOf) => DFTC.lipstickKind(go, stay, sOf, asPPE);
   const ppeTxt = (q) => asPPE(q).toFixed(2).replace(".", ",");
   // Reacciones del taller a la decisión (con IA si está disponible)
   async function asReactions(dec, go, stay, kind) {

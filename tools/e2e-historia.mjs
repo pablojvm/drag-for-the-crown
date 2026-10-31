@@ -14,12 +14,14 @@ page.on("pageerror", (e) => errors.push(e.message));
 await page.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
 await page.goto(URL);
 await page.waitForTimeout(800);
-await page.evaluate(() => localStorage.clear());
+// SEASON=5 juega la sexta temporada (la de la moneda); se abren todas las anteriores como ganadas
+const SEASON = Number(process.env.SEASON || 0);
+await page.evaluate((n) => { localStorage.clear(); if (n) localStorage.setItem("dftc-story-wins", JSON.stringify(["es1", "es2", "es3", "es4", "es5", "es6"].slice(0, n))); }, SEASON);
 await page.reload();
 await page.waitForTimeout(800);
 await page.click("#btn-story");
 await page.locator(".franchise-card").nth(0).click();
-await page.locator(".season-card").first().click();
+await page.locator(".season-card").nth(SEASON).click();
 await page.locator("#queen-grid > *").nth(0).click();
 await page.click("#btn-start");
 
@@ -49,7 +51,10 @@ for (let i = 0; i < 9000 && !done; i++) {
       if (e) { e.click(); return ""; }
     }
     const b = [...document.querySelectorAll(".story-card .btn-primary, .mg .btn-primary")].find((x) => x.offsetParent && !x.disabled);
-    if (b) b.click();
+    if (b) { b.click(); return ""; }
+    // Votar (la moneda) o elegir a alguien cuando no queda otra cosa que pulsar
+    const who = q(".story-card .hub-q[data-id]");
+    if (who) who.click();
     return "";
   });
   if (r === "look") looks++;

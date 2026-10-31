@@ -5,6 +5,7 @@ import { ppe } from "../core/track";
 import { buildBracket } from "../core/bracket";
 import { bottomSize, weekLabels, allCritiqued } from "../core/week";
 import { allWinnersCut, allWinnersTier, lalaScore } from "../core/finales";
+import { rescueFromBottom, coinResult, lipstickKind, addHalfHearts } from "../core/dinamicas";
 
 export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
@@ -25,11 +26,12 @@ export const REPESCA_AT = 7;
 
 /** Segundos por fase. La suma de un episodio es el tope de tiempo del episodio. */
 const CAJAS_VER = 3500;
+// Lip syncs con margen: el minijuego tiene presentación, telón y seis movimientos, y nadie debe perder por leer despacio
 export const DURACION: Record<Ritmo, Record<Exclude<Phase, "lobby" | "corona">, number>> = {
   // Las pantallas que se miran (anuncio, críticas, Untucked, veredicto, pintalabios, track) no tienen reloj:
   // las pasa la anfitriona, y todas ven lo mismo que ella. El reloj es solo para lo que se juega.
-  normal: { lalaparuza: 120, cajas: 60, maletas: 600, anuncio: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 120, decision: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, final: 120 },
-  rapido: { lalaparuza: 90, cajas: 40, maletas: 420, anuncio: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 90, decision: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, final: 90 },
+  normal: { lalaparuza: 180, cajas: 60, maletas: 600, anuncio: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 180, decision: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, final: 180 },
+  rapido: { lalaparuza: 150, cajas: 40, maletas: 420, anuncio: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 150, decision: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, final: 150 },
   libre: { lalaparuza: 0, cajas: 0, maletas: 0, anuncio: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, comodin: 0, sorpresa: 0, pintalabios: 0, track: 0, final: 0 },
 };
 /** Pantallas que lleva la anfitriona (diálogo sincronizado y botón de seguir). */
@@ -410,8 +412,7 @@ export function standings(s: RoomState): { key: string; place: string; out: bool
 /** Cómo se lee la decisión: la peor de la semana (justa), la de peor temporada (trayectoria) o quitarse a una rival fuerte (jugarreta). */
 export function decisionKind(s: RoomState, go: string, stay: string): "semana" | "trayectoria" | "jugarreta" {
   const sc = (k: string) => (s.rows || []).find((r) => r.key === k)?.score ?? 0;
-  if (sc(go) <= sc(stay)) return "semana";
-  return ppeOf(s, go) < ppeOf(s, stay) - 0.25 ? "trayectoria" : "jugarreta";
+  return lipstickKind(go, stay, sc, (k) => ppeOf(s, k));
 }
 /** Decisión de una reina del juego: mira la semana y la temporada; a veces, estrategia. */
 export function autoDecide(s: RoomState, options: string[], e: Pick<Engine, "rnd">): string {
@@ -430,15 +431,12 @@ const STAGES = ["corazon", "suerte", "moneda"] as const;
 /** Salvar a una del bottom: entra la siguiente con peor nota (que no sea la ganadora ni esté ya salvada). */
 export function saveFromBottom(s: RoomState, key: string): { s: RoomState; entered?: string } {
   const bottom = s.bottom || [];
-  if (!bottom.includes(key)) return { s };
   const rows = s.rows || [];
-  const prot = new Set([...(s.protectedKeys || []), key]);
-  const top = rows[0]?.key;
   const alive = new Set(aliveKeys(s));
-  const cand = rows.slice().reverse().find((r) => !bottom.includes(r.key) && r.key !== top && !prot.has(r.key) && alive.has(r.key));
-  if (!cand) return { s };
-  const track = { ...s.track, [cand.key]: { ...(s.track[cand.key] || {}), [s.ep]: `BTM${bottom.length}` } };
-  return { s: { ...s, bottom: bottom.map((k) => (k === key ? cand.key : k)), protectedKeys: [...prot], track }, entered: cand.key };
+  const r = rescueFromBottom({ order: rows.map((x) => x.key), bottom, save: key, protectedKeys: s.protectedKeys, winner: rows[0]?.key, eligible: (k) => alive.has(k) });
+  if (!r) return { s };
+  const track = { ...s.track, [r.entered]: { ...(s.track[r.entered] || {}), [s.ep]: `BTM${bottom.length}` } };
+  return { s: { ...s, bottom: r.bottom, protectedKeys: r.protectedKeys, track }, entered: r.entered };
 }
 /** Lo que deciden las reinas del juego en cada giro. */
 function npcPicks(s: RoomState, by: string[], kind: Twist["kind"], options: string[], e: Pick<Engine, "rnd">): Record<string, string> {
@@ -464,9 +462,7 @@ function startStage(s: RoomState, i: number, now: number, e: Engine): RoomState 
     if (s.fmt !== "corazon" || !(s.pendingHearts || []).length) return null;
     const alive = new Set(aliveKeys(s));
     const gifts = (s.pendingHearts || []).filter((g) => alive.has(g.to));
-    const hearts = { ...(s.hearts || {}) };
-    gifts.forEach((g) => (hearts[g.to] = (hearts[g.to] || 0) + 1));
-    const full = Object.keys(hearts).filter((k) => alive.has(k) && hearts[k] >= 2);
+    const { hearts, full } = addHalfHearts(s.hearts || {}, gifts, (k) => alive.has(k));
     const base: RoomState = { ...s, hearts, pendingHearts: [], stage: i, twist: undefined };
     if (full.length && bottom.length) base.twist = { kind: "corazon", by: full, options: bottom, picks: npcPicks(base, full, "corazon", bottom, e) };
     if (!gifts.length && !base.twist) return null;
@@ -530,17 +526,12 @@ function resolveTwist(s: RoomState, now: number, e: Engine): RoomState {
     if (t.kind === "corazon") r.hearts = hearts;
     res = { kind: t.kind, by: t.by.find((k) => picks[k] !== "keep") || t.by[0], saved, entered };
   } else if (t.kind === "moneda") {
-    const votes: Record<string, string[]> = Object.fromEntries(t.options.map((o) => [o, [] as string[]]));
-    t.by.forEach((k) => votes[picks[k]]?.push(k));
-    const max = Math.max(...t.options.map((o) => votes[o].length));
-    const tied = t.options.filter((o) => votes[o].length === max);
     // Empate: desempata la ganadora de la semana (su voto, si está entre las empatadas)
     const win = (s.rows || [])[0]?.key;
-    const chosen = tied.length === 1 ? tied[0] : win && tied.includes(picks[win]) ? picks[win] : pickWith(tied, e);
     const sc = (k: string) => (s.rows || []).find((x) => x.key === k)?.score ?? 0;
-    const rest = t.options.filter((o) => o !== chosen);
-    r.bottom = t.cara ? rest : [chosen, rest.sort((a, b) => sc(a) - sc(b))[0]];
-    res = { kind: "moneda", votes, chosen, cara: t.cara, tie: tied.length > 1 };
+    const c = coinResult({ cara: !!t.cara, options: t.options, picks: Object.fromEntries(t.by.map((k) => [k, picks[k]])), scoreOf: sc, breakTie: (tied) => (win && tied.includes(picks[win]) ? picks[win] : pickWith(tied, e)) });
+    r.bottom = c.pair;
+    res = { kind: "moneda", votes: c.votes, chosen: c.chosen, cara: t.cara, tie: c.tie };
   } else {
     const by = t.by[0];
     r.block = { ep: s.ep + 1, id: picks[by], by };

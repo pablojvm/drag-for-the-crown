@@ -14,7 +14,8 @@
     "lint": "eslint . && node tools/lint-historia.mjs",
     "format": "prettier --write src tests",
     "e2e:mp": "node tools/e2e-mp.mjs http://localhost:4173/",
-    "e2e:smoke": "node tools/smoke-test.mjs http://localhost:4173/"
+    "e2e:smoke": "node tools/smoke-test.mjs http://localhost:4173/",
+    "e2e:moneda": "SEASON=5 node tools/e2e-historia.mjs http://localhost:4173/"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
