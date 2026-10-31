@@ -346,15 +346,16 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
       ask("¿Cómo sales a la pasarela?", WALKS.map(([k, ico, t]) => ({ ico, t, go: () => {
         doll.className = `rw-doll pos1 walk-${k}`;
         const ok = k === best;
-        add((ok ? 92 : 52) + Math.round(((S.walkMov || 3) - 3) * 4));
+        // Puntos: reglas compartidas con el motor nuevo (src/core/runway.ts); sin estilo conocido, se camina fuerte
+        add(DFTC.walkPoints(k, WALK_OF_TAG[lookTag] ? lookTag : "Edgy", S.walkMov || 3));
         later(() => say(ok ? "✨ El paso y el look van de la mano" : "Bien caminado... pero no pega con lo que llevas", ok ? "good" : "meh"), 900);
         later(step1, 2600);
       } })));
     }
     function step1() {
       ask("Final de pasarela. ¡Es tu momento!", [
-        { ico: "🖼️", t: "Pose", go: () => { flash(); doll.classList.add("pose"); if (/reveal/i.test(cat)) { add(35); say("📸 Pose bonita... pero esta pasarela era de REVEAL", "meh"); } else { add(["Glamour", "Edgy"].includes(lookTag) ? 82 : 68); say("📸 Pose limpia. El fotógrafo, contento.", "good"); } later(step2, 2200); } },
-        { ico: "🤡", t: "Comedia", go: () => { doll.classList.add("funny"); const ok = lookTag === "Camp" && !/reveal/i.test(cat); add(ok ? 94 : /reveal/i.test(cat) ? 35 : 48); say(ok ? "😂 ¡Carcajada en el jurado!" : "El gesto no casaba con el look...", ok ? "good" : "meh"); later(step2, 2200); } },
+        { ico: "🖼️", t: "Pose", go: () => { flash(); doll.classList.add("pose"); add(DFTC.momentPoints({ moment: "pose", cat, look: lookTag })); if (/reveal/i.test(cat)) { say("📸 Pose bonita... pero esta pasarela era de REVEAL", "meh"); } else { say("📸 Pose limpia. El fotógrafo, contento.", "good"); } later(step2, 2200); } },
+        { ico: "🤡", t: "Comedia", go: () => { doll.classList.add("funny"); const ok = lookTag === "Camp" && !/reveal/i.test(cat); add(DFTC.momentPoints({ moment: "comedia", cat, look: lookTag })); say(ok ? "😂 ¡Carcajada en el jurado!" : "El gesto no casaba con el look...", ok ? "good" : "meh"); later(step2, 2200); } },
         { ico: "🎁", t: "Reveal", go: () => {
           const c = check(["performance", "carisma"], 60);
           const rvTheme = /reveal/i.test(cat);
@@ -390,9 +391,9 @@ Devuelve JSON {"concepto":0,"coherencia":0,"desfile":0,"supreme":"...","ana":"..
       const good = pick1(VOICEOVERS[key] || VOICEOVERS.Glamour);
       const other = pick1(VOICEOVERS[pick1(TAGS.filter((t) => t !== key))]);
       ask("🎙️ Tu voz en off...", shuffle([
-        { wide: true, t: good, go: () => { flags.voiceGood = true; add(96); caption(good, "El jurado asiente: esa frase lo resume todo", "good"); } },
-        { wide: true, t: other, go: () => { add(55); caption(other, "Bonita frase... para otra categoría", "meh"); } },
-        { wide: true, t: pick1(VOICE_OFF), go: () => { add(25); caption("…", "Silencio en la mesa del jurado", "bad"); } },
+        { wide: true, t: good, go: () => { flags.voiceGood = true; add(DFTC.voicePoints("buena")); caption(good, "El jurado asiente: esa frase lo resume todo", "good"); } },
+        { wide: true, t: other, go: () => { add(DFTC.voicePoints("otra")); caption(other, "Bonita frase... para otra categoría", "meh"); } },
+        { wide: true, t: pick1(VOICE_OFF), go: () => { add(DFTC.voicePoints("mala")); caption("…", "Silencio en la mesa del jurado", "bad"); } },
       ]));
     }
     function caption(t, verdict, cls) {

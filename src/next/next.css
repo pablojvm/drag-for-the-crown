@@ -78,3 +78,9 @@ html, body { margin: 0; height: 100%; background: var(--nx-bg); color: var(--nx-
 .nx-opt:hover { transform: translateY(-2px); border-color: var(--nx-pink); }
 .nx-opt:focus-visible { outline: 3px solid var(--nx-gold); outline-offset: 2px; }
 @media (max-width: 560px) { .nx-ls-opts { grid-template-columns: 1fr; } }
+.nx-cat { font: 400 clamp(18px, 3vw, 26px)/1.1 Bungee, sans-serif; color: var(--nx-gold); }
+.nx-step-title { font-size: clamp(18px, 3vw, 24px) !important; }
+.nx-ls-last.good { color: #1f7a3a; }
+.nx-ls-last.meh { color: #9a4a00; }
+.nx-ls-opts:has(> :nth-child(4)) { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 560px) { .nx-ls-opts:has(> :nth-child(4)) { grid-template-columns: 1fr 1fr; } }

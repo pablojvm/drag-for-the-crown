@@ -1,5 +1,5 @@
 // Prueba del motor nuevo (Phaser 4 + React): carga, menú, eliges reina, juegas el arcade un rato
-// (moviéndote, lanzando tacones y usando el poder) y juega un lip sync entero. Falla si hay errores.
+// (moviéndote, lanzando tacones y usando el poder) y juega un lip sync y una pasarela enteros. Falla si hay errores.
 //   node tools/e2e-next.mjs [http://localhost:4173/] [carpeta-capturas]
 import { chromium } from "playwright";
 
@@ -55,8 +55,19 @@ for (let k = 0; k < 6; k++) {
 }
 const lsEnd = (await page.locator(".nx-ls-panel h2").textContent({ timeout: 5000 }).catch(() => "")) || "";
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/next-lipsync-end.png` });
+// Y una pasarela entera (look, paso, momento final y voz en off)
+await page.getByRole("button", { name: "Menú" }).click();
+await page.waitForSelector(".nx-queens button", { timeout: 10000 });
+await page.getByRole("button", { name: /Pasarela/ }).click();
+for (let k = 0; k < 4; k++) {
+  await page.waitForSelector(".nx-opt", { timeout: 10000 });
+  await page.locator(".nx-opt").first().click();
+  await page.waitForTimeout(1100);
+  if (k === 2 && SHOTS) await page.screenshot({ path: `${SHOTS}/next-runway.png` });
+}
+const rwScore = (await page.locator(".nx-score").textContent({ timeout: 5000 }).catch(() => "")) || "";
 await browser.close();
-const ok = score > 0 && onScreen && paused && powered === "triple" && /Shantay|Sashay/.test(lsEnd) && !errors.length;
-console.log(`Motor nuevo · puntos tras jugar: ${score} · poder: ${powered || "no"} · pausa o resultado: ${paused ? "sí" : "no"} · lip sync: «${lsEnd.trim()}» · errores: ${errors.length}`);
+const ok = score > 0 && onScreen && paused && powered === "triple" && /Shantay|Sashay/.test(lsEnd) && /\/ 100/.test(rwScore) && !errors.length;
+console.log(`Motor nuevo · puntos tras jugar: ${score} · poder: ${powered || "no"} · pausa o resultado: ${paused ? "sí" : "no"} · lip sync: «${lsEnd.trim()}» · pasarela: ${rwScore.trim() || "no"} · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
 process.exit(ok ? 0 : 1);

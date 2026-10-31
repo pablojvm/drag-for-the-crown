@@ -2,7 +2,8 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 
-export type Screen = "boot" | "menu" | "arcade" | "result" | "lipsync";
+import type { RunwayState } from "./game/runway";
+export type Screen = "boot" | "menu" | "arcade" | "result" | "lipsync" | "runway";
 export interface LipSyncState {
   rivalId: string;
   step: number;
@@ -35,6 +36,7 @@ export interface GameState {
   muted: boolean;
   result: { won: boolean; score: number; round: number } | null;
   ls: LipSyncState | null;
+  rw: RunwayState | null;
   best: number;
 }
 
@@ -42,7 +44,7 @@ const readBest = () => { try { return Number(localStorage.getItem("dftc-next-bes
 
 export const store = createStore<GameState>(() => ({
   screen: "boot", loading: 0, queenId: "jimbo", lives: 3, score: 0, combo: 0, round: 1,
-  rivalName: "", rivalHp: 1, rivalMax: 1, paused: false, special: 0, powerName: "", activePower: null, doubleOn: false, muted: false, result: null, ls: null, best: readBest(),
+  rivalName: "", rivalHp: 1, rivalMax: 1, paused: false, special: 0, powerName: "", activePower: null, doubleOn: false, muted: false, result: null, ls: null, rw: null, best: readBest(),
 }));
 
 export const set = (p: Partial<GameState>) => store.setState(p);

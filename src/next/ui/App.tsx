@@ -8,6 +8,7 @@ import { ARCADE_QUEENS } from "../game/data";
 import { startLives } from "../game/rules";
 import { lipSyncMove, rivalSoFar } from "../game/lipsync";
 import { EMOTES, LS_PHASES, LS_STEPS, REPITE, type LsKind } from "../../core/lipsync";
+import { chooseLook, chooseWalk, chooseMoment, chooseVoice, WALK_OPTS } from "../game/runway";
 
 export function App() {
   const host = useRef<HTMLDivElement>(null);
@@ -29,6 +30,7 @@ export function App() {
         {screen === "arcade" && <Hud />}
         {screen === "result" && <Result />}
         {screen === "lipsync" && <LipSyncUI />}
+        {screen === "runway" && <RunwayUI />}
       </div>
     </div>
   );
@@ -72,6 +74,7 @@ function MenuUI() {
         <div className="nx-row">
           <button className="nx-btn" onClick={() => send({ type: "start", queenId: pick })}>Arcade</button>
           <button className="nx-btn ghost" onClick={() => send({ type: "lipsync", queenId: pick })}>💋 Lip sync</button>
+          <button className="nx-btn ghost" onClick={() => send({ type: "runway", queenId: pick })}>👠 Pasarela</button>
         </div>
         <p className="nx-muted">Flechas o WASD para moverte, Espacio para lanzar tacones, E para el poder, P para pausar. En el móvil, arrastra el dedo.{best ? ` · Récord: ${best}` : ""}</p>
         <a className="nx-link" href="./index.html">Volver al juego completo (historia y multijugador)</a>
@@ -151,6 +154,48 @@ function LipSyncUI() {
               {opts.map((o) => <button key={o.k} className="nx-opt" onClick={() => lipSyncMove(o.k)}><b>{o.t}</b><small>{o.d}</small></button>)}
             </div>
             <small className="nx-muted">Paso {ls.step + 1} de {LS_STEPS}</small>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// Pasarela: estilo del look, paso, momento final y voz en off. El jurado valora que todo cuente la misma historia.
+const TAG_ICON: Record<string, string> = { Glamour: "💎", Camp: "🤡", Edgy: "⛓️", "Folclórico": "💃", Futurista: "🚀" };
+function RunwayUI() {
+  const rw = useGame((s) => s.rw);
+  const queenId = useGame((s) => s.queenId);
+  if (!rw) return null;
+  const title = ["Elige tu look", "¿Cómo sales a la pasarela?", "Final de pasarela: ¡tu momento!", "🎙️ Tu voz en off..."][rw.step] || "";
+  const verdict = (n: number) => (n >= 85 ? "¡Look de ganadora! 👑" : n >= 70 ? "Muy bien, entre las mejores" : n >= 55 ? "Correcta, sin brillar" : "El jurado no lo ha entendido");
+  return (
+    <>
+      <div className="nx-hud">
+        <div className="nx-ls-crowd"><small>👠 Categoría de la pasarela</small><b className="nx-cat">«{rw.cat}»</b></div>
+        <MuteBtn />
+      </div>
+      <div className="nx-ls-panel">
+        {rw.step >= 4 ? (
+          <div className="nx-panel small">
+            <p className="nx-eyebrow">El jurado ha visto tu pasarela</p>
+            <h2>{verdict(rw.score || 0)}</h2>
+            <p className="nx-score">{rw.score} / 100</p>
+            <p className="nx-muted">{rw.msg}</p>
+            <button className="nx-btn" onClick={() => send({ type: "runway", queenId })}>Otra pasarela</button>
+            <button className="nx-btn ghost" onClick={() => send({ type: "menu" })}>Menú</button>
+          </div>
+        ) : (
+          <div className="nx-panel">
+            <p className="nx-eyebrow">Paso {rw.step + 1} de 4</p>
+            <h2 className="nx-step-title">{title}</h2>
+            {rw.msg && <p className={`nx-ls-last ${rw.good ? "good" : "meh"}`}>{rw.msg}</p>}
+            <div className="nx-ls-opts">
+              {rw.step === 0 && rw.lookOpts.map((t) => <button key={t} className="nx-opt" onClick={() => chooseLook(t)}><b>{TAG_ICON[t]} {t}</b><small>Look de estilo {t.toLowerCase()}</small></button>)}
+              {rw.step === 1 && WALK_OPTS.map(([k, ico, t]) => <button key={k} className="nx-opt" onClick={() => chooseWalk(k)}><b>{ico} {t}</b></button>)}
+              {rw.step === 2 && ([["pose", "🖼️ Pose", "Segura"], ["comedia", "🤡 Comedia", "Si el look es camp, triunfa"], ["reveal", "🎁 Reveal", "Arriesgado: performance y carisma"]] as const).map(([k, t, d]) => <button key={k} className="nx-opt" onClick={() => chooseMoment(k)}><b>{t}</b><small>{d}</small></button>)}
+              {rw.step === 3 && rw.voices.map((v) => <button key={v.k} className="nx-opt" onClick={() => chooseVoice(v.k)}><b>{v.t}</b></button>)}
+            </div>
           </div>
         )}
       </div>
