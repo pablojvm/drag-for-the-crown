@@ -5,7 +5,7 @@ import tseslint from "typescript-eslint";
 import globals from "globals";
 
 export default tseslint.config(
-  { ignores: ["dist/**", "node_modules/**", "public/js/vendor/**", "supabase/functions/**", "*.timestamp-*", "js/historia/**"] },
+  { ignores: ["dist/**", "node_modules/**", "server/dist/**", "server/node_modules/**", "public/js/vendor/**", "supabase/functions/**", "*.timestamp-*", "js/historia/**"] },
   {
     files: ["src/**/*.ts", "tests/**/*.ts", "*.ts"],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],

@@ -1,0 +1,30 @@
+# Servidor de salas del multijugador en Fly.io. Desde la raíz del repo:  fly launch --no-deploy --copy-config  y luego  fly deploy
+# Si el nombre «dftc-salas» está cogido, cambia «app» aquí y VITE_MP_URL (o el valor por defecto en src/mp/room.ts).
+app = "dftc-salas"
+primary_region = "mad"
+
+[build]
+  dockerfile = "server/Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Las salas viven en memoria: una sola máquina, que se duerme sin jugadoras y se despierta al entrar alguien
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 400
+    hard_limit = 500
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  path = "/salud"
+  timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -17,7 +17,7 @@ await ctx.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinatio
 const open = async () => {
   const p = await ctx.newPage();
   p.on("pageerror", (e) => errors.push(e.message));
-  await p.goto(new globalThis.URL("clasico.html", URL).href); // la versión clásica
+  await p.goto(new globalThis.URL("clasico.html?mpserver=", URL).href); // la versión clásica, sin servidor de salas
   await p.waitForTimeout(1500);
   // Abrir la pantalla del multijugador (el primer clic centra la tarjeta en el carrusel, el segundo entra)
   for (let i = 0; i < 2; i++) { await p.evaluate(() => document.querySelector("#btn-mp").click()); await p.waitForTimeout(900); }

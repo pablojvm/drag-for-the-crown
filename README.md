@@ -33,6 +33,20 @@ Las pruebas en navegador usan Playwright (`npx playwright install chromium` la p
 
 Más detalle (servidor, claves, Supabase): [DESARROLLO.md](DESARROLLO.md).
 
+## Servidor de salas (multijugador)
+
+El multijugador en directo va por un servidor de [Colyseus](https://colyseus.io) (`server/`) que lleva el reloj y aplica las
+reglas de `src/mp/model.ts` (las mismas peticiones que `src/mp/ops.ts`), así que nadie puede hacer trampas desde su navegador.
+Si el servidor no responde, el juego sigue funcionando como antes: la anfitriona lleva la sala por Supabase Realtime.
+
+- En local: `npm run server` (puerto 2567) y abre `clasico.html?mpserver=ws://localhost:2567`.
+- Pruebas: `PORT=2599 npm run server` y `npm run e2e:mp-server` (temporadas enteras con bots y dos navegadores).
+- Fly.io, una sola vez, desde la raíz del repo: `fly auth signup` (o `login`), `fly launch --no-deploy --copy-config`, `fly deploy`.
+  El juego busca el servidor en `wss://dftc-salas.fly.dev`; si usas otro nombre de app, cámbialo en `fly.toml` y en la
+  variable `VITE_MP_URL` del repo (Settings > Variables).
+- Despliegue automático: añade el secreto `FLY_API_TOKEN` (`fly tokens create deploy -a dftc-salas`) y cada cambio en
+  `server/`, `src/mp/` o `src/core/` se despliega solo.
+
 ## Estructura
 
 | Carpeta | Qué hay |

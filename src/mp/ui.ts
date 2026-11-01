@@ -131,6 +131,7 @@ function entry() {
     const ia = iaOk && !!($("#mp-ia") as HTMLInputElement | null)?.checked;
     W.store?.set("dftc-mp-ia", ia);
     if (id === CUSTOM) return customSetup(nm(), ritmo, ia);
+    body().innerHTML = `<div class="story-card"><h3>Abriendo la sala...</h3></div>`;
     room.create(nm(), id, ritmo, { fmt: api().formato(id), ia });
   };
   $("#mp-join")!.onclick = () => { const c = ($("#mp-code") as HTMLInputElement).value.trim().toUpperCase(); if (c.length === 5) { room.join(c, nm()); body().innerHTML = `<div class="story-card"><h3>Entrando en la sala ${esc(c)}...</h3></div>`; } };
@@ -940,6 +941,12 @@ room.onChange = (s) => render(s);
 // El modo historia, mientras dura la sala, deja que la cabecera la pinte la sala
 W.__mpHeader = () => header(room.state);
 (window as any).__mpRoom = room; // para depurar desde la consola
+// Sin sala (no existe, está llena o se ha cortado el servidor): se dice y se vuelve a la entrada
+room.onFail = (msg) => {
+  room.leave();
+  body().innerHTML = `<div class="story-card"><p class="eyebrow">📡 Sala</p><h3>${esc(msg)}</h3><button class="btn btn-primary" id="mp-fail-back">Volver</button></div>`;
+  $("#mp-fail-back")!.onclick = () => entry();
+};
 room.onChat = (m) => { chatLog.push({ name: m.name, text: m.text, me: m.from === room.me }); drawChat(); };
 
 export function openMultiplayer() {
@@ -956,3 +963,5 @@ document.addEventListener("click", (e) => {
 document.addEventListener("click", (e) => {
   if ((e.target as HTMLElement).closest?.("#btn-mp")) openMultiplayer();
 });
+// Desde el motor nuevo se llega con ?mp: se abre directamente la sala
+if (new URLSearchParams(location.search).has("mp")) window.addEventListener("load", () => setTimeout(() => openMultiplayer(), 600));

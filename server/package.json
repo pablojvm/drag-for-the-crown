@@ -1,0 +1,18 @@
+{
+  "name": "dftc-mp-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node22 --outfile=dist/index.js --packages=external",
+    "start": "node dist/index.js",
+    "dev": "npm run build && node dist/index.js"
+  },
+  "dependencies": {
+    "@colyseus/core": "^0.18.25",
+    "@colyseus/ws-transport": "^0.18.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "@colyseus/sdk": "^0.18.9"
+  }
+}
