@@ -2,6 +2,7 @@
 import { lsMove, rivalStrength, LS_STEPS, EMOTES, type LsKind, type LsAttrs } from "../../core/lipsync";
 import { ARCADE_QUEENS, type ArcadeQueen } from "./data";
 import { queenOf } from "./queens";
+import { verdictSound } from "./music";
 import { get, set } from "../store";
 
 /** Atributos de lip sync (1 a 10) a partir de las estadísticas del arcade (1 a 5). */
@@ -42,6 +43,7 @@ export function lipSyncMove(kind: LsKind, rnd: () => number = Math.random) {
   const step = ls.step + 1;
   const done = step >= LS_STEPS;
   set({ ls: { ...ls, step, energy: m.energy, lastTag: m.tag, mine: ls.mine + m.imp, emote: Math.floor(rnd() * EMOTES.length), last: { me: toYou(m.msg), them }, anim: ls.anim + 1, done } });
+  if (done) setTimeout(() => { const l = get().ls; if (l) verdictSound(l.mine >= l.rival); }, 900);
 }
 
 /** El público de la rival crece con la canción: al final, su fuerza completa. */

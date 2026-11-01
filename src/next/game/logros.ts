@@ -1,6 +1,7 @@
 // Logros del motor nuevo: los mismos que en el juego de siempre (se guardan en "dftc-achievements" y dan lentejuelas).
 import { LOGROS } from "../../core/logros";
 import { get, set } from "../store";
+import { touch } from "./cuenta";
 
 const read = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } };
 const write = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } };
@@ -23,4 +24,7 @@ export function unlock(ids: string[]) {
     toast(`${l.icon} Logro: ${l.name}`, `+${l.reward} lentejuelas`);
   });
   write("dftc-achievements", done);
+  touch();
 }
+export const logrosDone = () => read<Record<string, string>>("dftc-achievements", {});
+export const sequins = () => read<number>("dftc-sequins", 0);

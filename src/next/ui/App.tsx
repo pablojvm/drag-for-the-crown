@@ -13,13 +13,15 @@ import { MOMENT_NAMES } from "../../core/concepto";
 import { queenOf } from "../game/queens";
 import { backFromScene, openSeasons, resume, hasSaved } from "../game/temporada";
 import { TemporadaUI } from "./Temporada";
+import { MenuBar } from "./Cuenta";
+import { unlockMusic } from "../game/music";
 
 export function App() {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => (host.current ? startGame(host.current) : undefined), []);
   // El audio arranca con el primer gesto (los navegadores no dejan antes)
   useEffect(() => {
-    const go = () => unlockAudio();
+    const go = () => { unlockAudio(); unlockMusic(); };
     window.addEventListener("pointerdown", go);
     window.addEventListener("keydown", go);
     return () => { window.removeEventListener("pointerdown", go); window.removeEventListener("keydown", go); };
@@ -30,6 +32,7 @@ export function App() {
       <div className="nx-canvas" ref={host} />
       <div className="nx-ui">
         {screen === "boot" && <Loading />}
+        {screen === "menu" && <MenuBar />}
         {screen === "menu" && <MenuUI />}
         {screen === "arcade" && <Hud />}
         {screen === "result" && <Result />}
@@ -64,8 +67,13 @@ function MenuUI() {
   return (
     <div className="nx-menu">
       <div className="nx-panel">
-        <p className="nx-eyebrow">Arcade · motor nuevo</p>
-        <h1>Elige a tu reina</h1>
+        <div className="nx-hero">
+          <button className="nx-btn gold big" onClick={openSeasons}>👑 Modo historia</button>
+          {hasSaved() && <button className="nx-btn ghost" onClick={resume}>Seguir mi temporada</button>}
+          <p className="nx-muted">Una temporada entera, de la primera semana a la corona.</p>
+        </div>
+        <p className="nx-eyebrow">Partida rápida</p>
+        <h2 className="nx-step-title">Elige a tu reina</h2>
         <div className="nx-queens" role="radiogroup" aria-label="Reinas">
           {ARCADE_QUEENS.map((x) => (
             <button key={x.id} role="radio" aria-checked={x.id === pick} className={x.id === pick ? "on" : ""} onClick={() => setPick(x.id)}>
@@ -83,12 +91,8 @@ function MenuUI() {
           <button className="nx-btn ghost" onClick={() => send({ type: "lipsync", queenId: pick })}>💋 Lip sync</button>
           <button className="nx-btn ghost" onClick={() => send({ type: "runway", queenId: pick })}>👠 Pasarela</button>
         </div>
-        <div className="nx-row nx-season-row">
-          <button className="nx-btn gold" onClick={openSeasons}>👑 Modo historia</button>
-          {hasSaved() && <button className="nx-btn ghost" onClick={resume}>Seguir mi temporada</button>}
-        </div>
         <p className="nx-muted">Flechas o WASD para moverte, Espacio para lanzar tacones, E para el poder, P para pausar. En el móvil, arrastra el dedo.{best ? ` · Récord: ${best}` : ""}</p>
-        <a className="nx-link" href="./index.html">Volver al juego completo (historia y multijugador)</a>
+        <a className="nx-link" href="./index.html">Versión clásica (y multijugador)</a>
       </div>
     </div>
   );

@@ -45,13 +45,15 @@ export interface GameState {
   back: string | null;
   /** Avisos (logros) que se ven un momento. */
   toasts: { id: number; title: string; sub: string }[];
+  /** Tu cuenta (invitada o con Google). */
+  acct: { ready: boolean; google: boolean; name: string; email: string; googleOn: boolean };
 }
 
 const readBest = () => { try { return Number(localStorage.getItem("dftc-next-best")) || 0; } catch { return 0; } };
 
 export const store = createStore<GameState>(() => ({
   screen: "boot", loading: 0, queenId: "jimbo", lives: 3, score: 0, combo: 0, round: 1,
-  rivalName: "", rivalHp: 1, rivalMax: 1, paused: false, special: 0, powerName: "", activePower: null, doubleOn: false, muted: false, result: null, ls: null, rw: null, best: readBest(), ts: null, back: null, toasts: [],
+  rivalName: "", rivalHp: 1, rivalMax: 1, paused: false, special: 0, powerName: "", activePower: null, doubleOn: false, muted: false, result: null, ls: null, rw: null, best: readBest(), ts: null, back: null, toasts: [], acct: { ready: false, google: false, name: "Invitada", email: "", googleOn: false },
 }));
 
 export const set = (p: Partial<GameState>) => store.setState(p);

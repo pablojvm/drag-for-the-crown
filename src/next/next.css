@@ -228,3 +228,29 @@ td.lab-elim { color: #8a8a8a; }
 .nx-lala-col.now small { color: var(--nx-pink); }
 .nx-lala-col .w { font-weight: 700; color: #1f7a3a; }
 .nx-lala-col .l { color: #9a8a96; text-decoration: line-through; }
+/* Barra del menú, cuenta y paneles */
+.nx-topbar { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; pointer-events: auto; z-index: 3; }
+.nx-topbar-r { display: flex; gap: 6px; align-items: center; }
+.nx-acct { display: flex; gap: 8px; align-items: center; border: 0; border-radius: 99px; padding: 5px 14px 5px 5px; background: var(--nx-panel); cursor: pointer; font-family: Poppins, sans-serif; color: var(--nx-ink); text-align: left; box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.5); }
+.nx-acct > span:first-child { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #f1e3ec; font-weight: 700; }
+.nx-acct.on > span:first-child { background: var(--nx-pink); color: #fff; }
+.nx-acct small { display: block; font-size: 11px; color: var(--nx-muted); }
+.nx-acct:focus-visible { outline: 3px solid var(--nx-gold); outline-offset: 2px; }
+.nx-overlay { z-index: 6; pointer-events: auto; }
+.nx-chip.on { background: var(--nx-pink); color: #fff; }
+.nx-fama li small { color: var(--nx-muted); margin-left: 4px; }
+.nx-name { display: grid; gap: 4px; font-size: 13px; color: var(--nx-muted); }
+.nx-name input { padding: 8px 12px; border: 2px solid rgba(255, 61, 154, 0.35); border-radius: 12px; font: 400 15px Poppins, sans-serif; }
+.nx-logros { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
+.nx-logros div { display: grid; grid-template-columns: 32px 1fr auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: #fff; opacity: 0.6; }
+.nx-logros div.on { opacity: 1; box-shadow: inset 0 0 0 2px var(--nx-gold); }
+.nx-logros i { font-style: normal; font-size: 22px; text-align: center; }
+.nx-logros small { display: block; font-size: 11.5px; color: var(--nx-muted); }
+.nx-logros em { font-style: normal; font-size: 12px; font-weight: 600; }
+.nx-toggle { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: #fff; cursor: pointer; }
+.nx-toggle input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--nx-pink); }
+.nx-toggle small { display: block; font-size: 12px; color: var(--nx-muted); }
+@media (max-width: 560px) { .nx-acct small { display: none; } }
+.nx-hero { display: grid; justify-items: center; gap: 8px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid rgba(255, 61, 154, 0.2); }
+.nx-hero .nx-muted { margin: 0; }
+.nx-btn.big { font-size: 24px; padding: 18px 40px; }

@@ -17,7 +17,7 @@ await page.waitForSelector(".nx-queens button", { timeout: 30000 });
 await page.waitForTimeout(1200);
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/next-menu.png` });
 await page.locator(".nx-queens button").nth(4).click();
-await page.click(".nx-btn");
+await page.getByRole("button", { name: "Arcade", exact: true }).click();
 await page.waitForSelector(".nx-hud", { timeout: 10000 });
 await page.waitForTimeout(1500);
 // Jugar 12 segundos: moverse a izquierda y derecha lanzando tacones

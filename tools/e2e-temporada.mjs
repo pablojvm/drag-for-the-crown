@@ -17,7 +17,7 @@ await page.waitForSelector(".nx-queens button", { timeout: 30000 });
 // Los minijuegos se juegan de verdad en la primera temporada (TS=0); en las demás se dan por jugados, para ir más rápido
 const AUTO = !!process.env.TS && process.env.TS !== "0";
 const setTiming = () => page.evaluate(([lose, auto]) => { const t = window.__dftcTemporada.timing; t.next = 60; t.myScore = lose ? 1 : 99; t.autoGame = auto ? 70 : null; }, [LOSE, AUTO]);
-await page.evaluate(() => { localStorage.removeItem("dftc-next-temporada"); localStorage.removeItem("dftc-closet"); });
+await page.evaluate(() => { localStorage.removeItem("dftc-next-temporada"); localStorage.removeItem("dftc-closet"); localStorage.removeItem("dftc-story-board"); localStorage.removeItem("dftc-achievements"); });
 await setTiming();
 // AI=1: con un jurado de prueba en lugar del servidor (retos escritos en directo, pasarela con concepto y críticas)
 const AI = !!process.env.AI;
@@ -82,10 +82,12 @@ for (let i = 0; i < 4000; i++) {
   await page.waitForTimeout(clicked ? 120 : 200);
 }
 const aiRetos = AI ? await page.evaluate(() => window.__aiRetos || 0) : null;
+const board = await page.evaluate(() => JSON.parse(localStorage.getItem("dftc-story-board") || "[]").length);
+const logros = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem("dftc-achievements") || "{}")).length);
 const end = await page.evaluate(() => { const s = window.__dftcTemporada.current(); return s && { phase: s.phase, place: s.place, ep: s.ep, track: (s.track.me || []).join(" ") }; });
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ts-fin.png` });
 await browser.close();
-const ok = end && end.phase === "fin" && end.place >= 1 && (LOSE ? end.place > 2 && seen.has("fuera") : end.place <= 2 && seen.has("untucked")) && (!AI || aiRetos > 0) && resumed && seen.has("reto") && (AUTO || seen.has("mini")) && seen.has("taller") && seen.has("probador") && seen.has("final") && (LOSE || seen.has("lalaparuza")) && (process.env.TS === "8" || seen.has("reencuentro")) && seen.has("resultados") && !errors.length;
-console.log(`Temporada ${process.env.TS || 0} · fases: ${[...seen].join(", ")} · puesto: ${end ? end.place : "no"} · episodios: ${end ? end.ep : 0} · tu track: ${end ? end.track : ""} · retomada: ${resumed ? "sí" : "no"}${AI ? ` · retos escritos en directo: ${aiRetos}` : ""} · errores: ${errors.length}`);
+const ok = end && end.phase === "fin" && end.place >= 1 && (LOSE ? end.place > 2 && seen.has("fuera") : end.place <= 2 && seen.has("untucked")) && (!AI || aiRetos > 0) && board > 0 && logros > 0 && resumed && seen.has("reto") && (AUTO || seen.has("mini")) && seen.has("taller") && seen.has("probador") && seen.has("final") && (LOSE || seen.has("lalaparuza")) && (process.env.TS === "8" || seen.has("reencuentro")) && seen.has("resultados") && !errors.length;
+console.log(`Temporada ${process.env.TS || 0} · fases: ${[...seen].join(", ")} · puesto: ${end ? end.place : "no"} · episodios: ${end ? end.ep : 0} · tu track: ${end ? end.track : ""} · Hall of Fame: ${board} · logros: ${logros} · retomada: ${resumed ? "sí" : "no"}${AI ? ` · retos escritos en directo: ${aiRetos}` : ""} · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
 process.exit(ok ? 0 : 1);

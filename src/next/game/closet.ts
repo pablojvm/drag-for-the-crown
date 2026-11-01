@@ -1,5 +1,6 @@
 // Tu armario y tu dinero: el mismo que el del modo historia de siempre (se guarda en "dftc-closet" en este navegador).
 import { priceOf, prendaById } from "../../core/armario";
+import { touch } from "./cuenta";
 
 export interface Closet { money: number; owned: Record<string, number> }
 const KEY = "dftc-closet";
@@ -11,7 +12,7 @@ export function getCloset(): Closet {
     return { money: 0, owned: {} };
   }
 }
-const put = (c: Closet) => { try { localStorage.setItem(KEY, JSON.stringify(c)); } catch { /* sin almacenamiento */ } };
+const put = (c: Closet) => { try { localStorage.setItem(KEY, JSON.stringify(c)); } catch { /* sin almacenamiento */ } touch(); };
 export function addMoney(n: number) {
   const c = getCloset();
   c.money = Math.max(0, Math.round(c.money + n));

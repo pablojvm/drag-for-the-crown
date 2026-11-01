@@ -12,6 +12,7 @@ import { juradoListo, ask } from "./jurado";
 import { cleanLine } from "../../core/guion";
 import { aiMaxiPrompt, maxiFromAI } from "../../core/maxi";
 import { unlock } from "./logros";
+import { touch, recordSeason } from "./cuenta";
 import { addMoney, buy } from "./closet";
 import { outfitScore, prendaById, slotOf, TAG_OF_STYLE, SLOTS, type Slot } from "../../core/armario";
 import { TEMAS_PASARELA } from "../../core/temas";
@@ -62,6 +63,7 @@ const save = () => {
     if (S && S.phase !== "fin") localStorage.setItem(KEY, JSON.stringify(S));
     else localStorage.removeItem(KEY);
   } catch { /* sin almacenamiento */ }
+  touch();
 };
 const toPlato = (bg: TsView["bg"] = "werkroom", p: Partial<TsView> = {}) => {
   set({ screen: "temporada", back: null, queenId: S ? S.queen : get().queenId });
@@ -72,7 +74,13 @@ const commit = (bg: TsView["bg"], p: Partial<TsView> = {}) => {
   save();
   toPlato(bg, p);
   if (S) unlock(T.logrosNow(S));
+  // Temporada terminada: a tu Hall of Fame (y al mundial)
+  if (S && S.phase === "fin" && !recorded.has(S.seed)) {
+    recorded.add(S.seed);
+    recordSeason({ queen: S.queen, season: S.seasonId, won: S.place === 1, place: S.place ?? null, ppe: T.myPpe(S), winsT: (S.track[T.ME] || []).filter((l) => l === "WIN").length, cast: S.cast.length, lsWins: S.lsWins || 0 });
+  }
 };
+const recorded = new Set<number>();
 
 export function hasSaved(): boolean {
   try { return !!localStorage.getItem(KEY); } catch { return false; }
@@ -92,6 +100,7 @@ export function chooseQueen(id: string, seed = newSeed()) {
   setLookSeason(seasonId);
   S = T.nextWeek(S, rnd);
   addMoney(400);
+  unlock(["debut"]);
   S.news = ["💶 Producción te da 400 € para el armario de esta temporada."];
   if (S.twist === "suerte") S.news = [...S.news,S.luck === T.ME ? "🍀 Abres tu cajita... ¡tienes la reina de la suerte! Nadie más lo sabe." : "🍀 Abres tu cajita... vacía. Alguna compañera tiene la reina de la suerte."];
   commit("werkroom");

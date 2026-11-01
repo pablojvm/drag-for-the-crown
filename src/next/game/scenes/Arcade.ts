@@ -5,6 +5,7 @@ import { ARCADE_QUEENS } from "../data";
 import { rivalFor, rivalsOf, moveSpeed, fireDelay, heelDamage, startLives, hitPoints, roundBonus, ROUNDS, MAX_LIVES, SPECIAL_PER_HIT, POWERUP_CHANCE, powerupType, POWER_MS, DOUBLE_MS, SPONGE_POINTS } from "../rules";
 import { sfx } from "../sfx";
 import { get, set, saveBest } from "../../store";
+import { unlock } from "../logros";
 import { listen } from "../../bridge";
 
 type Img = Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
@@ -152,6 +153,7 @@ export class Arcade extends Phaser.Scene {
     const combo = s.combo + 1;
     const hp = Math.max(0, s.rivalHp - heelDamage(me));
     set({ combo, score: s.score + hitPoints(combo), rivalHp: hp });
+    if (combo === 20) unlock(["combo"]);
     this.sparks.explode(10, this.rival.x, this.rival.y);
     sfx.hit();
     set({ special: Math.min(1, get().special + SPECIAL_PER_HIT) });
@@ -195,6 +197,7 @@ export class Arcade extends Phaser.Scene {
     saveBest(s.score);
     if (won) sfx.win(); else sfx.lose();
     this.time.delayedCall(700, () => set({ screen: "result", result: { won, score: s.score, round: s.round } }));
+    unlock(["debut", ...(won ? ["corona-arcade"] : [])]);
   }
 
   private powerActive(id: string) {
