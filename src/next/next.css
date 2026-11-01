@@ -254,3 +254,18 @@ td.lab-elim { color: #8a8a8a; }
 .nx-hero { display: grid; justify-items: center; gap: 8px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid rgba(255, 61, 154, 0.2); }
 .nx-hero .nx-muted { margin: 0; }
 .nx-btn.big { font-size: 24px; padding: 18px 40px; }
+.nx-ts-faces { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.nx-face { display: grid; justify-items: center; gap: 2px; width: 70px; border: 0; background: none; cursor: pointer; font: 600 10.5px/1.2 Poppins, sans-serif; color: var(--nx-ink); }
+.nx-face img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px #fff; transition: transform 0.12s; }
+.nx-face:hover img { transform: scale(1.08); box-shadow: 0 0 0 3px var(--nx-pink); }
+.nx-face:focus-visible { outline: 3px solid var(--nx-gold); outline-offset: 2px; border-radius: 12px; }
+.nx-ft-head { display: flex; gap: 12px; align-items: center; }
+.nx-ft-head img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
+.nx-ft-head h2 { margin: 0 !important; text-align: left; }
+.nx-ft-head .nx-eyebrow { text-align: left; }
+.nx-ft-log { max-height: 260px; overflow-y: auto; }
+.nx-dots.inline { display: inline-flex; padding: 0; }
+.nx-dots.inline i { width: 7px; height: 7px; }
+.nx-ts-cast button[aria-pressed="true"] { border-color: var(--nx-pink); box-shadow: 0 0 0 3px rgba(255, 61, 154, 0.25); }
+.nx-btn:disabled { opacity: 0.5; cursor: default; }
+.nx-sticky { position: sticky; bottom: -20px; padding: 10px 0 4px; background: linear-gradient(180deg, transparent, var(--nx-panel) 30%); align-items: center; }

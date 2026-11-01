@@ -5,6 +5,7 @@ import * as T from "../../core/temporada";
 import { MAXI } from "../../core/maxi";
 import { PORTADAS, REINAS_ES, ATTR_NAMES, queenImg, queenStats, baseAttrs, type QAttr } from "../../core/reinas";
 import * as F from "../game/temporada";
+import { CHARLA_TURNOS } from "../../core/charla";
 import { MINIS, roleInfo, fillText } from "../../core/taller";
 import { SLOTS, SLOT_NAMES, ARMARIO, fitScore, priceOf, prendaById, prendaImg, bestFor, outfitScore, type Slot } from "../../core/armario";
 import { getCloset, euros } from "../game/closet";
@@ -21,6 +22,7 @@ export function TemporadaUI() {
   return (
     <div className="nx-ts">
       {ts.view === "elige" && <Elige />}
+      {ts.view === "custom" && <Custom />}
       {ts.view === "reina" && <Reina seasonId={ts.seasonId!} />}
       {ts.view === "juego" && ts.s && <Juego s={ts.s} />}
     </div>
@@ -47,7 +49,9 @@ function Elige() {
 }
 
 function Reina({ seasonId }: { seasonId: string }) {
-  const t = T.seasonById(seasonId)!;
+  const custom = useGame((x) => x.ts?.custom);
+  const base = T.seasonById(seasonId)!;
+  const t = seasonId === T.CUSTOM.id && custom ? { ...base, cast: custom } : base;
   const [pick, setPick] = useState(t.cast[0]);
   const a = baseAttrs(pick, queenStats(pick));
   const tw = TWIST_TXT[T.twistOf(seasonId)];
@@ -140,6 +144,7 @@ function Fase({ s }: { s: T.Season }) {
   const ts = useGame((x) => x.ts)!;
   const w = s.week;
   const n = (k: string) => T.nameOf(s, k);
+  if (ts.free) return <Charla s={s} />;
   const dancers = (w?.bottom || []).map(n).join(" y ");
 
   const mini = MINIS.find((m) => m.id === w?.mini?.id) || MINIS[0];
@@ -371,6 +376,12 @@ function Untucked({ s }: { s: T.Season }) {
       <div className="nx-maxi-opts">
         {ut.opts.filter((o) => !ut.talked.includes(o.key)).map((o) => <button key={o.key} className="nx-opt" disabled={left <= 0} onClick={() => F.talkTo(o.key)}><b>{n(o.key)}</b><small>{o.label}</small></button>)}
       </div>
+      {F.canChat() && left > 0 && (
+        <>
+          <p className="nx-muted nx-center-txt">💬 O habla libremente con quien quieras: escribe lo que te apetezca.</p>
+          <div className="nx-ts-faces">{s.alive.filter((k) => k !== T.ME && !ut.talked.includes(k)).map((k) => <button key={k} className="nx-face" onClick={() => F.startFree(k, "untucked")} title={`Hablar con ${n(k)}`}><img src={img(queenImg(T.idOf(s, k), s.seasonId, true))} alt="" /><small>{n(k)}</small></button>)}</div>
+        </>
+      )}
       <button className="nx-btn" onClick={F.endUntucked}>Volver al escenario</button>
     </>
   );
@@ -447,6 +458,12 @@ function Taller({ s }: { s: T.Season }) {
             <div className="nx-maxi-opts">{sc.choices.map((ch, i) => <button key={i} className="nx-opt" onClick={() => F.answerScene(i)}><b>{fillText(ch.txt, names)}</b></button>)}</div>
           )}
           {answered && role && <p className="nx-ts-call">{role.icon} Ahora lo sabes: {names.r1} es «{role.name}». <span className="nx-muted">{role.desc}</span></p>}
+        </>
+      )}
+      {(!sc || answered || !sc.choices.length) && F.canChat() && !w.freeUsed && (
+        <>
+          <p className="nx-muted nx-center-txt">💬 Antes del reto, puedes charlar con una compañera (una por semana):</p>
+          <div className="nx-ts-faces">{s.alive.filter((k) => k !== T.ME).map((k) => <button key={k} className="nx-face" onClick={() => F.startFree(k, "taller")} title={`Charlar con ${n(k)}`}><img src={img(queenImg(T.idOf(s, k), s.seasonId, true))} alt="" /><small>{n(k)}</small></button>)}</div>
         </>
       )}
       {(!sc || answered || !sc.choices.length) && <button className="nx-btn" onClick={F.goReto}>¡Al reto!</button>}
@@ -578,6 +595,66 @@ function Reencuentro({ s }: { s: T.Season }) {
           <button className="nx-btn" onClick={F.toFinal}>👑 A la gran final</button>
         </>
       )}
+    </>
+  );
+}
+
+/** All Stars a tu gusto: eliges el reparto. */
+function Custom() {
+  const sel = useGame((x) => x.ts?.custom) || [];
+  const pool = T.customPool();
+  const ok = sel.length >= T.CUSTOM.min;
+  return (
+    <div className="nx-panel nx-ts-panel">
+      <p className="nx-eyebrow">All Stars a tu gusto</p>
+      <h2>Monta tu reparto</h2>
+      <p className="nx-muted nx-center-txt">Elige de {T.CUSTOM.min} a {T.CUSTOM.max} reinas (tú incluida). Se juega como un All Stars: el top 2 baila y la ganadora saca el pintalabios.</p>
+      <div className="nx-ts-cast" role="group" aria-label="Reinas">
+        {pool.map((id) => (
+          <button key={id} aria-pressed={sel.includes(id)} className={sel.includes(id) ? "on" : ""} onClick={() => F.toggleCustom(id)}>
+            <img src={img(queenImg(id, undefined, true))} alt="" loading="lazy" /><span>{REINAS_ES[id]?.name || id}</span>
+          </button>
+        ))}
+      </div>
+      <div className="nx-row nx-sticky">
+        <span className="nx-chip">{sel.length} de {T.CUSTOM.max}</span>
+        <button className="nx-btn" disabled={!ok} onClick={F.confirmCustom}>{ok ? "Seguir" : `Faltan ${T.CUSTOM.min - sel.length}`}</button>
+        <button className="nx-btn ghost" onClick={() => F.randomCustom()}>🎲 Al azar</button>
+        <button className="nx-btn ghost" onClick={F.openSeasons}>Otra temporada</button>
+      </div>
+    </div>
+  );
+}
+
+/** Charla libre con una compañera: escribes y te contesta en personaje. */
+function Charla({ s }: { s: T.Season }) {
+  const f = useGame((x) => x.ts?.free)!;
+  const [txt, setTxt] = useState("");
+  const n = (k: string) => T.nameOf(s, k);
+  const mine = f.hist.filter((m) => m.me).length;
+  const r = s.rel[f.key] || 0;
+  return (
+    <>
+      <div className="nx-ft-head">
+        <img src={img(queenImg(T.idOf(s, f.key), s.seasonId, true))} alt="" />
+        <div>
+          <p className="nx-eyebrow">💬 Charla libre · {f.where === "untucked" ? "Untucked" : "Taller"}</p>
+          <h2>{n(f.key)}</h2>
+          <small className="nx-muted">{r >= 2 ? "💞 Aliada" : r <= -2 ? "😒 Enemiga" : r > 0 ? "Os lleváis bien" : r < 0 ? "Hay tensión" : "Sin mucha relación"} · Lo que digas cuenta.</small>
+        </div>
+      </div>
+      <div className="nx-ts-dialog nx-ft-log">
+        {f.hist.length ? f.hist.map((m, i) => <p key={i} className={m.me ? "me" : ""}><b>{m.me ? n(T.ME) : n(f.key)}</b> {m.t}</p>) : <p className="nx-muted">Empieza tú...</p>}
+        {f.waiting && <p><b>{n(f.key)}</b> <span className="nx-dots inline" aria-label="Escribiendo"><i /><i /><i /></span></p>}
+      </div>
+      {mine < CHARLA_TURNOS ? (
+        <form className="nx-concept" onSubmit={(e) => { e.preventDefault(); if (txt.trim()) { void F.sendFree(txt); setTxt(""); } }}>
+          <label className="nx-sr" htmlFor="nx-ft">Lo que le dices</label>
+          <input id="nx-ft" maxLength={200} autoComplete="off" value={txt} disabled={f.waiting} onChange={(e) => setTxt(e.target.value)} placeholder="Escribe aquí..." />
+          <button className="nx-btn" disabled={f.waiting || !txt.trim()}>Decir</button>
+        </form>
+      ) : <p className="nx-muted nx-center-txt">Se acaba el tiempo libre.</p>}
+      <button className="nx-btn ghost" onClick={F.endFree}>{f.hist.length ? "Terminar la conversación" : "← Volver"}</button>
     </>
   );
 }

@@ -11,6 +11,8 @@ import { startLipSync } from "./lipsync";
 import { juradoListo, ask } from "./jurado";
 import { cleanLine } from "../../core/guion";
 import { aiMaxiPrompt, maxiFromAI } from "../../core/maxi";
+import { charlaPrompt, parseCharla, CHARLA_TURNOS, type Msg } from "../../core/charla";
+import { roleInfo } from "../../core/taller";
 import { unlock } from "./logros";
 import { touch, recordSeason } from "./cuenta";
 import { addMoney, buy } from "./closet";
@@ -21,8 +23,13 @@ import type { Tag } from "../../core/runway";
 export interface MaxiView { title: string; icon: string; n: number; q?: string; sub?: string; opts: { t: string; d?: string }[]; msg: string; picked: number | null; focus: number | null; note: string; game?: { kind: "ritmo" | "costura"; label: string; hard: number; played?: boolean } }
 export interface UtView { opts: T.UtOption[]; scene: (T.UtScene & { key: string; answered?: number }) | null; talked: string[] }
 export interface ReunionView { intro: [string, string][]; talks: T.ReunionTalk[]; talk: (T.ReunionTalk & { answered?: number }) | null; talked: string[]; drama: [string, string][] | null }
+export interface FreeView { key: string; where: "untucked" | "taller"; hist: Msg[]; waiting: boolean }
 export interface TsView {
-  view: "elige" | "reina" | "juego";
+  view: "elige" | "custom" | "reina" | "juego";
+  /** All Stars a tu gusto: las reinas elegidas. */
+  custom?: string[];
+  /** Charla libre con una compañera. */
+  free?: FreeView | null;
   seasonId?: string;
   s: T.Season | null;
   maxi: MaxiView | null;
@@ -92,11 +99,27 @@ export function openSeasons() {
   send({ type: "scene", key: "Plato" });
 }
 export function chooseSeason(id: string) {
+  if (id === T.CUSTOM.id) return show({ view: "custom", seasonId: id, custom: view().custom || [] });
   show({ view: "reina", seasonId: id });
+}
+// ---------- All Stars a tu gusto ----------
+export function toggleCustom(id: string) {
+  const c = view().custom || [];
+  show({ custom: c.includes(id) ? c.filter((x) => x !== id) : c.length >= T.CUSTOM.max ? c : [...c, id] });
+}
+export function randomCustom(n = 10) {
+  const pool = T.customPool().map((id) => [Math.random(), id] as const).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+  show({ custom: pool.slice(0, n) });
+}
+export function confirmCustom() {
+  const c = view().custom || [];
+  if (c.length < T.CUSTOM.min) return;
+  show({ view: "reina" });
 }
 export function chooseQueen(id: string, seed = newSeed()) {
   const seasonId = view().seasonId!;
-  S = { ...T.newSeason(seasonId, id, seed, Math.random), seed };
+  const cast = seasonId === T.CUSTOM.id ? view().custom : undefined;
+  S = { ...T.newSeason(seasonId, id, seed, Math.random, cast), seed };
   setLookSeason(seasonId);
   S = T.nextWeek(S, rnd);
   addMoney(400);
@@ -388,6 +411,43 @@ export function toFinal() {
   if (!S || S.phase !== "reencuentro") return;
   S = T.startFinal({ ...S, news: [] }, rnd);
   commit("stage", { reunion: null });
+}
+
+// ---------- Charla libre (con el jurado en directo) ----------
+export const canChat = () => juradoListo();
+export function startFree(key: string, where: FreeView["where"]) {
+  if (!S || !juradoListo()) return;
+  if (where === "untucked") {
+    const ut = view().ut;
+    if (!ut || ut.scene || ut.talked.length >= UT_TALKS || ut.talked.includes(key)) return;
+    show({ ut: { ...ut, talked: [...ut.talked, key] }, free: { key, where, hist: [], waiting: false } });
+  } else {
+    if (S.phase !== "taller" || S.week?.freeUsed) return;
+    S.week = { ...S.week!, freeUsed: true };
+    show({ free: { key, where, hist: [], waiting: false } });
+  }
+}
+export async function sendFree(text: string) {
+  const f = view().free;
+  const t = text.trim().slice(0, 200);
+  if (!S || !f || f.waiting || !t || f.hist.filter((m) => m.me).length >= CHARLA_TURNOS) return;
+  const hist = [...f.hist, { me: true, t }];
+  show({ free: { ...f, hist, waiting: true } });
+  const s0 = S;
+  const w = S.week;
+  const P = charlaPrompt({
+    reina: T.nameOf(S, f.key), yo: T.nameOf(S, T.ME), donde: f.where === "untucked" ? "el Untucked, mientras el jurado delibera" : "el taller, mientras preparáis el reto",
+    rel: S.rel[f.key] || 0, rol: S.roles[f.key] ? roleInfo(S.roles[f.key]) : null, nemesis: S.nemesis === f.key,
+    semana: w ? `el reto es «${w.titulo}»${w.labels ? `; en las críticas a ${T.nameOf(S, f.key)} le ha ido ${/WIN|TOP2|HIGH/.test(w.labels[f.key] || "") ? "bien" : /BTM|LOW/.test(w.labels[f.key] || "") ? "mal" : "regular"}` : ""}.` : "",
+  }, hist);
+  const r = parseCharla(await ask(P.system, P.user, P.opts), cleanLine, rnd);
+  if (S !== s0 || view().free?.key !== f.key) return;
+  if (r.rel) S = T.changeRel(S, f.key, r.rel, rnd);
+  save();
+  show({ free: { ...view().free!, hist: [...hist, { me: false, t: r.text }], waiting: false } });
+}
+export function endFree() {
+  if (view().free) show({ free: null });
 }
 
 // ---------- Untucked ----------

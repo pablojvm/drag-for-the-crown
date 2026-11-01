@@ -274,3 +274,24 @@ describe("Lalaparuza, reencuentro y retos escritos en directo", () => {
     expect(m.steps[0](newSteps())!.opts.length).toBe(3);
   });
 });
+
+describe("All Stars a tu gusto y charla libre", () => {
+  it("el All Stars a tu gusto se juega con el reparto que eliges", () => {
+    const rnd = makeRng(21);
+    const pool = T.customPool();
+    expect(pool.length).toBeGreaterThan(T.CUSTOM.max);
+    const cast = pool.slice(0, 9);
+    const s = T.newSeason(T.CUSTOM.id, cast[0], 21, rnd, cast);
+    expect(s.twist).toBe("allstars");
+    expect(s.alive.length).toBe(9);
+    expect(s.alive.filter((k) => k !== T.ME).every((k) => cast.includes(k))).toBe(true);
+  });
+  it("la charla lee la respuesta y acota el cambio de relación", async () => {
+    const { parseCharla, charlaPrompt } = await import("../src/core/charla");
+    expect(parseCharla({ respuesta: "Hola, guapa", relacion: 7 }, (t) => t)).toEqual({ text: "Hola, guapa", rel: 2, ok: true });
+    expect(parseCharla(null, (t) => t).ok).toBe(false);
+    const P = charlaPrompt({ reina: "Inti", yo: "Pupi", donde: "el taller", rel: -2, nemesis: true }, [{ me: true, t: "Hola" }]);
+    expect(P.system).toContain("némesis");
+    expect(P.user).toContain("Pupi: Hola");
+  });
+});

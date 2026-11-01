@@ -57,6 +57,8 @@ export interface Week {
   look?: number;
   /** Lalaparuza: el cuadro del torneo. */
   lala?: Lala;
+  /** Ya has charlado libremente en el taller esta semana. */
+  freeUsed?: boolean;
   /** Lo que dice una compañera de ti en el confesionario. */
   conf?: { key: string; text: string };
   /** Retos en equipo: los dos equipos (el primero, el tuyo) y quién capitanea cada uno. */
@@ -145,14 +147,19 @@ export function allWinnersCast(): string[] {
   });
   return [...used];
 }
+/** All Stars a tu gusto: tú eliges el reparto (de 8 a 12 reinas de todas las temporadas). */
+export const CUSTOM = { id: "escustom", min: 8, max: 12 };
+/** Reinas que se pueden elegir para el All Stars a tu gusto (todas las que han pasado por una temporada). */
+export const customPool = () => [...new Set(TEMPORADAS_ES.flatMap((t) => t.cast))].filter((id) => REINAS_ES[id]);
 export function seasonById(id: string): Temporada | null {
   if (id === "esaw") return { franchise: "esaw", id, name: "All Winners", year: 2026, cast: allWinnersCast() };
+  if (id === CUSTOM.id) return { franchise: "esas", id, name: "All Stars a tu gusto", year: 2026, cast: customPool() };
   return TEMPORADAS_ES.find((t) => t.id === id) || null;
 }
 export const twistOf = (id: string): Twist => (TEMPORADAS_HISTORIA[id]?.twist as Twist) || "normal";
 export const lemaOf = (id: string) => TEMPORADAS_HISTORIA[id]?.lema || "";
 /** Temporadas que se pueden jugar en el motor nuevo. */
-export const playableSeasons = () => [...TEMPORADAS_ES.filter((t) => t.cast.length >= FINAL_AT + 2), seasonById("esaw")!].filter((t) => t.cast.length >= FINAL_AT + 2);
+export const playableSeasons = () => [...TEMPORADAS_ES.filter((t) => t.cast.length >= FINAL_AT + 2), seasonById("esaw")!, seasonById(CUSTOM.id)!].filter((t) => t.cast.length >= FINAL_AT + 2);
 export const nameOf = (s: Season, key: string) => REINAS_ES[key === ME ? s.queen : key]?.name || key;
 export const idOf = (s: Season, key: string) => (key === ME ? s.queen : key);
 export const attrsOf = (s: Season, key: string): Attrs => baseAttrs(idOf(s, key), queenStats(idOf(s, key)));
@@ -163,9 +170,9 @@ const relOf = (s: Season, k: string) => s.rel[k] || 0;
 /** Semanas de All Winners antes de la final. */
 export const winnersWeeks = (s: Season) => clamp(s.cast.length - 1, 4, 8);
 
-export function newSeason(seasonId: string, queen: string, seed: number, rnd: () => number): Season {
+export function newSeason(seasonId: string, queen: string, seed: number, rnd: () => number, castIds?: string[]): Season {
   const t = seasonById(seasonId)!;
-  const rivals = t.cast.filter((id) => id !== queen);
+  const rivals = (castIds || t.cast).filter((id) => id !== queen);
   const twist = twistOf(seasonId);
   // Retos: el de la primera semana, individual y con pasarela
   const plan = shuffle(Object.keys(MAXI).filter((k) => !MAXI[k].special), rnd);

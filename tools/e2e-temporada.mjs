@@ -27,13 +27,19 @@ const fakeJury = () => page.evaluate(() => {
     if (/coreógrafa/.test(system)) return { entrada: ["Salgo despacio", "Paso firme", "Bailando"], detalle: ["Giro", "Peluca", "Abanico"], final: ["Pose", "Guiño", "Drama"], pregunta: "¿Por qué ese tejido?", respuestas: [{ t: "Porque cae como el agua", calidad: "buena" }, { t: "Me gusta", calidad: "regular" }, { t: "No sé", calidad: "mala" }] };
     if (/valorando una pasarela/.test(system)) return { concepto: 80, coherencia: 80, desfile: 80, supreme: "Muy bien", ana: "Bien construido" };
     if (/Das críticas/.test(system)) return { supreme: "Me has hecho reír", ana: "La construcción, impecable" };
+    if (/Hablas SOLO como/.test(system)) { window.__chats = (window.__chats || 0) + 1; return { respuesta: "Ay, qué bien me caes. Vamos a por todas.", relacion: 1 }; }
     return null;
   };
 });
 if (AI) await fakeJury();
 await page.getByRole("button", { name: /Modo historia/ }).click();
 // TS=número de temporada en la lista (0 = la primera); TS=all no hace falta: el CI prueba varias
-await page.locator(".nx-ts-season").nth(Number(process.env.TS || 0)).click();
+// CUSTOM=1: el All Stars a tu gusto (reparto al azar)
+if (process.env.CUSTOM) {
+  await page.locator(".nx-ts-season", { hasText: "All Stars a tu gusto" }).click();
+  await page.getByRole("button", { name: /Al azar/ }).click();
+  await page.getByRole("button", { name: "Seguir" }).click();
+} else await page.locator(".nx-ts-season").nth(Number(process.env.TS || 0)).click();
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ts-reina.png` });
 await page.getByRole("button", { name: "Empezar la temporada" }).click();
 
@@ -67,6 +73,13 @@ for (let i = 0; i < 4000; i++) {
     const q = (s) => [...document.querySelectorAll(s)].find(vis);
     const concept = document.querySelector("#nx-concept");
     if (concept && !concept.value) return "concept";
+    // Charla libre (con el jurado de prueba): una frase y se termina
+    const ft = document.querySelector("#nx-ft");
+    if (ft && !ft.disabled && !window.__said) { window.__said = true; return "chat"; }
+    const endChat = [...document.querySelectorAll(".nx-btn.ghost")].find((b) => /Terminar la conversación/.test(b.textContent));
+    if (endChat && window.__said) { window.__said = false; endChat.click(); return "ok"; }
+    const face = q(".nx-face");
+    if (face && window.__dftcNextAsk && !window.__facedEp?.[document.querySelector(".nx-ts-head span")?.textContent]) { window.__facedEp = { ...(window.__facedEp || {}), [document.querySelector(".nx-ts-head span")?.textContent]: 1 }; face.click(); return "ok"; }
     // Minijuegos: se pulsa sin parar (terminan solos)
     const hit = q("[data-game-hit]");
     if (hit) { hit.click(); return "ok"; }
@@ -79,15 +92,17 @@ for (let i = 0; i < 4000; i++) {
     return "";
   }, LOSE);
   if (clicked === "concept") { await page.fill("#nx-concept", "Una reina de la verbena"); await page.keyboard.press("Enter"); }
+  if (clicked === "chat") { await page.fill("#nx-ft", "Hoy estás guapísima, de verdad"); await page.keyboard.press("Enter"); await page.waitForTimeout(150); }
   await page.waitForTimeout(clicked ? 120 : 200);
 }
 const aiRetos = AI ? await page.evaluate(() => window.__aiRetos || 0) : null;
+const chats = AI ? await page.evaluate(() => window.__chats || 0) : null;
 const board = await page.evaluate(() => JSON.parse(localStorage.getItem("dftc-story-board") || "[]").length);
 const logros = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem("dftc-achievements") || "{}")).length);
 const end = await page.evaluate(() => { const s = window.__dftcTemporada.current(); return s && { phase: s.phase, place: s.place, ep: s.ep, track: (s.track.me || []).join(" ") }; });
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ts-fin.png` });
 await browser.close();
-const ok = end && end.phase === "fin" && end.place >= 1 && (LOSE ? end.place > 2 && seen.has("fuera") : end.place <= 2 && seen.has("untucked")) && (!AI || aiRetos > 0) && board > 0 && logros > 0 && resumed && seen.has("reto") && (AUTO || seen.has("mini")) && seen.has("taller") && seen.has("probador") && seen.has("final") && (LOSE || seen.has("lalaparuza")) && (process.env.TS === "8" || seen.has("reencuentro")) && seen.has("resultados") && !errors.length;
-console.log(`Temporada ${process.env.TS || 0} · fases: ${[...seen].join(", ")} · puesto: ${end ? end.place : "no"} · episodios: ${end ? end.ep : 0} · tu track: ${end ? end.track : ""} · Hall of Fame: ${board} · logros: ${logros} · retomada: ${resumed ? "sí" : "no"}${AI ? ` · retos escritos en directo: ${aiRetos}` : ""} · errores: ${errors.length}`);
+const ok = end && end.phase === "fin" && end.place >= 1 && (LOSE ? end.place > 2 && seen.has("fuera") : end.place <= 2 && seen.has("untucked")) && (!AI || (aiRetos > 0 && chats > 0)) && board > 0 && logros > 0 && resumed && seen.has("reto") && (AUTO || seen.has("mini")) && seen.has("taller") && seen.has("probador") && seen.has("final") && (LOSE || seen.has("lalaparuza")) && (process.env.TS === "8" || seen.has("reencuentro")) && seen.has("resultados") && !errors.length;
+console.log(`Temporada ${process.env.TS || 0} · fases: ${[...seen].join(", ")} · puesto: ${end ? end.place : "no"} · episodios: ${end ? end.ep : 0} · tu track: ${end ? end.track : ""} · Hall of Fame: ${board} · logros: ${logros} · retomada: ${resumed ? "sí" : "no"}${AI ? ` · retos escritos en directo: ${aiRetos} · charlas libres: ${chats}` : ""} · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
 process.exit(ok ? 0 : 1);

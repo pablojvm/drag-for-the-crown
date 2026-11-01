@@ -22,3 +22,4 @@ export * as temporada from "./temporada";
 export * from "./historia";
 export * from "./armario";
 export * from "./logros";
+export * from "./charla";
