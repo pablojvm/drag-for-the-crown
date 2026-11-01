@@ -746,3 +746,38 @@ export const FINAL_SORTEO: any = [
   [["host", "Reinas, así va a ser la final: cuatro reinas, dos lip syncs."], ["host", "El sorteo decide las parejas. Las ganadoras se enfrentarán por la corona."], ["judge", "Disfrutadlo. Os lo habéis ganado."]],
 ];
 
+
+/** Rasgos de cada reina: fortaleza, debilidad y carácter (salen de su id, siempre los mismos). */
+export const RASGOS: Record<"fort" | "deb" | "car", Record<string, { n: string; icon: string; d: string; cat?: string }>> = {
+  fort: {
+    lipsync: { n: "Bestia del lip sync", icon: "🔥", d: "Muy peligrosa en un lip sync" },
+    comedia: { n: "Lengua afilada", icon: "🎤", d: "Brilla en Snatch, Roast e impro" },
+    baile: { n: "Pies de fuego", icon: "💃", d: "Brilla en rusicales y coreografías" },
+    costura: { n: "Manos de oro", icon: "🧵", d: "Brilla en costura, Ball y makeover" },
+    pasarela: { n: "Imparable en pasarela", icon: "👠", d: "Siempre puntúa alto en la pasarela" },
+  },
+  deb: {
+    pComedia: { n: "Pánico a la comedia", icon: "😰", d: "Se hunde en Snatch, Roast e impro", cat: "comedia" },
+    pBaile: { n: "Dos pies izquierdos", icon: "🦶", d: "Se hunde en rusicales y coreografías", cat: "baile" },
+    pCostura: { n: "No sabe enhebrar", icon: "🪡", d: "Se hunde en costura, Ball y makeover", cat: "costura" },
+    lsFlojo: { n: "Lip sync flojo", icon: "🫥", d: "En un lip sync se le puede ganar", cat: "lipsync" },
+    provocable: { n: "Se viene abajo si la provocas", icon: "💥", d: "Si la pinchas, se desconcentra muchísimo" },
+  },
+  car: {
+    rencorosa: { n: "Rencorosa", icon: "🧊", d: "No olvida nada: los golpes le duelen el doble" },
+    ambiciosa: { n: "Ambiciosa", icon: "📈", d: "Cada victoria la hace crecer más" },
+    leal: { n: "Leal", icon: "🤞", d: "Si pacta contigo, jamás te traiciona" },
+    traicionera: { n: "Traicionera", icon: "🐍", d: "Puede romper un pacto en el peor momento" },
+    orgullosa: { n: "Orgullosa", icon: "👑", d: "Le cuesta muchísimo hacer las paces" },
+  },
+};
+/** Rasgos de una reina (los mismos que en la versión clásica). */
+export function traitsOf(id: string): { fort: string; deb: string; car: string } {
+  let h = 0;
+  for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const pick = (o: Record<string, unknown>, salt: number) => { const k = Object.keys(o); return k[(h >>> salt) % k.length]; };
+  const fort = pick(RASGOS.fort, 0);
+  let deb = pick(RASGOS.deb, 5);
+  if (RASGOS.deb[deb].cat === fort) deb = "provocable";
+  return { fort, deb, car: pick(RASGOS.car, 11) };
+}

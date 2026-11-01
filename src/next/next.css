@@ -294,3 +294,70 @@ td.lab-elim { color: #8a8a8a; }
 @media (prefers-reduced-motion: reduce) { .nx-track tbody tr { animation: none; } }
 @media (max-width: 600px) { .nx-track td.qn { min-width: 150px; } .nx-track td { min-width: 52px; height: 40px; font-size: 11px; } }
 .nx-ts-panel:has(.nx-track-wrap) { width: min(1240px, 100%); }
+
+/* Elegir reina y su ficha (como en la versión clásica) */
+.nx-ts-panel.nx-pick { width: min(1180px, 100%); }
+.nx-pick-body { min-width: 0; display: flex; gap: 22px; align-items: flex-start; justify-content: center; }
+.nx-qgrid { flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; max-width: 700px; }
+.nx-qcard { position: relative; height: 168px; padding: 0; border: 3px solid #fff; border-radius: 16px; overflow: hidden; cursor: pointer; background: #f3e3ee; box-shadow: 0 8px 20px -10px rgba(120, 20, 90, .5); transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), border-color .25s; }
+.nx-qcard .pic { position: absolute; inset: 0; background: center 22% / cover no-repeat; filter: saturate(.85); transition: transform .6s cubic-bezier(.2, .8, .2, 1), filter .3s; }
+.nx-qcard::after { content: ""; position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, rgba(59, 13, 79, .85)); }
+.nx-qcard .name { position: absolute; z-index: 1; left: 10px; right: 10px; bottom: 9px; color: #fff; font: 800 13px/1.15 Poppins, sans-serif; text-align: left; }
+.nx-qcard .check { position: absolute; z-index: 1; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--nx-gold); color: #3b0d4f; font-weight: 800; transform: scale(0); transition: transform .3s cubic-bezier(.34, 1.56, .64, 1); }
+.nx-qcard:hover { transform: translateY(-5px); }
+.nx-qcard:hover .pic, .nx-qcard.on .pic { filter: none; transform: scale(1.05); }
+.nx-qcard.on { border-color: var(--nx-gold); box-shadow: 0 0 0 3px rgba(255, 200, 60, .35), 0 12px 26px -10px rgba(120, 20, 90, .6); }
+.nx-qcard.on .check { transform: scale(1); }
+.nx-qcard:focus-visible { outline: 3px solid var(--nx-pink); outline-offset: 2px; }
+.nx-ficha { width: 320px; flex: 0 0 320px; box-sizing: border-box; display: grid; gap: 10px; padding: 20px 22px; border-radius: 22px; background: #fff; box-shadow: 0 16px 40px -18px rgba(120, 20, 90, .45); text-align: left; animation: nx-slide .45s cubic-bezier(.2, .8, .2, 1); }
+.nx-ficha-pic { height: 160px; border-radius: 16px; background: center 22% / cover no-repeat #f3e3ee; }
+.nx-ficha h3 { margin: 4px 0 0; font: 400 22px Bungee, sans-serif; color: #3b0d4f; text-transform: uppercase; }
+.nx-ficha-place { margin: -6px 0 0; font-size: 12px; font-weight: 700; color: #ff7a3d; }
+.nx-ficha-attrs { display: grid; gap: 6px; }
+.nx-attr { display: grid; grid-template-columns: 92px 1fr 22px; align-items: center; gap: 8px; font-size: 13px; color: #5a3a66; }
+.nx-attr b { color: var(--nx-pink); text-align: right; }
+.nx-pips { display: flex; gap: 4px; }
+.nx-pips i { flex: 1; max-width: 14px; height: 9px; border-radius: 999px; background: #ece3ee; }
+.nx-pips i.on { background: linear-gradient(90deg, var(--nx-pink), #ff7a6b); box-shadow: 0 0 6px rgba(255, 61, 154, .45); animation: nx-pip .5s cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: var(--d, 0ms); }
+.nx-ficha-fort { margin: 0; font-size: 12px; color: #5a3a66; }
+.nx-ficha-fort b { color: #e0a400; }
+.nx-ficha-car { border-top: 1px solid #f1dce9; padding-top: 10px; }
+.nx-ficha-lbl { margin: 0; font: 700 11px Poppins, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: #19a7c9; }
+.nx-ficha-car h4 { margin: 4px 0 2px; font: 400 20px Bungee, sans-serif; color: var(--nx-pink); text-transform: uppercase; }
+.nx-ficha-car p:last-child { margin: 0; font-size: 14px; color: #5a3a66; }
+@keyframes nx-slide { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes nx-pip { from { transform: scale(0); } to { transform: scale(1); } }
+@media (max-width: 820px) { .nx-pick-body { flex-direction: column; align-items: stretch; } .nx-ficha { width: auto; flex: none; } .nx-qgrid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); max-width: none; } .nx-qcard { height: 132px; } }
+@media (prefers-reduced-motion: reduce) { .nx-ficha, .nx-pips i.on, .nx-qcard, .nx-qcard .pic { animation: none; transition: none; } }
+
+/* Conversaciones (como en la versión clásica): la reina en grande y la caja de diálogo abajo */
+body:has(.nx-dlg) .nx-ts-panel { visibility: hidden; }
+.nx-dlg { position: fixed; inset: 0; z-index: 60; cursor: pointer; background: linear-gradient(180deg, transparent 40%, rgba(59, 13, 79, .35)); }
+.nx-dlg.fixed { cursor: default; }
+.nx-dlg-char { position: absolute; bottom: 150px; height: min(560px, calc(100% - 190px)); max-width: min(520px, 46vw); object-fit: contain; filter: drop-shadow(0 16px 30px rgba(160, 30, 110, .35)); }
+.nx-dlg-char.left { left: max(24px, calc(50% - 560px)); animation: nx-char-l .55s cubic-bezier(.2, .8, .2, 1) both; }
+.nx-dlg-char.right { right: max(24px, calc(50% - 560px)); animation: nx-char-r .55s cubic-bezier(.2, .8, .2, 1) both; }
+.nx-dlg-box { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(1240px, calc(100% - 32px)); box-sizing: border-box; min-height: 170px; padding: 30px 30px 22px; border-radius: 24px; background: rgba(255, 255, 255, .94); border: 3px solid var(--nx-pink); box-shadow: 0 20px 50px -20px rgba(160, 30, 110, .55); backdrop-filter: blur(10px); animation: nx-box-in .4s cubic-bezier(.2, .8, .2, 1) both; cursor: inherit; }
+.nx-dlg-name { position: absolute; top: -20px; left: 22px; margin: 0; display: inline-block; padding: 4px 16px; border-radius: 12px; background: linear-gradient(135deg, var(--nx-pink), #b23cff); color: #fff; font: 400 20px Bungee, sans-serif; box-shadow: 0 8px 20px -6px rgba(255, 79, 216, .8); }
+.nx-dlg-name small { font: 600 13px Poppins, sans-serif; color: rgba(255, 255, 255, .85); margin-left: 8px; }
+.nx-dlg-text { margin: 0; font: 500 22px/1.4 Poppins, sans-serif; color: #2a1233; min-height: 62px; }
+.nx-dlg-text .caret { display: inline-block; width: 3px; height: 1em; margin-left: 3px; vertical-align: -.15em; background: var(--nx-gold); animation: nx-blink .8s steps(1) infinite; }
+.nx-dlg-hint { position: absolute; right: 26px; bottom: 10px; margin: 0; font-size: 13px; color: #8a6f94; animation: nx-nudge 1.2s ease-in-out infinite; }
+.nx-dlg-hint.static { position: static; animation: none; margin-top: 8px; }
+.nx-dlg-skip { position: absolute; top: 16px; right: 16px; font-size: 14px !important; padding: 6px 16px !important; }
+.nx-dlg-choices { display: grid; gap: 10px; }
+.nx-dlg-choices .nx-btn { text-align: left; font: 600 18px/1.3 Poppins, sans-serif; text-transform: none; letter-spacing: 0; padding: 12px 20px; border-radius: 14px; animation: nx-rise .4s cubic-bezier(.2, .8, .2, 1) both; }
+.nx-dlg-choices .nx-btn:nth-child(2) { animation-delay: .07s; }
+.nx-dlg-choices .nx-btn:nth-child(3) { animation-delay: .14s; }
+.nx-dlg-choices b { font-family: Bungee, sans-serif; color: var(--nx-pink); margin-right: 8px; }
+.nx-dlg-form { display: flex; gap: 8px; margin-top: 12px; }
+.nx-dlg-form input { flex: 1; min-width: 0; padding: 10px 14px; border-radius: 12px; border: 2px solid #f1c6de; font: 500 16px Poppins, sans-serif; }
+.nx-dlg-form input:focus-visible { outline: none; border-color: var(--nx-pink); }
+.nx-dlg-end { margin-top: 10px; }
+@keyframes nx-char-l { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
+@keyframes nx-char-r { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+@keyframes nx-box-in { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translateX(-50%); } }
+@keyframes nx-blink { 50% { opacity: 0; } }
+@keyframes nx-nudge { 50% { transform: translateX(4px); } }
+@media (max-width: 700px) { .nx-dlg-char { height: 52vh; max-width: 70vw; bottom: 190px; } .nx-dlg-text { font-size: 17px; } .nx-dlg-name { font-size: 16px; } .nx-dlg-choices .nx-btn { font-size: 15px; } .nx-dlg-skip { top: 10px; right: 10px; } }
+@media (prefers-reduced-motion: reduce) { .nx-dlg-char, .nx-dlg-box, .nx-dlg-choices .nx-btn, .nx-dlg-hint { animation: none; } }

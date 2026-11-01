@@ -6,6 +6,8 @@ import { MAXI } from "../../core/maxi";
 import { PORTADAS, REINAS_ES, ATTR_NAMES, queenImg, queenStats, baseAttrs, type QAttr } from "../../core/reinas";
 import * as F from "../game/temporada";
 import { CHARLA_TURNOS } from "../../core/charla";
+import { RASGOS, traitsOf } from "../../core/historia";
+import { Dialogo, Escena, Caja, type Linea } from "./Dialogo";
 import { PPE_VALOR } from "../../core/track";
 import { MINIS, roleInfo, fillText } from "../../core/taller";
 import { SLOTS, SLOT_NAMES, ARMARIO, fitScore, priceOf, prendaById, prendaImg, bestFor, outfitScore, type Slot } from "../../core/armario";
@@ -15,6 +17,32 @@ import { TimingGame, FlashGame, RitmoGame } from "./Minijuegos";
 const LABEL_TXT: Record<string, string> = { WIN: "Gana", TOP2: "Top 2", BTOP: "Top 2 (bloqueada)", HIGH: "Top", SAFE: "A salvo", LOW: "Low", BTM2: "Bottom", BTM3: "Bottom", ELIM: "Fuera", WINNER: "Ganadora", "RUNNER-UP": "Finalista", RTRN: "Vuelve", OUT: "Fuera de la final" };
 const TWIST_TXT: Record<string, string> = { allstars: "💄 All Stars: el top 2 baila y la ganadora saca el pintalabios", winners: "⭐ All Winners: nadie se va, se juega por estrellas", suerte: "🍀 La reina de la suerte", corazon: "❤️ Los corazones", moneda: "🪙 La moneda", repesca: "🔁 Segunda Oportunidrag", normal: "" };
 const img = (src: string) => (src ? `./${src}` : "");
+const HOSTS: Record<string, Omit<Linea, "text">> = {
+  host: { name: "Supremme de Luxe", role: "Presentadora", img: "./images/hosts/supreme.png", side: "left" },
+  judge: { name: "Ana Locking", role: "Jueza", img: "./images/hosts/ana-locking.png", side: "left" },
+  ambrossi: { name: "Javier Ambrossi", role: "Jurado · Los Javis", img: "./images/hosts/javier-ambrossi.png", side: "left" },
+  calvo: { name: "Javier Calvo", role: "Jurado · Los Javis", img: "./images/hosts/javier-calvo.png", side: "right" },
+};
+const HOST_NAMES: Record<string, string> = { supremme: "host", "supremme de luxe": "host", "ana locking": "judge", ana: "judge" };
+/** Quién habla en una conversación: «me», r1/r2/r3 (según `ctx`), las presentadoras o el nombre de una reina. */
+function hablante(s: T.Season, ctx: Record<string, string | undefined> = {}) {
+  const queen = (k: string, side: "left" | "right"): Omit<Linea, "text"> => {
+    const id = T.idOf(s, k);
+    const r = s.rel[k] || 0;
+    const role = k === T.ME ? "Tú" : k === s.nemesis ? "⚔️ Tu némesis" : r >= 2 ? "💞 Aliada" : r <= -2 ? "😒 Enemiga" : "Reina";
+    return { name: T.nameOf(s, k), role, img: img(queenImg(id, s.seasonId) || queenImg(id, s.seasonId, true)), side: k === T.ME ? "right" : side };
+  };
+  const byName = (nm: string) => [T.ME, ...s.cast].find((k) => T.nameOf(s, k) === nm);
+  return (k: string, text: string): Linea => {
+    if (HOSTS[k]) return { ...HOSTS[k], text };
+    if (HOST_NAMES[k.toLowerCase()]) return { ...HOSTS[HOST_NAMES[k.toLowerCase()]], text };
+    if (k === "me") return { ...queen(T.ME, "right"), text };
+    if (ctx[k]) return { ...queen(ctx[k]!, k === "r1" ? "right" : "left"), text };
+    const q = byName(k) || (s.cast.includes(k) ? k : undefined);
+    if (q) return { ...queen(q, "right"), text };
+    return { name: k, img: "", side: "left", text };
+  };
+}
 const half = (n: number) => String(n / 2).replace(".", ",");
 
 export function TemporadaUI() {
@@ -49,26 +77,58 @@ function Elige() {
   );
 }
 
+/** Ficha de la reina como en la versión clásica: retrato, atributos con puntos, fortaleza y carácter. */
+function Ficha({ id, seasonId }: { id: string; seasonId?: string }) {
+  const a = baseAttrs(id, queenStats(id));
+  const tr = traitsOf(id);
+  const fort = RASGOS.fort[tr.fort], car = RASGOS.car[tr.car];
+  return (
+    <div className="nx-ficha" key={id}>
+      <div className="nx-ficha-pic" style={{ backgroundImage: `url('${img(queenImg(id, seasonId, true))}')` }} />
+      <h3>{REINAS_ES[id]?.name || id}</h3>
+      <p className="nx-ficha-place">📖 En la historia, todo depende de ti</p>
+      <div className="nx-ficha-attrs">
+        {(Object.keys(ATTR_NAMES) as QAttr[]).map((k) => (
+          <div key={k} className="nx-attr">
+            <span>{ATTR_NAMES[k]}</span>
+            <span className="nx-pips" aria-label={`${a[k]} de 10`}>{Array.from({ length: 10 }, (_, i) => <i key={i} className={i < a[k] ? "on" : ""} style={{ ["--d" as string]: `${i * 30}ms` }} />)}</span>
+            <b>{a[k]}</b>
+          </div>
+        ))}
+      </div>
+      <p className="nx-ficha-fort">{fort.icon} Fortaleza: <b>{fort.n}</b> · {fort.d}</p>
+      <div className="nx-ficha-car">
+        <p className="nx-ficha-lbl">🎭 Su carácter</p>
+        <h4>{car.n}</h4>
+        <p>{car.d}</p>
+      </div>
+    </div>
+  );
+}
+
 function Reina({ seasonId }: { seasonId: string }) {
   const custom = useGame((x) => x.ts?.custom);
   const base = T.seasonById(seasonId)!;
   const t = seasonId === T.CUSTOM.id && custom ? { ...base, cast: custom } : base;
   const [pick, setPick] = useState(t.cast[0]);
-  const a = baseAttrs(pick, queenStats(pick));
   const tw = TWIST_TXT[T.twistOf(seasonId)];
   return (
-    <div className="nx-panel nx-ts-panel">
+    <div className="nx-panel nx-ts-panel nx-pick">
       <p className="nx-eyebrow">{t.name}</p>
       <h2>¿Con quién compites?</h2>
       {tw && <p className="nx-ts-call">{tw}</p>}
-      <div className="nx-ts-cast" role="radiogroup" aria-label="Reinas">
-        {t.cast.map((id) => (
-          <button key={id} role="radio" aria-checked={id === pick} className={id === pick ? "on" : ""} onClick={() => setPick(id)}>
-            <img src={img(queenImg(id, seasonId, true))} alt="" loading="lazy" /><span>{REINAS_ES[id]?.name || id}</span>
-          </button>
-        ))}
+      <div className="nx-pick-body">
+        <div className="nx-qgrid" role="radiogroup" aria-label="Reinas">
+          {t.cast.map((id) => (
+            <button key={id} role="radio" aria-checked={id === pick} className={`nx-qcard ${id === pick ? "on" : ""}`} onClick={() => setPick(id)}>
+              <span className="pic" style={{ backgroundImage: `url('${img(queenImg(id, seasonId, true))}')` }} />
+              <span className="name">{REINAS_ES[id]?.name || id}</span>
+              <span className="check" aria-hidden="true">✓</span>
+            </button>
+          ))}
+        </div>
+        <Ficha id={pick} seasonId={seasonId} />
       </div>
-      <div className="nx-ts-attrs">{(Object.keys(ATTR_NAMES) as QAttr[]).map((k) => <span key={k}><small>{ATTR_NAMES[k]}</small><b>{a[k]}</b></span>)}</div>
       <div className="nx-row">
         <button className="nx-btn" onClick={() => F.chooseQueen(pick)}>Empezar la temporada</button>
         <button className="nx-btn ghost" onClick={F.openSeasons}>Otra temporada</button>
@@ -189,10 +249,11 @@ function Fase({ s }: { s: T.Season }) {
   if (s.phase === "resultados" && w?.rows) {
     return (
       <>
-        <p className="nx-eyebrow">Las críticas del jurado</p>
-        <Rows s={s} />
-        <div className="nx-ts-crit">{Object.keys(ts.crit).map((k) => <p key={k}><b>{n(k)}</b> {ts.crit[k].join(" ")}</p>)}</div>
-        <button className="nx-btn" onClick={F.goUntucked}>🍸 Al Untucked</button>
+        <Escena id={`crit-${s.seasonId}-${s.ep}`} lines={Object.keys(ts.crit).flatMap((k) => ts.crit[k].map((line, j) => hablante(s)(j === 0 ? "host" : "judge", line)))}>
+          <p className="nx-eyebrow">Las críticas del jurado</p>
+          <Rows s={s} />
+          <button className="nx-btn" onClick={F.goUntucked}>🍸 Al Untucked</button>
+        </Escena>
       </>
     );
   }
@@ -355,18 +416,11 @@ function Untucked({ s }: { s: T.Season }) {
   const n = (k: string) => T.nameOf(s, k);
   if (ut.scene) {
     const sc = ut.scene;
-    const waiting = sc.choices && sc.answered === undefined;
-    return (
-      <>
-        <p className="nx-eyebrow">🍸 Untucked · con {n(sc.key)}</p>
-        <div className="nx-ts-dialog">{sc.lines.map(([who, t], i) => <p key={i}><b>{who}</b> {t}</p>)}</div>
-        {waiting ? (
-          <div className="nx-maxi-opts">{sc.choices!.map((c, i) => <button key={i} className="nx-opt" onClick={() => F.answerUt(i)}><b>{c.txt}</b></button>)}</div>
-        ) : (
-          <button className="nx-btn" onClick={F.closeTalk}>Seguir</button>
-        )}
-      </>
-    );
+    const waiting = !!sc.choices && sc.answered === undefined;
+    const H = hablante(s, { r1: sc.key });
+    const from = sc.answered !== undefined ? sc.lines.length - 2 : 0;
+    const L = sc.lines.slice(from).map(([who, t]) => H(who, t));
+    return <Dialogo key={`ut-${sc.key}-${sc.answered ?? "q"}`} lines={L} choices={waiting ? sc.choices!.map((c) => c.txt) : undefined} me={H("me", "")} onChoice={F.answerUt} onDone={F.closeTalk} />;
   }
   const left = F.UT_TALKS - ut.talked.length;
   return (
@@ -471,7 +525,7 @@ function Taller({ s }: { s: T.Season }) {
   const sc = w.scene;
   const n = (k: string) => T.nameOf(s, k);
   const names = { yo: n(T.ME), r1: sc ? n(sc.r1) : "", r2: sc?.r2 ? n(sc.r2) : "", r3: sc?.r3 ? n(sc.r3) : "" };
-  const who = (k: string) => (k === "me" ? names.yo : k === "r1" ? names.r1 : k === "r2" ? names.r2 : k === "r3" ? names.r3 : WHO[k] || k);
+  const H = hablante(s, { r1: sc?.r1, r2: sc?.r2, r3: sc?.r3 });
   const answered = sc?.answered !== undefined;
   const c = answered ? sc!.choices[sc!.answered!] : null;
   const role = sc?.role ? roleInfo(sc.role) : null;
@@ -479,19 +533,13 @@ function Taller({ s }: { s: T.Season }) {
     <>
       <p className="nx-eyebrow">🧵 El taller</p>
       <News s={s} />
-      {sc && (
-        <>
-          <div className="nx-ts-dialog">
-            {sc.lines.map(([k, t], i) => <p key={i}><b>{who(k)}</b> {fillText(t, names)}</p>)}
-            {c && <p className="me"><b>{names.yo}</b> {fillText(c.txt, names)}</p>}
-            {c?.reply && <p><b>{who(c.reply[0])}</b> {fillText(c.reply[1], names)}</p>}
-          </div>
-          {!answered && sc.choices.length > 0 && (
-            <div className="nx-maxi-opts">{sc.choices.map((ch, i) => <button key={i} className="nx-opt" onClick={() => F.answerScene(i)}><b>{fillText(ch.txt, names)}</b></button>)}</div>
-          )}
-          {answered && role && <p className="nx-ts-call">{role.icon} Ahora lo sabes: {names.r1} es «{role.name}». <span className="nx-muted">{role.desc}</span></p>}
-        </>
+      {sc && !answered && sc.choices.length > 0 && (
+        <Dialogo key={`taller-${s.ep}`} lines={sc.lines.map(([k, tx]) => H(k, fillText(tx, names)))} choices={sc.choices.map((ch) => fillText(ch.txt, names))} me={H("me", "")} onChoice={F.answerScene} />
       )}
+      {sc && (answered || !sc.choices.length) && (
+        <Escena id={`taller-${s.seasonId}-${s.ep}-${answered ? "r" : "l"}`} lines={answered ? [H("me", fillText(c!.txt, names)), ...(c?.reply ? [H(c.reply[0], fillText(c.reply[1], names))] : [])] : sc.lines.map(([k, tx]) => H(k, fillText(tx, names)))} />
+      )}
+      {sc && answered && role && <p className="nx-ts-call">{role.icon} Ahora lo sabes: {names.r1} es «{role.name}». <span className="nx-muted">{role.desc}</span></p>}
       {(!sc || answered || !sc.choices.length) && F.canChat() && !w.freeUsed && (
         <>
           <p className="nx-muted nx-center-txt">💬 Antes del reto, puedes charlar con una compañera (una por semana):</p>
@@ -594,26 +642,22 @@ function Lalaparuza({ s }: { s: T.Season }) {
 function Reencuentro({ s }: { s: T.Season }) {
   const r = useGame((x) => x.ts?.reunion)!;
   const n = (k: string) => T.nameOf(s, k);
-  const lines = (src: [string, string][], key?: string) => src.map(([k, t], i) => {
-    const names = { yo: n(T.ME), r1: key ? n(key) : n(s.out[0] || s.alive[0]), r2: n(s.out[1] || s.alive[1] || s.alive[0]) };
-    const who = k === "me" ? names.yo : k === "r1" ? names.r1 : k === "r2" ? names.r2 : WHO[k] || k;
-    return <p key={i} className={k === "me" ? "me" : ""}><b>{who}</b> {fillText(t.replace(/\{temporada\}/g, T.seasonById(s.seasonId)?.name || ""), names)}</p>;
-  });
+  const temporada = T.seasonById(s.seasonId)?.name || "";
+  const lines = (src: [string, string][], key?: string) => {
+    const r1 = key || s.out[0] || s.alive[0], r2 = s.out[1] || s.alive[1] || s.alive[0];
+    const names = { yo: n(T.ME), r1: n(r1), r2: n(r2) };
+    const H = hablante(s, { r1, r2 });
+    return src.map(([k, tx]) => H(k, fillText(tx.replace(/\{temporada\}/g, temporada), names)));
+  };
   if (r.talk) {
-    const waiting = r.talk.choices && r.talk.answered === undefined;
-    return (
-      <>
-        <p className="nx-eyebrow">🎉 Reencuentro · con {n(r.talk.key)}</p>
-        <div className="nx-ts-dialog">{lines(r.talk.lines, r.talk.key)}</div>
-        {waiting ? <div className="nx-maxi-opts">{r.talk.choices!.map((c, i) => <button key={i} className="nx-opt" onClick={() => F.reunionAnswer(i)}><b>{c.txt}</b></button>)}</div> : <button className="nx-btn" onClick={F.reunionClose}>Seguir</button>}
-      </>
-    );
+    const waiting = !!r.talk.choices && r.talk.answered === undefined;
+    const from = r.talk.answered !== undefined ? r.talk.lines.length - 2 : 0;
+    return <Dialogo key={`re-${r.talk.key}-${r.talk.answered ?? "q"}`} lines={lines(r.talk.lines.slice(from), r.talk.key)} choices={waiting ? r.talk.choices!.map((c) => c.txt) : undefined} me={hablante(s)("me", "")} onChoice={F.reunionAnswer} onDone={F.reunionClose} />;
   }
   return (
-    <>
+    <Escena id={`re-intro-${s.seasonId}`} lines={lines(r.intro)}>
       <p className="nx-eyebrow">🎉 El reencuentro</p>
       <h2>Vuelven las eliminadas</h2>
-      <div className="nx-ts-dialog">{lines(r.intro)}</div>
       {!r.drama ? (
         <>
           <p className="nx-muted nx-center-txt">{r.talked.length < 2 ? "Habla con dos de ellas. Cada una te recibe según cómo os llevabais." : "Ya has hablado con dos."}</p>
@@ -621,13 +665,12 @@ function Reencuentro({ s }: { s: T.Season }) {
           <button className="nx-btn" onClick={F.reunionMiss}>💐 Votación de Miss Simpatía</button>
         </>
       ) : (
-        <>
-          <div className="nx-ts-dialog">{lines(r.drama)}</div>
+        <Escena id={`re-drama-${s.seasonId}`} lines={lines(r.drama)}>
           <News s={s} />
           <button className="nx-btn" onClick={F.toFinal}>👑 A la gran final</button>
-        </>
+        </Escena>
       )}
-    </>
+    </Escena>
   );
 }
 
@@ -658,35 +701,26 @@ function Custom() {
   );
 }
 
-/** Charla libre con una compañera: escribes y te contesta en personaje. */
+/** Charla libre con una compañera: escribes y te contesta en personaje (en la caja de diálogo, como las demás). */
 function Charla({ s }: { s: T.Season }) {
   const f = useGame((x) => x.ts?.free)!;
   const [txt, setTxt] = useState("");
-  const n = (k: string) => T.nameOf(s, k);
+  const H = hablante(s);
   const mine = f.hist.filter((m) => m.me).length;
-  const r = s.rel[f.key] || 0;
+  const last = [...f.hist].reverse().find((m) => !m.me);
+  const her = H(f.key, "");
+  const where = f.where === "untucked" ? "Untucked" : "Taller";
+  const text = f.waiting ? "..." : last ? last.t : f.hist.length ? "" : `(${where}) ${T.nameOf(s, f.key)} te mira. Empieza tú.`;
   return (
-    <>
-      <div className="nx-ft-head">
-        <img src={img(queenImg(T.idOf(s, f.key), s.seasonId, true))} alt="" />
-        <div>
-          <p className="nx-eyebrow">💬 Charla libre · {f.where === "untucked" ? "Untucked" : "Taller"}</p>
-          <h2>{n(f.key)}</h2>
-          <small className="nx-muted">{r >= 2 ? "💞 Aliada" : r <= -2 ? "😒 Enemiga" : r > 0 ? "Os lleváis bien" : r < 0 ? "Hay tensión" : "Sin mucha relación"} · Lo que digas cuenta.</small>
-        </div>
-      </div>
-      <div className="nx-ts-dialog nx-ft-log">
-        {f.hist.length ? f.hist.map((m, i) => <p key={i} className={m.me ? "me" : ""}><b>{m.me ? n(T.ME) : n(f.key)}</b> {m.t}</p>) : <p className="nx-muted">Empieza tú...</p>}
-        {f.waiting && <p><b>{n(f.key)}</b> <span className="nx-dots inline" aria-label="Escribiendo"><i /><i /><i /></span></p>}
-      </div>
+    <Caja who={{ ...her, side: "right" }} text={text}>
       {mine < CHARLA_TURNOS ? (
-        <form className="nx-concept" onSubmit={(e) => { e.preventDefault(); if (txt.trim()) { void F.sendFree(txt); setTxt(""); } }}>
+        <form className="nx-dlg-form" onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (txt.trim()) { void F.sendFree(txt); setTxt(""); } }}>
           <label className="nx-sr" htmlFor="nx-ft">Lo que le dices</label>
-          <input id="nx-ft" maxLength={200} autoComplete="off" value={txt} disabled={f.waiting} onChange={(e) => setTxt(e.target.value)} placeholder="Escribe aquí..." />
+          <input id="nx-ft" maxLength={200} autoComplete="off" autoFocus value={txt} disabled={f.waiting} onChange={(e) => setTxt(e.target.value)} placeholder="Escribe lo que le dices..." />
           <button className="nx-btn" disabled={f.waiting || !txt.trim()}>Decir</button>
         </form>
-      ) : <p className="nx-muted nx-center-txt">Se acaba el tiempo libre.</p>}
-      <button className="nx-btn ghost" onClick={F.endFree}>{f.hist.length ? "Terminar la conversación" : "← Volver"}</button>
-    </>
+      ) : <p className="nx-dlg-hint static">Se acaba el tiempo libre.</p>}
+      <button className="nx-btn ghost nx-dlg-end" onClick={(e) => { e.stopPropagation(); F.endFree(); }}>{f.hist.length ? "Terminar la conversación" : "← Volver"}</button>
+    </Caja>
   );
 }

@@ -526,29 +526,7 @@ const FAMA = {
 const NEMESIS = DFTC.NEMESIS;
 
 // ------------------------------ Sistema Némesis (memoria entre temporadas) ------------------------------
-const RASGOS = {
-  fort: {
-    lipsync: { n: "Bestia del lip sync", icon: "🔥", d: "Muy peligrosa en un lip sync" },
-    comedia: { n: "Lengua afilada", icon: "🎤", d: "Brilla en Snatch, Roast e impro" },
-    baile: { n: "Pies de fuego", icon: "💃", d: "Brilla en rusicales y coreografías" },
-    costura: { n: "Manos de oro", icon: "🧵", d: "Brilla en costura, Ball y makeover" },
-    pasarela: { n: "Imparable en pasarela", icon: "👠", d: "Siempre puntúa alto en la pasarela" },
-  },
-  deb: {
-    pComedia: { n: "Pánico a la comedia", icon: "😰", d: "Se hunde en Snatch, Roast e impro", cat: "comedia" },
-    pBaile: { n: "Dos pies izquierdos", icon: "🦶", d: "Se hunde en rusicales y coreografías", cat: "baile" },
-    pCostura: { n: "No sabe enhebrar", icon: "🪡", d: "Se hunde en costura, Ball y makeover", cat: "costura" },
-    lsFlojo: { n: "Lip sync flojo", icon: "🫥", d: "En un lip sync se le puede ganar", cat: "lipsync" },
-    provocable: { n: "Se viene abajo si la provocas", icon: "💥", d: "Si la pinchas, se desconcentra muchísimo" },
-  },
-  car: {
-    rencorosa: { n: "Rencorosa", icon: "🧊", d: "No olvida nada: los golpes le duelen el doble" },
-    ambiciosa: { n: "Ambiciosa", icon: "📈", d: "Cada victoria la hace crecer más" },
-    leal: { n: "Leal", icon: "🤞", d: "Si pacta contigo, jamás te traiciona" },
-    traicionera: { n: "Traicionera", icon: "🐍", d: "Puede romper un pacto en el peor momento" },
-    orgullosa: { n: "Orgullosa", icon: "👑", d: "Le cuesta muchísimo hacer las paces" },
-  },
-};
+const RASGOS = DFTC.RASGOS;
 // Lo que te dice una reina al reencontrarse contigo, según lo que pasó entre vosotras
 const CICATRICES = {
   "elim:me": ["En {s} me mandaste a casa en un lip sync. Ya está superado... casi.", "{s}. Tú y yo en un lip sync y yo haciendo la maleta. Esta vez me lo he preparado mejor."],

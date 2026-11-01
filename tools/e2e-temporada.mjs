@@ -62,6 +62,10 @@ for (let i = 0; i < 4000; i++) {
       continue;
     }
   }
+  if (SHOTS) {
+    const d = await page.evaluate(() => (document.querySelector(".nx-dlg-choices") ? "choices" : document.querySelector(".nx-dlg.fixed") ? "charla" : document.querySelector(".nx-dlg") ? "dlg" : ""));
+    if (d && !seen.has("shot-" + d)) { seen.add("shot-" + d); await page.waitForTimeout(700); await page.screenshot({ path: `${SHOTS}/ts-${d}.png` }); }
+  }
   const clicked = await page.evaluate((lose) => {
     // Para llegar a la final, la prueba gana siempre sus lip syncs (con LOSE=1 los pierde y sigue la temporada desde casa)
     const store = window.__dftcNext, ls = store.getState().ls;
@@ -78,6 +82,11 @@ for (let i = 0; i < 4000; i++) {
     if (ft && !ft.disabled && !window.__said) { window.__said = true; return "chat"; }
     const endChat = [...document.querySelectorAll(".nx-btn.ghost")].find((b) => /Terminar la conversación/.test(b.textContent));
     if (endChat && window.__said) { window.__said = false; endChat.click(); return "ok"; }
+    // Conversaciones: se elige la primera respuesta o se salta lo que queda
+    const choice = q(".nx-dlg-choices button");
+    if (choice) { choice.click(); return "dlg"; }
+    const skip = q(".nx-dlg-skip");
+    if (skip) { skip.click(); return "dlg"; }
     const face = q(".nx-face");
     if (face && window.__dftcNextAsk && !window.__facedEp?.[document.querySelector(".nx-ts-head span")?.textContent]) { window.__facedEp = { ...(window.__facedEp || {}), [document.querySelector(".nx-ts-head span")?.textContent]: 1 }; face.click(); return "ok"; }
     // Minijuegos: se pulsa sin parar (terminan solos)

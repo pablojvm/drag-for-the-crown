@@ -10,6 +10,11 @@ export class Plato extends Phaser.Scene {
   }
   create() {
     const { width: W, height: H } = this.scale;
+    let me: Phaser.GameObjects.Image | null = null;
+    // Mientras hay una conversación, la reina que habla sale en grande: la del plató se aparta
+    const onDlg = () => me?.setVisible(!document.querySelector(".nx-dlg"));
+    addEventListener("nx-dlg", onDlg);
+    this.events.once("shutdown", () => removeEventListener("nx-dlg", onDlg));
     const draw = () => {
       this.children.removeAll(true);
       const bgKey = get().ts?.bg === "stage" ? "stage" : "werkroom";
@@ -20,6 +25,8 @@ export class Plato extends Phaser.Scene {
       if (W >= 760 && this.textures.exists(`q-${get().queenId}`)) {
         const q = this.add.image(W * 0.12, H * 0.98, `q-${get().queenId}`).setOrigin(0.5, 1);
         q.setScale((H * 0.62) / q.height);
+        me = q;
+        onDlg();
         this.tweens.add({ targets: q, y: q.y - 8, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
       }
     };
