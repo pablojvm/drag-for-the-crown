@@ -7,7 +7,9 @@ import { TEMAS_PASARELA } from "./temas";
 
 export interface StepResult { pts?: number; msg?: string; w?: number; /** Cambio de relación con una compañera (por su clave). */ rel?: { key: string; d: number } }
 export interface Opt { t: string; d?: string; go: (st: StepsState) => StepResult }
-export interface Step { q?: string; sub?: string; opts: Opt[] }
+/** Minijuego dentro de un reto: la pantalla lo juega y devuelve una nota de 0 a 100. */
+export interface StepGame { kind: "ritmo" | "costura"; label: string; /** Más alto, más difícil (zona más estrecha o notas más rápidas). */ hard?: number; go: (score: number, st: StepsState) => StepResult }
+export interface Step { q?: string; sub?: string; opts: Opt[]; game?: StepGame }
 export type StepFn = (st: StepsState) => Step | null;
 export interface StepsState { total: number; wsum: number; focus: number; [k: string]: any }
 export interface Maxi { tipo: string; title: string; icon: string; meters?: "focus"[]; steps: StepFn[]; /** Ajuste final de la nota (p. ej. el techo de un papel secundario). */ finish?: (st: StepsState, base: number) => number }
@@ -293,6 +295,12 @@ export function rusical(c: MaxiCtx): Maxi {
   ];
   [0, 1].forEach((n) => {
     steps.push((st) => ({
+      q: `🎵 Número ${n + 1}: ¡a cantar y bailar!`,
+      sub: "Pulsa cada nota cuando llegue a la línea.",
+      opts: [],
+      game: { kind: "ritmo", label: `Número ${n + 1}`, hard: st.role === "main" ? 2 : st.role === "sec" ? 0 : 1, go: (sc) => ({ pts: Math.round(st.role === "sec" ? Math.min(80, sc) : sc), msg: sc >= 80 ? "¡Clavado! El público canta contigo." : sc >= 55 ? "Algún paso perdido, pero cumples." : "Te pierdes en la coreografía..." }) },
+    }));
+    steps.push((st) => ({
       q: `🕺 Número ${n + 1}: llega tu momento de baile`,
       opts: [
         { t: "✅ Paso limpio", d: "Seguro", go: () => ({ pts: st.role === "sec" ? 65 : 60, msg: "Limpio y a tiempo." }) },
@@ -332,6 +340,12 @@ export function equipos(c: MaxiCtx): Maxi {
       ],
     }),
     () => ({
+      q: "💃 Ensayo de la coreografía del himno",
+      sub: "Pulsa cada paso a tiempo: si fallas, el grupo entero lo nota.",
+      opts: [],
+      game: { kind: "ritmo", label: "Coreografía", hard: 1, go: (sc) => ({ pts: Math.round(sc), msg: sc >= 75 ? "Coreografía limpia." : "Te descoordinas en el estribillo." }) },
+    }),
+    () => ({
       q: "📍 Coreografía en directo: ¿dónde te colocas?",
       opts: [
         { t: "⭐ En el centro", d: "Robas miradas · exige Performance alta", go: () => res(chk(["performance"], 64), 98, 25, "Todas las cámaras son para ti.", "En el centro... y fuera de ritmo.") },
@@ -367,6 +381,12 @@ export function materiales(c: MaxiCtx): Maxi {
         { t: "✂️ Silueta imposible", d: "Estilo · más difícil y más vistoso", go: (st) => { const k = chk(["estilo"], 56 + lot(st).diff); st.roto = !k.ok && lot(st).aud > 0; return res(k, 96, 30, "¡Nadie se cree que eso sean " + lot(st).t.slice(3).toLowerCase() + "!", "Las costuras no lo van a soportar..."); } },
       ],
     }),
+    (s) => ({
+      q: "🪡 A coser",
+      sub: "Pulsa cuando la aguja pase por la zona buena. Cada puntada fallada debilita el vestido.",
+      opts: [],
+      game: { kind: "costura", label: "Costuras", hard: lot(s).diff / 12, go: (sc, st) => { if (sc < 45 && lot(st).aud > 0) st.roto = true; return { pts: Math.round(sc), msg: sc >= 75 ? "Costuras perfectas." : sc >= 45 ? "Aguanta, aunque se ven algunas puntadas." : "Las costuras no van a aguantar..." }; } },
+    }),
     (s) =>
       s.roto
         ? { q: "💥 ¡El vestido se rompe a mitad de pasarela!", sub: "El material era demasiado difícil y las costuras no aguantan.", opts: [
@@ -401,6 +421,12 @@ export function ball(c: MaxiCtx): Maxi {
     ]);
     return { q: `👑 Categoría ${n + 1} de 3: «${t.n}»`, sub: t.d, opts };
   });
+  steps.splice(2, 0, () => ({
+    q: `🧵 El tercer look lo coses en el taller: «${cats[2].n}»`,
+    sub: "Pulsa cuando la aguja pase por la zona buena.",
+    opts: [],
+    game: { kind: "costura", label: "Look hecho en el taller", hard: 1, go: (sc) => ({ pts: Math.round(sc), msg: sc >= 75 ? "Parece de alta costura." : sc >= 45 ? "Se nota hecho deprisa, pero luce." : "Se descose por todas partes..." }) },
+  }));
   steps.push(() => ({
     q: "🎀 Remate del Ball: ¿qué cuentan tus tres looks juntos?",
     opts: [

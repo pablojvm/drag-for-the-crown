@@ -13,12 +13,17 @@ import { JURADO } from "./textos";
 import { HISTORIA, TEMPORADAS_HISTORIA } from "./historia";
 import { rescueFromBottom, coinResult, lipstickKind } from "./dinamicas";
 import { allWinnersCut } from "./finales";
+import { assignRoles, tallerScene, confesionario, fillText, nemesisBirth, nemesisUntucked, MINIS, miniRival, type Scene } from "./taller";
+import type { Outfit } from "./armario";
 
 export const ME = "me";
 export type Twist = "normal" | "allstars" | "winners" | "suerte" | "corazon" | "moneda" | "repesca";
 export type Phase =
   | "anuncio" // el reto de la semana
+  | "mini" // el minirreto
+  | "taller" // una escena en el taller
   | "reto"
+  | "probador" // eliges el look para la pasarela
   | "pasarela"
   | "resultados" // críticas
   | "untucked"
@@ -37,6 +42,17 @@ export interface Week {
   tema: string;
   reto?: number;
   runway?: number;
+  /** Ventaja para el reto (minirreto ganado, decisiones en el taller). */
+  adv?: number;
+  /** Minirreto de la semana: cuál, tu nota, la ganadora y las notas de todas. */
+  mini?: { id: string; me?: number; winner?: string; scores?: Record<string, number> };
+  /** Escena del taller de esta semana (y lo que elegiste). */
+  scene?: Scene & { answered?: number };
+  /** Lo que llevas en la pasarela y su nota de estilismo. */
+  outfit?: Outfit;
+  look?: number;
+  /** Lo que dice una compañera de ti en el confesionario. */
+  conf?: { key: string; text: string };
   /** Retos en equipo: los dos equipos (el primero, el tuyo) y quién capitanea cada uno. */
   teams?: [string[], string[]];
   captains?: [string, string];
@@ -88,6 +104,9 @@ export interface Season {
   /** Corazones: la eliminada que tiene que dejar su medio corazón. */
   heartFrom: string | null;
   repescaDone: boolean;
+  /** Roles detrás de cámaras de las rivales y cuántas escenas suyas has visto. */
+  roles: Record<string, string>;
+  seenRoles: Record<string, number>;
   news: string[];
   place?: number;
 }
@@ -145,6 +164,7 @@ export function newSeason(seasonId: string, queen: string, seed: number, rnd: ()
     v: 2, seasonId, twist, queen, cast: [ME, ...rivals], seed, ep: 0, phase: "anuncio", alive: [ME, ...rivals], out: [], meOut: false,
     track: {}, record: {}, form: {}, rel: {}, nemesis: null, plan, temas, week: null, final: null,
     stars: {}, blocked: null, luck: null, hearts: {}, heartFrom: null, repescaDone: false, news: [],
+    roles: assignRoles(rivals, rnd), seenRoles: {},
   };
   // Reina de la suerte: está en una de las cajitas (la tuya se abre al empezar)
   if (twist === "suerte") s.luck = pickR(s.alive, rnd);
@@ -161,7 +181,7 @@ export function nextWeek(s: Season, rnd: () => number): Season {
   const finalNow = s.twist === "winners" ? s.ep >= winnersWeeks(s) : s.alive.length <= FINAL_AT;
   if (finalNow) return startFinal(base, rnd);
   const tipo = s.plan[(ep - 1) % s.plan.length];
-  const week: Week = { tipo, titulo: MAXI[tipo].titulo, tema: s.temas[(ep - 1) % s.temas.length] };
+  const week: Week = { tipo, titulo: MAXI[tipo].titulo, tema: s.temas[(ep - 1) % s.temas.length], adv: 0, mini: { id: MINIS[(ep - 1) % MINIS.length].id } };
   if (MAXI[tipo].team) {
     // Capitanas: las mejores del capítulo anterior. Eligen por turnos (cada una tira de sus aliadas y de las fuertes)
     const prev = previousRank(s.alive, (k) => (s.track[k] || [])[s.ep - 1], rnd) || shuffle(s.alive, rnd);
@@ -203,7 +223,8 @@ export const relBonus = (s: Season) => {
 export function myScore(s: Season, rnd: () => number) {
   const w = s.week!;
   const def = MAXI[w.tipo];
-  const raw = w.runway == null || def.noRunway ? (w.reto ?? 50) : (w.reto ?? 50) * 0.65 + w.runway * 0.35;
+  const reto = Math.min(100, (w.reto ?? 50) + (w.adv || 0));
+  const raw = w.runway == null || def.noRunway ? reto : reto * 0.65 + w.runway * 0.35;
   const played = clamp(raw + relBonus(s), 0, 100);
   const steps = pasosDeJuego(played, rnd);
   const a = retoAttr(attrsOf(s, ME), def.attrs, def.noRunway) + seasonBoost(s) / 10;
@@ -243,13 +264,14 @@ export function scoreWeek(s: Season, rnd: () => number, fixed: Record<string, nu
 }
 
 // ---------- Untucked ----------
-export interface UtOption { key: string; kind: "ganadoraPre" | "bottomPre" | "charlaPre" | "aliada" | "enemiga"; label: string }
+export interface UtOption { key: string; kind: "ganadoraPre" | "bottomPre" | "charlaPre" | "aliada" | "enemiga" | "nemesis"; label: string }
 /** Con quién puedes hablar en el Untucked (antes del veredicto nadie sabe quién gana). */
 export function untuckedOptions(s: Season, rnd: () => number): UtOption[] {
   const w = s.week!;
   const out: UtOption[] = [];
   const add = (key: string | undefined, kind: UtOption["kind"], label: string) => { if (key && key !== ME && s.alive.includes(key) && !out.some((o) => o.key === key)) out.push({ key, kind, label }); };
   const lab = (k: string) => w.labels![k] || "";
+  if (s.nemesis && s.alive.includes(s.nemesis)) add(s.nemesis, "nemesis", "⚔️ Tu némesis quiere hablar contigo");
   const enemy = s.alive.find((k) => k !== ME && relOf(s, k) <= -2);
   add(enemy, "enemiga", "😒 Arreglarlo (o no) con tu enemiga");
   const ally = s.alive.find((k) => k !== ME && relOf(s, k) >= 2);
@@ -264,14 +286,73 @@ export function untuckedScene(s: Season, o: UtOption, rnd: () => number): UtScen
   const fill = (t: string) => t.replace(/\{r1\}/g, nameOf(s, o.key)).replace(/\{yo\}/g, nameOf(s, ME));
   const who = (k: string) => (k === "me" ? nameOf(s, ME) : k === "r1" ? nameOf(s, o.key) : k);
   const lines = (src: [string, string][]): [string, string][] => src.map(([k, t]) => [who(k), fill(t)]);
+  if (o.kind === "nemesis") {
+    const lab = s.week!.labels![ME] || "";
+    return {
+      lines: lines(nemesisUntucked(/BTM|LOW/.test(lab), /WIN|TOP2|HIGH/.test(lab))),
+      choices: [
+        { txt: "Plantarle cara: «Nos vemos en la final»", rel: -1, reply: [nameOf(s, o.key), "Allí te espero. Si llegas."] },
+        { txt: "Proponerle una tregua", rel: 2, reply: [nameOf(s, o.key), "Vale. Tregua. Pero no te acostumbres."] },
+      ],
+      rel: 0,
+    };
+  }
   if (o.kind === "enemiga") return { lines: lines(U.enemiga[0]), choices: U.enemigaChoices.map((c: any) => ({ txt: fill(c.txt), rel: c.rel?.r1 || 0, reply: [who(c.reply[0]), fill(c.reply[1])] as [string, string] })), rel: 0 };
   return { lines: lines(pickR(U[o.kind] as [string, string][][], rnd)), rel: o.kind === "bottomPre" ? 2 : 1 };
 }
 /** Cambia la relación con una compañera (de -3 a 3). La primera enemiga de verdad se vuelve tu némesis. */
-export function changeRel(s: Season, key: string, d: number): Season {
+export function changeRel(s: Season, key: string, d: number, rnd: () => number = Math.random): Season {
   const v = clamp(relOf(s, key) + d, -3, 3);
-  const nemesis = s.nemesis || (v <= -2 ? key : null);
-  return { ...s, rel: { ...s.rel, [key]: v }, nemesis };
+  const born = !s.nemesis && v <= -2 && s.alive.includes(key);
+  const nemesis = s.nemesis || (born ? key : null);
+  const news = born ? [...s.news, `⚔️ ${nameOf(s, key)} es tu némesis. ${fillText(nemesisBirth(rnd)[1], { yo: nameOf(s, ME) })}`] : s.news;
+  return { ...s, rel: { ...s.rel, [key]: v }, nemesis, news };
+}
+
+// ---------- Minirreto, taller y confesionario ----------
+export const miniOf = (s: Season) => MINIS.find((m) => m.id === s.week?.mini?.id) || MINIS[0];
+/** Resultado del minirreto: la ganadora tiene ventaja en el reto (y reparte papeles o capitanea). */
+export function playMini(s: Season, me: number, rnd: () => number): Season {
+  const w = s.week!;
+  const m = miniOf(s);
+  const scores: Record<string, number> = { [ME]: Math.round(me) };
+  s.alive.filter((k) => k !== ME).forEach((k) => (scores[k] = miniRival(attrsOf(s, k)[m.attr], rnd)));
+  const winner = Object.keys(scores).sort((a, b) => scores[b] - scores[a])[0];
+  const adv = (w.adv || 0) + (winner === ME ? 4 : 0);
+  return { ...s, phase: "taller", week: { ...w, adv, mini: { id: m.id, me: scores[ME], winner, scores } }, news: [...s.news, winner === ME ? "🏅 ¡Ganas el minirreto! Tienes ventaja en el reto." : `🏅 ${nameOf(s, winner)} gana el minirreto.`] };
+}
+/** La escena del taller de esta semana. */
+export function sceneOf(s: Season, rnd: () => number): Scene {
+  return tallerScene({ rivals: s.alive.filter((k) => k !== ME), roles: s.roles, nemesis: s.nemesis, seenRoles: s.seenRoles, rnd });
+}
+/** Lo que eliges en la escena: cambia relaciones y, a veces, tu ventaja en el reto. */
+export function applyScene(s: Season, sc: Scene, i: number, rnd: () => number): Season {
+  const c = sc.choices[i];
+  let t: Season = s;
+  if (c) Object.entries(c.rel).forEach(([k, d]) => { if (s.alive.includes(k)) t = changeRel(t, k, d, rnd); });
+  const seenRoles = sc.kind === "rol" ? { ...t.seenRoles, [sc.r1]: (t.seenRoles[sc.r1] || 0) + 1 } : t.seenRoles;
+  const adv = (t.week!.adv || 0) + (c ? Math.round(c.adv * 1.5) : 0);
+  return { ...t, seenRoles, week: { ...t.week!, adv, scene: { ...sc, answered: i } } };
+}
+/** Una compañera habla de ti en el confesionario. */
+export function pickConfesionario(s: Season, rnd: () => number): Season {
+  if (!s.week || !s.alive.includes(ME)) return s;
+  const who = s.alive.filter((k) => k !== ME && s.roles[k]);
+  if (!who.length) return s;
+  const key = who[Math.floor(rnd() * who.length)];
+  const text = confesionario({ key, role: s.roles[key], rel: relOf(s, key), rnd });
+  return text ? { ...s, week: { ...s.week, conf: { key, text: fillText(text, { yo: nameOf(s, ME) }) } } } : s;
+}
+/** Lo que ganas esta semana (euros para el armario). */
+export function earnings(s: Season): { money: number; why: string }[] {
+  const w = s.week;
+  if (!w?.labels || !s.alive.includes(ME) && !s.out.includes(ME)) return [];
+  const out: { money: number; why: string }[] = [];
+  const lab = w.labels[ME];
+  if (lab === "WIN") out.push({ money: 300, why: "Ganas el reto de la semana" });
+  else if (lab === "TOP2" || lab === "HIGH") out.push({ money: 80, why: "Entre las mejores de la semana" });
+  if (w.mini?.winner === ME) out.push({ money: 150, why: "Ganas el minirreto" });
+  return out;
 }
 
 // ---------- Antes del lip sync: suerte, corazón y moneda ----------

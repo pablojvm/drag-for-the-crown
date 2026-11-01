@@ -11,7 +11,7 @@ out=$(mktemp)
 "$@" 2>&1 | tee "$out"
 code=${PIPESTATUS[0]}
 if [ "$code" != "0" ]; then
-  msg=$(tail -n 12 "$out" | tr '\n' ' ' | sed 's/%/%25/g' | cut -c1-900)
+  msg=$(grep -v "^$" "$out" | tail -n 4 | tr '\n' ' ' | sed 's/%/%25/g' | cut -c1-900)
   echo "::error title=Prueba ${name}::${msg}"
 fi
 exit "$code"

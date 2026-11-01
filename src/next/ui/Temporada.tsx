@@ -5,6 +5,10 @@ import * as T from "../../core/temporada";
 import { MAXI } from "../../core/maxi";
 import { PORTADAS, REINAS_ES, ATTR_NAMES, queenImg, queenStats, baseAttrs, type QAttr } from "../../core/reinas";
 import * as F from "../game/temporada";
+import { MINIS, roleInfo, fillText } from "../../core/taller";
+import { SLOTS, SLOT_NAMES, ARMARIO, fitScore, priceOf, prendaById, prendaImg, bestFor, outfitScore, type Slot } from "../../core/armario";
+import { getCloset, euros } from "../game/closet";
+import { TimingGame, FlashGame, RitmoGame } from "./Minijuegos";
 
 const LABEL_TXT: Record<string, string> = { WIN: "Gana", TOP2: "Top 2", BTOP: "Top 2 (bloqueada)", HIGH: "Top", SAFE: "A salvo", LOW: "Low", BTM2: "Bottom", BTM3: "Bottom", ELIM: "Fuera", WINNER: "Ganadora", "RUNNER-UP": "Finalista", RTRN: "Vuelve", OUT: "Fuera de la final" };
 const TWIST_TXT: Record<string, string> = { allstars: "💄 All Stars: el top 2 baila y la ganadora saca el pintalabios", winners: "⭐ All Winners: nadie se va, se juega por estrellas", suerte: "🍀 La reina de la suerte", corazon: "❤️ Los corazones", moneda: "🪙 La moneda", repesca: "🔁 Segunda Oportunidrag", normal: "" };
@@ -26,7 +30,7 @@ export function TemporadaUI() {
 function Elige() {
   return (
     <div className="nx-panel nx-ts-panel">
-      <p className="nx-eyebrow">Modo temporada · motor nuevo</p>
+      <p className="nx-eyebrow">Modo historia · motor nuevo (beta)</p>
       <h2>Elige la temporada</h2>
       <div className="nx-ts-seasons">
         {T.playableSeasons().map((t) => (
@@ -70,7 +74,7 @@ function Reina({ seasonId }: { seasonId: string }) {
 
 /** Lo que pasa en tu temporada: suerte, corazones, estrellas, bloqueo y némesis. */
 function chips(s: T.Season) {
-  const c: string[] = [];
+  const c: string[] = [`💶 ${euros(getCloset().money)}`];
   if (s.twist === "suerte") c.push(s.luck === T.ME ? "🍀 Tienes la reina de la suerte" : s.luck ? "🍀 ¿Quién la tendrá?" : "🍀 Ya se ha usado");
   if (s.twist === "corazon" && !s.meOut) c.push(`❤️ Tienes ${half(s.hearts[T.ME] || 0)} ${(s.hearts[T.ME] || 0) === 2 ? "corazón" : "corazones"}`);
   if (s.twist === "winners") c.push(`⭐ Tus estrellas: ${s.stars[T.ME] || 0}`);
@@ -138,6 +142,7 @@ function Fase({ s }: { s: T.Season }) {
   const n = (k: string) => T.nameOf(s, k);
   const dancers = (w?.bottom || []).map(n).join(" y ");
 
+  const mini = MINIS.find((m) => m.id === w?.mini?.id) || MINIS[0];
   if (s.phase === "anuncio" && w) {
     const def = MAXI[w.tipo];
     return (
@@ -152,11 +157,25 @@ function Fase({ s }: { s: T.Season }) {
         )}
         <p className="nx-ts-chips">Cuentan: {def.attrs.map((k) => <span key={k} className="nx-chip">{ATTR_NAMES[k]} {T.attrsOf(s, T.ME)[k]}</span>)}</p>
         {!def.noRunway && <p className="nx-muted">👠 Pasarela: «{w.tema}»</p>}
-        <button className="nx-btn" onClick={F.goReto}>¡Empezar el reto!</button>
+        <div className="nx-ts-mini"><b>Antes, el minirreto:</b> {mini.titulo}. <span className="nx-muted">{mini.desc} La ganadora tiene ventaja en el reto.</span></div>
+        <button className="nx-btn" onClick={F.goMini}>🏅 Al minirreto</button>
       </>
     );
   }
+  if (s.phase === "mini" && w) {
+    const label = mini.titulo.replace(/^Minirreto: /, "");
+    return (
+      <>
+        <p className="nx-eyebrow">🏅 Minirreto</p>
+        <h2>{label}</h2>
+        <p className="nx-muted">{mini.desc}</p>
+        {mini.kind === "flash" ? <FlashGame key={s.ep} label={label} onDone={F.miniDone} /> : mini.kind === "ritmo" ? <RitmoGame key={s.ep} label={label} notes={12} onDone={F.miniDone} /> : <TimingGame key={s.ep} label={label} onDone={F.miniDone} />}
+      </>
+    );
+  }
+  if (s.phase === "taller" && w) return <Taller s={s} />;
   if (s.phase === "reto" && ts.maxi) return <MaxiUI />;
+  if (s.phase === "probador" && w) return <Probador s={s} />;
   if (s.phase === "resultados" && w?.rows) {
     return (
       <>
@@ -236,6 +255,7 @@ function Fase({ s }: { s: T.Season }) {
         <p className="nx-eyebrow">El veredicto</p>
         <Rows s={s} />
         <News s={s} />
+        {w.conf && <p className="nx-ts-conf">📹 <b>Confesionario de {n(w.conf.key)}:</b> «{w.conf.text}»</p>}
         <button className="nx-btn" onClick={F.nextEpisode}>{s.twist === "winners" ? (s.ep >= T.winnersWeeks(s) ? "⭐ A la gran final" : "Siguiente episodio") : s.alive.length <= T.FINAL_AT ? "👑 A la gran final" : "Siguiente episodio"}</button>
       </>
     );
@@ -363,6 +383,7 @@ function MaxiUI() {
       {m.note && <p className="nx-ls-last meh">{m.note}</p>}
       {m.q && <h3>{m.q}</h3>}
       {m.sub && <p className="nx-muted">{m.sub}</p>}
+      {m.game && !m.game.played && (m.game.kind === "ritmo" ? <RitmoGame key={`${m.title}-${m.n}`} label={m.game.label} hard={m.game.hard} onDone={F.gameDone} /> : <TimingGame key={`${m.title}-${m.n}`} label={m.game.label} hard={m.game.hard} verb="🪡 ¡Puntada!" onDone={F.gameDone} />)}
       <div className="nx-maxi-opts">
         {m.opts.map((o, k) => (
           <button key={k} className={`nx-opt ${m.picked === null ? "" : m.picked === k ? "picked" : "dim"}`} disabled={m.picked !== null} onClick={() => F.pickOption(k)}>
@@ -393,5 +414,96 @@ function Track({ s }: { s: T.Season }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+const WHO: Record<string, string> = { host: "Supremme", judge: "Ana Locking" };
+/** La escena del taller de esta semana (y, al contestar, el rol de la compañera). */
+function Taller({ s }: { s: T.Season }) {
+  const w = s.week!;
+  const sc = w.scene;
+  const n = (k: string) => T.nameOf(s, k);
+  const names = { yo: n(T.ME), r1: sc ? n(sc.r1) : "", r2: sc?.r2 ? n(sc.r2) : "", r3: sc?.r3 ? n(sc.r3) : "" };
+  const who = (k: string) => (k === "me" ? names.yo : k === "r1" ? names.r1 : k === "r2" ? names.r2 : k === "r3" ? names.r3 : WHO[k] || k);
+  const answered = sc?.answered !== undefined;
+  const c = answered ? sc!.choices[sc!.answered!] : null;
+  const role = sc?.role ? roleInfo(sc.role) : null;
+  return (
+    <>
+      <p className="nx-eyebrow">🧵 El taller</p>
+      <News s={s} />
+      {sc && (
+        <>
+          <div className="nx-ts-dialog">
+            {sc.lines.map(([k, t], i) => <p key={i}><b>{who(k)}</b> {fillText(t, names)}</p>)}
+            {c && <p className="me"><b>{names.yo}</b> {fillText(c.txt, names)}</p>}
+            {c?.reply && <p><b>{who(c.reply[0])}</b> {fillText(c.reply[1], names)}</p>}
+          </div>
+          {!answered && sc.choices.length > 0 && (
+            <div className="nx-maxi-opts">{sc.choices.map((ch, i) => <button key={i} className="nx-opt" onClick={() => F.answerScene(i)}><b>{fillText(ch.txt, names)}</b></button>)}</div>
+          )}
+          {answered && role && <p className="nx-ts-call">{role.icon} Ahora lo sabes: {names.r1} es «{role.name}». <span className="nx-muted">{role.desc}</span></p>}
+        </>
+      )}
+      {(!sc || answered || !sc.choices.length) && <button className="nx-btn" onClick={F.goReto}>¡Al reto!</button>}
+    </>
+  );
+}
+
+/** El probador: eliges lo que llevas en la pasarela con tu armario y, si te falta algo, compras en la tienda. */
+function Probador({ s }: { s: T.Season }) {
+  const w = s.week!;
+  const [slot, setSlot] = useState<Slot>("look");
+  const cl = getCloset();
+  const o = w.outfit || {};
+  const cat = w.tema;
+  const fit = (k: Slot, id: string) => fitScore(k, prendaById(id)!, cat);
+  const mine = (ARMARIO[slot] || []).filter((x) => cl.owned[x.id] && (slot !== "look" || !x.rv)).sort((a, b) => fit(slot, b.id) - fit(slot, a.id));
+  const shop = bestFor(slot, cat, 8).filter((x) => !cl.owned[x.id]);
+  const score = outfitScore(o, cat);
+  const tag = (f: number) => (f >= 0.8 ? "✨ Encaja de lleno" : f >= 0.6 ? "Encaja" : f >= 0.4 ? "Del estilo" : "No pega");
+  return (
+    <>
+      <p className="nx-eyebrow">👗 El probador · pasarela «{cat}»</p>
+      <p className="nx-muted nx-center-txt">Lo que llevas cuenta en la nota de la pasarela. Sin pieza, te prestan un básico.</p>
+      <div className="nx-probador">
+        {SLOTS.map((k) => {
+          const id = o[k];
+          const it = id ? prendaById(id) : null;
+          return (
+            <button key={k} className={`nx-slot ${slot === k ? "on" : ""}`} onClick={() => setSlot(k)}>
+              {it ? <img src={`./${prendaImg(it.id)}`} alt="" loading="lazy" /> : <span className="nx-slot-empty">Básico</span>}
+              <small>{SLOT_NAMES[k]}</small>
+              {it && <em>{tag(fit(k, it.id))}</em>}
+            </button>
+          );
+        })}
+      </div>
+      <p className="nx-ts-call">Estilismo: {score} / 100 · 💶 {euros(cl.money)}</p>
+      <div className="nx-shelf">
+        <p className="nx-eyebrow">Tu armario · {SLOT_NAMES[slot]}</p>
+        <div className="nx-shelf-row">
+          <button className={`nx-item ${!o[slot] ? "on" : ""}`} onClick={() => F.setOutfit(slot, null)}><span className="nx-slot-empty">Básico</span><small>Prestado</small></button>
+          {mine.map((x) => (
+            <button key={x.id} className={`nx-item ${o[slot] === x.id ? "on" : ""}`} onClick={() => F.setOutfit(slot, x.id)}>
+              <img src={`./${prendaImg(x.id)}`} alt="" loading="lazy" /><small>{x.n}</small><em>{tag(fit(slot, x.id))}</em>
+            </button>
+          ))}
+        </div>
+        {shop.length > 0 && (
+          <>
+            <p className="nx-eyebrow">🛍️ Tienda · lo que mejor encaja</p>
+            <div className="nx-shelf-row">
+              {shop.map((x) => (
+                <button key={x.id} className="nx-item shop" disabled={cl.money < priceOf(x)} onClick={() => F.buyItem(x.id)}>
+                  <img src={`./${prendaImg(x.id)}`} alt="" loading="lazy" /><small>{x.n}</small><em>{tag(fit(slot, x.id))} · {euros(priceOf(x))}</em>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      <button className="nx-btn" onClick={F.goPasarela}>👠 ¡A la pasarela!</button>
+    </>
   );
 }

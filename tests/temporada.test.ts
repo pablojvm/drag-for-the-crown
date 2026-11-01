@@ -13,6 +13,7 @@ function playMaxi(tipo: string, rnd: () => number, k?: number) {
     const s = f(st);
     if (!s) continue;
     shown++;
+    if (s.game) { applyPick(st, s.game.go(Math.round(rnd() * 100), st)); continue; }
     expect(s.opts.length).toBeGreaterThanOrEqual(2);
     applyPick(st, s.opts[k ?? Math.floor(rnd() * s.opts.length)].go(st));
   }
@@ -57,6 +58,11 @@ function simSeason(seasonId: string, seed: number) {
       s = T.crown(s, T.simLipSync(s, s.final!.semis[0], s.final!.semis[1], rnd)[0]);
       break;
     }
+    s = T.playMini(s, Math.round(rnd() * 100), rnd);
+    expect(s.phase).toBe("taller");
+    const sc = T.sceneOf(s, rnd);
+    sc.lines.forEach(([, t]) => expect(typeof t).toBe("string"));
+    s = T.applyScene(s, sc, sc.choices.length ? Math.floor(rnd() * sc.choices.length) : -1, rnd);
     s.week!.reto = Math.round(rnd() * 100);
     s.week!.runway = Math.round(rnd() * 100);
     s = T.scoreWeek(s, rnd);
@@ -200,5 +206,34 @@ describe("temporada", () => {
     const lines = T.critique(s, T.ME, (a) => a[0]);
     expect(lines.length).toBe(2);
     lines.forEach((l) => expect(l).not.toMatch(/\{yo\}/));
+  });
+});
+
+describe("armario, taller y minirretos", () => {
+  it("el estilismo premia lo que encaja con la temática", async () => {
+    const A = await import("../src/core/armario");
+    const cat = "Pasión en Rojo";
+    const best = A.SLOTS.map((k) => [k, A.bestFor(k, cat, 1)[0]?.id] as const);
+    const good = Object.fromEntries(best.filter(([, id]) => id));
+    expect(A.outfitScore(good, cat)).toBeGreaterThan(A.outfitScore({}, cat) + 20);
+    expect(A.priceOf(A.prendaById(best[0][1]!)!)).toBeGreaterThan(0);
+  });
+  it("los roles se reparten entre las rivales y las escenas rellenan nombres", async () => {
+    const { assignRoles, tallerScene, fillText } = await import("../src/core/taller");
+    const rnd = makeRng(2);
+    const roles = assignRoles(["a", "b", "c"], rnd);
+    expect(Object.keys(roles).length).toBe(3);
+    for (let i = 0; i < 20; i++) {
+      const sc = tallerScene({ rivals: ["a", "b", "c"], roles, nemesis: "a", seenRoles: {}, rnd });
+      sc.lines.forEach(([, t]) => expect(fillText(t, { yo: "Yo", r1: "Uno", r2: "Dos" })).not.toMatch(/\{(yo|r1|r2)\}/));
+      sc.choices.forEach((c) => Object.keys(c.rel).forEach((k) => expect(["a", "b", "c"]).toContain(k)));
+    }
+  });
+  it("ganar el minirreto da ventaja en el reto", () => {
+    const rnd = makeRng(6);
+    let s = T.nextWeek(T.newSeason("es1", "inti", 6, rnd), rnd);
+    s = T.playMini(s, 100, rnd);
+    expect(s.week!.mini!.winner).toBe(T.ME);
+    expect(s.week!.adv).toBeGreaterThanOrEqual(4);
   });
 });

@@ -181,3 +181,35 @@ td.lab-elim { color: #8a8a8a; }
 .nx-ts-dialog p { margin: 0; padding: 8px 12px; border-radius: 12px; background: #fff; font-size: 14px; line-height: 1.45; }
 .nx-ts-dialog b { color: var(--nx-pink); margin-right: 6px; }
 .nx-maxi-opts.many { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+/* Modo historia (motor nuevo): minirreto, taller, probador y minijuegos */
+.nx-ts-mini { padding: 10px 14px; border-radius: 12px; background: #fff; font-size: 14px; text-align: center; }
+.nx-ts-conf { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fff7d6; font-size: 14px; line-height: 1.45; }
+.nx-ts-dialog p.me { background: #ffe8f3; }
+.nx-center-txt { text-align: center; margin: 0; }
+.nx-game { display: grid; gap: 10px; justify-items: center; padding: 6px 0; }
+.nx-game-head { margin: 0; font-size: 14px; }
+.nx-game-msg { margin: 0; min-height: 1.4em; font-weight: 700; color: var(--nx-pink); }
+.nx-timing { position: relative; width: 100%; height: 26px; border-radius: 99px; background: #f1e3ec; overflow: hidden; }
+.nx-timing-zone { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, #ffd84d, #ffb800); }
+.nx-timing i { position: absolute; top: -4px; bottom: -4px; width: 6px; margin-left: -3px; border-radius: 3px; background: var(--nx-ink); }
+.nx-flash { width: 100%; padding: 26px 10px; border-radius: 16px; background: #2b1238; color: #fff; text-align: center; font: 400 22px Bungee, sans-serif; transition: background 0.08s; }
+.nx-flash.on { background: #fff; color: var(--nx-pink); box-shadow: 0 0 40px #fff; }
+.nx-ritmo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; height: 220px; }
+.nx-lane { position: relative; border-radius: 12px; background: #f1e3ec; overflow: hidden; }
+.nx-lane i { position: absolute; left: 12%; right: 12%; height: 16px; margin-top: -8px; border-radius: 8px; background: linear-gradient(90deg, var(--nx-pink), #ff8a3d); }
+.nx-lane-line { position: absolute; left: 0; right: 0; top: 85%; height: 3px; background: var(--nx-ink); opacity: 0.6; }
+.nx-lane-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
+.nx-probador { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.nx-slot, .nx-item { border: 2px solid rgba(255, 61, 154, 0.25); border-radius: 14px; background: #fff; padding: 6px; display: grid; gap: 3px; justify-items: center; cursor: pointer; font-family: Poppins, sans-serif; color: var(--nx-ink); }
+.nx-slot.on, .nx-item.on { border-color: var(--nx-pink); box-shadow: 0 0 0 3px rgba(255, 61, 154, 0.25); }
+.nx-slot img, .nx-item img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+.nx-slot small, .nx-item small { font-size: 11px; line-height: 1.2; text-align: center; }
+.nx-slot em, .nx-item em { font-style: normal; font-size: 10.5px; color: var(--nx-muted); text-align: center; }
+.nx-slot-empty { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 10px; background: #f6edf2; color: var(--nx-muted); font-size: 12px; }
+.nx-item:disabled { opacity: 0.45; cursor: default; }
+.nx-slot:focus-visible, .nx-item:focus-visible { outline: 3px solid var(--nx-gold); outline-offset: 2px; }
+.nx-shelf { display: grid; gap: 6px; }
+.nx-shelf .nx-eyebrow { text-align: left; }
+.nx-shelf-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .nx-probador { grid-template-columns: repeat(2, 1fr); } }
+.nx-slot img, .nx-slot .nx-slot-empty { max-height: 110px; }

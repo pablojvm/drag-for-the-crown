@@ -13,8 +13,13 @@ page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resourc
 await page.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
 await page.goto(new URL("next.html", BASE).href);
 await page.waitForSelector(".nx-queens button", { timeout: 30000 });
-await page.evaluate((lose) => { localStorage.removeItem("dftc-next-temporada"); window.__dftcTemporada.timing.next = 60; window.__dftcTemporada.timing.meLast = lose; }, LOSE);
-await page.getByRole("button", { name: /Modo temporada/ }).click();
+// La prueba fija tu nota de la semana (la mejor, o con LOSE=1 la peor) para que el recorrido no dependa del azar
+// Los minijuegos se juegan de verdad en la primera temporada (TS=0); en las demás se dan por jugados, para ir más rápido
+const AUTO = !!process.env.TS && process.env.TS !== "0";
+const setTiming = () => page.evaluate(([lose, auto]) => { const t = window.__dftcTemporada.timing; t.next = 60; t.myScore = lose ? 1 : 99; t.autoGame = auto ? 70 : null; }, [LOSE, AUTO]);
+await page.evaluate(() => { localStorage.removeItem("dftc-next-temporada"); localStorage.removeItem("dftc-closet"); });
+await setTiming();
+await page.getByRole("button", { name: /Modo historia/ }).click();
 // TS=número de temporada en la lista (0 = la primera); TS=all no hace falta: el CI prueba varias
 await page.locator(".nx-ts-season").nth(Number(process.env.TS || 0)).click();
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ts-reina.png` });
@@ -33,8 +38,8 @@ for (let i = 0; i < 4000; i++) {
       resumed = true;
       await page.reload();
       await page.waitForSelector(".nx-queens button", { timeout: 30000 });
-      await page.evaluate(() => { window.__dftcTemporada.timing.next = 60; });
-      await page.getByRole("button", { name: "Seguir la temporada" }).click();
+      await setTiming();
+      await page.getByRole("button", { name: "Seguir mi temporada" }).click();
       continue;
     }
   }
@@ -49,6 +54,13 @@ for (let i = 0; i < 4000; i++) {
     const q = (s) => [...document.querySelectorAll(s)].find(vis);
     const concept = document.querySelector("#nx-concept");
     if (concept && !concept.value) return "concept";
+    // Minijuegos: se pulsa sin parar (terminan solos)
+    const hit = q("[data-game-hit]");
+    if (hit) { hit.click(); return "ok"; }
+    const lane = [...document.querySelectorAll("[data-game-lane]")];
+    if (lane.length) { lane[Math.floor(Math.random() * 4)].dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); return "ok"; }
+    const shopItem = q(".nx-item.shop");
+    if (shopItem) { shopItem.click(); return "ok"; }
     const b = q(".nx-maxi .nx-opt") || q(".nx-ls-panel .nx-panel.small .nx-btn") || q(".nx-ls-opts .nx-opt") || q(".nx-ts-panel .nx-maxi-opts .nx-opt") || q(".nx-ts-panel > .nx-btn, .nx-ts-panel .nx-row .nx-btn:not(.ghost)");
     if (b) { b.click(); return "ok"; }
     return "";
@@ -59,7 +71,7 @@ for (let i = 0; i < 4000; i++) {
 const end = await page.evaluate(() => { const s = window.__dftcTemporada.current(); return s && { phase: s.phase, place: s.place, ep: s.ep, track: (s.track.me || []).join(" ") }; });
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ts-fin.png` });
 await browser.close();
-const ok = end && end.phase === "fin" && end.place >= 1 && (LOSE ? end.place > 2 && seen.has("fuera") : end.place <= 2 && seen.has("untucked")) && resumed && seen.has("reto") && seen.has("final") && seen.has("resultados") && !errors.length;
+const ok = end && end.phase === "fin" && end.place >= 1 && (LOSE ? end.place > 2 && seen.has("fuera") : end.place <= 2 && seen.has("untucked")) && resumed && seen.has("reto") && (AUTO || seen.has("mini")) && seen.has("taller") && seen.has("probador") && seen.has("final") && seen.has("resultados") && !errors.length;
 console.log(`Temporada ${process.env.TS || 0} · fases: ${[...seen].join(", ")} · puesto: ${end ? end.place : "no"} · episodios: ${end ? end.ep : 0} · tu track: ${end ? end.track : ""} · retomada: ${resumed ? "sí" : "no"} · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
 process.exit(ok ? 0 : 1);

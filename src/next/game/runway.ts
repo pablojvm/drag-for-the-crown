@@ -39,12 +39,15 @@ export interface RunwayState {
   reveal: boolean;
   lines: { supreme: string; ana: string } | null;
   score: number | null;
+  /** Lo que lleva (si viene del probador del modo historia). */
+  pieces?: string[];
 }
 
 const shuffle = <T,>(a: T[], rnd: () => number = Math.random) => a.map((v) => [rnd(), v] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
 let seq = 0;
 
-export function startRunway(queenId: string, rnd: () => number = Math.random, mode: RunwayState["mode"] = juradoListo() ? "concepto" : "clasica", temaName?: string) {
+/** `preset`: el look ya viene del probador (su estilo y las piezas que lleva); se salta el paso de elegir look. */
+export function startRunway(queenId: string, rnd: () => number = Math.random, mode: RunwayState["mode"] = juradoListo() ? "concepto" : "clasica", temaName?: string, preset?: { look: Tag; pieces: string[] }) {
   const temas = TEMAS_PASARELA.filter((t) => !t.rv);
   const tema = temas.find((t) => t.n === temaName) || temas[Math.floor(rnd() * temas.length)];
   const catTag = tema.tag;
@@ -58,8 +61,9 @@ export function startRunway(queenId: string, rnd: () => number = Math.random, mo
   set({
     screen: "runway",
     queenId,
-    rw: { id: ++seq, mode, cat: tema.n, theme: tema.d, catTag, look: null, lookOpts: shuffle([catTag, ...others], rnd), step: 0, pos: 0, done: false, waiting: false, points: [], msg: "", good: null, anim: "", animN: 0, voices, concept: "", moments: [], picks: [], qa: null, ana: 0, anaAnswer: "", reveal: false, lines: null, score: null },
+    rw: { id: ++seq, mode, cat: tema.n, theme: tema.d, catTag, look: null, lookOpts: shuffle([catTag, ...others], rnd), step: 0, pos: 0, done: false, waiting: false, points: [], msg: "", good: null, anim: "", animN: 0, voices, concept: "", moments: [], picks: [], qa: null, ana: 0, anaAnswer: "", reveal: false, lines: null, score: null, pieces: preset?.pieces },
   });
+  if (preset) chooseLook(preset.look);
 }
 
 const next = (p: Partial<RunwayState>) => { const rw = get().rw!; set({ rw: { ...rw, ...p, animN: rw.animN + 1 } }); };
@@ -102,7 +106,7 @@ export function chooseVoice(v: Voice) {
 }
 
 // ---------- Con concepto ----------
-const ctxOf = (rw: RunwayState) => ({ cat: rw.cat, theme: rw.theme, pieces: LOOK_PIECES[rw.look || rw.catTag] || [] });
+const ctxOf = (rw: RunwayState) => ({ cat: rw.cat, theme: rw.theme, pieces: rw.pieces?.length ? rw.pieces : LOOK_PIECES[rw.look || rw.catTag] || [] });
 
 /** La reina cuenta la idea de su look; llegan los momentos de desfile y la pregunta de Ana. */
 export async function submitConcept(text: string, rnd: () => number = Math.random) {

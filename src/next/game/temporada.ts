@@ -8,9 +8,14 @@ import { send } from "../bridge";
 import { setLookSeason, queenOf } from "./queens";
 import { startRunway } from "./runway";
 import { startLipSync } from "./lipsync";
-import { juradoListo } from "./jurado";
+import { juradoListo, ask } from "./jurado";
+import { cleanLine } from "../../core/guion";
+import { addMoney, buy } from "./closet";
+import { outfitScore, prendaById, slotOf, TAG_OF_STYLE, SLOTS, type Slot } from "../../core/armario";
+import { TEMAS_PASARELA } from "../../core/temas";
+import type { Tag } from "../../core/runway";
 
-export interface MaxiView { title: string; icon: string; n: number; q?: string; sub?: string; opts: { t: string; d?: string }[]; msg: string; picked: number | null; focus: number | null; note: string }
+export interface MaxiView { title: string; icon: string; n: number; q?: string; sub?: string; opts: { t: string; d?: string }[]; msg: string; picked: number | null; focus: number | null; note: string; game?: { kind: "ritmo" | "costura"; label: string; hard: number; played?: boolean } }
 export interface UtView { opts: T.UtOption[]; scene: (T.UtScene & { key: string; answered?: number }) | null; talked: string[] }
 export interface TsView {
   view: "elige" | "reina" | "juego";
@@ -34,8 +39,8 @@ let st: StepsState = newSteps();
 let stepIdx = 0;
 let cur: Step | null = null;
 let timer: ReturnType<typeof setTimeout> | undefined;
-/** Pausa entre una decisión y la siguiente (las pruebas la acortan). `meLast` es solo para las pruebas: tu nota, la peor. */
-export const timing = { next: 1300, meLast: false };
+/** Pausa entre una decisión y la siguiente (las pruebas la acortan). `myScore` y `autoGame` son solo para las pruebas: tu nota de la semana y la de los minijuegos. */
+export const timing = { next: 1300, myScore: null as number | null, autoGame: null as number | null };
 
 /** Azar con semilla: avanza con la partida y se guarda con ella. */
 const rnd = () => {
@@ -79,7 +84,9 @@ export function chooseQueen(id: string, seed = newSeed()) {
   S = { ...T.newSeason(seasonId, id, seed, Math.random), seed };
   setLookSeason(seasonId);
   S = T.nextWeek(S, rnd);
-  if (S.twist === "suerte") S.news = [S.luck === T.ME ? "🍀 Abres tu cajita... ¡tienes la reina de la suerte! Nadie más lo sabe." : "🍀 Abres tu cajita... vacía. Alguna compañera tiene la reina de la suerte."];
+  addMoney(400);
+  S.news = ["💶 Producción te da 400 € para el armario de esta temporada."];
+  if (S.twist === "suerte") S.news = [...S.news,S.luck === T.ME ? "🍀 Abres tu cajita... ¡tienes la reina de la suerte! Nadie más lo sabe." : "🍀 Abres tu cajita... vacía. Alguna compañera tiene la reina de la suerte."];
   commit("werkroom");
 }
 export function resume() {
@@ -91,7 +98,8 @@ export function resume() {
   setLookSeason(S!.seasonId);
   set({ ts: { view: "juego", s: null, maxi: null, crit: {}, ut: null, pair: null, bg: "werkroom" } });
   // Si se cerró a mitad de algo, se retoma en el punto seguro más cercano
-  if (S!.phase === "reto") S!.phase = "anuncio";
+  if (S!.phase === "reto") S!.phase = "taller";
+  if (S!.phase === "mini") S!.phase = "anuncio";
   if (S!.phase === "pasarela") return goRunway();
   if (S!.phase === "untucked") S!.phase = "resultados";
   if (S!.phase === "lipsync") {
@@ -110,8 +118,30 @@ const critsOf = (s: T.Season) => {
 };
 
 // ---------- El reto ----------
-export function goReto() {
+// ---------- Minirreto y taller ----------
+export function goMini() {
   if (!S || S.phase !== "anuncio" || !S.week) return;
+  S.phase = "mini";
+  show();
+  if (timing.autoGame != null) miniDone(timing.autoGame);
+}
+export function miniDone(score: number) {
+  if (!S || S.phase !== "mini") return;
+  S = T.playMini(S, score, rnd);
+  S.week!.scene = T.sceneOf(S, rnd);
+  commit("werkroom");
+}
+export function answerScene(i: number) {
+  if (!S || S.phase !== "taller" || !S.week?.scene || S.week.scene.answered !== undefined) return;
+  const sc = S.week.scene;
+  S = T.applyScene(S, sc, i, rnd);
+  const c = sc.choices[i];
+  if (c?.bonus) { addMoney(Math.round(c.bonus / 2)); S.news = [...S.news, `💶 +${Math.round(c.bonus / 2)} € por dar que hablar en el taller`]; }
+  commit("werkroom");
+}
+
+export function goReto() {
+  if (!S || S.phase !== "taller" || !S.week || (S.week.scene && S.week.scene.answered === undefined && S.week.scene.choices.length)) return;
   const w = S.week;
   const mate = (key: string) => ({ key, name: T.nameOf(S!, key) });
   const mates = S.alive.filter((k) => k !== T.ME).map(mate);
@@ -134,25 +164,62 @@ function nextStep() {
     if (cur) break;
   }
   if (!cur) return endReto();
-  show({ maxi: { title: maxi.title, icon: maxi.icon, n: Math.min(stepIdx, maxi.steps.length), q: cur.q, sub: cur.sub, opts: cur.opts.map((o) => ({ t: o.t, d: o.d })), msg: "", picked: null, focus: maxi.meters ? Math.round(st.focus) : null, note: st.note || "" } });
+  const game = cur.game ? { kind: cur.game.kind, label: cur.game.label, hard: cur.game.hard || 0 } : undefined;
+  show({ maxi: { title: maxi.title, icon: maxi.icon, n: Math.min(stepIdx, maxi.steps.length), q: cur.q, sub: cur.sub, opts: cur.opts.map((o) => ({ t: o.t, d: o.d })), msg: "", picked: null, focus: maxi.meters ? Math.round(st.focus) : null, note: st.note || "", game } });
   st.note = "";
+  if (game && timing.autoGame != null) gameDone(timing.autoGame);
 }
 export function pickOption(k: number) {
   const m = view().maxi;
   if (!S || !maxi || !cur || !m || m.picked !== null || !cur.opts[k]) return;
   const r = cur.opts[k].go(st) || {};
   applyPick(st, r);
-  if (r.rel) S = T.changeRel(S, r.rel.key, r.rel.d);
+  if (r.rel) S = T.changeRel(S, r.rel.key, r.rel.d, rnd);
   cur = null;
   show({ maxi: { ...m, picked: k, msg: r.msg || "", focus: maxi.meters ? Math.round(Math.max(0, Math.min(100, st.focus))) : null } });
   timer = setTimeout(nextStep, r.msg ? timing.next : Math.min(450, timing.next));
+}
+/** Termina el minijuego de un paso del reto. */
+export function gameDone(score: number) {
+  const m = view().maxi;
+  if (!S || !maxi || !cur?.game || !m || m.game?.played) return;
+  const r = cur.game.go(Math.max(0, Math.min(100, score)), st) || {};
+  applyPick(st, r);
+  cur = null;
+  show({ maxi: { ...m, picked: 0, msg: r.msg || "", game: { ...m.game!, played: true } } });
+  timer = setTimeout(nextStep, timing.next);
 }
 function endReto() {
   S!.week!.reto = Math.round(stepsScore(st, maxi!));
   const noRunway = MAXI[S!.week!.tipo].noRunway;
   maxi = null;
   if (noRunway) return toResults();
-  S!.phase = "pasarela";
+  S!.phase = "probador";
+  // Propuesta de partida: lo que mejor encaja de tu armario (o nada, y te prestan un básico)
+  commit("werkroom", { maxi: null });
+}
+
+// ---------- El probador y la tienda ----------
+export function setOutfit(slot: Slot, id: string | null) {
+  if (!S || S.phase !== "probador") return;
+  const o = { ...(S.week!.outfit || {}) };
+  if (id) o[slot] = id;
+  else delete o[slot];
+  S.week = { ...S.week!, outfit: o };
+  show();
+}
+/** Compra en la tienda; si ese hueco del look está vacío, te la pones. */
+export function buyItem(id: string) {
+  if (!S || S.phase !== "probador" || !buy(id)) return false;
+  const slot = slotOf(id);
+  if (slot && !(S.week!.outfit || {})[slot]) S.week = { ...S.week!, outfit: { ...(S.week!.outfit || {}), [slot]: id } };
+  show();
+  return true;
+}
+export function goPasarela() {
+  if (!S || S.phase !== "probador") return;
+  S.week!.look = outfitScore(S.week!.outfit || {}, S.week!.tema);
+  S.phase = "pasarela";
   save();
   goRunway();
 }
@@ -161,12 +228,35 @@ function endReto() {
 function goRunway() {
   const s = S!;
   set({ back: "Ir a los resultados", queenId: s.queen });
-  startRunway(s.queen, rnd, juradoListo() ? "concepto" : "clasica", s.week!.tema);
+  const o = s.week!.outfit || {};
+  const look = o.look ? prendaById(o.look) : null;
+  const tema = TEMAS_PASARELA.find((t) => t.n === s.week!.tema);
+  const tag = ((look && TAG_OF_STYLE[look.s]) || tema?.tag || "Glamour") as Tag;
+  const pieces = SLOTS.map((k) => (o[k] ? prendaById(o[k]!)?.n : null)).filter(Boolean) as string[];
+  startRunway(s.queen, rnd, juradoListo() ? "concepto" : "clasica", s.week!.tema, { look: tag, pieces: pieces.length ? pieces : ["un básico prestado del armario"] });
   send({ type: "scene", key: "Runway" });
 }
 function toResults() {
-  S = T.scoreWeek(S!, rnd, timing.meLast ? { [T.ME]: 1 } : {});
+  S = T.scoreWeek(S!, rnd, timing.myScore != null ? { [T.ME]: timing.myScore } : {});
+  for (const e of T.earnings(S)) { addMoney(e.money); S.news = [...S.news, `💶 +${e.money} €: ${e.why}`]; }
   commit("stage", { crit: critsOf(S), maxi: null });
+  liveCritique();
+}
+/** Con el jurado en directo, tus críticas las escriben Supremme y Ana para esta semana (si no, las de siempre). */
+async function liveCritique() {
+  if (!S || !juradoListo() || !S.week?.labels) return;
+  const s = S, w = s.week!;
+  const lab = w.labels![T.ME];
+  const nivel = /WIN|TOP2|HIGH/.test(lab) ? "de las mejores" : /BTM|LOW/.test(lab) ? "de las peores" : "del montón";
+  const pieces = SLOTS.map((k) => (w.outfit?.[k] ? prendaById(w.outfit[k]!)?.n : null)).filter(Boolean).join(", ") || "un básico prestado";
+  const r = await ask(
+    "Eres el jurado de Drag Race España: Supremme de Luxe (espectáculo y actitud) y Ana Locking (moda y construcción). Das críticas concretas, con humor y sin crueldad.",
+    `La reina ${T.nameOf(s, T.ME)} ha hecho el reto «${w.titulo}» y esta semana ha quedado ${nivel}. ${MAXI[w.tipo].noRunway ? "" : `En la pasarela «${w.tema}» llevaba: ${pieces}.`} Escribe una crítica de cada una, máximo 25 palabras, dirigida a ella, coherente con ese resultado. Devuelve JSON {"supreme":"...","ana":"..."}`,
+    { json: true, max: 300, temp: 0.8 },
+  );
+  if (!r || S !== s || S.phase !== "resultados") return;
+  const lines = [cleanLine(r.supreme), cleanLine(r.ana)].filter(Boolean);
+  if (lines.length) show({ crit: { ...view().crit, [T.ME]: lines } });
 }
 /** El botón de volver de la pasarela o del lip sync. */
 export function backFromScene() {
@@ -174,7 +264,8 @@ export function backFromScene() {
   if (S.phase === "pasarela") {
     const rw = get().rw;
     if (!rw?.done) return;
-    S.week!.runway = rw.score ?? 50;
+    // La pasarela: lo que haces (70 %) y lo que llevas (30 %)
+    S.week!.runway = Math.round((rw.score ?? 50) * 0.7 + (S.week!.look ?? 50) * 0.3);
     return toResults();
   }
   if (S.phase === "lipsync") {
@@ -199,14 +290,14 @@ export function talkTo(key: string) {
   if (!S || !ut || ut.scene || ut.talked.length >= UT_TALKS || ut.talked.includes(key)) return;
   const o = ut.opts.find((x) => x.key === key)!;
   const sc = T.untuckedScene(S, o, rnd);
-  if (!sc.choices) S = T.changeRel(S, key, sc.rel);
+  if (!sc.choices) S = T.changeRel(S, key, sc.rel, rnd);
   show({ ut: { ...ut, scene: { ...sc, key }, talked: [...ut.talked, key] } });
 }
 export function answerUt(i: number) {
   const ut = view().ut;
   const c = ut?.scene?.choices?.[i];
   if (!S || !ut?.scene || !c || ut.scene.answered !== undefined) return;
-  S = T.changeRel(S, ut.scene.key, c.rel);
+  S = T.changeRel(S, ut.scene.key, c.rel, rnd);
   show({ ut: { ...ut, scene: { ...ut.scene, answered: i, lines: [...ut.scene.lines, [T.nameOf(S, T.ME), c.txt], c.reply] } } });
 }
 export function closeTalk() {
@@ -257,6 +348,7 @@ function playLipSync(rival: string, back: string) {
 }
 function afterLipSync(win: string, lose: string) {
   S = T.lipSyncResult(S!, win, lose, rnd);
+  if (S.phase === "veredicto") S = T.pickConfesionario(S, rnd);
   // Corazones: la eliminada (si es una rival) deja su medio corazón al momento
   if (S.heartFrom && S.heartFrom !== T.ME) S = T.giveHeart(S, S.heartFrom, null, rnd);
   commit("stage");
@@ -265,6 +357,7 @@ function afterLipSync(win: string, lose: string) {
 export function chooseLipstick(key: string) {
   if (!S || S.phase !== "pintalabios") return;
   S = T.lipstick(S, key);
+  if (S.phase === "veredicto") S = T.pickConfesionario(S, rnd);
   if (S.heartFrom && S.heartFrom !== T.ME) S = T.giveHeart(S, S.heartFrom, null, rnd);
   commit("stage");
 }
@@ -272,6 +365,7 @@ export function chooseLipstick(key: string) {
 export function chooseBlock(key: string) {
   if (!S || S.phase !== "bloqueo") return;
   S = T.block(S, key);
+  S = T.pickConfesionario(S, rnd);
   commit("stage");
 }
 /** Corazones: te vas y dejas tu medio corazón. */

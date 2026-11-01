@@ -83,8 +83,8 @@ function MenuUI() {
           <button className="nx-btn ghost" onClick={() => send({ type: "runway", queenId: pick })}>👠 Pasarela</button>
         </div>
         <div className="nx-row nx-season-row">
-          <button className="nx-btn gold" onClick={openSeasons}>👑 Modo temporada</button>
-          {hasSaved() && <button className="nx-btn ghost" onClick={resume}>Seguir la temporada</button>}
+          <button className="nx-btn gold" onClick={openSeasons}>👑 Modo historia</button>
+          {hasSaved() && <button className="nx-btn ghost" onClick={resume}>Seguir mi temporada</button>}
         </div>
         <p className="nx-muted">Flechas o WASD para moverte, Espacio para lanzar tacones, E para el poder, P para pausar. En el móvil, arrastra el dedo.{best ? ` · Récord: ${best}` : ""}</p>
         <a className="nx-link" href="./index.html">Volver al juego completo (historia y multijugador)</a>
