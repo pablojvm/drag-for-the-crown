@@ -6,6 +6,7 @@ import { MAXI } from "../../core/maxi";
 import { PORTADAS, REINAS_ES, ATTR_NAMES, queenImg, queenStats, baseAttrs, type QAttr } from "../../core/reinas";
 import * as F from "../game/temporada";
 import { CHARLA_TURNOS } from "../../core/charla";
+import { PPE_VALOR } from "../../core/track";
 import { MINIS, roleInfo, fillText } from "../../core/taller";
 import { SLOTS, SLOT_NAMES, ARMARIO, fitScore, priceOf, prendaById, prendaImg, bestFor, outfitScore, type Slot } from "../../core/armario";
 import { getCloset, euros } from "../game/closet";
@@ -411,21 +412,52 @@ function MaxiUI() {
   );
 }
 
+// Track record como el de la versión clásica: foto, columnas por episodio con sus colores, puesto y PPE
+const TRACK_ORDER: Record<string, number> = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, HIGH: 4, "3ª/4ª": 5, SAFE: 6, RTRN: 6.5, LOW: 7, BTM2: 8, BTM3: 8, OUT: 8.5, ELIM: 9 };
+const TRACK_CLASS: Record<string, string> = { WIN: "t-win", BWIN: "t-win", WINNER: "t-win", TOP2: "t-top2", BTOP: "t-top2", HIGH: "t-high", SAFE: "t-safe", LOW: "t-low", BTM2: "t-btm", BTM3: "t-btm", ELIM: "t-elim", OUT: "t-elim", "RUNNER-UP": "t-runner", "3ª/4ª": "t-third", RTRN: "t-rtrn" };
+const TRACK_TXT: Record<string, string> = { WINNER: "GANADORA", OUT: "ELIM" };
 function Track({ s }: { s: T.Season }) {
-  const keys = [...s.alive, ...[...s.out].reverse()];
-  const eps = Math.max(0, ...keys.map((k) => (s.track[k] || []).length));
+  const keys = [...new Set([...s.alive, ...s.out])];
+  const eps = Math.max(s.ep, ...keys.map((k) => (s.track[k] || []).length));
+  const crowned = !!s.final?.crown;
+  // En la final, las que caen en semifinales son 3ª/4ª
+  const lab = (k: string, i: number) => { const l = (s.track[k] || [])[i] || ""; return crowned && i === eps - 1 && l === "ELIM" ? "3ª/4ª" : l; };
+  const lastEp = (k: string) => { const r = s.track[k] || []; for (let i = r.length - 1; i >= 0; i--) if (r[i]) return i; return -1; };
+  const lastScored = [...Array(eps).keys()].reverse().find((i) => keys.some((k) => TRACK_ORDER[lab(k, i)] !== undefined));
+  const rank = (k: string) => (lastScored == null ? 7.5 : TRACK_ORDER[lab(k, lastScored)] ?? 7.5);
+  const count = (k: string, re: RegExp) => (s.track[k] || []).filter((l) => re.test(l)).length;
+  const out = (k: string) => (k === T.ME ? s.meOut : s.out.includes(k)) && !(crowned && s.final!.pairs.flat().includes(k));
+  const rows = keys.slice().sort((a, b) => {
+    if (crowned) { const P = (k: string) => (k === s.final!.crown ? 0 : k === s.final!.runnerUp ? 1 : s.final!.pairs.flat().includes(k) ? 2 : 3); if (P(a) !== P(b)) return P(a) - P(b); }
+    return Number(out(a)) - Number(out(b)) || (out(a) ? lastEp(b) - lastEp(a) : 0) || rank(a) - rank(b) || count(b, /WIN/) - count(a, /WIN/) || count(b, /HIGH|TOP2|BTOP/) - count(a, /HIGH|TOP2|BTOP/) || count(a, /BTM/) - count(b, /BTM/);
+  });
+  const ppe = (k: string) => { const v = (s.track[k] || []).map((l) => PPE_VALOR[l]).filter((x) => x !== undefined); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) : "–"; };
+  const place = (k: string, i: number) => (crowned && s.final!.pairs.flat().includes(k) && i >= 2 ? "3º/4º" : `${i + 1}º`);
   return (
-    <div className="nx-ts-track">
-      <table>
-        <thead><tr><th>Reina</th>{Array.from({ length: eps }, (_, i) => <th key={i}>{i + 1}</th>)}{s.twist === "winners" && <th>⭐</th>}</tr></thead>
+    <div className="nx-track-wrap">
+      <table className="nx-track">
+        <thead>
+          <tr>
+            <th>#</th><th>Reina</th>
+            {Array.from({ length: eps }, (_, i) => <th key={i}>Ep. {i + 1}{s.epNames?.[i] && <small>{s.epNames[i]}</small>}</th>)}
+            {s.twist === "winners" && <th>⭐</th>}{s.twist === "corazon" && <th>❤️</th>}
+            <th>PPE</th>
+          </tr>
+        </thead>
         <tbody>
-          {keys.map((k) => (
-            <tr key={k} className={k === T.ME ? "me" : ""}>
-              <td>{T.nameOf(s, k)}</td>
-              {Array.from({ length: eps }, (_, i) => { const l = (s.track[k] || [])[i] || ""; return <td key={i} className={`lab-${l.toLowerCase()}`}>{l}</td>; })}
-              {s.twist === "winners" && <td>{s.stars[k] || 0}</td>}
-            </tr>
-          ))}
+          {rows.map((k, i) => {
+            const gone = out(k), le = lastEp(k);
+            return (
+              <tr key={k} className={`${k === T.ME ? "me" : ""} ${gone ? "out" : ""}`} style={{ ["--i" as string]: i }}>
+                <td className="rk">{place(k, i)}</td>
+                <td className="qn"><i style={{ backgroundImage: `url('./${queenImg(T.idOf(s, k), s.seasonId, true)}')` }} /><span>{T.nameOf(s, k)}{k === T.ME && <b> (tú)</b>}</span></td>
+                {Array.from({ length: eps }, (_, e) => { const l = lab(k, e); return <td key={e} className={l ? TRACK_CLASS[l] || "t-safe" : gone && e > le ? "t-gone" : "t-none"}>{l ? TRACK_TXT[l] || l : ""}</td>; })}
+                {s.twist === "winners" && <td className="ppe">{s.stars[k] || 0}</td>}
+                {s.twist === "corazon" && <td className="ppe">{gone ? "–" : "❤️".repeat(Math.floor((s.hearts[k] || 0) / 2)) + ((s.hearts[k] || 0) % 2 ? "💔" : "") || "–"}</td>}
+                <td className="ppe">{ppe(k)}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

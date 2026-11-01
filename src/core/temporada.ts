@@ -121,6 +121,8 @@ export interface Season {
   lzDone: boolean;
   reunionDone: boolean;
   miss?: string;
+  /** Nombre corto de cada episodio (para la cabecera del track record). */
+  epNames?: string[];
   news: string[];
   place?: number;
 }
@@ -192,7 +194,22 @@ export function newSeason(seasonId: string, queen: string, seed: number, rnd: ()
 
 // ---------- La semana ----------
 /** Empieza la semana siguiente: Segunda Oportunidrag, final o un reto. */
+/** Nombre corto del episodio para el track record (lo que va antes de los dos puntos del título). */
+export function epShort(n: Season): string {
+  if (n.phase === "regreso") return "Segunda Oportunidrag";
+  if (n.phase === "reencuentro") return "Reencuentro";
+  if (n.phase === "final") return "Gran final";
+  const t = n.week?.titulo || "";
+  const c = t.split(":")[0].replace(/^Reto de /, "").trim();
+  return c.charAt(0).toUpperCase() + c.slice(1);
+}
 export function nextWeek(s: Season, rnd: () => number): Season {
+  const n = nextWeekRaw(s, rnd);
+  const names = (s.epNames || []).slice();
+  names[n.ep - 1] = epShort(n);
+  return { ...n, epNames: names };
+}
+function nextWeekRaw(s: Season, rnd: () => number): Season {
   const ep = s.ep + 1;
   const base = { ...s, ep, news: [] as string[], week: null };
   if (s.twist === "repesca" && !s.repescaDone && s.alive.length <= BALANCE.repescaCuando && s.out.length >= 2) return { ...base, phase: "regreso" };
