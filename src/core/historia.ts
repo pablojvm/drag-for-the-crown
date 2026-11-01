@@ -711,3 +711,38 @@ export const ESTILO_CRITICA: any = {
   low: ["¿{pieza}, para «{cat}»? No lo entiendo, y mira que lo intento.", "Cada pieza iba por su lado. Parecía un mercadillo.", "La categoría era «{cat}». Creo que no te llegó el mensaje."],
 };
 
+
+// Reencuentro (antes de la final) y sorteo de la final
+export const REENCUENTRO: any = {
+  intro: [
+    [["host", "Antes de la gran final, reinas... ¡ha llegado el reencuentro!"], ["host", "Vuelven todas las eliminadas. Y vienen con cosas que decir."], ["judge", "Esto se va a poner interesante."]],
+    [["host", "Top 4, estáis en la final. Pero antes toca mirar atrás."], ["host", "¡Que pasen las reinas de {temporada}!"], ["r1", "¡Hola, hola! ¿Me habéis echado de menos?"]],
+  ],
+  buena: [
+    [["r1", "¡{yo}! Ven aquí, dame un abrazo. Estoy orgullosísima de ti."], ["me", "Te he echado mucho de menos, {r1}."], ["r1", "Ahora gana esa corona por las dos."]],
+    [["r1", "Te he visto cada semana desde el sofá, gritando como una loca."], ["r1", "Ni mi madre me anima así en los partidos."]],
+  ],
+  neutra: [
+    [["r1", "Hola, {yo}. Enhorabuena por la final. De verdad."], ["me", "Gracias, {r1}. Te lo merecías tú también."], ["r1", "Bueno... eso díselo al jurado."]],
+    [["r1", "No hablamos mucho dentro, ¿verdad?"], ["me", "Pues no. Una pena."], ["r1", "Siempre hay tiempo. Después de la final, unas cañas."]],
+  ],
+  mala: [
+    [["r1", "Ah, mira quién está en la final. Qué sorpresa."], ["r1", "Yo me acuerdo de todo, {yo}. De TODO."], ["host", "Uy, uy, uy. Esto no lo esperaba."]],
+    [["r1", "Tengo una cosa que decirte delante de todas."], ["r1", "Lo que me hiciste no estuvo bien. Y viéndolo desde casa, peor."]],
+  ],
+  choicesMala: [
+    { txt: "Tienes razón. Te pido perdón.", rel: { r1: 2 }, reply: ["r1", "Vale... Eso no me lo esperaba. Gracias."] },
+    { txt: "Era una competición. No me arrepiento.", bonus: 200, reply: ["r1", "Pues que te aproveche la corona. Si la ganas."] },
+  ],
+  drama: [
+    [["r1", "Yo solo quiero decir una cosa: aquí dentro alguien jugó sucio."], ["r2", "¿Lo dices por mí?"], ["r1", "Si te pica, ráscate."], ["host", "¡Reinas, por favor! Bueno, seguid, seguid."]],
+    [["r1", "He visto el programa. Y he visto lo que decías de mí en el confesionario, {r2}."], ["r2", "Era una broma..."], ["r1", "Pues no me he reído."]],
+    [["r1", "Quiero dar las gracias a todas. Menos a una. Ella sabe quién es."], ["r2", "Qué valiente sin decir nombres."]],
+  ],
+  missIntro: [["host", "Y ahora, el momento más bonito del reencuentro."], ["host", "Las reinas van a votar a su Miss Simpatía: la compañera más querida de la temporada."], ["judge", "El voto es sincero. Aquí no se puede fingir."]],
+};
+
+export const FINAL_SORTEO: any = [
+  [["host", "Reinas, así va a ser la final: cuatro reinas, dos lip syncs."], ["host", "El sorteo decide las parejas. Las ganadoras se enfrentarán por la corona."], ["judge", "Disfrutadlo. Os lo habéis ganado."]],
+];
+

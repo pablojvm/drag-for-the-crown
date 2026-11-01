@@ -36,6 +36,7 @@ export function App() {
         {screen === "lipsync" && <LipSyncUI />}
         {screen === "runway" && <RunwayUI />}
         {screen === "temporada" && <TemporadaUI />}
+        <Toasts />
       </div>
     </div>
   );
@@ -269,6 +270,16 @@ function Result() {
         <button className="nx-btn" onClick={() => send({ type: "start", queenId })}>Otra vez</button>
         <button className="nx-btn ghost" onClick={() => send({ type: "menu" })}>Menú</button>
       </div>
+    </div>
+  );
+}
+
+function Toasts() {
+  const t = useGame((s) => s.toasts);
+  if (!t.length) return null;
+  return (
+    <div className="nx-toasts" role="status" aria-live="polite">
+      {t.map((x) => <div key={x.id} className="nx-toast"><b>{x.title}</b>{x.sub && <span>{x.sub}</span>}</div>)}
     </div>
   );
 }

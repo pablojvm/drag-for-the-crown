@@ -23,7 +23,7 @@ function playMaxi(tipo: string, rnd: () => number, k?: number) {
 describe("retos por decisiones", () => {
   it("todos los retos se pueden jugar de principio a fin y dan una nota de 0 a 100", () => {
     const rnd = makeRng(7);
-    for (const tipo of Object.keys(MAXI)) {
+    for (const tipo of Object.keys(MAXI).filter((k) => !MAXI[k].special)) {
       const { score, shown } = playMaxi(tipo, rnd);
       expect(shown).toBeGreaterThanOrEqual(3);
       expect(score).toBeGreaterThanOrEqual(0);
@@ -53,6 +53,12 @@ function simSeason(seasonId: string, seed: number) {
       else s = T.nextWeek({ ...s, phase: "veredicto" }, rnd);
       continue;
     }
+    if (s.phase === "reencuentro") {
+      const talks = T.reunionTalks(s, rnd);
+      talks.forEach((t) => t.lines.forEach(([, x]) => expect(typeof x).toBe("string")));
+      s = T.startFinal(T.missSimpatia(s, rnd), rnd);
+      expect(s.miss).toBeTruthy();
+    }
     if (s.phase === "final") {
       for (const [a, b] of s.final!.pairs) s = T.settleSemi(s, T.simLipSync(s, a, b, rnd)[0]);
       s = T.crown(s, T.simLipSync(s, s.final!.semis[0], s.final!.semis[1], rnd)[0]);
@@ -63,9 +69,16 @@ function simSeason(seasonId: string, seed: number) {
     const sc = T.sceneOf(s, rnd);
     sc.lines.forEach(([, t]) => expect(typeof t).toBe("string"));
     s = T.applyScene(s, sc, sc.choices.length ? Math.floor(rnd() * sc.choices.length) : -1, rnd);
-    s.week!.reto = Math.round(rnd() * 100);
-    s.week!.runway = Math.round(rnd() * 100);
-    s = T.scoreWeek(s, rnd);
+    if (s.week!.lala) {
+      seen.add("lalaparuza");
+      for (let m = T.lalaNext(s); m; m = T.lalaNext(s)) s = T.lalaDuel(s, m.a!, m.b!, T.simLipSync(s, m.a!, m.b!, rnd)[0]);
+      expect(s.week!.lala!.done).toBe(true);
+      s = T.lalaFinish(s, 60, rnd);
+    } else {
+      s.week!.reto = Math.round(rnd() * 100);
+      s.week!.runway = Math.round(rnd() * 100);
+      s = T.scoreWeek(s, rnd);
+    }
     s = T.rivalsDecide(s, rnd);
     const dec = T.myDecision(s);
     if (dec === "moneda") { s = T.flipCoin(s, rnd, s.week!.bottom![0]); expect(s.week!.bottom!.length).toBe(2); }
@@ -97,6 +110,7 @@ describe("temporadas con dinámicas", () => {
           expect(Object.values(s.stars).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
         }
         if (s.twist === "repesca") expect(s.repescaDone).toBe(true);
+        expect(T.logrosNow(s)).toContain("debut");
         if (s.twist === "allstars") expect(Object.values(s.track).some((t) => t.includes("TOP2"))).toBe(true);
       }
     });
@@ -166,6 +180,7 @@ describe("temporada", () => {
       let s = T.nextWeek(T.newSeason(season.id, season.cast[0], seed, rnd), rnd);
       let weeks = 0;
       while (s.phase !== "fin" && s.phase !== "final") {
+        if (s.phase === "reencuentro") { s = T.startFinal(s, rnd); break; }
         s.week!.reto = 80;
         s.week!.runway = 80;
         s = T.scoreWeek(s, rnd);
@@ -235,5 +250,27 @@ describe("armario, taller y minirretos", () => {
     s = T.playMini(s, 100, rnd);
     expect(s.week!.mini!.winner).toBe(T.ME);
     expect(s.week!.adv).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("Lalaparuza, reencuentro y retos escritos en directo", () => {
+  it("el torneo corona a una y da la mejor nota a la campeona", async () => {
+    const { lalaStart, lalaPending, lalaResolve, lalaScores } = await import("../src/core/lala");
+    const keys = ["a", "b", "c", "d", "e", "f", "g"];
+    let L = lalaStart(keys);
+    for (let p = lalaPending(L)[0]; p; p = lalaPending(L)[0]) L = lalaResolve(L, p.a!, p.b!, p.a!);
+    expect(L.done).toBe(true);
+    const sc = lalaScores(L, keys, () => 0);
+    expect(sc[L.champ!]).toBe(Math.max(...Object.values(sc)));
+  });
+  it("un reto escrito en directo se monta con tres opciones por paso (o se descarta)", async () => {
+    const { maxiFromAI } = await import("../src/core/maxi");
+    const ctx = { attrs: baseAttrs("inti", queenStats("inti")), rnd: makeRng(1), mates: [{ key: "a", name: "A" }] };
+    const base = { tipo: "roast", title: "Roast", icon: "🔥", attrs: ["comedia"] as any };
+    expect(maxiFromAI(null, base, ctx, (t) => t)).toBeNull();
+    const paso = { q: "Situación", opciones: [{ t: "Brillante", calidad: "buena", attr: "comedia" }, { t: "Segura", calidad: "regular" }, { t: "Mala", calidad: "mala" }] };
+    const m = maxiFromAI({ pasos: [paso, paso, paso, paso] }, base, ctx, (t) => t)!;
+    expect(m.steps.length).toBe(4);
+    expect(m.steps[0](newSteps())!.opts.length).toBe(3);
   });
 });

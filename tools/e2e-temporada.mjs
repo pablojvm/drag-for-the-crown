@@ -19,6 +19,18 @@ const AUTO = !!process.env.TS && process.env.TS !== "0";
 const setTiming = () => page.evaluate(([lose, auto]) => { const t = window.__dftcTemporada.timing; t.next = 60; t.myScore = lose ? 1 : 99; t.autoGame = auto ? 70 : null; }, [LOSE, AUTO]);
 await page.evaluate(() => { localStorage.removeItem("dftc-next-temporada"); localStorage.removeItem("dftc-closet"); });
 await setTiming();
+// AI=1: con un jurado de prueba en lugar del servidor (retos escritos en directo, pasarela con concepto y críticas)
+const AI = !!process.env.AI;
+const fakeJury = () => page.evaluate(() => {
+  window.__dftcNextAsk = async (system) => {
+    if (/guionista de los retos/.test(system)) { window.__aiRetos = (window.__aiRetos || 0) + 1; const paso = { q: "Supremme entra en el taller sin avisar", opciones: [{ t: "Le hago una reverencia de diva", calidad: "buena", attr: "carisma" }, { t: "Sigo a lo mío", calidad: "regular" }, { t: "Se me cae todo al suelo", calidad: "mala" }] }; return { pasos: [paso, paso, paso, paso] }; }
+    if (/coreógrafa/.test(system)) return { entrada: ["Salgo despacio", "Paso firme", "Bailando"], detalle: ["Giro", "Peluca", "Abanico"], final: ["Pose", "Guiño", "Drama"], pregunta: "¿Por qué ese tejido?", respuestas: [{ t: "Porque cae como el agua", calidad: "buena" }, { t: "Me gusta", calidad: "regular" }, { t: "No sé", calidad: "mala" }] };
+    if (/valorando una pasarela/.test(system)) return { concepto: 80, coherencia: 80, desfile: 80, supreme: "Muy bien", ana: "Bien construido" };
+    if (/Das críticas/.test(system)) return { supreme: "Me has hecho reír", ana: "La construcción, impecable" };
+    return null;
+  };
+});
+if (AI) await fakeJury();
 await page.getByRole("button", { name: /Modo historia/ }).click();
 // TS=número de temporada en la lista (0 = la primera); TS=all no hace falta: el CI prueba varias
 await page.locator(".nx-ts-season").nth(Number(process.env.TS || 0)).click();
@@ -39,6 +51,7 @@ for (let i = 0; i < 4000; i++) {
       await page.reload();
       await page.waitForSelector(".nx-queens button", { timeout: 30000 });
       await setTiming();
+      if (AI) await fakeJury();
       await page.getByRole("button", { name: "Seguir mi temporada" }).click();
       continue;
     }
@@ -68,10 +81,11 @@ for (let i = 0; i < 4000; i++) {
   if (clicked === "concept") { await page.fill("#nx-concept", "Una reina de la verbena"); await page.keyboard.press("Enter"); }
   await page.waitForTimeout(clicked ? 120 : 200);
 }
+const aiRetos = AI ? await page.evaluate(() => window.__aiRetos || 0) : null;
 const end = await page.evaluate(() => { const s = window.__dftcTemporada.current(); return s && { phase: s.phase, place: s.place, ep: s.ep, track: (s.track.me || []).join(" ") }; });
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ts-fin.png` });
 await browser.close();
-const ok = end && end.phase === "fin" && end.place >= 1 && (LOSE ? end.place > 2 && seen.has("fuera") : end.place <= 2 && seen.has("untucked")) && resumed && seen.has("reto") && (AUTO || seen.has("mini")) && seen.has("taller") && seen.has("probador") && seen.has("final") && seen.has("resultados") && !errors.length;
-console.log(`Temporada ${process.env.TS || 0} · fases: ${[...seen].join(", ")} · puesto: ${end ? end.place : "no"} · episodios: ${end ? end.ep : 0} · tu track: ${end ? end.track : ""} · retomada: ${resumed ? "sí" : "no"} · errores: ${errors.length}`);
+const ok = end && end.phase === "fin" && end.place >= 1 && (LOSE ? end.place > 2 && seen.has("fuera") : end.place <= 2 && seen.has("untucked")) && (!AI || aiRetos > 0) && resumed && seen.has("reto") && (AUTO || seen.has("mini")) && seen.has("taller") && seen.has("probador") && seen.has("final") && (LOSE || seen.has("lalaparuza")) && (process.env.TS === "8" || seen.has("reencuentro")) && seen.has("resultados") && !errors.length;
+console.log(`Temporada ${process.env.TS || 0} · fases: ${[...seen].join(", ")} · puesto: ${end ? end.place : "no"} · episodios: ${end ? end.ep : 0} · tu track: ${end ? end.track : ""} · retomada: ${resumed ? "sí" : "no"}${AI ? ` · retos escritos en directo: ${aiRetos}` : ""} · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
 process.exit(ok ? 0 : 1);

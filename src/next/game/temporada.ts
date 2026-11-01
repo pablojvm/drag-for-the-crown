@@ -10,6 +10,8 @@ import { startRunway } from "./runway";
 import { startLipSync } from "./lipsync";
 import { juradoListo, ask } from "./jurado";
 import { cleanLine } from "../../core/guion";
+import { aiMaxiPrompt, maxiFromAI } from "../../core/maxi";
+import { unlock } from "./logros";
 import { addMoney, buy } from "./closet";
 import { outfitScore, prendaById, slotOf, TAG_OF_STYLE, SLOTS, type Slot } from "../../core/armario";
 import { TEMAS_PASARELA } from "../../core/temas";
@@ -17,6 +19,7 @@ import type { Tag } from "../../core/runway";
 
 export interface MaxiView { title: string; icon: string; n: number; q?: string; sub?: string; opts: { t: string; d?: string }[]; msg: string; picked: number | null; focus: number | null; note: string; game?: { kind: "ritmo" | "costura"; label: string; hard: number; played?: boolean } }
 export interface UtView { opts: T.UtOption[]; scene: (T.UtScene & { key: string; answered?: number }) | null; talked: string[] }
+export interface ReunionView { intro: [string, string][]; talks: T.ReunionTalk[]; talk: (T.ReunionTalk & { answered?: number }) | null; talked: string[]; drama: [string, string][] | null }
 export interface TsView {
   view: "elige" | "reina" | "juego";
   seasonId?: string;
@@ -28,6 +31,9 @@ export interface TsView {
   /** Segunda Oportunidrag: las dos que bailan por volver. */
   pair: [string, string] | null;
   bg: "werkroom" | "stage";
+  reunion?: ReunionView | null;
+  /** Mientras se escribe el reto en directo. */
+  writing?: boolean;
 }
 const KEY = "dftc-next-temporada";
 /** Cuántas conversaciones caben en un Untucked. */
@@ -65,6 +71,7 @@ const toPlato = (bg: TsView["bg"] = "werkroom", p: Partial<TsView> = {}) => {
 const commit = (bg: TsView["bg"], p: Partial<TsView> = {}) => {
   save();
   toPlato(bg, p);
+  if (S) unlock(T.logrosNow(S));
 };
 
 export function hasSaved(): boolean {
@@ -93,7 +100,8 @@ export function resume() {
   try {
     const d = JSON.parse(localStorage.getItem(KEY) || "null");
     if (!d || d.v !== 2) return openSeasons();
-    S = d;
+    // Partidas de antes de los roles, el armario y los logros
+    S = { seenRoles: {}, lsWins: 0, fairLipstick: 0, lzDone: false, reunionDone: false, ...d, roles: d.roles || {} };
   } catch { return openSeasons(); }
   setLookSeason(S!.seasonId);
   set({ ts: { view: "juego", s: null, maxi: null, crit: {}, ut: null, pair: null, bg: "werkroom" } });
@@ -102,8 +110,10 @@ export function resume() {
   if (S!.phase === "mini") S!.phase = "anuncio";
   if (S!.phase === "pasarela") return goRunway();
   if (S!.phase === "untucked") S!.phase = "resultados";
+  if (S!.phase === "reencuentro") return toPlato("stage", { reunion: reunionView() });
   if (S!.phase === "lipsync") {
     if (S!.final) S!.phase = "final";
+    else if (S!.week?.lala && !S!.week.lala.done) S!.phase = "lalaparuza";
     else if (S!.week?.rows) return toLipSync();
     else S!.phase = "regreso";
   }
@@ -143,17 +153,36 @@ export function answerScene(i: number) {
 export function goReto() {
   if (!S || S.phase !== "taller" || !S.week || (S.week.scene && S.week.scene.answered === undefined && S.week.scene.choices.length)) return;
   const w = S.week;
+  if (w.lala) {
+    S.phase = "lalaparuza";
+    return commit("stage");
+  }
   const mate = (key: string) => ({ key, name: T.nameOf(S!, key) });
   const mates = S.alive.filter((k) => k !== T.ME).map(mate);
   const prevWin = S.alive.find((k) => (S!.track[k] || [])[S!.ep - 2] === "WIN");
-  maxi = MAXI[w.tipo].make({
+  const ctx = {
     attrs: T.attrsOf(S, T.ME), rnd, mates,
     team: w.teams ? w.teams[0].filter((k) => k !== T.ME).map(mate) : undefined,
     giver: prevWin && prevWin !== T.ME ? { ...mate(prevWin), rel: S.rel[prevWin] || 0 } : null,
-  });
+  };
+  const def = MAXI[w.tipo];
+  const classic = maxi = def.make(ctx);
   st = newSteps();
   stepIdx = 0;
   S.phase = "reto";
+  // Con conexión, el reto (los que son de decisiones) lo escriben en directo; si no llega, el de siempre
+  if (juradoListo() && !def.team && !def.noRunway && !classic.steps.some((f) => f(newSteps())?.game)) {
+    show({ writing: true, maxi: null });
+    const s0 = S;
+    const P = aiMaxiPrompt({ titulo: w.titulo, attrs: def.attrs, reina: T.nameOf(S, T.ME), companeras: mates.map((m) => m.name) });
+    void ask(P.system, P.user, P.opts).then((r) => {
+      if (S !== s0 || S.phase !== "reto") return;
+      maxi = maxiFromAI(r, { tipo: w.tipo, title: classic.title, icon: classic.icon, attrs: def.attrs }, ctx, cleanLine) || classic;
+      show({ writing: false });
+      nextStep();
+    });
+    return;
+  }
   nextStep();
 }
 function nextStep() {
@@ -273,10 +302,83 @@ export function backFromScene() {
     if (!ls?.done) return;
     const won = ls.mine >= ls.rival;
     const [win, lose] = won ? [T.ME, ls.rivalId] : [ls.rivalId, T.ME];
+    if (won) S.lsWins = (S.lsWins || 0) + 1;
+    if (S.week?.lala && !S.week.lala.done) {
+      lalaMine = Math.max(lalaMine, Math.round(Math.min(100, (ls.mine / Math.max(1, ls.rival)) * 60)));
+      S.phase = "lalaparuza";
+      S = T.lalaDuel(S, ...lalaPair(win, lose), win);
+      return afterLala();
+    }
     if (S.final) { S.phase = "final"; return applyFinal(win, lose); }
     if (!S.week?.rows) { S.phase = "regreso"; return afterRepesca(win); }
     afterLipSync(win, lose);
   }
+}
+
+// ---------- Lalaparuza ----------
+let lalaMine = 50;
+const lalaPair = (x: string, y: string): [string, string] => {
+  const m = T.lalaNext(S!);
+  return m && m.a === y ? [y, x] : [x, y];
+};
+/** Siguiente duelo del torneo: el tuyo lo bailas; los demás se resuelven en el escenario. */
+export function lalaStep() {
+  if (!S || S.phase !== "lalaparuza") return;
+  const m = T.lalaNext(S);
+  if (!m) return afterLala();
+  if (m.a === T.ME || m.b === T.ME) {
+    S.phase = "lipsync";
+    save();
+    return playLipSync(m.a === T.ME ? m.b! : m.a!, "Continuar");
+  }
+  const [win, lose] = T.simLipSync(S, m.a!, m.b!, rnd);
+  S = T.lalaDuel(S, m.a!, m.b!, win);
+  S.news = [...S.news.slice(-3), `${T.nameOf(S, win)} le gana a ${T.nameOf(S, lose)}.`];
+  afterLala();
+}
+function afterLala() {
+  if (S!.week!.lala!.done) {
+    S = T.lalaFinish(S!, lalaMine, rnd);
+    lalaMine = 50;
+    return commit("stage", { crit: critsOf(S) });
+  }
+  commit("stage");
+}
+
+// ---------- Reencuentro ----------
+export function reunionView(): ReunionView {
+  return { intro: T.reunionIntro(rnd), talks: T.reunionTalks(S!, rnd), talk: null, talked: [], drama: null };
+}
+export function reunionTalk(key: string) {
+  const r = view().reunion;
+  if (!S || S.phase !== "reencuentro" || !r || r.talk || r.talked.length >= 2 || r.talked.includes(key)) return;
+  const t = r.talks.find((x) => x.key === key)!;
+  if (!t.choices) S = T.changeRel(S, key, 1, rnd);
+  show({ reunion: { ...r, talk: { ...t }, talked: [...r.talked, key] } });
+}
+export function reunionAnswer(i: number) {
+  const r = view().reunion;
+  const c = r?.talk?.choices?.[i];
+  if (!S || !r?.talk || !c || r.talk.answered !== undefined) return;
+  S = T.changeRel(S, r.talk.key, c.rel, rnd);
+  if (c.bonus) addMoney(Math.round(c.bonus / 2));
+  show({ reunion: { ...r, talk: { ...r.talk, answered: i, lines: [...r.talk.lines, ["me", c.txt], c.reply] } } });
+}
+export function reunionClose() {
+  const r = view().reunion;
+  if (r) show({ reunion: { ...r, talk: null } });
+}
+/** El drama del reencuentro y Miss Simpatía. */
+export function reunionMiss() {
+  const r = view().reunion;
+  if (!S || S.phase !== "reencuentro" || !r || r.drama) return;
+  S = T.missSimpatia(S, rnd);
+  commit("stage", { reunion: { ...r, talk: null, drama: T.reunionDrama(rnd) } });
+}
+export function toFinal() {
+  if (!S || S.phase !== "reencuentro") return;
+  S = T.startFinal({ ...S, news: [] }, rnd);
+  commit("stage", { reunion: null });
 }
 
 // ---------- Untucked ----------
@@ -357,6 +459,7 @@ function afterLipSync(win: string, lose: string) {
 export function chooseLipstick(key: string) {
   if (!S || S.phase !== "pintalabios") return;
   S = T.lipstick(S, key);
+  if (S.week?.lipstick === "semana") S.fairLipstick = (S.fairLipstick || 0) + 1;
   if (S.phase === "veredicto") S = T.pickConfesionario(S, rnd);
   if (S.heartFrom && S.heartFrom !== T.ME) S = T.giveHeart(S, S.heartFrom, null, rnd);
   commit("stage");
@@ -380,7 +483,7 @@ export function nextEpisode() {
   if (!S || S.phase !== "veredicto") return;
   S = T.nextWeek(S, rnd);
   if (S.phase === "fuera") return watchWeek();
-  commit(S.phase === "anuncio" ? "werkroom" : "stage", { crit: {}, ut: null, pair: S.phase === "regreso" ? T.repescaPair(S, rnd) : null });
+  commit(S.phase === "anuncio" ? "werkroom" : "stage", { crit: {}, ut: null, pair: S.phase === "regreso" ? T.repescaPair(S, rnd) : null, reunion: S.phase === "reencuentro" ? reunionView() : null });
 }
 /** Fuera de la competición: la semana siguiente se ve desde casa (todo se resuelve solo). */
 export function watchWeek() {
@@ -389,6 +492,7 @@ export function watchWeek() {
   if (!(S.phase === "fuera" && S.week && !S.week.rows)) S = T.nextWeek(S, rnd);
   if (S.phase === "final") return commit("stage", { crit: {} });
   if (S.phase === "regreso") return commit("stage", { pair: T.repescaPair(S, rnd) });
+  if (S.phase === "reencuentro") return commit("stage", { reunion: reunionView() });
   S = T.scoreWeek(S, rnd);
   S = T.rivalsDecide(S, rnd);
   if (S.twist === "moneda" && S.week!.bottom!.length === 3) S = T.flipCoin(S, rnd);

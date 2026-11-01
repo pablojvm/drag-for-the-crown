@@ -15,6 +15,8 @@ import { rescueFromBottom, coinResult, lipstickKind } from "./dinamicas";
 import { allWinnersCut } from "./finales";
 import { assignRoles, tallerScene, confesionario, fillText, nemesisBirth, nemesisUntucked, MINIS, miniRival, type Scene } from "./taller";
 import type { Outfit } from "./armario";
+import { lalaStart, lalaPending, lalaResolve, lalaScores, type Lala } from "./lala";
+import { REENCUENTRO, NEMESIS } from "./historia";
 
 export const ME = "me";
 export type Twist = "normal" | "allstars" | "winners" | "suerte" | "corazon" | "moneda" | "repesca";
@@ -33,6 +35,8 @@ export type Phase =
   | "bloqueo" // All Winners: la ganadora del lip sync bloquea a una
   | "veredicto"
   | "regreso" // Segunda Oportunidrag
+  | "lalaparuza" // torneo de lip syncs (en lugar del reto)
+  | "reencuentro" // antes de la final: vuelven las eliminadas
   | "final"
   | "fuera" // te han eliminado: puedes seguir viendo la temporada
   | "fin";
@@ -51,6 +55,8 @@ export interface Week {
   /** Lo que llevas en la pasarela y su nota de estilismo. */
   outfit?: Outfit;
   look?: number;
+  /** Lalaparuza: el cuadro del torneo. */
+  lala?: Lala;
   /** Lo que dice una compañera de ti en el confesionario. */
   conf?: { key: string; text: string };
   /** Retos en equipo: los dos equipos (el primero, el tuyo) y quién capitanea cada uno. */
@@ -107,6 +113,12 @@ export interface Season {
   /** Roles detrás de cámaras de las rivales y cuántas escenas suyas has visto. */
   roles: Record<string, string>;
   seenRoles: Record<string, number>;
+  /** Para los logros: lip syncs que has ganado y veces que has sacado el pintalabios con justicia. */
+  lsWins: number;
+  fairLipstick: number;
+  lzDone: boolean;
+  reunionDone: boolean;
+  miss?: string;
   news: string[];
   place?: number;
 }
@@ -156,7 +168,7 @@ export function newSeason(seasonId: string, queen: string, seed: number, rnd: ()
   const rivals = t.cast.filter((id) => id !== queen);
   const twist = twistOf(seasonId);
   // Retos: el de la primera semana, individual y con pasarela
-  const plan = shuffle(Object.keys(MAXI), rnd);
+  const plan = shuffle(Object.keys(MAXI).filter((k) => !MAXI[k].special), rnd);
   const first = plan.findIndex((k) => !MAXI[k].team && !MAXI[k].noRunway);
   plan.unshift(...plan.splice(first, 1));
   const temas = shuffle(TEMAS_PASARELA.filter((x) => !x.rv).map((x) => x.n), rnd);
@@ -164,7 +176,7 @@ export function newSeason(seasonId: string, queen: string, seed: number, rnd: ()
     v: 2, seasonId, twist, queen, cast: [ME, ...rivals], seed, ep: 0, phase: "anuncio", alive: [ME, ...rivals], out: [], meOut: false,
     track: {}, record: {}, form: {}, rel: {}, nemesis: null, plan, temas, week: null, final: null,
     stars: {}, blocked: null, luck: null, hearts: {}, heartFrom: null, repescaDone: false, news: [],
-    roles: assignRoles(rivals, rnd), seenRoles: {},
+    roles: assignRoles(rivals, rnd), seenRoles: {}, lsWins: 0, fairLipstick: 0, lzDone: false, reunionDone: false,
   };
   // Reina de la suerte: está en una de las cajitas (la tuya se abre al empezar)
   if (twist === "suerte") s.luck = pickR(s.alive, rnd);
@@ -179,7 +191,14 @@ export function nextWeek(s: Season, rnd: () => number): Season {
   if (s.twist === "repesca" && !s.repescaDone && s.alive.length <= BALANCE.repescaCuando && s.out.length >= 2) return { ...base, phase: "regreso" };
   // (la Segunda Oportunidrag es un episodio propio: tiene su columna en el track record)
   const finalNow = s.twist === "winners" ? s.ep >= winnersWeeks(s) : s.alive.length <= FINAL_AT;
+  if (finalNow && !s.reunionDone && s.twist !== "winners" && s.out.length >= 2) return { ...base, phase: "reencuentro", reunionDone: true };
   if (finalNow) return startFinal(base, rnd);
+  // Lalaparuza: una vez por temporada, cuando quedan siete (o en la tercera semana de All Winners)
+  if (!s.lzDone && (s.twist === "winners" ? ep === 3 : s.alive.length === 7)) {
+    const ranked = s.alive.slice().sort((a, b) => ppe(s.track[b] || []) - ppe(s.track[a] || []) || (s.record[b] || 0) - (s.record[a] || 0) || rnd() - 0.5);
+    const week: Week = { tipo: "lalaparuza", titulo: MAXI.lalaparuza.titulo, tema: "", adv: 0, mini: { id: MINIS[(ep - 1) % MINIS.length].id }, lala: lalaStart(ranked, asLike(s.twist)) };
+    return { ...base, lzDone: true, phase: inGame(s) ? "anuncio" : "fuera", week };
+  }
   const tipo = s.plan[(ep - 1) % s.plan.length];
   const week: Week = { tipo, titulo: MAXI[tipo].titulo, tema: s.temas[(ep - 1) % s.temas.length], adv: 0, mini: { id: MINIS[(ep - 1) % MINIS.length].id } };
   if (MAXI[tipo].team) {
@@ -542,3 +561,67 @@ export function critique(s: Season, key: string, pick: <T>(a: T[]) => T): string
 
 /** PPE de la jugadora en la temporada. */
 export const myPpe = (s: Season) => ppe((s.track[ME] || []).filter((l) => !["RUNNER-UP", "WINNER", "RTRN", "OUT"].includes(l)));
+
+// ---------- Lalaparuza ----------
+/** El siguiente duelo del torneo (o null si ya ha terminado). */
+export const lalaNext = (s: Season) => (s.week?.lala ? lalaPending(s.week.lala)[0] || null : null);
+export function lalaDuel(s: Season, a: string, b: string, winner: string): Season {
+  return { ...s, week: { ...s.week!, lala: lalaResolve(s.week!.lala!, a, b, winner) } };
+}
+/** Fin del torneo: la nota de cada una sale del cuadro (y tu lip sync matiza la tuya). */
+export function lalaFinish(s: Season, myLs: number, rnd: () => number): Season {
+  const L = s.week!.lala!;
+  const sc = lalaScores(L, s.alive, (k) => (k === ME ? myLs : rivalScore(s, k, rnd)) - 55);
+  const champ = L.champ ? `👑 ${nameOf(s, L.champ)} gana la Lalaparuza.` : `Llegan a la final del torneo: ${(L.top2 || []).map((k) => nameOf(s, k)).join(" y ")}.`;
+  return { ...scoreWeek(s, rnd, sc), news: [...s.news, champ] };
+}
+
+// ---------- Reencuentro ----------
+export interface ReunionTalk { key: string; kind: "buena" | "neutra" | "mala"; lines: [string, string][]; choices?: { txt: string; rel: number; bonus: number; reply: [string, string] }[] }
+/** Antes de la final vuelven las eliminadas: con quién puedes hablar y cómo te recibe cada una. */
+export function reunionTalks(s: Season, rnd: () => number): ReunionTalk[] {
+  return s.out.filter((k) => k !== ME).slice(-4).map((key) => {
+    const r = relOf(s, key);
+    const kind = r >= 1 ? "buena" : r <= -1 || key === s.nemesis ? "mala" : "neutra";
+    const src: [string, string][] = key === s.nemesis ? NEMESIS.reencuentro : (REENCUENTRO[kind] as [string, string][][])[Math.floor(rnd() * REENCUENTRO[kind].length)];
+    const choices = kind === "mala" ? (key === s.nemesis ? NEMESIS.reencuentroChoices : REENCUENTRO.choicesMala).map((c: any) => ({ txt: c.txt, rel: c.rel?.r1 || 0, bonus: c.bonus || 0, reply: c.reply })) : undefined;
+    return { key, kind, lines: src, choices };
+  });
+}
+/** Miss Simpatía: votan las eliminadas (a ti, según lo que te quieran; si no, a una compañera). */
+export function missSimpatia(s: Season, rnd: () => number): Season {
+  const voters = s.out.filter((k) => k !== ME);
+  const cands = [...s.alive, ...s.out];
+  const votes: Record<string, number> = {};
+  voters.forEach((v) => {
+    const toMe = cands.includes(ME) && rnd() < 0.15 + Math.max(0, relOf(s, v)) * 0.2;
+    const k = toMe ? ME : cands.filter((x) => x !== v && x !== ME)[Math.floor(rnd() * Math.max(1, cands.length - 2))] || ME;
+    votes[k] = (votes[k] || 0) + 1;
+  });
+  const miss = Object.keys(votes).sort((a, b) => votes[b] - votes[a] || (a === ME ? -1 : 1))[0] || s.alive[0];
+  return { ...s, miss, news: [...s.news, `💐 Miss Simpatía: ${miss === ME ? "¡tú!" : nameOf(s, miss)}`] };
+}
+export const reunionIntro = (rnd: () => number): [string, string][] => REENCUENTRO.intro[Math.floor(rnd() * REENCUENTRO.intro.length)];
+export const reunionDrama = (rnd: () => number): [string, string][] => REENCUENTRO.drama[Math.floor(rnd() * REENCUENTRO.drama.length)];
+
+// ---------- Logros ----------
+/** Los logros que ya se cumplen con lo que ha pasado en la temporada (los mismos ids que el juego de siempre). */
+export function logrosNow(s: Season): string[] {
+  const t = (s.track[ME] || []).filter(Boolean);
+  const out: string[] = ["debut"];
+  const w = s.week;
+  if (s.phase === "fin" && s.place === 1) out.push(s.twist === "winners" ? "all-winners" : "corona-historia");
+  for (let i = 2; i < t.length; i++) if (t[i] === "WIN" && t[i - 1] === "WIN" && t[i - 2] === "WIN") out.push("racha");
+  for (let i = 1; i < t.length; i++) if (t[i] === "WIN" && /^BTM/.test(t[i - 1])) out.push("remontada");
+  if (s.final && s.final.pairs.flat().includes(ME) && !t.some((l) => /^BTM/.test(l))) out.push("sin-bottom");
+  if (s.lsWins >= 3) out.push("superviviente");
+  if (w?.reto != null && w.reto >= 95) out.push("perfecta");
+  if (Object.values(s.rel).filter((v) => v >= 2).length >= 3) out.push("aliadas");
+  if (Object.values(s.rel).some((v) => v <= -2)) out.push("enemiga");
+  if (w?.tipo === "snatch" && w.labels?.[ME] === "WIN") out.push("snatch");
+  if (t.includes("RTRN")) out.push("segunda");
+  if (w?.lipstick === "jugarreta" && w.lsWin === ME) out.push("villana-as");
+  if (s.fairLipstick >= 3) out.push("juez-justa");
+  if (s.miss === ME) out.push("miss-simpatia");
+  return [...new Set(out)];
+}

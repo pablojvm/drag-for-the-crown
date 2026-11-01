@@ -21,3 +21,4 @@ export * from "./maxi";
 export * as temporada from "./temporada";
 export * from "./historia";
 export * from "./armario";
+export * from "./logros";

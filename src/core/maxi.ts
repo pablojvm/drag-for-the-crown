@@ -438,7 +438,7 @@ export function ball(c: MaxiCtx): Maxi {
 }
 
 /** Retos del motor nuevo, con los atributos que cuentan en cada uno. */
-export const MAXI: Record<string, { titulo: string; attrs: QAttr[]; make: (c: MaxiCtx) => Maxi; team?: boolean; noRunway?: boolean }> = {
+export const MAXI: Record<string, { titulo: string; attrs: QAttr[]; make: (c: MaxiCtx) => Maxi; team?: boolean; noRunway?: boolean; /** Episodio especial (no entra en el reparto normal de retos). */ special?: boolean }> = {
   snatch: { titulo: "Snatch Game", attrs: ["comedia", "carisma"], make: snatch },
   roast: { titulo: "El roast de Supremme", attrs: ["comedia"], make: roast },
   impro: { titulo: "Improvisación: presentadoras en directo", attrs: ["comedia", "carisma"], make: impro },
@@ -449,4 +449,36 @@ export const MAXI: Record<string, { titulo: string; attrs: QAttr[]; make: (c: Ma
   equipos: { titulo: "Girl Groups: el himno de la temporada", attrs: ["performance", "carisma"], make: equipos, team: true },
   materiales: { titulo: "Reto de materiales imposibles", attrs: ["estilo"], make: materiales },
   ball: { titulo: "El Ball: tres looks, tres categorías", attrs: ["estilo"], make: ball, noRunway: true },
+  // La Lalaparuza no tiene pasos: es un torneo de lip syncs (src/core/lala.ts)
+  lalaparuza: { titulo: "Lalaparuza: el torneo de lip syncs", attrs: ["performance", "carisma"], make: () => ({ tipo: "lalaparuza", title: "Lalaparuza", icon: "💃", steps: [] }), noRunway: true, special: true },
 };
+
+// ---------- Retos escritos en directo ----------
+const str = (v: unknown) => (typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim());
+/** Lo que se pide para escribir un reto entero en directo (la reina juega sus pasos igual que en los clásicos). */
+export function aiMaxiPrompt(o: { titulo: string; attrs: QAttr[]; reina: string; companeras: string[] }) {
+  return {
+    system: "Eres guionista de los retos de Drag Race España. Escribes situaciones concretas, con humor drag, y opciones que de verdad se diferencian. Las reinas son personajes de ficción de un videojuego.",
+    user: `Reto: «${o.titulo}». Lo juega ${o.reina}; en el taller están ${o.companeras.slice(0, 6).join(", ")}.
+Escribe 4 momentos del reto en orden. En cada uno, una situación (máximo 20 palabras) y 3 opciones de la reina (máximo 12 palabras cada una): una brillante y arriesgada ("buena"), una correcta y segura ("regular") y una que sale mal ("mala"). Cada opción dice qué atributo pone a prueba: ${o.attrs.join(" o ")}.
+Devuelve JSON {"pasos":[{"q":"...","opciones":[{"t":"...","calidad":"buena|regular|mala","attr":"${o.attrs[0]}"}]}]}`,
+    opts: { json: true as const, max: 900, temp: 0.9 },
+  };
+}
+/** Monta el reto con lo que llega (o null si no sirve). Lo bueno pide un chequeo; lo seguro no falla; lo malo, mal. */
+export function maxiFromAI(r: any, base: { tipo: string; title: string; icon: string; attrs: QAttr[] }, c: MaxiCtx, clean: (t: string) => string): Maxi | null {
+  const pasos = r && Array.isArray(r.pasos) ? r.pasos.filter((p: any) => p && str(p.q) && Array.isArray(p.opciones) && p.opciones.filter((x: any) => x && str(x.t)).length >= 3).slice(0, 4) : [];
+  if (pasos.length < 3) return null;
+  const { shuffle, chk, res } = kit(c);
+  const attrOf = (a: unknown): QAttr => (base.attrs.includes(a as QAttr) ? (a as QAttr) : base.attrs[0]);
+  const steps: StepFn[] = pasos.map((p: any, n: number): StepFn => () => ({
+    q: `${base.icon} ${n + 1}/${pasos.length}: ${clean(str(p.q))}`,
+    opts: shuffle(p.opciones.filter((x: any) => x && str(x.t)).slice(0, 3)).map((x: any): Opt => {
+      const k = str(x.calidad), a = attrOf(x.attr), t = clean(str(x.t));
+      if (/buena/.test(k)) return { t, d: ATTR_NAMES[a], go: () => res(chk([a], 55), 95, 35, "¡Funciona! El taller entero lo comenta.", "Arriesgas... y no sale.") };
+      if (/mala/.test(k)) return { t, go: () => ({ pts: 28, msg: "Se te nota perdida. Mala idea." }) };
+      return { t, d: "Seguro", go: () => ({ pts: 62, msg: "Correcto, sin brillar." }) };
+    }),
+  }));
+  return { tipo: base.tipo, title: base.title, icon: base.icon, steps };
+}

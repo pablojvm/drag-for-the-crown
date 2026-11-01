@@ -107,7 +107,7 @@ function Juego({ s }: { s: T.Season }) {
   return (
     <div className="nx-panel nx-ts-panel">
       <div className="nx-ts-head">
-        <span>{T.seasonById(s.seasonId)?.name} · {s.phase === "final" ? "Gran final" : s.phase === "fin" ? "Fin de temporada" : s.phase === "regreso" ? "Segunda Oportunidrag" : `Episodio ${s.ep}`}</span>
+        <span>{T.seasonById(s.seasonId)?.name} · {s.phase === "final" ? "Gran final" : s.phase === "fin" ? "Fin de temporada" : s.phase === "regreso" ? "Segunda Oportunidrag" : s.phase === "reencuentro" ? "El reencuentro" : `Episodio ${s.ep}`}</span>
         <span>{s.meOut ? "Fuera de la competición" : `${s.alive.length} en competición`}</span>
         <button className="nx-chip" onClick={() => setTrack(!track)}>{track ? "Cerrar" : "📋 Track record"}</button>
       </div>
@@ -156,8 +156,9 @@ function Fase({ s }: { s: T.Season }) {
           </div>
         )}
         <p className="nx-ts-chips">Cuentan: {def.attrs.map((k) => <span key={k} className="nx-chip">{ATTR_NAMES[k]} {T.attrsOf(s, T.ME)[k]}</span>)}</p>
-        {!def.noRunway && <p className="nx-muted">👠 Pasarela: «{w.tema}»</p>}
+        {!def.noRunway && w.tema && <p className="nx-muted">👠 Pasarela: «{w.tema}»</p>}
         <div className="nx-ts-mini"><b>Antes, el minirreto:</b> {mini.titulo}. <span className="nx-muted">{mini.desc} La ganadora tiene ventaja en el reto.</span></div>
+        {w.lala && <p className="nx-ts-call">💃 Esta semana no hay reto: es un torneo de lip syncs con todas. Bailas tus duelos; hasta dónde llegues decide tu nota.</p>}
         <button className="nx-btn" onClick={F.goMini}>🏅 Al minirreto</button>
       </>
     );
@@ -174,7 +175,10 @@ function Fase({ s }: { s: T.Season }) {
     );
   }
   if (s.phase === "taller" && w) return <Taller s={s} />;
+  if (s.phase === "reto" && ts.writing) return (<><p className="nx-eyebrow">{w?.titulo}</p><h2>Los Javis están preparando el reto...</h2><div className="nx-dots" aria-hidden="true"><i /><i /><i /></div></>);
   if (s.phase === "reto" && ts.maxi) return <MaxiUI />;
+  if (s.phase === "lalaparuza" && w?.lala) return <Lalaparuza s={s} />;
+  if (s.phase === "reencuentro" && ts.reunion) return <Reencuentro s={s} />;
   if (s.phase === "probador" && w) return <Probador s={s} />;
   if (s.phase === "resultados" && w?.rows) {
     return (
@@ -504,6 +508,76 @@ function Probador({ s }: { s: T.Season }) {
         )}
       </div>
       <button className="nx-btn" onClick={F.goPasarela}>👠 ¡A la pasarela!</button>
+    </>
+  );
+}
+
+/** Lalaparuza: el cuadro del torneo y el siguiente duelo. */
+function Lalaparuza({ s }: { s: T.Season }) {
+  const L = s.week!.lala!;
+  const n = (k: string | null) => (k ? T.nameOf(s, k) : "—");
+  const next = T.lalaNext(s);
+  const ROUND = (r: number) => (r === 0 ? "Ronda previa" : r === L.R ? "Final" : r === L.R - 1 ? "Semifinales" : r === L.R - 2 ? "Cuartos" : `Ronda ${r}`);
+  return (
+    <>
+      <p className="nx-eyebrow">💃 Lalaparuza</p>
+      <h2>{ROUND(L.round)}</h2>
+      <div className="nx-lala">
+        {L.rounds.map((rs, r) => rs.length > 0 && r <= L.stop && (
+          <div key={r} className={`nx-lala-col ${r === L.round ? "now" : ""}`}>
+            <small>{ROUND(r)}</small>
+            {rs.map((m, i) => (
+              <p key={i} className={m.a === T.ME || m.b === T.ME ? "me" : ""}>
+                <span className={m.w && m.w === m.a ? "w" : m.w ? "l" : ""}>{n(m.a)}</span>
+                <span className={m.w && m.w === m.b ? "w" : m.w ? "l" : ""}>{n(m.b)}</span>
+              </p>
+            ))}
+          </div>
+        ))}
+      </div>
+      <News s={s} />
+      {next && <button className="nx-btn" onClick={F.lalaStep}>{next.a === T.ME || next.b === T.ME ? `💋 Bailar contra ${n(next.a === T.ME ? next.b : next.a)}` : `Ver ${n(next.a)} contra ${n(next.b)}`}</button>}
+    </>
+  );
+}
+
+/** El reencuentro: vuelven las eliminadas, hablas con dos y se vota a Miss Simpatía. */
+function Reencuentro({ s }: { s: T.Season }) {
+  const r = useGame((x) => x.ts?.reunion)!;
+  const n = (k: string) => T.nameOf(s, k);
+  const lines = (src: [string, string][], key?: string) => src.map(([k, t], i) => {
+    const names = { yo: n(T.ME), r1: key ? n(key) : n(s.out[0] || s.alive[0]), r2: n(s.out[1] || s.alive[1] || s.alive[0]) };
+    const who = k === "me" ? names.yo : k === "r1" ? names.r1 : k === "r2" ? names.r2 : WHO[k] || k;
+    return <p key={i} className={k === "me" ? "me" : ""}><b>{who}</b> {fillText(t.replace(/\{temporada\}/g, T.seasonById(s.seasonId)?.name || ""), names)}</p>;
+  });
+  if (r.talk) {
+    const waiting = r.talk.choices && r.talk.answered === undefined;
+    return (
+      <>
+        <p className="nx-eyebrow">🎉 Reencuentro · con {n(r.talk.key)}</p>
+        <div className="nx-ts-dialog">{lines(r.talk.lines, r.talk.key)}</div>
+        {waiting ? <div className="nx-maxi-opts">{r.talk.choices!.map((c, i) => <button key={i} className="nx-opt" onClick={() => F.reunionAnswer(i)}><b>{c.txt}</b></button>)}</div> : <button className="nx-btn" onClick={F.reunionClose}>Seguir</button>}
+      </>
+    );
+  }
+  return (
+    <>
+      <p className="nx-eyebrow">🎉 El reencuentro</p>
+      <h2>Vuelven las eliminadas</h2>
+      <div className="nx-ts-dialog">{lines(r.intro)}</div>
+      {!r.drama ? (
+        <>
+          <p className="nx-muted nx-center-txt">{r.talked.length < 2 ? "Habla con dos de ellas. Cada una te recibe según cómo os llevabais." : "Ya has hablado con dos."}</p>
+          <div className="nx-maxi-opts many">{r.talks.filter((t) => !r.talked.includes(t.key)).map((t) => <button key={t.key} className="nx-opt" disabled={r.talked.length >= 2} onClick={() => F.reunionTalk(t.key)}><b>{n(t.key)}</b><small>{t.kind === "buena" ? "💞 Os llevabais bien" : t.kind === "mala" ? "😒 Cuentas pendientes" : "🙂 Sin más"}</small></button>)}</div>
+          <button className="nx-btn" onClick={F.reunionMiss}>💐 Votación de Miss Simpatía</button>
+        </>
+      ) : (
+        <>
+          <div className="nx-ts-dialog">{lines(r.drama)}</div>
+          <News s={s} />
+          <button className="nx-btn" onClick={F.toFinal}>👑 A la gran final</button>
+        </>
+      )}
     </>
   );
 }
