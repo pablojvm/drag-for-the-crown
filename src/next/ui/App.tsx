@@ -92,7 +92,7 @@ function MenuUI() {
           <button className="nx-btn ghost" onClick={() => send({ type: "runway", queenId: pick })}>👠 Pasarela</button>
         </div>
         <p className="nx-muted">Flechas o WASD para moverte, Espacio para lanzar tacones, E para el poder, P para pausar. En el móvil, arrastra el dedo.{best ? ` · Récord: ${best}` : ""}</p>
-        <a className="nx-link" href="./index.html">Versión clásica (y multijugador)</a>
+        <a className="nx-link" href="./clasico.html">Versión clásica (y multijugador en directo)</a>
       </div>
     </div>
   );

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Drag for the Crown: minijuego arcade de navegador hecho con JavaScript y Canvas.">
+  <meta name="theme-color" content="#ffe0ef">
+  <title>Drag for the Crown · versión clásica</title>
+  <link rel="icon" href="favicon.ico?v=2" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=2">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png?v=2">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/bungee.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/poppins-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles/style.css">
+</head>
+<body>
+  <div id="bg" aria-hidden="true"><i class="beam b1"></i><i class="beam b2"></i><i class="beam b3"></i><i class="floor"></i><i class="grain"></i></div>
+  <div id="stage">
+
+    <!-- ============ INICIO ============ -->
+    <section id="screen-menu" class="screen">
+      <header class="menu-top">
+        <div class="user-wrap">
+          <button class="user-chip" id="user-chip" aria-haspopup="dialog" aria-expanded="false">
+            <span class="user-av" id="user-av" aria-hidden="true">👤</span>
+            <span class="user-txt"><b id="user-name">Invitada</b><small id="user-sub">Partida en este dispositivo</small></span>
+          </button>
+          <div class="user-pop" id="user-pop" role="dialog" aria-label="Tu cuenta" hidden>
+            <p class="user-pop-title" id="user-pop-title">Juegas como invitada</p>
+            <p class="user-pop-txt" id="user-pop-txt">Tu progreso se guarda solo en este navegador.</p>
+            <button class="btn btn-primary" id="btn-cloud" hidden>Entrar con Google</button>
+            <button class="btn btn-ghost" id="btn-signout" hidden>Cerrar sesión</button>
+          </div>
+        </div>
+        <div class="menu-top-right">
+          <span class="sequin-chip" title="Lentejuelas"><i aria-hidden="true">✨</i><strong class="sequins">0</strong></span>
+          <button class="round-btn" id="btn-scores" aria-label="Hall of Fame" title="Hall of Fame">🏆</button>
+        </div>
+      </header>
+      <img class="menu-logo" src="./images/logo-menu.png" alt="Drag for the Crown">
+      <p class="tagline">Drag Race España · Solo una se lleva la corona</p>
+      <div class="modes" id="modes" role="region" aria-roledescription="carrusel" aria-label="Modos de juego">
+        <button class="mode-arrow car-prev prev" id="modes-prev" aria-label="Modo anterior">‹</button>
+        <div class="modes-track car-track" id="modes-track">
+          <button class="mode-slide s-story" id="btn-story" aria-label="Modo historia">
+            <span class="ms-num">01</span>
+            <span class="ms-copy">
+              <span class="ms-kicker">Temporada completa</span>
+              <span class="ms-name">Modo historia</span>
+              <span class="ms-desc">Retos, pasarela, críticas y lip syncs hasta la corona.</span>
+              <span class="ms-cta">Jugar</span>
+            </span>
+            <img class="ms-art" src="./images/modo-historia.png" alt="" loading="eager">
+          </button>
+          <button class="mode-slide s-arcade" id="btn-play" aria-label="Arcade">
+            <span class="ms-num">02</span>
+            <span class="ms-copy">
+              <span class="ms-kicker">Partida rápida</span>
+              <span class="ms-name" id="btn-play-label">Arcade</span>
+              <span class="ms-desc">Duelo de tacones contra todo el reparto.</span>
+              <span class="ms-cta">Jugar</span>
+            </span>
+            <img class="ms-art" src="./images/modo-arcade.png" alt="">
+          </button>
+          <button class="mode-slide s-mp" id="btn-mp" aria-label="Multijugador">
+            <span class="ms-num">03</span>
+            <span class="ms-copy">
+              <span class="ms-kicker">En directo con amigas</span>
+              <span class="ms-name">Multijugador</span>
+              <span class="ms-desc">Una temporada a la vez, con tiempo por episodio.</span>
+              <span class="ms-cta">Jugar</span>
+            </span>
+            <span class="ms-art ms-trio" aria-hidden="true">
+              <img src="./images/queens/alexandra-del-raval.png" alt="">
+              <img src="./images/queens/carmen-farala.png" alt="">
+              <img src="./images/queens/arantxa-castilla-la-mancha.png" alt="">
+            </span>
+          </button>
+          <a class="mode-slide s-mp s-next" id="btn-next" href="./" aria-label="Versión nueva">
+            <span class="ms-num">04</span>
+            <span class="ms-copy">
+              <span class="ms-kicker">La versión nueva</span>
+              <span class="ms-name">Modo historia 2.0</span>
+              <span class="ms-desc">Estás en la versión clásica. La nueva tiene el modo historia rehecho, el arcade, el lip sync y la pasarela.</span>
+              <span class="ms-cta">Ir</span>
+            </span>
+            <span class="ms-art ms-trio" aria-hidden="true">
+              <img src="./images/queens/the-macarena.png" alt="">
+              <img src="./images/queens/pupi-poisson.png" alt="">
+              <img src="./images/queens/sagittaria.png" alt="">
+            </span>
+          </a>
+        </div>
+        <button class="mode-arrow car-next next" id="modes-next" aria-label="Modo siguiente">›</button>
+        <div class="modes-dots car-dots" id="modes-dots" role="tablist" aria-label="Elegir modo"></div>
+      </div>
+    </section>
+
+    <!-- ============ FRANQUICIA ============ -->
+    <section id="screen-franchise" class="screen">
+      <h1 class="title">Elige franquicia</h1>
+      <div id="franchise-grid"></div>
+      <button class="btn btn-ghost" id="btn-franchise-back">Volver</button>
+    </section>
+
+    <!-- ============ TEMPORADA ============ -->
+    <section id="screen-season" class="screen">
+      <p class="eyebrow" id="season-franchise"></p>
+      <h1 class="title">Elige temporada</h1>
+      <div id="season-grid"></div>
+      <p class="muted hint" id="season-hint">Gana una temporada para desbloquear la siguiente. Cada una es un poco más difícil.</p>
+      <button class="btn btn-ghost" id="btn-season-back">Volver</button>
+    </section>
+
+    <!-- ============ ELECCIÓN ============ -->
+    <section id="screen-select" class="screen">
+      <p class="eyebrow" id="select-season"></p>
+      <h1 class="title">Choose your queen</h1>
+      <div class="select-layout">
+      <div id="queen-grid"></div>
+      <div id="queen-details" aria-live="polite">
+        <div class="details-inner">
+          <span class="details-portrait" id="det-portrait"></span>
+          <div class="details-main">
+            <h3 id="det-name"></h3>
+            <p id="det-place" class="det-place"></p>
+            <p id="det-quote" class="det-quote"></p>
+            <div id="det-stats"></div>
+          </div>
+          <div class="details-power">
+            <span class="power-label">✨ Poder especial</span>
+            <strong id="det-power"></strong>
+            <p id="det-power-desc"></p>
+            <p id="det-lock" class="lock-msg"></p>
+          </div>
+        </div>
+      </div>
+      </div>
+      <button class="btn btn-ghost" id="btn-back">Volver</button>
+      <div class="row">
+        <button class="btn btn-primary" id="btn-start" disabled>¡Runway!</button>
+      </div>
+    </section>
+
+    <!-- ============ PARTIDA ============ -->
+    <section id="screen-game" class="screen">
+      <canvas id="game" aria-label="Zona de juego"></canvas>
+      <div class="game-help" id="game-help" aria-hidden="true">
+        <span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> Moverte</span>
+        <span><kbd class="wide">Espacio</kbd> Tacones</span>
+        <span><kbd>E</kbd> Poder</span>
+        <span><kbd>P</kbd> Pausa</span>
+        <span><kbd>M</kbd> Sonido</span>
+      </div>
+      <div id="overlay-pause" class="overlay">
+        <div class="panel">
+          <h2 class="title">Pausa</h2>
+          <button class="btn btn-primary" id="btn-resume">Seguir</button>
+          <button class="btn btn-ghost" id="btn-quit">Salir al menú</button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============ MODO HISTORIA ============ -->
+    <section id="screen-story" class="screen">
+      <div id="story-set"></div>
+      <div class="story-top">
+        <div>
+          <p class="eyebrow" id="story-season"></p>
+          <h2 id="story-ep"></h2>
+        </div>
+        <div class="story-right">
+          <div class="story-hud">
+            <div class="hud-cast"><div id="story-cast"></div><span class="hud-count" id="story-count"></span></div>
+            <div class="hud-bar">
+              <button class="hud-btn hud-ia" id="story-ia" hidden><i>🤖</i><span>IA</span></button>
+              <button class="hud-btn" id="story-board" hidden title="Rasgos, rango e historia de tus rivales"><i>⚔️</i><span>Rivales</span></button>
+              <span class="hud-money" id="story-shop" hidden title="Tu dinero para el armario (solo se compra antes de la temporada)"><i>💶</i><b class="closet-money"></b></span>
+              <button class="hud-btn hud-exit" id="story-exit"><i>💾</i><span>Guardar y salir</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="story-body"></div>
+    </section>
+
+    <!-- ============ PUNTUACIONES ============ -->
+    <section id="screen-scores" class="screen">
+      <h1 class="title">Hall of Fame</h1>
+      <div class="tabs" id="scores-tabs">
+        <button class="tab active" data-tab="arcade">👠 Arcade</button>
+        <button class="tab" data-tab="story">📖 Modo historia</button>
+        <button class="tab" data-tab="mundial" id="tab-mundial" hidden>🌍 Mundial</button>
+        <button class="tab" data-tab="reinas">👑 Reinas reinantes</button>
+        <button class="tab" data-tab="logros">🏅 Logros</button>
+      </div>
+      <div id="ach-grid" style="display:none"></div>
+      <div id="reign-grid" style="display:none"></div>
+      <div class="scores-layout">
+        <div class="panel-card">
+          <h3 id="scores-h">Top 20</h3>
+          <table id="scores-table">
+            <thead><tr><th>#</th><th>Nombre</th><th>Reina</th><th id="th-res">Rondas</th><th id="th-pts" title="PPE: media de tus resultados en el track record (WIN 5, HIGH 4, SAFE 3, LOW 2, BTM 1, ELIM 0). A igualdad, gana quien tenga más wins.">Puntos</th><th>Fecha</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <p id="scores-empty" class="muted">Todavía no hay partidas. ¡A la pasarela!</p>
+        </div>
+        <div class="panel-card side">
+          <h3>Tu carrera</h3>
+          <div class="career" id="career"></div>
+          <h3>Temporadas</h3>
+          <div id="unlock-list"></div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" id="btn-scores-back">Volver</button>
+    </section>
+
+    <!-- ============ RESULTADO ============ -->
+    <section id="screen-end" class="screen">
+      <img id="end-image" src="./images/shantay.png" alt="">
+      <h2 class="title" id="end-title">Shantay, you stay</h2>
+      <div class="stats">
+        <div class="stat"><span>Puntos</span><strong id="stat-score">0</strong></div>
+        <div class="stat"><span>Récord</span><strong id="stat-best">0</strong></div>
+        <div class="stat"><span>Rondas</span><strong id="stat-rounds">0/5</strong></div>
+        <div class="stat"><span>Precisión</span><strong id="stat-acc">0%</strong></div>
+        <div class="stat"><span>Combo máx.</span><strong id="stat-combo">x0</strong></div>
+        <div class="stat"><span>Tiempo</span><strong id="stat-time">0:00</strong></div>
+      </div>
+      <p id="new-record" class="new-record">¡Nuevo récord!</p>
+      <p id="unlocked-msg" class="unlocked-msg"></p>
+      <label id="name-entry" class="name-entry">
+        <span id="name-label">Entras en el Top 10. Tu nombre:</span>
+        <input id="name-input" aria-label="Tu nombre" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Tu nombre">
+      </label>
+      <div class="row">
+        <button class="btn btn-ghost" id="btn-change">Cambiar queen</button>
+        <button class="btn btn-ghost" id="btn-end-scores">🏆</button>
+        <button class="btn btn-primary" id="btn-again">Otra vez</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Botones fijos -->
+  <div id="hud-buttons">
+    <button id="btn-mute" class="icon-btn" aria-label="Silenciar">🔊</button>
+    <button id="btn-pause" class="icon-btn" aria-label="Pausa">⏸</button>
+  </div>
+
+  <!-- Controles táctiles -->
+  <div id="touch-controls" aria-hidden="true">
+    <div class="pad">
+      <button data-key="up" class="pad-up">▲</button>
+      <button data-key="left" class="pad-left">◀</button>
+      <button data-key="down" class="pad-down">▼</button>
+      <button data-key="right" class="pad-right">▶</button>
+    </div>
+    <div class="action-btns">
+      <button data-key="special" class="btn-special">✨</button>
+      <button data-key="fire" class="btn-fire">👠</button>
+    </div>
+  </div>
+
+  <script src="./js/claves.js"></script>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

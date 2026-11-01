@@ -11,7 +11,7 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
 await page.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
-await page.goto(new URL("next.html", BASE).href);
+await page.goto(new URL("./", BASE).href);
 await page.waitForSelector(".nx-queens button", { timeout: 30000 });
 // La prueba fija tu nota de la semana (la mejor, o con LOSE=1 la peor) para que el recorrido no dependa del azar
 // Los minijuegos se juegan de verdad en la primera temporada (TS=0); en las demás se dan por jugados, para ir más rápido

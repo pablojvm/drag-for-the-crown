@@ -2,7 +2,7 @@
 
 Juego de navegador inspirado en los realities de drag: compites en una temporada entera (retos, pasarela, críticas, untucked y lip syncs) hasta llevarte la corona, sola o con amigas en directo.
 
-**Jugar:** https://pablojvm.github.io/drag-for-the-crown/
+**Jugar:** https://pablojvm.github.io/drag-for-the-crown/ (la versión clásica, con el multijugador en directo, sigue en `/clasico.html`)
 
 ## Modos
 
@@ -40,8 +40,8 @@ Más detalle (servidor, claves, Supabase): [DESARROLLO.md](DESARROLLO.md).
 | `src/core/` | Reglas puras en TypeScript con tests, compartidas por la historia y el multijugador: resultados de la semana, lip sync, pasarela (clásica y con concepto), temáticas, reinas y temporadas, retos por decisiones, temporada del motor nuevo, textos del jurado, voz del guion, dinámicas de temporada (suerte, corazón, moneda, pintalabios), finales, Lalaparuza, azar con semilla, dado, cuadro, track record, flujo del episodio, partidas guardadas |
 | `src/mp/` | Multijugador: reglas de la sala (`model.ts`), conexión (`room.ts`, `bus.ts`) y pantallas (`ui.ts`) |
 | `src/net/` | Cuentas, nube y captura de errores (Supabase) |
-| `src/next/` | Motor nuevo en construcción: Phaser 4 (escenas) + React (interfaz) + Zustand (estado). Se abre en `next.html`: arcade con poderes, power-ups y sonido, lip sync, pasarela con concepto (sin conexión, la clásica) y el modo historia rehecho (minirretos, escenas del taller con los roles de cada compañera, retos por decisiones, en equipo y con minijuegos, armario y tienda, críticas, Untucked, confesionario y némesis, la Lalaparuza, el reencuentro con Miss Simpatía, retos escritos en directo, logros, las dinámicas de cada temporada, lip syncs, final y track record). Las reglas están en `src/core` |
-| `js/historia/` | Motor del modo historia (código antiguo, se irá pasando a `src/core`) |
+| `src/next/` | El juego (motor nuevo): Phaser 4 (escenas) + React (interfaz) + Zustand (estado). Es la portada (`index.html`): arcade con poderes, power-ups y sonido, lip sync, pasarela con concepto (sin conexión, la clásica) y el modo historia rehecho (minirretos, escenas del taller con los roles de cada compañera, retos por decisiones, en equipo y con minijuegos, armario y tienda, críticas, Untucked, confesionario y némesis, la Lalaparuza, el reencuentro con Miss Simpatía, retos escritos en directo, logros, las dinámicas de cada temporada, lip syncs, final y track record). Las reglas están en `src/core` |
+| `js/historia/` | Versión clásica (`clasico.html`): el modo historia antiguo y el multijugador en directo |
 | `js/` | Arcade, menús, diálogos y datos de las reinas |
 | `supabase/` | Migraciones de la base de datos y la función de IA |
 | `tools/` | Pruebas en navegador y revisión del modo historia |

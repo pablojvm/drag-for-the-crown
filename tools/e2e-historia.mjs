@@ -12,7 +12,7 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 // Sin servidor ni IA: la prueba juega siempre igual (en CI hay claves de Supabase y la IA cambiaría los retos)
 await page.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
-await page.goto(URL);
+await page.goto(new globalThis.URL("clasico.html", URL).href); // la versión clásica
 await page.waitForTimeout(800);
 // SEASON=5 juega la sexta temporada (la de la moneda); se abren todas las anteriores como ganadas
 const SEASON = Number(process.env.SEASON || 0);

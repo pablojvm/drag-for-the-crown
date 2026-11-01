@@ -12,7 +12,7 @@ page.on("pageerror", (e) => errors.push(e.message));
 page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
 // Sin servidor: la pasarela sale clásica (la de concepto se prueba luego con un jurado de prueba)
 await page.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
-await page.goto(new URL("next.html", BASE).href);
+await page.goto(new URL("./", BASE).href);
 await page.waitForSelector(".nx-queens button", { timeout: 30000 });
 await page.waitForTimeout(1200);
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/next-menu.png` });

@@ -43,8 +43,8 @@ export default defineConfig({
   // GitHub Pages sirve el juego en /drag-for-the-crown/; rutas relativas para que funcione en cualquier sitio
   base: "./",
   plugins: [legacy(), cacheBust(), react()],
-  // Dos entradas: el juego actual (index.html) y el motor nuevo en construcción (next.html)
-  build: { outDir: "dist", sourcemap: true, chunkSizeWarningLimit: 2000, rollupOptions: { input: { main: resolve("index.html"), next: resolve("next.html") } } },
+  // Dos entradas: el juego (index.html, motor nuevo) y la versión clásica (clasico.html, con el multijugador)
+  build: { outDir: "dist", sourcemap: true, chunkSizeWarningLimit: 2000, rollupOptions: { input: { main: resolve("index.html"), clasico: resolve("clasico.html") } } },
   server: { port: 8000 },
   test: { include: ["tests/**/*.test.ts"] },
 } as any);
