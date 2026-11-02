@@ -169,7 +169,7 @@ const UI = (() => {
         card.style.setProperty("--accent", f.color);
         if (cover) card.style.backgroundImage = `linear-gradient(180deg, rgba(20,3,31,.35) 0%, rgba(20,3,31,0) 22%, rgba(20,3,31,0) 60%, rgba(20,3,31,.45) 100%), url('${cover}')`;
         card.innerHTML = `
-          <span class="s-top"><span class="s-name">${esc(s.name)}</span>${((s.franchise && s.franchise.id) || s.franchise) === "esas" ? "" : `<span class="s-year">${s.year}</span>`}</span>
+          <span class="s-top"><span class="s-name">${esc(s.name)}</span></span>
           ${cover ? "" : `<span class="faces">${s.cast.slice(0, 7).map((id) => `<i style="background-image:${portraitBg(queenById2(id), s.id)}"></i>`).join("")}${s.cast.length > 7 ? `<b>+${s.cast.length - 7}</b>` : ""}</span>`}
           <span class="s-cast">${s.special === "custom" ? (s.cast.length ? `${s.cast.length} reinas elegidas por ti` : "Elige hasta 14 reinas de cualquier temporada") : s.special === "winners" ? `${s.cast.length} reinas con las que has ganado` : `${s.cast.length} reinas · ${s.enEmision ? "📺 En emisión" : won ? `Ganadora: ${esc(queenById2(s.winner).name)}` : "¿Quién se llevará la corona?"}`}</span>
           <span class="s-state">${won ? "👑 Ganada" : unlocked ? (s.special ? (s.special === "custom" ? "✨ Monta tu reparto" : "🏆 Solo ganadoras") : `Dificultad ${"★".repeat(Math.min(5, s.index + 1))}`) : `🔒 ${esc(lock.why)}`}</span>`;
@@ -198,7 +198,7 @@ const UI = (() => {
         if (cover) card.style.backgroundImage = `linear-gradient(180deg, rgba(20,3,31,.35) 0%, rgba(20,3,31,0) 22%, rgba(20,3,31,0) 60%, rgba(20,3,31,.45) 100%), url('${cover}')`;
         const tl = mode === "story" ? storyUnlock(t) : { ok: true };
         card.innerHTML = `
-          <span class="s-top"><span class="s-name">${esc(t.name)}</span><span class="s-year">${t.year}</span></span>
+          <span class="s-top"><span class="s-name">${esc(t.name)}</span></span>
           <span class="soon-badge">${tl.ok ? "Próximamente" : `🔒 ${esc(tl.why)} · Próximamente`}</span>`;
         card.addEventListener("click", () => Sound.countdown(false));
         grid.append(card);

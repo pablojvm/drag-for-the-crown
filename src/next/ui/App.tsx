@@ -106,7 +106,6 @@ function Modos({ onArcade }: { onArcade: () => void }) {
   };
   return (
     <div className="nx-modes">
-      <p className="nx-tagline">Drag Race España · Solo una se lleva la corona</p>
       <div className="nx-modes-car" role="region" aria-roledescription="carrusel" aria-label="Modos de juego">
         <button className="nx-mode-arrow prev" aria-label="Modo anterior" disabled={active === 0} onClick={() => go(active - 1)}>‹</button>
         <div className="nx-modes-track" ref={track} onScroll={onScroll}>

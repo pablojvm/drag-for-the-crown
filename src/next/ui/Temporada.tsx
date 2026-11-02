@@ -68,7 +68,7 @@ function Elige() {
           <button key={t.id} className="nx-ts-season" onClick={() => F.chooseSeason(t.id)}>
             {PORTADAS[t.id] && <img src={PORTADAS[t.id]} alt="" loading="lazy" />}
             <b>{t.name}</b>
-            <small>{T.lemaOf(t.id) || `${t.year} · ${t.cast.length} reinas`}</small>
+            <small>{T.lemaOf(t.id) || `${t.cast.length} reinas`}</small>
           </button>
         ))}
       </div>
