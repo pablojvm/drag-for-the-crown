@@ -12,7 +12,7 @@ page.on("pageerror", (e) => errors.push(e.message));
 page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
 await page.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
 await page.goto(new URL("./", BASE).href);
-await page.waitForSelector(".nx-queens button", { timeout: 30000 });
+await page.waitForSelector(".nx-mode", { timeout: 30000 });
 // La prueba fija tu nota de la semana (la mejor, o con LOSE=1 la peor) para que el recorrido no dependa del azar
 // Los minijuegos se juegan de verdad en la primera temporada (TS=0); en las demás se dan por jugados, para ir más rápido
 const AUTO = !!process.env.TS && process.env.TS !== "0";
@@ -32,7 +32,7 @@ const fakeJury = () => page.evaluate(() => {
   };
 });
 if (AI) await fakeJury();
-await page.getByRole("button", { name: /Modo historia/ }).click();
+await page.locator(".nx-mode.s-story .ms-cta").first().click();
 // TS=número de temporada en la lista (0 = la primera); TS=all no hace falta: el CI prueba varias
 // CUSTOM=1: el All Stars a tu gusto (reparto al azar)
 if (process.env.CUSTOM) {
@@ -55,7 +55,7 @@ for (let i = 0; i < 4000; i++) {
     if (!resumed && st.ep === 2 && (st.phase === "anuncio" || st.phase === "fuera")) {
       resumed = true;
       await page.reload();
-      await page.waitForSelector(".nx-queens button", { timeout: 30000 });
+      await page.waitForSelector(".nx-mode", { timeout: 30000 });
       await setTiming();
       if (AI) await fakeJury();
       await page.getByRole("button", { name: "Seguir mi temporada" }).click();

@@ -59,7 +59,83 @@ function Stat({ label, v }: { label: string; v: number }) {
   return <span className="nx-stat"><small>{label}</small><b>{"★".repeat(v)}<em>{"★".repeat(5 - v)}</em></b></span>;
 }
 
+// Portada como la de la versión clásica: el logo y un carrusel con los modos de juego
+const MODOS = [
+  { id: "historia", cls: "s-story", kicker: "Temporada completa", name: "Modo historia", desc: "Retos, pasarela, críticas y lip syncs hasta la corona.", art: ["images/modo-historia.png"] },
+  { id: "arcade", cls: "s-arcade", kicker: "Partida rápida", name: "Arcade", desc: "Duelo de tacones, lip sync y pasarela con tu reina.", art: ["images/modo-arcade.png"] },
+  { id: "mp", cls: "s-mp", kicker: "En directo con amigas", name: "Multijugador", desc: "Una temporada a la vez, con tiempo por episodio.", art: ["images/queens/alexandra-del-raval.png", "images/queens/carmen-farala.png", "images/queens/arantxa-castilla-la-mancha.png"] },
+  { id: "clasico", cls: "s-next", kicker: "La de siempre", name: "Versión clásica", desc: "El juego de antes, con su modo historia y su multijugador.", art: ["images/queens/the-macarena.png", "images/queens/pupi-poisson.png", "images/queens/sagittaria.png"] },
+] as const;
+
+// Al volver de una partida rápida se vuelve a la elección de reina, no a la portada
+let menuView: "modos" | "arcade" = "modos";
 function MenuUI() {
+  const [view, setView] = useState(menuView);
+  const to = (v: typeof menuView) => { menuView = v; setView(v); };
+  return view === "arcade" ? <ArcadeMenu onBack={() => to("modos")} /> : <Modos onArcade={() => to("arcade")} />;
+}
+
+function Modos({ onArcade }: { onArcade: () => void }) {
+  const track = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const saved = hasSaved();
+  const go = (i: number) => {
+    const el = track.current?.children[i] as HTMLElement | undefined;
+    el?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", inline: "center", block: "nearest" });
+  };
+  // La tarjeta activa es la que queda en el centro
+  const onScroll = () => {
+    const t = track.current;
+    if (!t) return;
+    const mid = t.scrollLeft + t.clientWidth / 2;
+    let best = 0, dist = Infinity;
+    Array.from(t.children).forEach((c, i) => { const el = c as HTMLElement; const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - mid); if (d < dist) { dist = d; best = i; } });
+    setActive(best);
+  };
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === "ArrowRight") go(Math.min(MODOS.length - 1, active + 1)); if (e.key === "ArrowLeft") go(Math.max(0, active - 1)); };
+    addEventListener("keydown", k);
+    return () => removeEventListener("keydown", k);
+  });
+  const open = (i: number) => {
+    if (i !== active) return go(i);
+    const id = MODOS[i].id;
+    if (id === "historia") openSeasons();
+    else if (id === "arcade") onArcade();
+    else location.href = id === "mp" ? "./clasico.html?mp" : "./clasico.html";
+  };
+  return (
+    <div className="nx-modes">
+      <p className="nx-tagline">Drag Race España · Solo una se lleva la corona</p>
+      <div className="nx-modes-car" role="region" aria-roledescription="carrusel" aria-label="Modos de juego">
+        <button className="nx-mode-arrow prev" aria-label="Modo anterior" disabled={active === 0} onClick={() => go(active - 1)}>‹</button>
+        <div className="nx-modes-track" ref={track} onScroll={onScroll}>
+          {MODOS.map((m, i) => (
+            <div key={m.id} className={`nx-mode ${m.cls} ${i === active ? "active" : ""}`} role="group" aria-roledescription="modo" aria-label={m.name} onClick={() => open(i)}>
+              <span className="ms-num" aria-hidden="true">0{i + 1}</span>
+              <span className="ms-copy">
+                <span className="ms-kicker">{m.kicker}</span>
+                <span className="ms-name">{m.name}</span>
+                <span className="ms-desc">{m.desc}</span>
+                <span className="ms-ctas">
+                  <button className="ms-cta" tabIndex={i === active ? 0 : -1} onClick={(e) => { e.stopPropagation(); if (i !== active) go(i); else open(i); }}>{m.id === "historia" && saved ? "Nueva" : "Jugar"}</button>
+                  {m.id === "historia" && saved && <button className="ms-cta alt" tabIndex={i === active ? 0 : -1} onClick={(e) => { e.stopPropagation(); resume(); }}>Seguir mi temporada</button>}
+                </span>
+              </span>
+              {m.art.length === 1 ? <img className="ms-art" src={`./${m.art[0]}`} alt="" /> : <span className="ms-art ms-trio" aria-hidden="true">{m.art.map((a) => <img key={a} src={`./${a}`} alt="" />)}</span>}
+            </div>
+          ))}
+        </div>
+        <button className="nx-mode-arrow next" aria-label="Modo siguiente" disabled={active === MODOS.length - 1} onClick={() => go(active + 1)}>›</button>
+      </div>
+      <div className="nx-modes-dots" role="tablist" aria-label="Elegir modo">
+        {MODOS.map((m, i) => <button key={m.id} role="tab" aria-selected={i === active} aria-label={m.name} onClick={() => go(i)} />)}
+      </div>
+    </div>
+  );
+}
+
+function ArcadeMenu({ onBack }: { onBack: () => void }) {
   const best = useGame((s) => s.best);
   const start = useGame((s) => s.queenId);
   const [pick, setPick] = useState(ARCADE_QUEENS.some((x) => x.id === start) ? start : ARCADE_QUEENS[0].id);
@@ -67,11 +143,7 @@ function MenuUI() {
   return (
     <div className="nx-menu">
       <div className="nx-panel">
-        <div className="nx-hero">
-          <button className="nx-btn gold big" onClick={openSeasons}>👑 Modo historia</button>
-          {hasSaved() && <button className="nx-btn ghost" onClick={resume}>Seguir mi temporada</button>}
-          <p className="nx-muted">Una temporada entera, de la primera semana a la corona.</p>
-        </div>
+        <button className="nx-btn ghost nx-back" onClick={onBack}>‹ Modos</button>
         <p className="nx-eyebrow">Partida rápida</p>
         <h2 className="nx-step-title">Elige a tu reina</h2>
         <div className="nx-queens" role="radiogroup" aria-label="Reinas">
@@ -92,8 +164,6 @@ function MenuUI() {
           <button className="nx-btn ghost" onClick={() => send({ type: "runway", queenId: pick })}>👠 Pasarela</button>
         </div>
         <p className="nx-muted">Flechas o WASD para moverte, Espacio para lanzar tacones, E para el poder, P para pausar. En el móvil, arrastra el dedo.{best ? ` · Récord: ${best}` : ""}</p>
-        <a className="nx-btn ghost" href="./clasico.html?mp">👯 Multijugador en directo</a>
-        <a className="nx-link" href="./clasico.html">Versión clásica</a>
       </div>
     </div>
   );
