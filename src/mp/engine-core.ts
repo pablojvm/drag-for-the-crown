@@ -2,7 +2,7 @@
 // Los textos de los retos los puede traer quien crea la sala (los mismos que ve en su juego); si no, salen del núcleo.
 import type { Engine, Reto } from "./model";
 import { MAXI } from "../core/maxi";
-import { JURADO } from "../core/textos";
+import { JURADO, bancoReto } from "../core/textos";
 import { TEMAS_PASARELA } from "../core/temas";
 import { REINAS_ES, queenStats, baseAttrs, type QAttr } from "../core/reinas";
 import { tirarDado, notaDe, clamp } from "../core/dado";
@@ -48,10 +48,9 @@ export function coreEngine(content: () => Content, rnd: () => number = Math.rand
       return rnd() < clamp(0.5 + (power(a) - power(b)) / L.escala, L.min, L.max) ? a : b;
     },
     critique: (tipo, level, nm) => {
-      const R = JURADO.reto as Record<string, Record<string, string[]>>;
       const pick = (a: string[]) => a[Math.floor(rnd() * a.length)] || "";
       const low1 = (t: string) => t.replace(/\{yo\}/g, nm).replace(/^./, (c) => c.toLowerCase());
-      const out: [string, string][] = [["Supremme", `${nm}, ${low1(pick((R[tipo] || R.pasarela)[level]))}`]];
+      const out: [string, string][] = [["Supremme", `${nm}, ${low1(pick(bancoReto(tipo)[level]))}`]];
       const noRunway = !!(MAXI[tipo]?.noRunway || content().retos?.find((r) => r.tipo === tipo)?.noRunway);
       if (!noRunway) out.push(["Ana Locking", `${nm}, ${low1(pick((JURADO.pasarela as Record<string, string[]>)[level]).replace(/^(y |por cierto, )/i, ""))}`]);
       return out;

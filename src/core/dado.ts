@@ -28,3 +28,13 @@ export function notaDe(cat: number, pos: number, notas = BALANCE.notas): number 
 export function pasosDeJuego(played: number, rnd: () => number = Math.random, J = BALANCE.tuJuego): number {
   return played >= J.borda ? (rnd() < J.probDosEscalones ? 2 : 1) : played >= J.bien ? 1 : played >= J.normal ? 0 : played >= J.mal ? -1 : -2;
 }
+
+/** Tu nota del reto: lo que has jugado manda y el dado de tus atributos solo la matiza (como mucho −8 / +6),
+ * para que la nota cuadre con lo que has visto («te sale», «¡corten, toma buena!»...). */
+export function notaTuJuego(played: number, attr: number, rnd: () => number = Math.random, J = BALANCE.tuJuego): number {
+  const steps = pasosDeJuego(played, rnd, J);
+  const cat = clamp(tirarDado(attr, rnd) - steps, 0, 4);
+  const d = notaDe(cat, 0.35 + clamp((played - 40) / 60, 0, 1) * 0.65);
+  const p = Math.round(clamp(played, 0, 100));
+  return clamp(d, Math.max(0, p - J.margenAbajo), Math.min(100, p + J.margenArriba));
+}

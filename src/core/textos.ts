@@ -37,6 +37,21 @@ export const JURADO = {
       mid: ["Algunas zonas perfectas y otras con colores que no tocaban.", "Tenías la carta delante y aun así te despistaste.", "Bien, pero se nota que dudaste con los labios."],
       low: ["Eso no se parece a la carta ni de lejos.", "Colores cambiados en casi todas las zonas.", "¿Estabas mirando la misma carta que yo?"],
     },
+    lalaparuza: {
+      top: ["Ronda tras ronda, has bailado como si te fuera la vida. Nadie ha podido contigo.", "Te has sabido cada palabra de cada canción. Eso es una asesina del lip sync.", "Has ido de menos a más y en la última ronda has arrasado."],
+      mid: ["Has ganado algún duelo muy bueno, pero luego te has quedado sin gasolina.", "Buenos momentos, aunque en tu último lip sync te faltó remate.", "Has bailado bien, pero te ha tocado un cruce muy duro."],
+      low: ["Te has ido en la primera ronda y casi no te hemos visto.", "La letra no te la sabías. En un lip sync eso no se perdona.", "Mucha energía al principio y luego nada. Así no se gana un torneo."],
+    },
+    comedia: {
+      top: ["Me he reído de verdad, y eso en este jurado es difícil.", "Tienes un timing de cómica profesional. Cada remate, en su sitio.", "Has sabido reírte de ti misma sin perder el control. Brillante."],
+      mid: ["Algunos chistes han funcionado y otros se han quedado en el aire.", "Buena idea, pero te ha faltado ritmo en el remate.", "Graciosa a ratos. Te ha faltado constancia."],
+      low: ["Los chistes no llegaban. Se oían hasta los grillos.", "Te has quedado en blanco y se ha notado muchísimo.", "No ha habido ni una carcajada. Ni de compromiso."],
+    },
+    general: {
+      top: ["Has entendido el reto mejor que nadie. Se notaba que disfrutabas.", "Seguridad, ideas y remate. Así se gana un reto.", "Has hecho que lo difícil pareciera fácil."],
+      mid: ["Correcta, pero te ha faltado ese punto que te hace destacar.", "Tenías una buena idea que no has terminado de rematar.", "Has cumplido, aunque esperaba más de ti."],
+      low: ["Te he visto perdida durante todo el reto.", "No has entendido lo que te pedíamos.", "Hoy no ha sido tu día, y se ha notado desde el principio."],
+    },
     equipos: {
       top: ["Has liderado el grupo sin comerte a tus compañeras.", "Tu parte del número ha sido la mejor, y lo sabes.", "Has hecho brillar a todo el equipo."],
       mid: ["Has cumplido en el grupo, pero sin destacar.", "Te has escondido un poco detrás de tus compañeras.", "Correcta, aunque el número pedía más de ti."],
@@ -149,3 +164,10 @@ export const SNATCH_PREGUNTAS: string[] = [
 ];
 
 export const SNATCH_PLANAS: string[] = ["Pues no sé, la verdad.", "Bien, supongo.", "Eso es muy personal.", "Mmm... siguiente pregunta.", "Lo normal, como todo el mundo.", "Ni idea."];
+
+/** Banco de críticas de un reto: el suyo o el de su tipo (nunca el de la pasarela si no la hay). */
+const BANCO_DE: Record<string, string> = { roast: "comedia", impro: "comedia", publicidad: "comedia", actuacion: "comedia", repescaStand: "comedia", comedia: "comedia", materiales: "diseno", costura: "diseno", ball: "pasarela", makeover: "maquillaje", girlgroups: "equipos" };
+export function bancoReto(tipo: string): Record<"top" | "mid" | "low", string[]> {
+  const R = JURADO.reto as Record<string, Record<"top" | "mid" | "low", string[]>>;
+  return R[tipo] || R[BANCO_DE[tipo]] || R.general;
+}

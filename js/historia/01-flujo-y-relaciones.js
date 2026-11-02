@@ -598,11 +598,9 @@
   const dadoExtra = (q) => (seasonBoost() / 5) + clamp(S.form[q.id] || 0, -8, 8) / 6 + traitMod(q) / 6 + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) / 6 : 0);
   const rivalScore = (q) => clamp(notaDe(tirarDado(retoAttrOf(q) + dadoExtra(q)), Math.random()), 5, 99);
   // Tu nota: tu juego mueve tu dado (bordarlo sube escalones, hacerlo mal los baja), pero no lo asegura
+  // Tu nota: lo que juegas manda y el dado de tus atributos la matiza (regla compartida: src/core/dado.ts)
   function myDado(played) {
-    const steps = DFTC.pasosDeJuego(played, Math.random);
-    const a = retoAttrOf(S.queen) + seasonBoost() / 10;
-    const cat = clamp(tirarDado(a) - steps, 0, 4);
-    return notaDe(cat, 0.35 + clamp((played - 40) / 60, 0, 1) * 0.65);
+    return DFTC.notaTuJuego(played, retoAttrOf(S.queen) + seasonBoost() / 10, Math.random);
   }
 
   function header() {
@@ -645,7 +643,7 @@
   function buildCritique(score, verdict, forced) {
     const rs = S.lastParts ? S.lastParts.reto : score;
     const nivel = forced || (rs >= 75 ? "top" : rs >= 50 ? "mid" : "low");
-    const bank = (JURADO.reto[S.curTipo] || JURADO.reto.pasarela)[nivel];
+    const bank = DFTC.bancoReto(S.curTipo)[nivel];
     // El look de pasarela no siempre va a la par que el reto
     const w = S.lastParts && S.lastParts.pasarela;
     const lookN = typeof w === "number" ? (w >= 75 ? "top" : w >= 50 ? "mid" : "low") : Math.random() < 0.65 ? nivel : pick1(["top", "mid", "low"]);

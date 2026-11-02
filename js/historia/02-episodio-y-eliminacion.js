@@ -785,7 +785,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           const c = list.find((x) => x && str(x.reina) === r.q.name);
           const named = (t) => (t.includes(r.q.name) ? t : `${r.q.name}, ${t.replace(/^./, (x) => x.toLowerCase())}`);
           if (c && str(c.reto) && str(c.pasarela)) return [["host", named(IA.clean(str(c.reto)))], ["judge", IA.clean(str(c.pasarela))], ...(str(c.javis) ? [[pick1(["ambrossi", "calvo"]), IA.clean(str(c.javis))]] : [])];
-          const bank = (JURADO.reto[S.curTipo] || JURADO.reto.pasarela)[nivel(r)];
+          const bank = DFTC.bancoReto(S.curTipo)[nivel(r)];
           const low1 = (t) => t.replace(/\{yo\}/g, r.q.name).replace(/^./, (c) => c.toLowerCase());
           return [["host", `${r.q.name}, ${low1(pickFresh(bank))}`], ["judge", `${r.q.name}, ${low1(pickFresh(JURADO.pasarela[nivel(r)]).replace(/^(y |por cierto, )/i, ""))}`], ...(Math.random() < 0.35 ? pickFresh(JAVIS.critica[nivel(r)]).map(([k, t]) => [k, t.replace(/\{yo\}/g, r.q.name)]) : [])];
         });

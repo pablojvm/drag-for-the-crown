@@ -3,13 +3,13 @@
 // retos en equipo, Untucked y relaciones. Usa las mismas piezas que el modo historia: el dado, las etiquetas de la semana,
 // el track record, el rescate del bottom, la moneda y el lip sync simulado.
 import { BALANCE } from "./balance";
-import { tirarDado, notaDe, pasosDeJuego, clamp } from "./dado";
+import { tirarDado, notaDe, notaTuJuego, clamp } from "./dado";
 import { bottomSize, weekLabels, previousRank, asLike } from "./week";
 import { ppe } from "./track";
 import { TEMPORADAS_ES, REINAS_ES, queenStats, baseAttrs, type Attrs, type QAttr, type Temporada } from "./reinas";
 import { TEMAS_PASARELA } from "./temas";
 import { MAXI } from "./maxi";
-import { JURADO } from "./textos";
+import { JURADO, bancoReto } from "./textos";
 import { HISTORIA, TEMPORADAS_HISTORIA } from "./historia";
 import { rescueFromBottom, coinResult, lipstickKind } from "./dinamicas";
 import { allWinnersCut } from "./finales";
@@ -269,10 +269,7 @@ export function myScore(s: Season, rnd: () => number) {
   const reto = Math.min(100, (w.reto ?? 50) + (w.adv || 0));
   const raw = w.runway == null || def.noRunway ? reto : reto * 0.65 + w.runway * 0.35;
   const played = clamp(raw + relBonus(s), 0, 100);
-  const steps = pasosDeJuego(played, rnd);
-  const a = retoAttr(attrsOf(s, ME), def.attrs, def.noRunway) + seasonBoost(s) / 10;
-  const cat = clamp(tirarDado(a, rnd) - steps, 0, 4);
-  return notaDe(cat, 0.35 + clamp((played - 40) / 60, 0, 1) * 0.65);
+  return notaTuJuego(played, retoAttr(attrsOf(s, ME), def.attrs, def.noRunway) + seasonBoost(s) / 10, rnd);
 }
 
 /** Resultados de la semana: clasificación, etiquetas y bottom (o top 2 en All Stars y All Winners). */
@@ -575,9 +572,8 @@ export function critique(s: Season, key: string, pick: <T>(a: T[]) => T): string
   const w = s.week!;
   const lab = w.labels![key];
   const nivel = /WIN|TOP2|BTOP|HIGH/.test(lab) ? "top" : lab === "LOW" || /^BTM/.test(lab) ? "low" : "mid";
-  const R = JURADO.reto as Record<string, Record<string, string[]>>;
   const yo = nameOf(s, key);
-  const reto = (R[w.tipo] || R.pasarela)[nivel];
+  const reto = bancoReto(w.tipo)[nivel as "top"];
   const lines = [pick(reto)];
   if (!MAXI[w.tipo].noRunway) lines.push(pick(JURADO.pasarela[nivel as "top"]));
   return lines.map((t) => t.replace(/\{yo\}/g, yo));
