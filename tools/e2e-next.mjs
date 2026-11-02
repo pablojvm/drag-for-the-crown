@@ -17,9 +17,11 @@ await page.waitForSelector(".nx-mode", { timeout: 30000 });
 await page.waitForTimeout(1200);
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/next-menu.png` });
 // Portada: la tarjeta del arcade (el primer clic la centra, el segundo entra)
-await page.locator(".nx-mode.s-arcade").click();
-await page.waitForTimeout(700);
-await page.locator(".nx-mode.s-arcade .ms-cta").click();
+// (en el CI el desplazamiento puede tardar más: se insiste hasta que se abre)
+for (let i = 0; i < 20 && !(await page.$(".nx-queens button")); i++) {
+  await page.locator(".nx-mode.s-arcade .ms-cta").click();
+  await page.waitForTimeout(700);
+}
 await page.waitForSelector(".nx-queens button", { timeout: 10000 });
 await page.locator(".nx-queens button").nth(4).click();
 await page.getByRole("button", { name: "Arcade", exact: true }).click();
