@@ -47,12 +47,12 @@ export function coreEngine(content: () => Content, rnd: () => number = Math.rand
       const L = BALANCE.lipSync;
       return rnd() < clamp(0.5 + (power(a) - power(b)) / L.escala, L.min, L.max) ? a : b;
     },
-    critique: (tipo, level, nm) => {
+    critique: (tipo, level, nm, look) => {
       const pick = (a: string[]) => a[Math.floor(rnd() * a.length)] || "";
       const low1 = (t: string) => t.replace(/\{yo\}/g, nm).replace(/^./, (c) => c.toLowerCase());
       const out: [string, string][] = [["Supremme", `${nm}, ${low1(pick(bancoReto(tipo)[level]))}`]];
       const noRunway = !!(MAXI[tipo]?.noRunway || content().retos?.find((r) => r.tipo === tipo)?.noRunway);
-      if (!noRunway) out.push(["Ana Locking", `${nm}, ${low1(pick((JURADO.pasarela as Record<string, string[]>)[level]).replace(/^(y |por cierto, )/i, ""))}`]);
+      if (!noRunway) out.push(["Ana Locking", `${nm}, ${low1(pick((JURADO.pasarela as Record<string, string[]>)[look || level]).replace(/^(y |por cierto, )/i, ""))}`]);
       return out;
     },
     queenName: name,

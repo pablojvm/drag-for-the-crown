@@ -18,7 +18,7 @@ const engine = (): Engine => ({
   categorias: () => api().categorias(),
   rivalScore: (q, t) => api().rivalScore(q, t),
   simLS: (a, b) => api().simLS(a, b),
-  critique: (t, l, n) => api().critique(t, l, n),
+  critique: (t, l, n, look) => api().critique(t, l, n, look),
   queenName: (id) => Q(id).name,
   rnd: Math.random,
   repesca: () => api().repescaReto(),
@@ -368,7 +368,7 @@ function render(s: RoomState) {
     if (me && sub.final == null) return play(s, "pasarela", (el) => api().runway(el, s.reto!.cat!.n, (walk: number) => {
       const mineSub = room.state!.subs[room.me] || {};
       const raw = mineSub.reto ?? 30;
-      playing = null; saveLocal(s.code); room.submit({ final: api().finalScore(s.reto!.tipo, raw, walk, !!mineSub.jury) });
+      playing = null; saveLocal(s.code); room.submit({ walk: Math.round(walk), final: api().finalScore(s.reto!.tipo, raw, walk, !!mineSub.jury) });
     }));
     return waiting(s, "pasarela");
   }

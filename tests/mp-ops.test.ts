@@ -83,3 +83,30 @@ describe("Segunda Oportunidrag en el multijugador", () => {
     expect(triple).toBe(true);
   });
 });
+
+describe("Críticas del look aparte del reto", () => {
+  it("la pasarela de cada rival tiene su propia nota y no depende de la del reto", async () => {
+    const { lookRival } = await import("../src/core/reinas");
+    const { nivelNota } = await import("../src/core/dado");
+    const vals = ["pupi", "sagaz", "carmenfarala", "killerqueen", "hugaceo", "dovima"].flatMap((q) => [1, 2, 3, 4].map((ep) => lookRival(q, ep)));
+    expect(lookRival("pupi", 2)).toBe(lookRival("pupi", 2));
+    expect(new Set(vals.map(nivelNota)).size).toBeGreaterThan(1);
+    vals.forEach((v) => { expect(v).toBeGreaterThanOrEqual(15); expect(v).toBeLessThanOrEqual(98); });
+  });
+  it("en la sala, una jugadora con mal reto y gran pasarela recibe crítica buena del look", () => {
+    const looks: string[] = [];
+    const e2 = { ...e, critique: (t: string, l: "top" | "mid" | "low", n: string, look?: "top" | "mid" | "low") => { looks.push(`${n}:${l}:${look}`); return e.critique(t, l, n, look); } };
+    let s = newRoom("ABCDE", { id: "ana", name: "Ana", queen: null, joined: 1, alive: false }, "es1", "libre");
+    s = applyOp(s, "ana", { t: "pick", queen: "pupi" }, 1, e2);
+    s = applyOp(s, "ana", { t: "start", cast }, 1, e2);
+    return import("../src/mp/model").then(({ advance, scoreWeek }) => {
+      let now = 10;
+      for (let i = 0; i < 30 && s.phase !== "pasarela"; i++) { s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: s.phase, data: { reto: 10, ready: true } }, now, e2); s = advance(s, (now += 1000), e2); }
+      expect(s.phase).toBe("pasarela");
+      s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: s.phase, data: { final: 20, walk: 95 } }, now, e2);
+      scoreWeek(s, e2);
+      const mine = looks.find((x) => x.startsWith(e.queenName("pupi")));
+      expect(mine).toMatch(/:top$/);
+    });
+  });
+});

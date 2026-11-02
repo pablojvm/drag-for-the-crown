@@ -2,6 +2,8 @@
 // La anfitriona aplica estas funciones y reparte el estado; el resto lo pinta.
 
 import { ppe } from "../core/track";
+import { nivelNota } from "../core/dado";
+import { lookRival } from "../core/reinas";
 import { buildBracket } from "../core/bracket";
 import { bottomSize, weekLabels, allCritiqued } from "../core/week";
 import { allWinnersCut, allWinnersTier, lalaScore } from "../core/finales";
@@ -63,7 +65,7 @@ export interface Pair { a: string; b: string; winner?: string }
 export interface DuelMove { tag: string; imp: number; msg: string; energy?: number; at?: number; auto?: boolean }
 export const DUEL_STEPS = 6;
 export const DUEL_STEP_MS = 25000;
-export interface Sub { reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string; box?: number; heart?: string; duel?: DuelMove[]; duelMove?: DuelMove; duelStep?: number }
+export interface Sub { walk?: number; reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string; box?: number; heart?: string; duel?: DuelMove[]; duelMove?: DuelMove; duelStep?: number }
 /** Momento de un giro en el que alguien decide (comodín): la suerte, el corazón, la moneda o el bloqueo del All Winners. */
 export interface Twist {
   kind: "suerte" | "corazon" | "moneda" | "bloqueo" | "corte";
@@ -181,7 +183,8 @@ export interface Engine {
   categorias(): { n: string; d: string }[];
   rivalScore(queenId: string, tipo: string): number;
   simLS(aQueen: string, bQueen: string): string;
-  critique(tipo: string, level: "top" | "mid" | "low", name: string): [string, string][];
+  /** Críticas: `level` es la del reto y `look` la de la pasarela (van por separado). */
+  critique(tipo: string, level: "top" | "mid" | "low", name: string, look?: "top" | "mid" | "low"): [string, string][];
   queenName(id: string): string;
   rnd(): number;
   /** Reto de la Segunda Oportunidrag (stand-up en parejas). */
@@ -335,7 +338,10 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
     .map((r) => {
       const level = /WIN|TOP2|BTOP|HIGH/.test(r.label) ? "top" : r.label === "SAFE" ? "mid" : "low";
       const nm = isP(r.key) ? e.queenName(queenOfKey(s, r.key)) : e.queenName(idOf(r.key));
-      const lines = e.critique(tipo, level, nm);
+      // El look va aparte: la pasarela de la jugadora, o la de la rival esa semana
+      const qid = isP(r.key) ? queenOfKey(s, r.key) : idOf(r.key);
+      const walk = isP(r.key) ? s.subs[idOf(r.key)]?.walk : undefined;
+      const lines = e.critique(tipo, level, nm, nivelNota(walk ?? lookRival(qid, s.ep)));
       // Reto en directo: Supremme le dice lo que el jurado apuntó mientras lo hacía
       const jury = isP(r.key) ? (s.subs[idOf(r.key)]?.jury || "").trim() : "";
       if (jury && lines[0]) lines[0] = [lines[0][0], `${nm}, ${jury.length > 240 ? jury.slice(0, 240).replace(/\s+\S*$/, "") + "..." : jury}`];

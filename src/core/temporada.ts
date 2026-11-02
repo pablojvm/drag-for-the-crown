@@ -3,10 +3,10 @@
 // retos en equipo, Untucked y relaciones. Usa las mismas piezas que el modo historia: el dado, las etiquetas de la semana,
 // el track record, el rescate del bottom, la moneda y el lip sync simulado.
 import { BALANCE } from "./balance";
-import { tirarDado, notaDe, notaTuJuego, clamp } from "./dado";
+import { tirarDado, notaDe, notaTuJuego, nivelNota, clamp } from "./dado";
 import { bottomSize, weekLabels, previousRank, asLike } from "./week";
 import { ppe } from "./track";
-import { TEMPORADAS_ES, REINAS_ES, queenStats, baseAttrs, type Attrs, type QAttr, type Temporada } from "./reinas";
+import { TEMPORADAS_ES, REINAS_ES, queenStats, baseAttrs, lookRival, type Attrs, type QAttr, type Temporada } from "./reinas";
 import { TEMAS_PASARELA } from "./temas";
 import { MAXI } from "./maxi";
 import { JURADO, bancoReto } from "./textos";
@@ -575,7 +575,8 @@ export function critique(s: Season, key: string, pick: <T>(a: T[]) => T): string
   const yo = nameOf(s, key);
   const reto = bancoReto(w.tipo)[nivel as "top"];
   const lines = [pick(reto)];
-  if (!MAXI[w.tipo].noRunway) lines.push(pick(JURADO.pasarela[nivel as "top"]));
+  // El look se critica aparte: tu nota de pasarela, o la de la rival esa semana
+  if (!MAXI[w.tipo].noRunway) lines.push(pick(JURADO.pasarela[nivelNota(key === ME && w.runway != null ? w.runway : lookRival(idOf(s, key), s.ep))]));
   return lines.map((t) => t.replace(/\{yo\}/g, yo));
 }
 

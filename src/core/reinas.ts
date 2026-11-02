@@ -311,3 +311,12 @@ export function queenImg(id: string, seasonId?: string, portrait = false) {
   if (portrait && r?.retrato) return `${dir}${id}_retrato.jpg`;
   return r?.foto ? `${dir}${id}.png` : "";
 }
+
+/** Nota de la pasarela de una rival (0-100): su estilo y cómo le ha salido esa semana. Va aparte de la nota del reto,
+ * para que la crítica del look no dependa de cómo hizo el reto. Siempre la misma para la misma reina y semana. */
+export function lookRival(id: string, ep: number): number {
+  const est = baseAttrs(id, queenStats(id)).estilo;
+  let h = 7;
+  for (const c of `${id}:${ep}:look`) h = (h * 33 + c.charCodeAt(0)) >>> 0;
+  return Math.max(15, Math.min(98, Math.round(est * 7 + 12 + ((h % 41) - 20))));
+}

@@ -173,11 +173,11 @@
     rivalScore(qId, tipo) { const prev = S.curTipo; S.curTipo = tipo; const v = rivalScore(qById(qId)); S.curTipo = prev; return v; },
     simLS(aId, bId) { return simLS(qById(aId), qById(bId))[0].id; },
     /** Crítica de bancos de texto según el nivel ("top", "mid" o "low"). */
-    critique(tipo, level, name) {
+    critique(tipo, level, name, look) {
       const low1 = (t) => t.replace(/\{yo\}/g, name).replace(/^./, (c) => c.toLowerCase());
       const bank = DFTC.bancoReto(tipo)[level];
       const out = [["Supremme", `${name}, ${low1(pickFresh(bank))}`]];
-      if (!(RETOS[tipo] || {}).noRunway) out.push(["Ana Locking", `${name}, ${low1(pickFresh(JURADO.pasarela[level]).replace(/^(y |por cierto, )/i, ""))}`]);
+      if (!(RETOS[tipo] || {}).noRunway) out.push(["Ana Locking", `${name}, ${low1(pickFresh(JURADO.pasarela[look || level]).replace(/^(y |por cierto, )/i, ""))}`]);
       return out;
     },
     /** Foto y sprite de la reina con el look de esa temporada (All Stars, etc.); sin temporada, la de la partida en curso. */

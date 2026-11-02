@@ -38,3 +38,6 @@ export function notaTuJuego(played: number, attr: number, rnd: () => number = Ma
   const p = Math.round(clamp(played, 0, 100));
   return clamp(d, Math.max(0, p - J.margenAbajo), Math.min(100, p + J.margenArriba));
 }
+
+/** Nivel de una crítica según la nota (los mismos cortes que el modo historia). */
+export const nivelNota = (n: number): "top" | "mid" | "low" => (n >= 75 ? "top" : n >= 50 ? "mid" : "low");
