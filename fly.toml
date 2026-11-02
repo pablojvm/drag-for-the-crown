@@ -1,30 +1,33 @@
-# Servidor de salas del multijugador en Fly.io. Desde la raíz del repo:  fly launch --no-deploy --copy-config  y luego  fly deploy
-# Si el nombre «dftc-salas» está cogido, cambia «app» aquí y VITE_MP_URL (o el valor por defecto en src/mp/room.ts).
-app = "dftc-salas"
-primary_region = "mad"
+# fly.toml app configuration file generated for drag-for-the-crown on 2026-11-02T18:35:41Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'drag-for-the-crown'
+primary_region = 'ams'
 
 [build]
-  dockerfile = "server/Dockerfile"
+  dockerfile = 'server/Dockerfile'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  # Las salas viven en memoria: una sola máquina, que se duerme sin jugadoras y se despierta al entrar alguien
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
-  [http_service.concurrency]
-    type = "connections"
-    soft_limit = 400
-    hard_limit = 500
 
-[[http_service.checks]]
-  grace_period = "10s"
-  interval = "30s"
-  method = "GET"
-  path = "/salud"
-  timeout = "5s"
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 500
+    soft_limit = 400
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/salud'
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
