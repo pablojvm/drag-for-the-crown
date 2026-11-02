@@ -234,7 +234,10 @@ function Juego({ s }: { s: T.Season }) {
       <div className="nx-ts-head">
         <span>{T.seasonById(s.seasonId)?.name} · {s.phase === "final" ? "Gran final" : s.phase === "fin" ? "Fin de temporada" : s.phase === "regreso" ? "Segunda Oportunidrag" : s.phase === "reencuentro" ? "El reencuentro" : `Episodio ${s.ep}`}</span>
         <span>{s.meOut ? "Fuera de la competición" : `${s.alive.length} en competición`}</span>
-        <button className="nx-chip" onClick={() => setTrack(!track)}>{track ? "Cerrar" : "📋 Track record"}</button>
+        <span className="nx-row">
+          <button className="nx-chip" onClick={() => setTrack(!track)}>{track ? "Cerrar" : "📋 Track record"}</button>
+          <button className="nx-chip" onClick={() => { if (s.phase === "fin" || confirm("Tu temporada se queda guardada: podrás seguirla desde «Seguir mi temporada». ¿Salir al menú?")) F.leave(); }}>🚪 Menú</button>
+        </span>
       </div>
       {s.phase !== "fin" && <Cast s={s} />}
       {c.length > 0 && <p className="nx-ts-chips">{c.map((t) => <span key={t} className="nx-chip">{t}</span>)}</p>}
