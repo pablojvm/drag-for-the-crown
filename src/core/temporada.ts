@@ -139,6 +139,23 @@ function mark(track: Record<string, string[]>, k: string, ep: number, lab: strin
 }
 
 // ---------- Temporadas y reparto ----------
+/** Temporadas normales y All Stars jugables (en el orden en que se desbloquean). */
+export const REGULARES = () => TEMPORADAS_ES.filter((t) => t.franchise === "es");
+export const ALLSTARS = () => TEMPORADAS_ES.filter((t) => t.franchise === "esas" && t.cast.length);
+/** ¿Está abierta una temporada en el modo historia? Se abren ganando: la 2 ganando la 1, el All Stars 1 ganando la 3...
+ * Misma regla en la versión clásica y en el motor nuevo. `wins` son las temporadas que has ganado. */
+export function desbloqueo(id: string, wins: string[]): { ok: boolean; why?: string } {
+  const reg = REGULARES();
+  const nombre = (x: string) => TEMPORADAS_ES.find((t) => t.id === x)?.name || x;
+  const i = reg.findIndex((t) => t.id === id);
+  if (i === 0) return { ok: true };
+  if (i > 0) return wins.includes(reg[i - 1].id) ? { ok: true } : { ok: false, why: `Gana la ${nombre(reg[i - 1].id)}` };
+  const need = ({ esas1: ["es3"], esas2: ["es5"] } as Record<string, string[]>)[id];
+  if (need) return need.every((x) => wins.includes(x)) ? { ok: true } : { ok: false, why: `Gana la ${nombre(need[0])}` };
+  if (id === "escustom") return reg.every((t) => wins.includes(t.id)) ? { ok: true } : { ok: false, why: "Gana todas las temporadas" };
+  if (id === "esaw") return [...reg, ...ALLSTARS()].every((t) => wins.includes(t.id)) ? { ok: true } : { ok: false, why: "Gana todas las temporadas y los All Stars" };
+  return { ok: true };
+}
 /** All Winners: las ganadoras de las temporadas ya emitidas (si una repite, entra su finalista). */
 export function allWinnersCast(): string[] {
   const used = new Set<string>();

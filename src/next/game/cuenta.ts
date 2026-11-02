@@ -49,5 +49,13 @@ export function recordSeason(e: { queen: string; season: string; won: boolean; p
   const st = read("dftc-story-stats", { games: 0, crowns: 0, challengeWins: 0, lipsyncs: 0, total: 0 });
   write("dftc-story-stats", { ...st, games: st.games + 1, crowns: st.crowns + (e.won ? 1 : 0), challengeWins: st.challengeWins + e.winsT, lipsyncs: st.lipsyncs + e.lsWins, total: st.total + entry.score });
   void net()?.submitScore({ ...entry, place: entry.place });
+  // Ganar una temporada abre la siguiente (la misma lista que la versión clásica)
+  if (e.won) {
+    const wins = read<string[]>("dftc-story-wins", []);
+    if (!wins.includes(e.season)) write("dftc-story-wins", [...wins, e.season]);
+    write("dftc-story-crowns", { ...read<Record<string, unknown>>("dftc-story-crowns", {}), [e.season]: { queen: e.queen, runner: null } });
+  }
 }
+/** Temporadas que has ganado en el modo historia (la nueva o la clásica). */
+export const storyWins = () => read<string[]>("dftc-story-wins", []);
 export const worldTop = async (): Promise<TopRow[]> => { try { return (await net()?.loadTop(true)) || []; } catch { return []; } };

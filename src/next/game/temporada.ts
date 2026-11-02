@@ -14,7 +14,7 @@ import { aiMaxiPrompt, maxiFromAI } from "../../core/maxi";
 import { charlaPrompt, parseCharla, CHARLA_TURNOS, type Msg } from "../../core/charla";
 import { roleInfo } from "../../core/taller";
 import { unlock } from "./logros";
-import { touch, recordSeason } from "./cuenta";
+import { touch, recordSeason, storyWins } from "./cuenta";
 import { addMoney, buy } from "./closet";
 import { outfitScore, prendaById, slotOf, TAG_OF_STYLE, SLOTS, type Slot } from "../../core/armario";
 import { TEMAS_PASARELA } from "../../core/temas";
@@ -98,6 +98,8 @@ export function openSeasons() {
   send({ type: "scene", key: "Plato" });
 }
 export function chooseSeason(id: string) {
+  // Bloqueada hasta ganar la anterior (la interfaz ya lo avisa; esto es por si acaso)
+  if (!T.desbloqueo(id, storyWins()).ok) return;
   if (id === T.CUSTOM.id) return show({ view: "custom", seasonId: id, custom: view().custom || [] });
   show({ view: "reina", seasonId: id });
 }

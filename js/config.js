@@ -193,6 +193,8 @@ function specialSeasons() {
 }
 // Qué temporadas tienes abiertas en el modo historia y qué te falta para abrir las demás
 function storyUnlock(s) {
+  // Regla compartida con el motor nuevo (src/core/temporada.ts)
+  if (TEMPORADAS_ES.some((t) => t.id === s.id) || s.id === "escustom" || s.id === "esaw") return DFTC.temporada.desbloqueo(s.id, store.get("dftc-story-wins", []) || []);
   const wins = store.get("dftc-story-wins", []);
   const reg = REGULAR_ES();
   const nameOf = (id) => (TEMPORADAS_ES.find((t) => t.id === id) || {}).name || id;

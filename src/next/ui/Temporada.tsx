@@ -12,6 +12,8 @@ import { PPE_VALOR } from "../../core/track";
 import { MINIS, roleInfo, fillText } from "../../core/taller";
 import { SLOTS, SLOT_NAMES, ARMARIO, fitScore, priceOf, prendaById, prendaImg, bestFor, outfitScore, type Slot } from "../../core/armario";
 import { getCloset, euros } from "../game/closet";
+import { storyWins } from "../game/cuenta";
+import { toast } from "../game/logros";
 import { TimingGame, FlashGame, RitmoGame } from "./Minijuegos";
 
 const LABEL_TXT: Record<string, string> = { WIN: "Gana", TOP2: "Top 2", BTOP: "Top 2 (bloqueada)", HIGH: "Top", SAFE: "A salvo", LOW: "Low", BTM2: "Bottom", BTM3: "Bottom", ELIM: "Fuera", WINNER: "Ganadora", "RUNNER-UP": "Finalista", RTRN: "Vuelve", OUT: "Fuera de la final" };
@@ -58,21 +60,77 @@ export function TemporadaUI() {
   );
 }
 
+// Elegir temporada como en la versión clásica: primero la franquicia y luego la temporada.
+// Las temporadas se abren ganando la anterior (src/core/temporada.ts: desbloqueo).
+const FRANQUICIAS = [
+  { id: "es", tag: "ES", name: "Drag Race España", color: "#ff3b3b" },
+  { id: "esas", tag: "AS", name: "Drag Race España All Stars", color: "#e0a400" },
+  { id: "us", tag: "US", name: "RuPaul's Drag Race", color: "#ff4fd8", soon: true },
+  { id: "as", tag: "AS", name: "RuPaul's Drag Race All Stars", color: "#b36bff", soon: true },
+  { id: "uk", tag: "UK", name: "Drag Race UK", color: "#2bc4d6", soon: true },
+] as const;
+const franquiciaDe = (id: string) => (id === T.CUSTOM.id || id === "esaw" ? "esas" : T.seasonById(id)?.franchise || "es");
+let franquicia: string | null = null;
+
 function Elige() {
-  return (
-    <div className="nx-panel nx-ts-panel">
-      <p className="nx-eyebrow">Modo historia · motor nuevo (beta)</p>
-      <h2>Elige la temporada</h2>
-      <div className="nx-ts-seasons">
-        {T.playableSeasons().map((t) => (
-          <button key={t.id} className="nx-ts-season" onClick={() => F.chooseSeason(t.id)}>
-            {PORTADAS[t.id] && <img src={PORTADAS[t.id]} alt="" loading="lazy" />}
-            <b>{t.name}</b>
-            <small>{T.lemaOf(t.id) || `${t.cast.length} reinas`}</small>
-          </button>
-        ))}
+  const [fr, setFr] = useState<string | null>(franquicia);
+  const go = (f: string | null) => { franquicia = f; setFr(f); };
+  const wins = storyWins();
+  const all = T.playableSeasons();
+  if (!fr) {
+    return (
+      <div className="nx-panel nx-ts-panel nx-pick">
+        <p className="nx-eyebrow">Modo historia</p>
+        <h2>Elige franquicia</h2>
+        <div className="nx-fr-grid">
+          {FRANQUICIAS.map((f) => {
+            const list = all.filter((x) => franquiciaDe(x.id) === f.id);
+            const won = list.filter((x) => wins.includes(x.id)).length;
+            const lock = !("soon" in f) && list.length && !list.some((x) => T.desbloqueo(x.id, wins).ok) ? T.desbloqueo(list[0].id, wins).why : null;
+            const faces = [...new Set(list.filter((x) => !x.id.startsWith("esaw") && x.id !== T.CUSTOM.id).flatMap((x) => x.cast.slice(-2)))].slice(0, 5);
+            const off = "soon" in f || !!lock;
+            return (
+              <button key={f.id + f.name} className={`nx-fr ${off ? "off" : ""}`} style={{ ["--accent" as string]: f.color }} aria-disabled={off}
+                onClick={() => (lock ? toast("🔒 Bloqueada", lock) : "soon" in f ? undefined : go(f.id))}>
+                <span className="tag">{f.tag}</span>
+                <span className="f-name">{f.name}</span>
+                {!("soon" in f) && <span className="faces">{faces.map((id) => <i key={id} style={{ backgroundImage: `url('${img(queenImg(id, undefined, true))}')` }} />)}</span>}
+                {!("soon" in f) && <span className="f-progress"><span className="bar"><i style={{ width: `${list.length ? (won / list.length) * 100 : 0}%` }} /></span><small>👑 {won} de {list.length} {list.length === 1 ? "temporada ganada" : "temporadas ganadas"}</small></span>}
+                {"soon" in f ? <span className="badge">Próximamente</span> : lock ? <span className="badge">🔒 {lock}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+        <button className="nx-btn ghost" onClick={F.leave}>‹ Menú</button>
       </div>
-      <button className="nx-btn ghost" onClick={F.leave}>Menú</button>
+    );
+  }
+  const F0 = FRANQUICIAS.find((x) => x.id === fr)!;
+  const list = all.filter((x) => franquiciaDe(x.id) === fr);
+  return (
+    <div className="nx-panel nx-ts-panel nx-pick">
+      <p className="nx-eyebrow">Modo historia · {F0.name}</p>
+      <h2>Elige temporada</h2>
+      <div className="nx-se-grid">
+        {list.map((x, i) => {
+          const lk = T.desbloqueo(x.id, wins);
+          const won = wins.includes(x.id);
+          const special = x.id === T.CUSTOM.id ? "custom" : x.id === "esaw" ? "winners" : null;
+          const winner = REINAS_ES[x.cast[x.cast.length - 1]]?.name;
+          const info = special === "custom" ? "Elige tu reparto de todas las temporadas" : special === "winners" ? `${x.cast.length} ganadoras` : `${x.cast.length} reinas · ${x.enEmision ? "📺 En emisión" : won && winner ? `Ganadora: ${winner}` : "¿Quién se llevará la corona?"}`;
+          const state = won ? "👑 Ganada" : !lk.ok ? `🔒 ${lk.why}` : special === "custom" ? "✨ Monta tu reparto" : special === "winners" ? "🏆 Solo ganadoras" : `Dificultad ${"★".repeat(Math.min(5, i + 1))}`;
+          return (
+            <button key={x.id} data-id={x.id} className={`nx-se ${lk.ok ? "" : "locked"} ${won ? "won" : ""}`} aria-disabled={!lk.ok} title={T.lemaOf(x.id) || undefined}
+              style={PORTADAS[x.id] ? { backgroundImage: `linear-gradient(180deg, rgba(20,3,31,.35) 0%, rgba(20,3,31,0) 22%, rgba(20,3,31,0) 55%, rgba(20,3,31,.6) 100%), url('${PORTADAS[x.id]}')` } : undefined}
+              onClick={() => (lk.ok ? F.chooseSeason(x.id) : toast("🔒 Bloqueada", lk.why || ""))}>
+              <span className="s-name">{x.name}</span>
+              <span className="s-cast">{info}</span>
+              <span className="s-state">{state}</span>
+            </button>
+          );
+        })}
+      </div>
+      <button className="nx-btn ghost" onClick={() => go(null)}>‹ Volver</button>
     </div>
   );
 }

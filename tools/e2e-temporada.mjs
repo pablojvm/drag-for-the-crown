@@ -17,6 +17,8 @@ await page.waitForSelector(".nx-mode", { timeout: 30000 });
 // Los minijuegos se juegan de verdad en la primera temporada (TS=0); en las demás se dan por jugados, para ir más rápido
 const AUTO = !!process.env.TS && process.env.TS !== "0";
 const setTiming = () => page.evaluate(([lose, auto]) => { const t = window.__dftcTemporada.timing; t.next = 60; t.myScore = lose ? 1 : 99; t.autoGame = auto ? 70 : null; }, [LOSE, AUTO]);
+// Todas las temporadas abiertas (en el juego se abren ganando la anterior)
+await page.evaluate(() => localStorage.setItem("dftc-story-wins", JSON.stringify(["es1", "es2", "es3", "es4", "es5", "es6", "esas1", "esas2"])));
 await page.evaluate(() => { localStorage.removeItem("dftc-next-temporada"); localStorage.removeItem("dftc-closet"); localStorage.removeItem("dftc-story-board"); localStorage.removeItem("dftc-achievements"); });
 await setTiming();
 // AI=1: con un jurado de prueba en lugar del servidor (retos escritos en directo, pasarela con concepto y críticas)
@@ -36,10 +38,15 @@ await page.locator(".nx-mode.s-story .ms-cta").first().click();
 // TS=número de temporada en la lista (0 = la primera); TS=all no hace falta: el CI prueba varias
 // CUSTOM=1: el All Stars a tu gusto (reparto al azar)
 if (process.env.CUSTOM) {
-  await page.locator(".nx-ts-season", { hasText: "All Stars a tu gusto" }).click();
+  await page.locator(".nx-fr").nth(1).click();
+  await page.locator('.nx-se[data-id="escustom"]').click();
   await page.getByRole("button", { name: /Al azar/ }).click();
   await page.getByRole("button", { name: "Seguir" }).click();
-} else await page.locator(".nx-ts-season").nth(Number(process.env.TS || 0)).click();
+} else {
+  const id = ["es1", "es2", "es3", "es4", "es5", "es6", "esas1", "esas2", "esaw"][Number(process.env.TS || 0)];
+  await page.locator(".nx-fr").nth(id.startsWith("esa") ? 1 : 0).click();
+  await page.locator(`.nx-se[data-id="${id}"]`).click();
+}
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ts-reina.png` });
 await page.getByRole("button", { name: "Empezar la temporada" }).click();
 
