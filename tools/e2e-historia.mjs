@@ -26,6 +26,8 @@ await page.locator("#queen-grid > *").nth(0).click();
 // JURADO=1: la pasarela con concepto, con un jurado de prueba (el resto de textos, los de siempre)
 if (process.env.JURADO) await page.evaluate(() => {
   window.__jurado = 0;
+  // La reina de la prueba saca buena nota para seguir en la temporada hasta que llegue una pasarela con concepto
+  window.__forceScore = 95;
   // Solo en la pasarela: el resto del capítulo sigue con los textos de siempre (más rápido)
   IA.ready = () => !!window.__rwOn;
   IA.chat = async (system) => {
