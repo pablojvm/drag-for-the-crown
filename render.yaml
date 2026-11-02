@@ -1,0 +1,14 @@
+# Servidor de salas en Render (plan gratuito). En render.com: New > Blueprint y elige este repo.
+# Se duerme a los 15 minutos sin jugadoras y tarda un minuto en despertar: mientras, el juego juega sin servidor.
+services:
+  - type: web
+    name: dftc-salas
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    healthCheckPath: /salud
+    autoDeploy: true
+    buildFilter:
+      paths: ["server/**", "src/mp/**", "src/core/**", "render.yaml"]

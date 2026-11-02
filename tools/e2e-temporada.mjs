@@ -121,4 +121,9 @@ await browser.close();
 const ok = end && end.phase === "fin" && end.place >= 1 && (LOSE ? end.place > 2 && seen.has("fuera") : end.place <= 2 && seen.has("untucked")) && (!AI || (aiRetos > 0 && chats > 0)) && board > 0 && logros > 0 && resumed && seen.has("reto") && (AUTO || seen.has("mini")) && seen.has("taller") && seen.has("probador") && seen.has("final") && (LOSE || seen.has("lalaparuza")) && (process.env.TS === "8" || seen.has("reencuentro")) && seen.has("resultados") && !errors.length;
 console.log(`Temporada ${process.env.TS || 0} · fases: ${[...seen].join(", ")} · puesto: ${end ? end.place : "no"} · episodios: ${end ? end.ep : 0} · tu track: ${end ? end.track : ""} · Hall of Fame: ${board} · logros: ${logros} · retomada: ${resumed ? "sí" : "no"}${AI ? ` · retos escritos en directo: ${aiRetos} · charlas libres: ${chats}` : ""} · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
+// Si falla, se dice por qué (sale en el CI como anotación)
+if (!ok) {
+  const why = { fin: end && end.phase === "fin", puesto: !!end && (LOSE ? end.place > 2 && seen.has("fuera") : end.place <= 2 && seen.has("untucked")), ia: !AI || (aiRetos > 0 && chats > 0), hallOfFame: board > 0, logros: logros > 0, retomada: resumed, reto: seen.has("reto"), mini: AUTO || seen.has("mini"), taller: seen.has("taller"), probador: seen.has("probador"), final: seen.has("final"), lalaparuza: LOSE || seen.has("lalaparuza"), reencuentro: process.env.TS === "8" || seen.has("reencuentro"), resultados: seen.has("resultados"), sinErrores: !errors.length };
+  console.log("FALLA EN: " + Object.keys(why).filter((k) => !why[k]).join(", ") + (errors.length ? " · " + errors.slice(0, 2).join(" | ") : ""));
+}
 process.exit(ok ? 0 : 1);

@@ -30,7 +30,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-          VITE_MP_URL: ${{ vars.VITE_MP_URL || 'wss://dftc-salas.fly.dev' }}
+          VITE_MP_URL: ${{ vars.VITE_MP_URL }}
       # Pruebas en un navegador de verdad: una temporada del modo historia y un duelo del multijugador
       - run: npx playwright install --with-deps chromium
       # Cada prueba en su paso: si una falla, se ve cuál y el final de su salida queda como anotación

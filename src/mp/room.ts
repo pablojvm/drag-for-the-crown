@@ -21,18 +21,29 @@ const secretOf = (id: string) => {
 };
 const newCode = () => Array.from({ length: 5 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 24)]).join("");
 
-/** Dirección del servidor de salas: ?mpserver=... (pruebas), VITE_MP_URL o el de Fly.io. Vacía = sin servidor. */
-const MP_URL: string = (() => {
+/** Servidores de salas posibles: ?mpserver=... (pruebas), VITE_MP_URL o los de siempre (Render y Fly.io). Vacío = sin servidor. */
+const MP_URLS: string[] = (() => {
   const q = typeof location !== "undefined" ? new URLSearchParams(location.search).get("mpserver") : null;
-  if (q != null) return q;
-  return (import.meta.env.VITE_MP_URL as string | undefined) ?? "wss://dftc-salas.fly.dev";
+  if (q != null) return q ? [q] : [];
+  const env = import.meta.env.VITE_MP_URL as string | undefined;
+  if (env) return [env];
+  return ["wss://dftc-salas.onrender.com", "wss://dftc-salas.fly.dev"];
 })();
+/** El que ha respondido (se usa ese). */
+let MP_URL = MP_URLS[0] || "";
 let alive: Promise<boolean> | null = null;
-/** ¿Responde el servidor? Si no (aún no está desplegado o se ha caído), se juega como antes, sin servidor. */
+const ping = (u: string) => fetch(u.replace(/^ws/, "http").replace(/\/$/, "") + "/salud", { signal: AbortSignal.timeout(6000) }).then((r) => r.ok, () => false);
+/** ¿Responde algún servidor? Si no (aún no está desplegado, se ha caído o está despertando), se juega como antes, sin servidor. */
 export const serverUp = () =>
-  (alive ||= !MP_URL
+  (alive ||= !MP_URLS.length
     ? Promise.resolve(false)
-    : fetch(MP_URL.replace(/^ws/, "http").replace(/\/$/, "") + "/salud", { signal: AbortSignal.timeout(6000) }).then((r) => r.ok, () => false));
+    : Promise.all(MP_URLS.map(ping)).then((oks) => {
+      const i = oks.indexOf(true);
+      if (i >= 0) MP_URL = MP_URLS[i];
+      // Si nadie responde, se vuelve a probar la próxima vez (un servidor gratuito puede estar despertando)
+      else setTimeout(() => (alive = null), 0);
+      return i >= 0;
+    }));
 
 interface SRoom { send(t: string, d?: unknown): void; onMessage(t: string, cb: (d: any) => void): unknown; leave(consented?: boolean): Promise<unknown>; roomId: string; onLeave(cb: (code: number) => void): unknown }
 

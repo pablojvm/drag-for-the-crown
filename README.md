@@ -41,6 +41,7 @@ Si el servidor no responde, el juego sigue funcionando como antes: la anfitriona
 
 - En local: `npm run server` (puerto 2567) y abre `clasico.html?mpserver=ws://localhost:2567`.
 - Pruebas: `PORT=2599 npm run server` y `npm run e2e:mp-server` (temporadas enteras con bots y dos navegadores).
+- Render (gratis), una sola vez: en render.com, New > Blueprint y elige este repo (usa `render.yaml`). El juego busca el servidor en `wss://dftc-salas.onrender.com` y, si no, en Fly.io. En el plan gratuito se duerme sin jugadoras: mientras despierta, el juego juega sin servidor.
 - Fly.io, una sola vez, desde la raíz del repo: `fly auth signup` (o `login`), `fly launch --no-deploy --copy-config`, `fly deploy`.
   El juego busca el servidor en `wss://dftc-salas.fly.dev`; si usas otro nombre de app, cámbialo en `fly.toml` y en la
   variable `VITE_MP_URL` del repo (Settings > Variables).

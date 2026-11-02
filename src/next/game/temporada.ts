@@ -15,6 +15,7 @@ import { charlaPrompt, parseCharla, CHARLA_TURNOS, type Msg } from "../../core/c
 import { roleInfo } from "../../core/taller";
 import { unlock } from "./logros";
 import { touch, recordSeason, storyWins } from "./cuenta";
+import { trackSnap } from "./track";
 import { addMoney, buy } from "./closet";
 import { outfitScore, prendaById, slotOf, TAG_OF_STYLE, SLOTS, type Slot } from "../../core/armario";
 import { TEMAS_PASARELA } from "../../core/temas";
@@ -83,7 +84,7 @@ const commit = (bg: TsView["bg"], p: Partial<TsView> = {}) => {
   // Temporada terminada: a tu Hall of Fame (y al mundial)
   if (S && S.phase === "fin" && !recorded.has(S.seed)) {
     recorded.add(S.seed);
-    recordSeason({ queen: S.queen, season: S.seasonId, won: S.place === 1, place: S.place ?? null, ppe: T.myPpe(S), winsT: (S.track[T.ME] || []).filter((l) => l === "WIN").length, cast: S.cast.length, lsWins: S.lsWins || 0 });
+    recordSeason({ queen: S.queen, season: S.seasonId, won: S.place === 1, place: S.place ?? null, ppe: T.myPpe(S), winsT: (S.track[T.ME] || []).filter((l) => l === "WIN").length, cast: S.cast.length, lsWins: S.lsWins || 0, trackData: trackSnap(S) });
   }
 };
 const recorded = new Set<number>();

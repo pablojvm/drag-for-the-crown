@@ -1,5 +1,6 @@
 // Cuenta, nube y Hall of Fame en el motor nuevo: los mismos que el juego de siempre (src/net/cloud.ts).
 // Todo lo que el motor nuevo guarda empieza por "dftc-", así que viaja a la nube con el resto de tu progreso.
+import type { TrackSnap } from "./track";
 import { storyRank, type BoardEntry } from "../../core/track";
 import { set } from "../store";
 
@@ -42,13 +43,14 @@ export const setPlayerName = (n: string) => write("dftc-name", n.trim().slice(0,
 /** Tu Hall of Fame (el mismo que el del juego de siempre: tus 20 mejores temporadas). */
 export const localBoard = () => read<(BoardEntry & TopRow)[]>("dftc-story-board", []).slice().sort(storyRank);
 /** Apunta una temporada terminada en tu Hall of Fame y en el mundial (si hay servidor). */
-export function recordSeason(e: { queen: string; season: string; won: boolean; place: number | null; ppe: number; winsT: number; cast: number; lsWins: number }) {
-  const entry = { id: `n${Date.now()}`, name: playerName(), queen: e.queen, season: e.season, won: e.won, place: e.place == null ? null : `${e.place}º`, cast: e.cast, wins: e.winsT, winsT: e.winsT, lipsyncs: e.lsWins, ppe: e.ppe, score: Math.round(e.ppe * 1000), date: new Date().toISOString() };
+export function recordSeason(e: { queen: string; season: string; won: boolean; place: number | null; ppe: number; winsT: number; cast: number; lsWins: number; trackData?: TrackSnap }) {
+  const entry = { trackData: e.trackData, id: `n${Date.now()}`, name: playerName(), queen: e.queen, season: e.season, won: e.won, place: e.place == null ? null : `${e.place}º`, cast: e.cast, wins: e.winsT, winsT: e.winsT, lipsyncs: e.lsWins, ppe: e.ppe, score: Math.round(e.ppe * 1000), date: new Date().toISOString() };
   const board = [...localBoard(), entry].sort(storyRank).slice(0, 20);
   write("dftc-story-board", board);
   const st = read("dftc-story-stats", { games: 0, crowns: 0, challengeWins: 0, lipsyncs: 0, total: 0 });
   write("dftc-story-stats", { ...st, games: st.games + 1, crowns: st.crowns + (e.won ? 1 : 0), challengeWins: st.challengeWins + e.winsT, lipsyncs: st.lipsyncs + e.lsWins, total: st.total + entry.score });
-  void net()?.submitScore({ ...entry, place: entry.place });
+  // Al ranking mundial no se manda el track record entero (pesa); se queda en este dispositivo
+  void net()?.submitScore({ ...entry, trackData: undefined, place: entry.place });
   // Ganar una temporada abre la siguiente (la misma lista que la versión clásica)
   if (e.won) {
     const wins = read<string[]>("dftc-story-wins", []);
