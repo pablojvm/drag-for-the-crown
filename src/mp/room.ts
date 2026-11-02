@@ -27,7 +27,7 @@ const MP_URLS: string[] = (() => {
   if (q != null) return q ? [q] : [];
   const env = import.meta.env.VITE_MP_URL as string | undefined;
   if (env) return [env];
-  return ["wss://dftc-salas.onrender.com", "wss://dftc-salas.fly.dev"];
+  return ["wss://drag-for-the-crown.onrender.com", "wss://dftc-salas.onrender.com", "wss://dftc-salas.fly.dev"];
 })();
 /** El que ha respondido (se usa ese). */
 let MP_URL = MP_URLS[0] || "";

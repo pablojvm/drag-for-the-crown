@@ -11,7 +11,8 @@ if (fast > 1) Object.values(DURACION).forEach((d: Record<string, number>) => Obj
 const server = new Server({
   transport: new WebSocketTransport({ pingInterval: 5000, pingMaxRetries: 3 }),
   greet: false,
-  express: (app) => { app.get("/salud", (_req: unknown, res: { setHeader(k: string, v: string): void; json(v: unknown): void }) => { res.setHeader("Access-Control-Allow-Origin", "*"); res.json({ ok: true }); }); },
+  // /salud (y /health, el nombre que suelen pedir los alojamientos) para comprobar que está vivo
+  express: (app) => { ["/salud", "/health"].forEach((p) => app.get(p, (_req: unknown, res: { setHeader(k: string, v: string): void; json(v: unknown): void }) => { res.setHeader("Access-Control-Allow-Origin", "*"); res.json({ ok: true }); })); },
 });
 server.define("dftc", Sala);
 const port = Number(process.env.PORT || 2567);
