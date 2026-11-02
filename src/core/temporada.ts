@@ -9,7 +9,7 @@ import { ppe } from "./track";
 import { TEMPORADAS_ES, REINAS_ES, queenStats, baseAttrs, lookRival, type Attrs, type QAttr, type Temporada } from "./reinas";
 import { TEMAS_PASARELA } from "./temas";
 import { MAXI } from "./maxi";
-import { JURADO, bancoReto } from "./textos";
+import { criticaJurado, type Habla } from "./criticas";
 import { HISTORIA, TEMPORADAS_HISTORIA } from "./historia";
 import { rescueFromBottom, coinResult, lipstickKind } from "./dinamicas";
 import { allWinnersCut } from "./finales";
@@ -568,16 +568,14 @@ export function crown(s: Season, winner: string): Season {
 }
 
 // ---------- Críticas ----------
-export function critique(s: Season, key: string, pick: <T>(a: T[]) => T): string[] {
+/** Críticas de una reina como en el modo individual (src/core/criticas.ts): [quién habla, qué dice]. */
+export function critique(s: Season, key: string, rnd: () => number = Math.random): [Habla, string][] {
   const w = s.week!;
   const lab = w.labels![key];
   const nivel = /WIN|TOP2|BTOP|HIGH/.test(lab) ? "top" : lab === "LOW" || /^BTM/.test(lab) ? "low" : "mid";
-  const yo = nameOf(s, key);
-  const reto = bancoReto(w.tipo)[nivel as "top"];
-  const lines = [pick(reto)];
   // El look se critica aparte: tu nota de pasarela, o la de la rival esa semana
-  if (!MAXI[w.tipo].noRunway) lines.push(pick(JURADO.pasarela[nivelNota(key === ME && w.runway != null ? w.runway : lookRival(idOf(s, key), s.ep))]));
-  return lines.map((t) => t.replace(/\{yo\}/g, yo));
+  const look = nivelNota(key === ME && w.runway != null ? w.runway : lookRival(idOf(s, key), s.ep));
+  return criticaJurado({ tipo: w.tipo, nivel, look, nombre: nameOf(s, key), noRunway: MAXI[w.tipo].noRunway, cat: w.tema, antes: (s.track[key] || []).slice(0, s.ep - 1).filter(Boolean), rnd });
 }
 
 /** PPE de la jugadora en la temporada. */

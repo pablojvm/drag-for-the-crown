@@ -344,23 +344,8 @@ const JAVIS = {
     [["calvo", "Hoy el minirreto lo presentamos nosotros. ¡Qué ilusión!"], ["ambrossi", "Y el premio también lo damos nosotros, así que portaos bien."]],
     [["ambrossi", "¿Preparadas para el minirreto? Nosotros no, pero vosotras sí."]],
   ],
-  critica: {
-    top: [
-      [["calvo", "Yo me he emocionado. Y no me emociono con cualquier cosa."], ["ambrossi", "Yo sí, pero hoy con razón."]],
-      [["ambrossi", "Esto es lo que venimos a ver a este programa. Gracias, {yo}."]],
-      [["calvo", "Tienes una verdad que traspasa la pantalla, {yo}."]],
-    ],
-    mid: [
-      [["ambrossi", "Hay algo muy bonito ahí, pero todavía no lo has sacado del todo."], ["calvo", "Estás a un paso. Y ese paso es el que da miedo."]],
-      [["calvo", "A mí me ha gustado, pero me he quedado con ganas de más."]],
-      [["ambrossi", "Te hemos visto dudar. Y cuando dudas, se nota desde aquí."]],
-    ],
-    low: [
-      [["ambrossi", "{yo}, te queremos mucho, pero hoy no te hemos reconocido."], ["calvo", "Y eso es lo que más nos duele."]],
-      [["calvo", "No sé qué ha pasado esta semana, pero no eras tú."]],
-      [["ambrossi", "Creo que te has puesto un techo tú sola. Rómpelo."]],
-    ],
-  },
+  critica: DFTC.JAVIS_CRITICA,
+
   final: [
     [["ambrossi", "Pase lo que pase hoy, ya sois parte de la historia de este programa."], ["calvo", "Y nosotros somos muy fans. Que lo sepáis."]],
     [["calvo", "Estoy nerviosísimo. Más que vosotras, creo."], ["ambrossi", "Eso es imposible, mírales las piernas."]],

@@ -18,7 +18,7 @@ const engine = (): Engine => ({
   categorias: () => api().categorias(),
   rivalScore: (q, t) => api().rivalScore(q, t),
   simLS: (a, b) => api().simLS(a, b),
-  critique: (t, l, n, look) => api().critique(t, l, n, look),
+  critique: (t, l, n, look, extra) => api().critique(t, l, n, look, extra),
   queenName: (id) => Q(id).name,
   rnd: Math.random,
   repesca: () => api().repescaReto(),

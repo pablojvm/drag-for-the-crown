@@ -23,3 +23,4 @@ export * from "./historia";
 export * from "./armario";
 export * from "./logros";
 export * from "./charla";
+export * from "./criticas";

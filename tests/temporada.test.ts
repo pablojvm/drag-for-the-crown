@@ -218,9 +218,12 @@ describe("temporada", () => {
     s.week!.reto = 50;
     s.week!.runway = 50;
     s = T.scoreWeek(s, rnd);
-    const lines = T.critique(s, T.ME, (a) => a[0]);
-    expect(lines.length).toBe(2);
-    lines.forEach((l) => expect(l).not.toMatch(/\{yo\}/));
+    const lines = T.critique(s, T.ME, () => 0.9);
+    // Supremme abre y critica el reto; Ana critica el look (y a veces los Javis o un recuerdo)
+    expect(lines.length).toBeGreaterThanOrEqual(3);
+    expect(lines[0][0]).toBe("host");
+    expect(lines.some(([k]) => k === "judge")).toBe(true);
+    lines.forEach(([, l]) => { expect(l).not.toMatch(/\{yo\}|\{cat\}|\{pieza\}/); expect(l.trim().length).toBeGreaterThan(5); });
   });
 });
 

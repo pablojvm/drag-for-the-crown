@@ -43,7 +43,9 @@ describe("motor del servidor (solo núcleo)", () => {
       expect(["pupi", "sagaz"]).toContain(e.simLS("pupi", "sagaz"));
     }
     const c = e.critique("snatch", "top", "Pupi");
-    expect(c[0][1]).toMatch(/^Pupi, /);
+    expect(c[0][0]).toBe("Supremme");
+    expect(c[0][1]).toContain("Pupi");
+    expect(c.some(([who]) => who === "Ana Locking")).toBe(true);
     expect(e.retos().length).toBeGreaterThan(3);
     expect(e.categorias().length).toBeGreaterThan(3);
   });

@@ -34,7 +34,7 @@ export interface TsView {
   s: T.Season | null;
   maxi: MaxiView | null;
   /** Lo que dice el jurado en los resultados (por reina). */
-  crit: Record<string, string[]>;
+  crit: Record<string, [string, string][]>;
   ut: UtView | null;
   /** Segunda Oportunidrag: las dos que bailan por volver. */
   pair: [string, string] | null;
@@ -62,7 +62,6 @@ const rnd = () => {
   S!.seed = n;
   return v;
 };
-const pick = <U,>(a: U[]) => a[Math.floor(rnd() * a.length)];
 const view = () => get().ts!;
 const show = (p: Partial<TsView> = {}) => set({ ts: { ...view(), s: S ? { ...S } : null, ...p } });
 const save = () => {
@@ -154,8 +153,8 @@ export function resume() {
 const critsOf = (s: T.Season) => {
   const w = s.week;
   if (!w?.rows) return {};
-  const crit: Record<string, string[]> = {};
-  [w.rows[0].key, ...w.rows.slice(-2).map((r) => r.key), ...(s.alive.includes(T.ME) ? [T.ME] : [])].forEach((k) => (crit[k] = T.critique(s, k, pick)));
+  const crit: Record<string, [string, string][]> = {};
+  [w.rows[0].key, ...w.rows.slice(-2).map((r) => r.key), ...(s.alive.includes(T.ME) ? [T.ME] : [])].forEach((k) => (crit[k] = T.critique(s, k, rnd)));
   return crit;
 };
 
@@ -309,14 +308,16 @@ async function liveCritique() {
   const s = S, w = s.week!;
   const lab = w.labels![T.ME];
   const nivel = /WIN|TOP2|HIGH/.test(lab) ? "de las mejores" : /BTM|LOW/.test(lab) ? "de las peores" : "del montón";
+  // El look va aparte: Ana lo valora por su pasarela, no por el reto
+  const look = w.runway == null ? "" : w.runway >= 75 ? "La pasarela le ha salido muy bien." : w.runway >= 50 ? "La pasarela, correcta sin más." : "La pasarela le ha salido mal.";
   const pieces = SLOTS.map((k) => (w.outfit?.[k] ? prendaById(w.outfit[k]!)?.n : null)).filter(Boolean).join(", ") || "un básico prestado";
   const r = await ask(
     "Eres el jurado de Drag Race España: Supremme de Luxe (espectáculo y actitud) y Ana Locking (moda y construcción). Das críticas concretas, con humor y sin crueldad.",
-    `La reina ${T.nameOf(s, T.ME)} ha hecho el reto «${w.titulo}» y esta semana ha quedado ${nivel}. ${MAXI[w.tipo].noRunway ? "" : `En la pasarela «${w.tema}» llevaba: ${pieces}.`} Escribe una crítica de cada una, máximo 25 palabras, dirigida a ella, coherente con ese resultado. Devuelve JSON {"supreme":"...","ana":"..."}`,
+    `La reina ${T.nameOf(s, T.ME)} ha hecho el reto «${w.titulo}» y esta semana ha quedado ${nivel}. ${MAXI[w.tipo].noRunway ? "" : `En la pasarela «${w.tema}» llevaba: ${pieces}. ${look}`} Escribe una crítica de cada una, máximo 25 palabras, dirigida a ella: la de Supremme, coherente con el reto; la de Ana, solo sobre el look y la pasarela. Devuelve JSON {"supreme":"...","ana":"..."}`,
     { json: true, max: 300, temp: 0.8 },
   );
   if (!r || S !== s || S.phase !== "resultados") return;
-  const lines = [cleanLine(r.supreme), cleanLine(r.ana)].filter(Boolean);
+  const lines = ([["host", cleanLine(r.supreme)], ["judge", cleanLine(r.ana)]] as [string, string][]).filter(([, t]) => t);
   if (lines.length) show({ crit: { ...view().crit, [T.ME]: lines } });
 }
 /** El botón de volver de la pasarela o del lip sync. */

@@ -249,7 +249,7 @@ function Fase({ s }: { s: T.Season }) {
   if (s.phase === "resultados" && w?.rows) {
     return (
       <>
-        <Escena id={`crit-${s.seasonId}-${s.ep}`} lines={Object.keys(ts.crit).flatMap((k) => ts.crit[k].map((line, j) => hablante(s)(j === 0 ? "host" : "judge", line)))}>
+        <Escena id={`crit-${s.seasonId}-${s.ep}`} lines={Object.keys(ts.crit).flatMap((k) => ts.crit[k].map(([who, line]) => hablante(s)(who, line)))}>
           <p className="nx-eyebrow">Las críticas del jurado</p>
           <Rows s={s} />
           <button className="nx-btn" onClick={F.goUntucked}>🍸 Al Untucked</button>

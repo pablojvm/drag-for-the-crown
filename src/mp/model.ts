@@ -184,7 +184,7 @@ export interface Engine {
   rivalScore(queenId: string, tipo: string): number;
   simLS(aQueen: string, bQueen: string): string;
   /** Críticas: `level` es la del reto y `look` la de la pasarela (van por separado). */
-  critique(tipo: string, level: "top" | "mid" | "low", name: string, look?: "top" | "mid" | "low"): [string, string][];
+  critique(tipo: string, level: "top" | "mid" | "low", name: string, look?: "top" | "mid" | "low", extra?: { cat?: string; antes?: string[] }): [string, string][];
   queenName(id: string): string;
   rnd(): number;
   /** Reto de la Segunda Oportunidrag (stand-up en parejas). */
@@ -341,10 +341,11 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
       // El look va aparte: la pasarela de la jugadora, o la de la rival esa semana
       const qid = isP(r.key) ? queenOfKey(s, r.key) : idOf(r.key);
       const walk = isP(r.key) ? s.subs[idOf(r.key)]?.walk : undefined;
-      const lines = e.critique(tipo, level, nm, nivelNota(walk ?? lookRival(qid, s.ep)));
+      const antes = Object.keys(s.track[r.key] || {}).map(Number).filter((ep) => ep < s.ep).sort((a, b) => a - b).map((ep) => s.track[r.key][ep]);
+      const lines = e.critique(tipo, level, nm, nivelNota(walk ?? lookRival(qid, s.ep)), { cat: s.reto?.cat?.n, antes });
       // Reto en directo: Supremme le dice lo que el jurado apuntó mientras lo hacía
       const jury = isP(r.key) ? (s.subs[idOf(r.key)]?.jury || "").trim() : "";
-      if (jury && lines[0]) lines[0] = [lines[0][0], `${nm}, ${jury.length > 240 ? jury.slice(0, 240).replace(/\s+\S*$/, "") + "..." : jury}`];
+      if (jury && lines[1]) lines[1] = [lines[1][0], `${nm}, ${jury.length > 240 ? jury.slice(0, 240).replace(/\s+\S*$/, "") + "..." : jury}`];
       return { key: r.key, lines };
     })
     .sort(() => e.rnd() - 0.5); // desordenadas: que el orden no delate posiciones
