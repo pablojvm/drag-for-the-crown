@@ -158,7 +158,8 @@ export interface RoomState {
   lzEp?: number;
   /** Lalaparuza: el cuadro de lip syncs (rondas; la 0 es la ronda previa) y hasta dónde llega cada una. */
   lala?: { rounds: LzMatch[][]; R: number; round: number; reached: Record<string, number>; ls: Record<string, number>; champ?: string; top2?: string[]; done?: boolean; score?: Record<string, number> };
-  rp?: { ep: number; pairs: { c: string; o: string | null }[] };
+  /** Segunda Oportunidrag: parejas del monólogo y la maestra de ceremonias (la ganadora del reto anterior, que no compite). */
+  rp?: { ep: number; pairs: { c: string; o: string | null }[]; mc?: string };
   rpDone?: boolean;
   planShift?: number;
   script?: Script;
@@ -202,6 +203,8 @@ export const winnersWeeks = (n: number) => Math.max(4, Math.min(8, n - 1));
 const shuffleWith = <T,>(a: T[], e: Pick<Engine, "rnd">) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(e.rnd() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 const pickWith = <T,>(a: T[], e: Pick<Engine, "rnd">) => a[Math.floor(e.rnd() * a.length)];
 /** Jugadoras eliminadas que vuelven a jugar en la Segunda Oportunidrag (en pareja con una en competición). */
+/** Maestra de ceremonias de esta semana (Segunda Oportunidrag): presenta y no compite. */
+export const mcOf = (s: Pick<RoomState, "rp" | "ep">) => (s.rp && s.rp.ep === s.ep ? s.rp.mc : undefined);
 const rpPlayers = (s: RoomState) => (s.rp && s.rp.ep === s.ep ? s.rp.pairs.map((p) => p.o).filter((k): k is string => !!k && isP(k)).map(idOf) : []);
 
 export const alivePlayers = (s: RoomState) => s.players.filter((p) => p.alive && p.queen);
@@ -254,8 +257,10 @@ function nextEpisode(s: RoomState, now: number, e: Engine): RoomState {
   // Segunda Oportunidrag: cuando quedan siete, vuelven las eliminadas en parejas
   if (s.fmt === "repesca" && !s.rpDone && aliveKeys(s).length <= REPESCA_AT && s.out.length && e.repesca) {
     const r = e.repesca();
-    const comps = shuffleWith(aliveKeys(s), e), outs = shuffleWith(s.out.map((o) => o.key), e);
-    const rp = { ep, pairs: comps.map((c, i) => ({ c, o: outs[i] || null })) };
+    // Como en el modo historia: la ganadora del reto anterior es la maestra de ceremonias y no compite
+    const mc = aliveKeys(s).find((k) => ["WIN", "BWIN"].includes((s.track[k] || {})[s.ep]));
+    const comps = shuffleWith(aliveKeys(s).filter((k) => k !== mc), e), outs = shuffleWith(s.out.map((o) => o.key), e);
+    const rp = { ep, pairs: comps.map((c, i) => ({ c, o: outs[i] || null })), ...(mc ? { mc } : {}) };
     return { ...s, ep, reto: r, used: [...s.used, r.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, decision: undefined, twist: undefined, twistResult: undefined, bottom: undefined, triple: undefined, note: undefined, script: undefined, rp, rpDone: true, lala: undefined, planShift: (s.planShift || 0) + 1, epNames: { ...s.epNames, [ep]: r.titulo }, phase: "anuncio", deadline: 0, v: s.v + 1 };
   }
   // Lalaparuza: cuando quedan 8 (o 16), como en la historia; en All Winners, una semana al azar
@@ -280,7 +285,7 @@ function nextEpisode(s: RoomState, now: number, e: Engine): RoomState {
 
 /** ¿Han entregado ya todas las que tienen que entregar en esta fase? (para no esperar al tope) */
 export function allIn(s: RoomState): boolean {
-  const ps = alivePlayers(s);
+  const ps = alivePlayers(s).filter((p) => pkey(p.id) !== mcOf(s));
   if (s.phase === "maletas") return ps.every((p) => s.subs[p.id]?.ready);
   if (s.phase === "cajas") return false; // se espera un momento para que cada una vea su caja (ver tick)
   const extra = rpPlayers(s);
@@ -314,7 +319,7 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
   const own = (k: string) => (lz && lz[k] != null ? lz[k] : isP(k) ? s.subs[idOf(k)]?.final ?? s.subs[idOf(k)]?.reto ?? NO_PRESENTO : e.rivalScore(idOf(k), tipo));
   // Segunda Oportunidrag: la nota es de la pareja (60 % la que compite, 40 % la eliminada)
   const pairOf = (k: string) => (s.rp && s.rp.ep === s.ep ? s.rp.pairs.find((p) => p.c === k) : undefined);
-  const rows: Row[] = aliveKeys(s).map((k) => { const pr = pairOf(k); const sc = own(k); return { key: k, score: pr && pr.o ? Math.round(sc * 0.6 + own(pr.o) * 0.4) : sc, label: "" }; });
+  const rows: Row[] = aliveKeys(s).filter((k) => k !== mcOf(s)).map((k) => { const pr = pairOf(k); const sc = own(k); return { key: k, score: pr && pr.o ? Math.round(sc * 0.6 + own(pr.o) * 0.4) : sc, label: "" }; });
   rows.sort((a, b) => b.score - a.score || (e.rnd() < 0.5 ? -1 : 1));
   const n = rows.length;
   // Bottom de tres en la moneda (con seis o más) y en la Segunda Oportunidrag (lip sync a tres bandas)
@@ -343,6 +348,8 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
 const writeTrack = (s: RoomState, rows: Row[]) => {
   const track = { ...s.track };
   rows.forEach((r) => (track[r.key] = { ...(track[r.key] || {}), [s.ep]: r.label }));
+  const mc = mcOf(s);
+  if (mc) track[mc] = { ...(track[mc] || {}), [s.ep]: "MC" };
   return track;
 };
 
@@ -390,7 +397,7 @@ const labelsOf = (s: RoomState, k: string) => Object.values(s.track[k] || {});
 export const ppeOf = (s: RoomState, k: string) => ppe(labelsOf(s, k));
 export const winsOf = (s: RoomState, k: string) => labelsOf(s, k).filter((l) => l === "WIN" || l === "BWIN" || l === "WINNER").length;
 /** Orden del último episodio con resultados (como en el modo historia). */
-const ORDER: Record<string, number> = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, HIGH: 4, "3ª": 5, QOSD: 5.5, SAFE: 6, RTRN: 6.5, LOW: 7, BTM2: 8, BTM3: 8, ELIMF: 8.5, ELIM: 9 };
+const ORDER: Record<string, number> = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, HIGH: 4, "3ª": 5, QOSD: 5.5, SAFE: 6, MC: 6, RTRN: 6.5, LOW: 7, BTM2: 8, BTM3: 8, ELIMF: 8.5, ELIM: 9 };
 /** Clasificación para el track record: arriba las que siguen (por su última semana y su temporada); debajo las eliminadas, de la última a la primera. */
 export function standings(s: RoomState): { key: string; place: string; out: boolean }[] {
   const eps = Object.keys(s.epNames).map(Number).sort((a, b) => a - b);
@@ -941,6 +948,7 @@ export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase,
   const p = s.players.find((x) => x.id === pid);
   // Las eliminadas solo juegan su monólogo de la Segunda Oportunidrag
   if (!p || (!p.alive && !(rpPlayers(s).includes(pid) && (phase === "reto" || phase === "pasarela")))) return s;
+  if (pkey(pid) === mcOf(s) && (phase === "reto" || phase === "pasarela")) return s;
   // Cajitas: cada caja es de una sola (gana la primera que la coge) y no se cambia
   if (phase === "cajas" && data.box != null && (s.subs[pid]?.box != null || Object.values(s.subs).some((x) => x.box === data.box))) return s;
   return { ...s, subs: { ...s.subs, [pid]: { ...(s.subs[pid] || {}), ...data } }, v: s.v + 1 };

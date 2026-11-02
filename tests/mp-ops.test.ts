@@ -55,3 +55,31 @@ describe("motor del servidor (solo núcleo)", () => {
     expect(c.categorias).toBeUndefined();
   });
 });
+
+describe("Segunda Oportunidrag en el multijugador", () => {
+  it("la ganadora del reto anterior es maestra de ceremonias: no compite y el lip sync es a tres bandas", async () => {
+    const { advance, mcOf } = await import("../src/mp/model");
+    let s = newRoom("ABCDE", { id: "ana", name: "Ana", queen: null, joined: 1, alive: false }, "es3", "libre", { fmt: "repesca" });
+    s = applyOp(s, "bea", { t: "join", name: "Bea" }, 1, e);
+    s = applyOp(s, "ana", { t: "pick", queen: "pupi" }, 1, e);
+    s = applyOp(s, "bea", { t: "pick", queen: "sagaz" }, 1, e);
+    const big = ["pupi", "sagaz", "carmenfarala", "killerqueen", "hugaceo", "dovima", "arantxa", "inti", "macarena", "drag-sethlas", "the-macarena", "onyx"];
+    s = applyOp(s, "ana", { t: "start", cast: big }, 1, e);
+    let seen = false, triple = false, now = 10;
+    for (let i = 0; i < 400 && s.phase !== "corona"; i++) {
+      // Las jugadoras sacan buena nota para seguir en competición
+      for (const id of ["ana", "bea"]) s = applyOp(s, id, { t: "submit", ep: s.ep, phase: s.phase, data: { reto: 95, final: 95, ready: true, ls: { won: true, score: 90 } } }, now, e);
+      if (mcOf(s)) {
+        seen = true;
+        const mc = mcOf(s)!;
+        expect(s.rp!.pairs.some((p) => p.c === mc)).toBe(false);
+        if (s.rows) expect(s.rows.some((r) => r.key === mc)).toBe(false);
+        if (s.triple) triple = s.triple.length === 3;
+        if (s.phase === "track") expect(s.track[mc][s.ep]).toBe("MC");
+      }
+      s = advance(s, (now += 1000), e);
+    }
+    expect(seen).toBe(true);
+    expect(triple).toBe(true);
+  });
+});

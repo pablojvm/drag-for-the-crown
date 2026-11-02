@@ -109,8 +109,9 @@
       el.innerHTML = `
         <div class="story-card">
           <p class="eyebrow">${o.eyebrow}</p>
-          <h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3>
-          <div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>
+          ${o.rivals && o.rivals.length > 1
+            ? `<h3>${esc(S.queen.name)} vs ${o.rivals.map((id) => esc((qById(id) || {}).name || "")).join(" vs ")}</h3><div class="vs three"><img src="${photo(S.queen)}">${o.rivals.map((id) => `<img src="${photo(qById(id))}">`).join("")}</div>`
+            : `<h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3><div class="vs"><img src="${photo(S.queen)}"><span>VS</span><img src="${photo(rival)}"></div>`}
           ${o.note ? `<p class="muted">${esc(o.note)}</p>` : ""}
           <button class="btn btn-primary" id="mp-ls-go">¡A la pasarela!</button>
         </div>`;
