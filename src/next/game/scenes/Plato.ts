@@ -33,13 +33,26 @@ export class Plato extends Phaser.Scene {
     draw();
     const bgOf = () => (get().screen === "historia" ? get().hist.bg : get().ts?.bg);
     let bg = bgOf();
-    const queen = get().queenId;
+    // Si cambia tu reina (la eliges o llega de la historia), se carga su imagen sin reiniciar la escena
+    let queen = get().queenId;
     const unsub = store.subscribe((s) => {
-      if (s.queenId !== queen) return this.scene.restart();
+      if (s.queenId !== queen) {
+        queen = s.queenId;
+        const key = `q-${queen}`;
+        if (this.textures.exists(key)) draw();
+        else {
+          this.textures.once(`addtexture-${key}`, () => { if (this.scene.isActive()) draw(); });
+          loadQueens(this, [queen]);
+          if (!this.load.isLoading()) this.load.start();
+        }
+        return;
+      }
       if (bgOf() !== bg) { bg = bgOf(); draw(); }
       onDlg();
     });
     this.events.once("shutdown", unsub);
-    this.scale.on("resize", () => this.scene.restart());
+    const onResize = () => this.scene.restart();
+    this.scale.on("resize", onResize);
+    this.events.once("shutdown", () => this.scale.off("resize", onResize));
   }
 }

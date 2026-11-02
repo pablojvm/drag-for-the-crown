@@ -20,6 +20,11 @@ export function startGame(parent: HTMLElement) {
     physics: { default: "arcade", arcade: { debug: false } },
     scene: [Boot, Menu, Arcade, LipSync, Runway, Plato],
   });
+  // La misma imagen de una reina puede llegar a la vez por dos escenas (Boot y el plató, o el plató y el lip sync):
+  // se queda la primera y no se avisa de la repetida
+  const tx = game.textures as unknown as { addImage: (key: string, ...a: unknown[]) => unknown; exists: (k: string) => boolean; get: (k: string) => unknown };
+  const addImage = tx.addImage.bind(tx);
+  tx.addImage = (key, ...a) => (tx.exists(key) ? tx.get(key) : addImage(key, ...a));
   // Cambia de escena; si ya es la que está en marcha (otra pasarela, revancha), la reinicia
   const go = (key: string) => {
     game.scene.getScenes(true).forEach((s) => { if (s.scene.key !== key) s.scene.stop(); });
