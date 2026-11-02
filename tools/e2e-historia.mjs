@@ -44,6 +44,8 @@ for (let i = 0; i < 9000 && !done; i++) {
     try {
       const d = JSON.parse(localStorage.getItem("dftc-story-save") || "null");
       if (!d || d.ep < 2) return null;
+      // Con JURADO=1 se sigue hasta ver una pasarela con concepto (hay retos sin pasarela, como el Ball)
+      if (window.__jurado === 0 && d.ep < 5) return null;
       const labs = Object.values(d.track || {}).map((t) => t[1]).filter(Boolean);
       return labs.length ? labs : null;
     } catch { return null; }
