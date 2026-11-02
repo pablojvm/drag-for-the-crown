@@ -1,6 +1,7 @@
 // Pasarela del motor nuevo: las reglas son las del núcleo (src/core/runway.ts y src/core/concepto.ts); aquí solo se lleva la partida.
 // Con el jurado en directo: look, concepto, tres momentos de desfile, la pregunta de Ana y el veredicto.
 // Sin él: la clásica (look, paso, momento final y voz en off).
+import type { LsAttrs } from "../../core/lipsync";
 import { TAGS, WALKS, VOICEOVERS, VOICE_OFF, walkPoints, momentPoints, voicePoints, runwayScore, revealSucceeds, WALK_OF_TAG, type Tag, type Walk, type Moment, type Voice } from "../../core/runway";
 import { momentsPrompt, parseMoments, judgePrompt, parseVerdict, conceptScore, anaBonus, REVEAL_OPT, type AnaQA, type MomentKey } from "../../core/concepto";
 import { cleanLine } from "../../core/guion";
@@ -41,13 +42,15 @@ export interface RunwayState {
   score: number | null;
   /** Lo que lleva (si viene del probador del modo historia). */
   pieces?: string[];
+  /** Atributos de tu reina si vienen del modo historia. */
+  attrs?: LsAttrs;
 }
 
 const shuffle = <T,>(a: T[], rnd: () => number = Math.random) => a.map((v) => [rnd(), v] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
 let seq = 0;
 
 /** `preset`: el look ya viene del probador (su estilo y las piezas que lleva); se salta el paso de elegir look. */
-export function startRunway(queenId: string, rnd: () => number = Math.random, mode: RunwayState["mode"] = juradoListo() ? "concepto" : "clasica", temaName?: string, preset?: { look: Tag; pieces: string[] }) {
+export function startRunway(queenId: string, rnd: () => number = Math.random, mode: RunwayState["mode"] = juradoListo() ? "concepto" : "clasica", temaName?: string, preset?: { look: Tag; pieces: string[]; attrs?: LsAttrs }) {
   const temas = TEMAS_PASARELA.filter((t) => !t.rv);
   const tema = temas.find((t) => t.n === temaName) || temas[Math.floor(rnd() * temas.length)];
   const catTag = tema.tag;
@@ -61,7 +64,7 @@ export function startRunway(queenId: string, rnd: () => number = Math.random, mo
   set({
     screen: "runway",
     queenId,
-    rw: { id: ++seq, mode, cat: tema.n, theme: tema.d, catTag, look: null, lookOpts: shuffle([catTag, ...others], rnd), step: 0, pos: 0, done: false, waiting: false, points: [], msg: "", good: null, anim: "", animN: 0, voices, concept: "", moments: [], picks: [], qa: null, ana: 0, anaAnswer: "", reveal: false, lines: null, score: null, pieces: preset?.pieces },
+    rw: { id: ++seq, mode, cat: tema.n, theme: tema.d, catTag, look: null, lookOpts: shuffle([catTag, ...others], rnd), step: 0, pos: 0, done: false, waiting: false, points: [], msg: "", good: null, anim: "", animN: 0, voices, concept: "", moments: [], picks: [], qa: null, ana: 0, anaAnswer: "", reveal: false, lines: null, score: null, pieces: preset?.pieces, attrs: preset?.attrs },
   });
   if (preset) chooseLook(preset.look);
 }
@@ -70,7 +73,7 @@ const next = (p: Partial<RunwayState>) => { const rw = get().rw!; set({ rw: { ..
 /** Cambia el estado sin mover a la reina (esperas, textos). */
 const patch = (p: Partial<RunwayState>) => set({ rw: { ...get().rw!, ...p } });
 const still = (id: number) => get().rw?.id === id;
-const attrs = () => queenOf(get().queenId).ls;
+const attrs = () => get().rw?.attrs || queenOf(get().queenId).ls;
 
 export function chooseLook(tag: Tag) {
   const rw = get().rw;

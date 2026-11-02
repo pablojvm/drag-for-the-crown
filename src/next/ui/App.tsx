@@ -29,6 +29,7 @@ export function App() {
     return () => { window.removeEventListener("pointerdown", go); window.removeEventListener("keydown", go); };
   }, []);
   const screen = useGame((s) => s.screen);
+  const histScene = useGame((s) => s.hist.scene);
   return (
     <div className="nx-root">
       <div className="nx-canvas" ref={host} />
@@ -41,7 +42,7 @@ export function App() {
         {screen === "lipsync" && <LipSyncUI />}
         {screen === "runway" && <RunwayUI />}
         {screen === "temporada" && <TemporadaUI />}
-        {screen === "historia" && <HistoriaUI />}
+        {(screen === "historia" || histScene) && <HistoriaUI />}
         <Toasts />
       </div>
     </div>

@@ -525,6 +525,7 @@
   // Fondo de la escena (taller, plató, jurado...)
   const SETS = { werkroom: ["werkroom.jpg", "werkroom3.jpg"], lounge: ["werkroom2.jpg"], stage: ["stage.jpg"], panel: ["panel.jpg"] };
   function setSet(name) {
+    if (window.__dftcEmbed) window.__dftcEmbed("set", { name: name || "", queen: S && S.queen ? S.queen.id : "", season: S && S.season ? S.season.id : "" });
     const el = $("#story-set");
     if (!el) return;
     if (!name) { el.style.backgroundImage = ""; el.dataset.set = ""; return; }

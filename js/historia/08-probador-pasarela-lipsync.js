@@ -204,6 +204,21 @@
     return card +  `<div class="rw-doll rw-queen pos0" id="rw-doll"><img class="doll-fig" src="${sprite(S.queen)}" alt=""></div>`;
   }
   function runwayWalk(el, cat, lookSpec, lookTag, done) {
+    // Dentro de la versión nueva: la pasarela se desfila en su escena (Phaser), con lo que llevas puesto
+    if (window.__dftcAwait) {
+      const a = attrsOf(S.queen);
+      const pieces = S.curPieces && S.curPieces.length ? S.curPieces : [];
+      S.curPieces = null;
+      el.innerHTML = `<div class="story-card"><p class="eyebrow">👠 Pasarela</p><h3>«${esc(cat)}»</h3><p class="muted">Sales a desfilar...</p></div>`;
+      return window.__dftcAwait("runway", { cat, tag: lookTag, pieces, queen: S.queen.id, concept: IA.ready() && !S.meOut, attrs: { performance: a.performance, carisma: a.carisma, estilo: a.estilo } }, (r) => {
+        const flags = {};
+        if (r.concept) flags.concepto = r.concept;
+        if (r.reveal) flags.reveal = true;
+        if (r.critica) flags.critica = r.critica;
+        if (r.voiceGood) flags.voiceGood = true;
+        done(typeof window.__forceScore === "number" ? window.__forceScore : Math.round(r.score || 50), flags, lookSpec);
+      });
+    }
     if (IA.ready() && !S.meOut) return conceptRunway(el, cat, lookSpec, lookTag, done);
     return classicWalk(el, cat, lookSpec, lookTag, done);
   }
@@ -478,6 +493,21 @@
     Music.play("reto");
     const lsb = S.lsBonus || 0;
     S.lsBonus = 0;
+    // Dentro de la versión nueva: el lip sync se baila en su escena (Phaser), con tus atributos y la misma rival
+    if (window.__dftcAwait) {
+      const a = attrsOf(S.queen);
+      const strength = DFTC.rivalStrength(attrsOf(rival), { form: S.form[rival.id] || 0, boost: seasonBoost(), noise: rnd(-12, 12) });
+      $("#story-play").innerHTML = `<div class="story-card"><p class="eyebrow">💋 Lip sync</p><h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3><p class="muted">En el escenario...</p></div>`;
+      Music.stop();
+      const go = () => window.__dftcAwait("lipsync", { rival: rival.id, queen: S.queen.id, strength, attrs: { performance: a.performance, carisma: a.carisma, estilo: a.estilo } }, (r) => {
+        const mine = (r.mine || 0) + lsb;
+        let won = mine >= strength;
+        if (typeof window.__forceScore === "number") won = window.__forceScore >= 50;
+        Music.stop();
+        cb({ won, score: Math.round(Math.min(100, (mine / Math.max(1, strength)) * 60) * 10) });
+      });
+      return go();
+    }
     runLipsync($("#story-play"), rival, (won, score) => {
       cleanup = null;
       Music.stop();

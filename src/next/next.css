@@ -487,6 +487,10 @@ body:has(.nx-dlg) .nx-ts-panel { visibility: hidden; }
 
 /* ---------- Modo historia (el de siempre, en un marco) ---------- */
 .nx-historia { position: fixed; inset: 0; z-index: 50; pointer-events: auto; background: var(--nx-bg); }
+.nx-historia.on { background: transparent; }
+.nx-historia.away { visibility: hidden; pointer-events: none; }
+.nx-historia.away iframe.on { visibility: hidden; }
+.nx-historia iframe { color-scheme: normal; background: transparent; }
 .nx-historia iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; visibility: hidden; }
 .nx-historia iframe.on { visibility: visible; }
 .nx-historia-wait { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; }

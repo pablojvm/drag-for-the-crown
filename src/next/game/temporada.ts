@@ -16,6 +16,7 @@ import { roleInfo } from "../../core/taller";
 import { unlock } from "./logros";
 import { touch, recordSeason, storyWins } from "./cuenta";
 import { trackSnap } from "./track";
+import { historiaBack } from "./historia";
 import { addMoney, buy } from "./closet";
 import { outfitScore, prendaById, slotOf, TAG_OF_STYLE, SLOTS, type Slot } from "../../core/armario";
 import { TEMAS_PASARELA } from "../../core/temas";
@@ -325,6 +326,7 @@ async function liveCritique() {
 }
 /** El botón de volver de la pasarela o del lip sync. */
 export function backFromScene() {
+  if (historiaBack()) return;
   if (!S) return;
   if (S.phase === "pasarela") {
     const rw = get().rw;

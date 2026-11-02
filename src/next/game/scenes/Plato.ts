@@ -12,12 +12,12 @@ export class Plato extends Phaser.Scene {
     const { width: W, height: H } = this.scale;
     let me: Phaser.GameObjects.Image | null = null;
     // Mientras hay una conversación, la reina que habla sale en grande: la del plató se aparta
-    const onDlg = () => me?.setVisible(!document.querySelector(".nx-dlg"));
+    const onDlg = () => me?.setVisible(!document.querySelector(".nx-dlg") && !(get().screen === "historia" && get().hist.busy));
     addEventListener("nx-dlg", onDlg);
     this.events.once("shutdown", () => removeEventListener("nx-dlg", onDlg));
     const draw = () => {
       this.children.removeAll(true);
-      const bgKey = get().ts?.bg === "stage" ? "stage" : "werkroom";
+      const bgKey = (get().screen === "historia" ? get().hist.bg : get().ts?.bg) === "stage" ? "stage" : "werkroom";
       const bg = this.add.image(W / 2, H / 2, bgKey);
       bg.setScale(Math.max(W / bg.width, H / bg.height));
       this.add.rectangle(W / 2, H / 2, W, H, 0x14031f, 0.35);
@@ -31,8 +31,14 @@ export class Plato extends Phaser.Scene {
       }
     };
     draw();
-    let bg = get().ts?.bg;
-    const unsub = store.subscribe((s) => { if (s.ts?.bg !== bg) { bg = s.ts?.bg; draw(); } });
+    const bgOf = () => (get().screen === "historia" ? get().hist.bg : get().ts?.bg);
+    let bg = bgOf();
+    const queen = get().queenId;
+    const unsub = store.subscribe((s) => {
+      if (s.queenId !== queen) return this.scene.restart();
+      if (bgOf() !== bg) { bg = bgOf(); draw(); }
+      onDlg();
+    });
     this.events.once("shutdown", unsub);
     this.scale.on("resize", () => this.scene.restart());
   }

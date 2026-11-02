@@ -44,7 +44,33 @@ const UI = (() => {
   const EMBED_MODE = EMBED ? new URLSearchParams(location.search).get("historia") || "" : "";
   let embedOn = false;
   const toParent = (ev) => { try { window.parent.postMessage({ type: "dftc-historia", ev }, location.origin); } catch (e) {} };
-  if (EMBED) document.documentElement.classList.add("dftc-embed");
+  if (EMBED) {
+    document.documentElement.classList.add("dftc-embed");
+    // Lo que se ve detrás (el plató del motor nuevo) lo pinta la versión nueva: se le dice qué decorado y qué reina
+    window.__dftcEmbed = (ev, data) => { try { window.parent.postMessage({ type: "dftc-historia", ev, ...data }, location.origin); } catch (e) {} };
+    // La pasarela y los lip syncs se juegan en las escenas del motor nuevo: se piden y se espera el resultado
+    const waiting = {};
+    window.__dftcAwait = (kind, data, cb) => { waiting[kind] = cb; window.__dftcEmbed(kind, data); };
+    addEventListener("message", (e) => {
+      if (e.origin !== location.origin || e.source !== window.parent || !e.data || e.data.type !== "dftc-historia-res") return;
+      const cb = waiting[e.data.kind];
+      waiting[e.data.kind] = null;
+      if (cb) cb(e.data);
+    });
+    // Si hay alguien hablando (o una reina en grande) en la pantalla, la reina del plató se aparta
+    let lastBusy = null, raf = 0;
+    // También si lo que hay en pantalla llega hasta donde está la reina (a la izquierda)
+    const over = () => [...document.querySelectorAll("#story-body > *, #story-body > * > *")].some((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.left < innerWidth * 0.25 && r.bottom > innerHeight * 0.4; });
+    const check = () => {
+      raf = 0;
+      const b = document.querySelector("#screen-story.active");
+      const busy = !b || !!document.querySelector("#story-body .dlg-char, #story-body .story-queen, .modal.show, .track-modal") || over();
+      if (busy !== lastBusy) { lastBusy = busy; window.__dftcEmbed("busy", { on: busy }); }
+    };
+    const later = () => { if (!raf) raf = requestAnimationFrame(check); };
+    new MutationObserver(later).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+    addEventListener("resize", later);
+  }
   function show(name) {
     if (EMBED && embedOn && name === "menu") return toParent("exit");
     const prev = screens[current];

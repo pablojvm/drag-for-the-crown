@@ -25,10 +25,10 @@ const YOU: Record<string, string> = {
 const toYou = (msg: string) => YOU[msg] || msg;
 
 /** Empieza un lip sync. Sin rival, una del arcade al azar; `form` es la racha de la rival en la temporada. */
-export function startLipSync(queenId: string, rnd: () => number = Math.random, o: { rivalId?: string; form?: number } = {}) {
+export function startLipSync(queenId: string, rnd: () => number = Math.random, o: { rivalId?: string; form?: number; attrs?: LsAttrs; strength?: number } = {}) {
   const others = ARCADE_QUEENS.filter((q) => q.id !== queenId);
   const rivalId = o.rivalId || others[Math.floor(rnd() * others.length)].id;
-  set({ screen: "lipsync", queenId, result: null, ls: { rivalId, step: 0, energy: 100, lastTag: "", mine: 0, rival: rivalStrength(queenOf(rivalId).ls, { noise: rnd() * 24 - 12, form: o.form || 0 }), emote: Math.floor(rnd() * EMOTES.length), last: null, anim: 0, done: false } });
+  set({ screen: "lipsync", queenId, result: null, ls: { rivalId, step: 0, energy: 100, lastTag: "", mine: 0, rival: o.strength ?? rivalStrength(queenOf(rivalId).ls, { noise: rnd() * 24 - 12, form: o.form || 0 }), attrs: o.attrs, emote: Math.floor(rnd() * EMOTES.length), last: null, anim: 0, done: false } });
 }
 
 export function lipSyncMove(kind: LsKind, rnd: () => number = Math.random) {
@@ -37,7 +37,7 @@ export function lipSyncMove(kind: LsKind, rnd: () => number = Math.random) {
   const me = queenOf(get().queenId);
   const rv = queenOf(ls.rivalId);
   const clim = ls.step >= 4;
-  const m = lsMove({ kind, emote: ls.emote, clim, energy: ls.energy, lastTag: ls.lastTag, attrs: me.ls, roll: rnd() });
+  const m = lsMove({ kind, emote: ls.emote, clim, energy: ls.energy, lastTag: ls.lastTag, attrs: ls.attrs || me.ls, roll: rnd() });
   const pi = Math.min(2, Math.floor(ls.step / 2));
   const them = RIVAL_LINES[pi][Math.floor(rnd() * 2)].replace("{r}", rv.name);
   const step = ls.step + 1;

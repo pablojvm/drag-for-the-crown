@@ -43,14 +43,14 @@
         q.classList.add("flash");
       } else Sound.impact();
       total += pts;
-      $("#pz-msg").textContent = msg;
+      $("#pz-msg").textContent = pts ? `${msg} +${pts}` : msg;
       pose++;
       setTimeout(() => {
         if (pose >= POSES) return end();
         $("#pz-n").textContent = pose + 1;
         newZone();
         locked = false;
-      }, 550);
+      }, 1400);
     }
     const onKey = (e) => {
       if (e.code === "Space" || e.code === "Enter") {
@@ -124,14 +124,14 @@
         if (pos >= seq.length) {
           listening = false;
           $("#bl-msg").textContent = "¡Perfecto! 💃";
-          later(next, 800);
+          later(next, 1400);
         }
       } else {
         steps[pos].className = "ko";
         listening = false;
         Sound.impact();
         $("#bl-msg").textContent = "¡Te has perdido!";
-        later(next, 900);
+        later(next, 1500);
       }
     }
     function next() {
@@ -859,7 +859,7 @@
       state = "done";
       btn.className = "mini-btn";
       round++;
-      timer = setTimeout(() => (round >= ROUNDS ? (stop(), done(total / ROUNDS)) : arm()), 900);
+      timer = setTimeout(() => (round >= ROUNDS ? (stop(), done(total / ROUNDS)) : arm()), 1500);
     }
     const onKey = (e) => { if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); if (!e.repeat) press(); } };
     function stop() { clearTimeout(timer); docOff("keydown", onKey); }
@@ -972,7 +972,7 @@
       $l("#dc-m").innerHTML = meterHTML();
       $l("#dc-msg").innerHTML = r.msg || "";
       if (r.pts !== undefined) (r.pts >= 70 ? Sound.powerup && Sound.powerup() : r.pts < 40 ? Sound.impact() : Sound.countdown(false));
-      timer = setTimeout(next, r.msg ? 1500 : 450);
+      timer = setTimeout(next, r.msg ? 2300 : 450);
     }
     const onKey = (e) => {
       const k = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Numpad1: 0, Numpad2: 1, Numpad3: 2, Numpad4: 3 }[e.code];
