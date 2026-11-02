@@ -484,3 +484,10 @@ body:has(.nx-dlg) .nx-ts-panel { visibility: hidden; }
 .nx-track .t-mc { background: #f5c542; color: #3a2a00; }
 @media (max-width: 820px) { .nx-hof-layout { grid-template-columns: 1fr; } }
 .nx-hof-card.side .nx-name input { width: 100%; box-sizing: border-box; }
+
+/* ---------- Modo historia (el de siempre, en un marco) ---------- */
+.nx-historia { position: fixed; inset: 0; z-index: 50; pointer-events: auto; background: var(--nx-bg); }
+.nx-historia iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; visibility: hidden; }
+.nx-historia iframe.on { visibility: visible; }
+.nx-historia-wait { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; }
+.nx-historia-wait h2 { margin: 0; font: 400 clamp(26px, 5vw, 40px)/1 Bungee, sans-serif; color: var(--nx-pink); }

@@ -34,7 +34,9 @@ const fakeJury = () => page.evaluate(() => {
   };
 });
 if (AI) await fakeJury();
-await page.locator(".nx-mode.s-story .ms-cta").first().click();
+// La portada abre el modo historia de siempre; esta prueba es la del modo temporada del motor nuevo
+await page.waitForFunction(() => window.__dftcTemporada && document.querySelector(".nx-mode"));
+await page.evaluate(() => window.__dftcTemporada.open());
 // TS=número de temporada en la lista (0 = la primera); TS=all no hace falta: el CI prueba varias
 // CUSTOM=1: el All Stars a tu gusto (reparto al azar)
 if (process.env.CUSTOM) {
@@ -65,7 +67,8 @@ for (let i = 0; i < 4000; i++) {
       await page.waitForSelector(".nx-mode", { timeout: 30000 });
       await setTiming();
       if (AI) await fakeJury();
-      await page.getByRole("button", { name: "Seguir mi temporada" }).click();
+      await page.waitForFunction(() => window.__dftcTemporada);
+      await page.evaluate(() => window.__dftcTemporada.resume());
       continue;
     }
   }

@@ -11,7 +11,9 @@ import { EMOTES, LS_PHASES, LS_STEPS, REPITE, type LsKind } from "../../core/lip
 import { chooseLook, chooseWalk, chooseMoment, chooseVoice, submitConcept, chooseConceptMoment, answerAna, WALK_OPTS } from "../game/runway";
 import { MOMENT_NAMES } from "../../core/concepto";
 import { queenOf } from "../game/queens";
-import { backFromScene, openSeasons, resume, hasSaved } from "../game/temporada";
+import { backFromScene } from "../game/temporada";
+import { openHistoria, hasHistoria } from "../game/historia";
+import { HistoriaUI } from "./Historia";
 import { TemporadaUI } from "./Temporada";
 import { MenuBar } from "./Cuenta";
 import { unlockMusic } from "../game/music";
@@ -39,6 +41,7 @@ export function App() {
         {screen === "lipsync" && <LipSyncUI />}
         {screen === "runway" && <RunwayUI />}
         {screen === "temporada" && <TemporadaUI />}
+        {screen === "historia" && <HistoriaUI />}
         <Toasts />
       </div>
     </div>
@@ -78,7 +81,7 @@ function MenuUI() {
 function Modos({ onArcade }: { onArcade: () => void }) {
   const track = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
-  const saved = hasSaved();
+  const saved = hasHistoria();
   const go = (i: number) => {
     const el = track.current?.children[i] as HTMLElement | undefined;
     el?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", inline: "center", block: "nearest" });
@@ -100,7 +103,7 @@ function Modos({ onArcade }: { onArcade: () => void }) {
   const open = (i: number) => {
     if (i !== active) return go(i);
     const id = MODOS[i].id;
-    if (id === "historia") openSeasons();
+    if (id === "historia") openHistoria(saved ? "nueva" : "");
     else if (id === "arcade") onArcade();
     else location.href = id === "mp" ? "./clasico.html?mp" : "./clasico.html";
   };
@@ -118,7 +121,7 @@ function Modos({ onArcade }: { onArcade: () => void }) {
                 <span className="ms-desc">{m.desc}</span>
                 <span className="ms-ctas">
                   <button className="ms-cta" tabIndex={i === active ? 0 : -1} onClick={(e) => { e.stopPropagation(); if (i !== active) go(i); else open(i); }}>{m.id === "historia" && saved ? "Nueva" : "Jugar"}</button>
-                  {m.id === "historia" && saved && <button className="ms-cta alt" tabIndex={i === active ? 0 : -1} onClick={(e) => { e.stopPropagation(); resume(); }}>Seguir mi temporada</button>}
+                  {m.id === "historia" && saved && <button className="ms-cta alt" tabIndex={i === active ? 0 : -1} onClick={(e) => { e.stopPropagation(); openHistoria("seguir"); }}>Seguir mi temporada</button>}
                 </span>
               </span>
               {m.art.length === 1 ? <img className="ms-art" src={`./${m.art[0]}`} alt="" /> : <span className="ms-art ms-trio" aria-hidden="true">{m.art.map((a) => <img key={a} src={`./${a}`} alt="" />)}</span>}

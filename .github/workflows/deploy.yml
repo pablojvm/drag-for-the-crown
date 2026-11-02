@@ -42,6 +42,8 @@ jobs:
         run: bash tools/ci-e2e.sh multijugador npm run e2e:mp
       - name: "Prueba: motor nuevo"
         run: bash tools/ci-e2e.sh motor-nuevo npm run e2e:next
+      - name: "Prueba: modo historia en la portada nueva"
+        run: bash tools/ci-e2e.sh historia-nueva npm run e2e:historia-nueva
       # Prueba de la versión clásica que a veces falla en el CI sin fallar el juego: avisa, pero no bloquea la publicación
       - name: "Prueba: pasarela con concepto"
         continue-on-error: true

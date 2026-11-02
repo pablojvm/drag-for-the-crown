@@ -17,6 +17,7 @@
     "e2e:smoke": "node tools/smoke-test.mjs http://localhost:4173/",
     "e2e:moneda": "SEASON=5 node tools/e2e-historia.mjs http://localhost:4173/",
     "e2e:next": "node tools/e2e-next.mjs http://localhost:4173/",
+    "e2e:historia-nueva": "node tools/e2e-historia-nueva.mjs http://localhost:4173/",
     "e2e:jurado": "JURADO=1 node tools/e2e-historia.mjs http://localhost:4173/",
     "e2e:temporada": "node tools/e2e-temporada.mjs http://localhost:4173/ && TS=2 node tools/e2e-temporada.mjs http://localhost:4173/ && TS=4 LOSE=1 node tools/e2e-temporada.mjs http://localhost:4173/ && TS=5 node tools/e2e-temporada.mjs http://localhost:4173/ && TS=6 AI=1 node tools/e2e-temporada.mjs http://localhost:4173/ && TS=8 node tools/e2e-temporada.mjs http://localhost:4173/ && CUSTOM=1 AI=1 TS=9 node tools/e2e-temporada.mjs http://localhost:4173/",
     "server": "npm run build --prefix server && node server/dist/index.js",

@@ -4,7 +4,7 @@ import { useStore } from "zustand";
 
 import type { RunwayState } from "./game/runway";
 import type { TsView } from "./game/temporada";
-export type Screen = "boot" | "menu" | "arcade" | "result" | "lipsync" | "runway" | "temporada";
+export type Screen = "boot" | "menu" | "arcade" | "result" | "lipsync" | "runway" | "temporada" | "historia";
 export interface LipSyncState {
   rivalId: string;
   step: number;

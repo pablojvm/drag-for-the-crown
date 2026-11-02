@@ -38,7 +38,15 @@ const UI = (() => {
       [...g.children].forEach((c, i) => c.style.setProperty("--i", i));
     });
   }
+  // Modo historia dentro de la versión nueva (clasico.html?historia en un marco): se entra directo a la historia
+  // y, en vez de volver al menú clásico, se avisa a la versión nueva para que cierre el marco
+  const EMBED = (() => { try { return window.parent !== window && new URLSearchParams(location.search).has("historia"); } catch (e) { return false; } })();
+  const EMBED_MODE = EMBED ? new URLSearchParams(location.search).get("historia") || "" : "";
+  let embedOn = false;
+  const toParent = (ev) => { try { window.parent.postMessage({ type: "dftc-historia", ev }, location.origin); } catch (e) {} };
+  if (EMBED) document.documentElement.classList.add("dftc-embed");
   function show(name) {
+    if (EMBED && embedOn && name === "menu") return toParent("exit");
     const prev = screens[current];
     if (prev && current !== name && prev.classList.contains("active")) {
       prev.classList.add("leaving");
@@ -654,6 +662,17 @@ const UI = (() => {
     $("#btn-play").disabled = false;
     $("#btn-story").disabled = false;
     $("#btn-play-label").textContent = "Arcade";
+    if (EMBED) {
+      embedOn = true;
+      mode = "story";
+      if (EMBED_MODE === "nueva") show("franchise");
+      else {
+        Story.menu(() => show("franchise"));
+        const c = $("#story-continue");
+        if (EMBED_MODE === "seguir" && c) c.click();
+      }
+      toParent("ready");
+    }
   });
   show("menu");
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register(`./sw.js?v=${typeof __DFTC_VERSION__ === "string" ? encodeURIComponent(__DFTC_VERSION__) : "dev"}`).catch(() => {});

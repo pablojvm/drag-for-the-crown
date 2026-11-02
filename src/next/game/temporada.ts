@@ -637,4 +637,4 @@ export function leave() {
 /** Para las pruebas: la partida en curso. */
 export const current = () => S;
 export const queenName = (id: string) => queenOf(id).name;
-(globalThis as any).__dftcTemporada = { timing, current }; // para las pruebas en navegador
+(globalThis as any).__dftcTemporada = { timing, current, open: openSeasons, resume }; // para las pruebas en navegador
