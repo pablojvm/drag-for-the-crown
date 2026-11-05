@@ -1,5 +1,9 @@
 # Compila el juego y lo publica en GitHub Pages en cada push a main.
 # En GitHub: Settings > Pages > Source = "GitHub Actions" (una sola vez).
+#
+# Para que publicar sea rápido (un par de minutos), solo bloquean la publicación las comprobaciones rápidas
+# (tipos, lint, tests y compilar). Las pruebas en navegador van a la vez, cada una en su trabajo, y no la frenan:
+# si alguna falla, el push sale en rojo en Actions con el nombre de la prueba, pero la web ya está publicada.
 name: Deploy
 on:
   push:
@@ -22,7 +26,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm ci --prefix server
       - run: npm run check
       - run: npm run lint
       - run: npm test
@@ -31,35 +34,6 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_MP_URL: ${{ vars.VITE_MP_URL }}
-      # Pruebas en un navegador de verdad: una temporada del modo historia y un duelo del multijugador
-      - run: npx playwright install --with-deps chromium
-      # Cada prueba en su paso: si una falla, se ve cuál y el final de su salida queda como anotación
-      - name: "Prueba: modo historia"
-        run: bash tools/ci-e2e.sh historia npm run e2e
-      - name: "Prueba: temporada de la moneda"
-        run: bash tools/ci-e2e.sh moneda npm run e2e:moneda
-      - name: "Prueba: multijugador"
-        run: bash tools/ci-e2e.sh multijugador npm run e2e:mp
-      - name: "Prueba: motor nuevo"
-        run: bash tools/ci-e2e.sh motor-nuevo npm run e2e:next
-      - name: "Prueba: modo historia en la portada nueva"
-        run: bash tools/ci-e2e.sh historia-nueva npm run e2e:historia-nueva
-      - name: "Prueba: grupos con nombre en las críticas"
-        run: bash tools/ci-e2e.sh grupos npm run e2e:grupos
-      # Prueba de la versión clásica que a veces falla en el CI sin fallar el juego: avisa, pero no bloquea la publicación
-      - name: "Prueba: pasarela con concepto"
-        continue-on-error: true
-        run: bash tools/ci-e2e.sh jurado npm run e2e:jurado
-      - name: "Prueba: modo temporada"
-        run: bash tools/ci-e2e.sh temporada npm run e2e:temporada
-      # Servidor de salas (Colyseus): temporadas enteras con bots en todos los formatos y dos navegadores contra él
-      - name: "Prueba: servidor de salas"
-        run: |
-          npm run build --prefix server
-          PORT=2599 node server/dist/index.js &
-          for i in $(seq 1 20); do curl -sf http://localhost:2599/salud >/dev/null && break; sleep 1; done
-          for f in normal allstars winners repesca suerte corazon moneda; do FMT=$f bash tools/ci-e2e.sh servidor-$f node tools/e2e-mp-server.mjs; done
-          bash tools/ci-e2e.sh servidor-navegador node tools/e2e-mp-online.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
@@ -72,3 +46,50 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+  # Pruebas en un navegador de verdad, todas a la vez (cada una en su máquina)
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: historia, run: npm run e2e }
+          - { name: moneda, run: npm run e2e:moneda }
+          - { name: multijugador, run: npm run e2e:mp }
+          - { name: motor-nuevo, run: npm run e2e:next }
+          - { name: historia-nueva, run: npm run e2e:historia-nueva }
+          - { name: grupos, run: npm run e2e:grupos }
+          - { name: jurado, run: npm run e2e:jurado }
+          # El modo temporada del motor nuevo ya no se abre desde la portada: basta con una temporada
+          - { name: temporada, run: node tools/e2e-temporada.mjs http://localhost:4173/ }
+    name: "Prueba: ${{ matrix.name }}"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: bash tools/ci-e2e.sh ${{ matrix.name }} ${{ matrix.run }}
+  # Servidor de salas (Colyseus): temporadas enteras con bots en todos los formatos y dos navegadores contra él
+  servidor:
+    runs-on: ubuntu-latest
+    name: "Prueba: servidor de salas"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix server
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          npm run build --prefix server
+          PORT=2599 node server/dist/index.js &
+          for i in $(seq 1 20); do curl -sf http://localhost:2599/salud >/dev/null && break; sleep 1; done
+          for f in normal allstars winners repesca suerte corazon moneda; do FMT=$f bash tools/ci-e2e.sh servidor-$f node tools/e2e-mp-server.mjs; done
+          bash tools/ci-e2e.sh servidor-navegador node tools/e2e-mp-online.mjs
