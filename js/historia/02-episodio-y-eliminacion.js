@@ -2051,6 +2051,8 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
   // Desde casa: vuelves al taller para el stand-up en parejas con una reina en competición
   function homeRepesca() {
     if (S.flags.repesca) return;
+    // Copia de antes del capítulo (para poder repetirlo con Story.repetirEpisodio())
+    store.set(EPSTART_KEY, snapshot());
     S.ep++;
     S.epNames[S.ep] = "Segunda Oportunidrag";
     S.flags.repesca = true;
