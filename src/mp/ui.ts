@@ -130,11 +130,13 @@ function entry() {
     const id = seasonEls[Math.max(0, car.active)].dataset.id!;
     const ia = iaOk && !!($("#mp-ia") as HTMLInputElement | null)?.checked;
     W.store?.set("dftc-mp-ia", ia);
-    if (id === CUSTOM) return customSetup(nm(), ritmo, ia);
+    // El nombre se lee antes de cambiar la pantalla (después ya no está el campo)
+    const name = nm();
+    if (id === CUSTOM) return customSetup(name, ritmo, ia);
     body().innerHTML = `<div class="story-card"><h3>Abriendo la sala...</h3></div>`;
-    room.create(nm(), id, ritmo, { fmt: api().formato(id), ia });
+    room.create(name, id, ritmo, { fmt: api().formato(id), ia });
   };
-  $("#mp-join")!.onclick = () => { const c = ($("#mp-code") as HTMLInputElement).value.trim().toUpperCase(); if (c.length === 5) { room.join(c, nm()); body().innerHTML = `<div class="story-card"><h3>Entrando en la sala ${esc(c)}...</h3></div>`; } };
+  $("#mp-join")!.onclick = () => { const c = ($("#mp-code") as HTMLInputElement).value.trim().toUpperCase(); if (c.length === 5) { const name = nm(); room.join(c, name); body().innerHTML = `<div class="story-card"><h3>Entrando en la sala ${esc(c)}...</h3></div>`; } };
   const back = $("#mp-back"); if (back) back.onclick = exit;
   // Partidas pausadas: la reabre una (lleva la sala) y las demás vuelven a entrar con el código
   document.querySelectorAll<HTMLElement>("[data-resume]").forEach((b) => (b.onclick = () => {

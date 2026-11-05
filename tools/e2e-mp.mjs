@@ -24,6 +24,12 @@ const open = async () => {
   return p;
 };
 const A = await open(), B = await open();
+// Crear la sala con el botón de la pantalla (no solo desde la consola): antes fallaba al leer el nombre
+await A.fill("#mp-name", "Ana");
+await A.click("#mp-create");
+await A.waitForFunction(() => window.__mpRoom.state && window.__mpRoom.state.code, null, { timeout: 15000 });
+const byButton = await A.evaluate(() => window.__mpRoom.state.players[0]?.name);
+await A.evaluate(() => window.__mpRoom.leave());
 const sid = await A.evaluate(() => {
   const a = typeof window.allSeasons === "function" ? window.allSeasons() : window.allSeasons;
   return (Array.isArray(a) ? a : Object.values(a)).map((s) => s.id).find((id) => window.Story.mp.formato(id) === "normal" && window.seasonById(id).cast.length >= 8);
@@ -58,7 +64,7 @@ for (let k = 0; k < 6; k++) {
 await A.waitForTimeout(1500);
 const st = await A.evaluate(() => ({ phase: window.__mpRoom.state.phase, note: window.__mpRoom.state.note || "" }));
 await browser.close();
-const ok = joined === 2 && lockstep && st.phase !== "lipsync" && /se va a casa/.test(st.note) && !errors.length;
-console.log(`Jugadoras: ${joined} · paso a paso: ${lockstep ? "sí" : "no"} · tras el duelo: ${st.phase} «${st.note}» · errores: ${errors.length}`);
+const ok = byButton === "Ana" && joined === 2 && lockstep && st.phase !== "lipsync" && /se va a casa/.test(st.note) && !errors.length;
+console.log(`Sala con el botón: ${byButton || "no"} · jugadoras: ${joined} · paso a paso: ${lockstep ? "sí" : "no"} · tras el duelo: ${st.phase} «${st.note}» · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
 process.exit(ok ? 0 : 1);
