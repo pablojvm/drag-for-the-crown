@@ -599,6 +599,9 @@
     let teamLine = "";
     let winTeam = null;
     const teamOf = {};
+    // Nombre de cada equipo: el de su banda si lo tiene (Girl Groups); si no, Rosa (el tuyo) y Oro
+    const band = S.gg && S.gg.ep === S.ep && S.gg.band ? S.gg.band : null;
+    const teamName = (mine) => (band ? `«${mine ? band : ggRival()}»` : mine ? "Equipo Rosa" : "Equipo Oro");
     if (S.team && !S.cGroups && (RETOS[S.curTipo] || {}).team) {
       const A = [S.queen, ...S.team], B = S.rivals.filter((q) => !S.team.includes(q));
       const val = (q) => (q === S.queen ? myScore : sc[q.id]);
@@ -609,7 +612,7 @@
       winTeam = new Set(aWins ? A : B);
       if ((aWins ? B : A).length < 2) winTeam = null;
       (aWins ? A : B).forEach((q) => (q === S.queen ? (myScore = Math.min(100, myScore + 8)) : (sc[q.id] = Math.min(99, sc[q.id] + 8))));
-      teamLine = `<p class="gold">${aWins ? "🏆 ¡Tu equipo (Rosa) gana el reto por equipos! +8" : "El equipo Oro gana el reto por equipos."}</p>`;
+      teamLine = `<p class="gold">${aWins ? `🏆 ¡Tu ${band ? "banda" : "equipo"}, ${esc(teamName(true))}, gana el reto por equipos! +8` : `${esc(teamName(false))} gana el reto por equipos.`}</p>`;
     }
     // Retos por equipos: el jurado salva y nomina por bloques (ganan las del equipo ganador, el bottom sale del perdedor)
     // Segunda Oportunidrag: la maestra de ceremonias no compite
@@ -617,16 +620,20 @@
     if (mcQ) mark(mcQ, "MC");
     let rows = [{ q: S.queen, s: myScore, me: true }, ...S.rivals.filter((q) => q !== mcQ).map((q) => ({ q, s: sc[q.id] }))].sort((a, b) => (winTeam ? (winTeam.has(b.q) ? 1 : 0) - (winTeam.has(a.q) ? 1 : 0) : 0) || b.s - a.s);
     // Reto por grupos: se ordena por la media de cada grupo; dentro, por la nota de cada una
-    let groupOf = null, nGroups = 0;
+    let groupOf = null, nGroups = 0, groupLabels = null;
     if (S.cGroups) {
       const byK = new Map(rows.map((r) => [keyOf(r.q), r]));
-      const G = S.cGroups.map((g) => g.map((k) => byK.get(k)).filter(Boolean)).filter((g) => g.length);
+      // Cada grupo con su nombre (el que se le dio al formarlos: Pareja Rosa, Grupo Oro...)
+      // En Girl Groups, cada grupo es una banda: la tuya con el nombre que le pusisteis y las demás con el suyo
+      const gLabel = (g, i) => (band && S.curTipo === "equipos" ? `«${g.includes(keyOf(S.queen)) ? band : ggBandOf(i)}»` : `${groupWord(S.cSize || g.length)} ${GROUP_NAMES[i % GROUP_NAMES.length]}`);
+      const G = S.cGroups.map((g, i) => Object.assign(g.map((k) => byK.get(k)).filter(Boolean), { label: gLabel(g, i) })).filter((g) => g.length);
       if (G.length >= 2) {
         G.forEach((g) => (g.avg = g.reduce((a, r) => a + r.s, 0) / g.length));
         G.sort((a, b) => b.avg - a.avg).forEach((g) => g.sort((a, b) => b.s - a.s));
         rows = G.flat();
         groupOf = new Map();
         G.forEach((g, gi) => g.forEach((r) => groupOf.set(r, gi)));
+        groupLabels = G.map((g) => g.label);
         nGroups = G.length;
       }
     }
@@ -634,10 +641,10 @@
     let blocks = null;
     if (groupOf) {
       blocks = [];
-      rows.forEach((r) => { const gi = groupOf.get(r); (blocks[gi] = blocks[gi] || { rows: [], gi }).rows.push(r); });
+      rows.forEach((r) => { const gi = groupOf.get(r); (blocks[gi] = blocks[gi] || { rows: [], gi, name: groupLabels && groupLabels[gi] }).rows.push(r); });
     } else if (winTeam) {
       const W = rows.filter((r) => winTeam.has(r.q)), L = rows.filter((r) => !winTeam.has(r.q));
-      const tn = (list) => (teamOf[list[0].q.id] === "rosa" ? "Equipo Rosa" : "Equipo Oro");
+      const tn = (list) => teamName(teamOf[list[0].q.id] === "rosa");
       if (W.length && L.length) blocks = [{ rows: W, gi: 0, name: tn(W) }, { rows: L, gi: 1, name: tn(L) }];
     }
     const blockName = (b) => b.name || b.rows.map((r) => (r.me ? S.queen.name : r.q.name)).join(", ").replace(/, ([^,]*)$/, " y $1");
@@ -848,7 +855,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
             <p class="eyebrow">Las decisiones del jurado</p>
             <h3>${myLab === "TOP2" || myLab === "BTOP" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? "¡Has ganado el reto! 👑" : /^BTM/.test(myLab) ? (tw === "winners" ? "Semana floja... pero sigues" : "Vas al lip sync...") : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
             <div class="verdict">
-              ${blocks ? `<div class="v-row win" style="--i:0"><b>🏆 ${blocks[0].name ? `Gana el ${esc(blocks[0].name)}` : "Grupo ganador"}</b>${faces(blocks[0].rows)}</div>` : teamLine}
+              ${blocks ? `<div class="v-row win" style="--i:0"><b>🏆 ${blocks[0].name ? `Gana ${/^«/.test(blocks[0].name) ? "" : /^Pareja/.test(blocks[0].name) ? "la " : "el "}${esc(blocks[0].name)}` : "Grupo ganador"}</b>${faces(blocks[0].rows)}</div>` : teamLine}
               <div class="v-row win" style="--i:0"><b>${tw === "winners" ? "⭐ Top 2: os jugáis una estrella" : tw === "allstars" ? "💄 Top 2: os jugáis el poder" : n === 5 ? "👑 Ganadora del reto y 🎟️ pase directo a la gran final" : "👑 Felicidrages, ganadora del reto"}</b>${faces(wins)}</div>
               ${highs.length ? `<div class="v-row high" style="--i:1"><b>✨ Buen trabajo, estáis a salvo</b>${faces(highs)}</div>` : ""}
               ${safesC.length ? `<div class="v-row high" style="--i:1"><b>🙂 Estáis a salvo</b>${faces(safesC)}</div>` : ""}

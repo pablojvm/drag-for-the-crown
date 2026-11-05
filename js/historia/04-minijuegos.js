@@ -43,7 +43,7 @@
         q.classList.add("flash");
       } else Sound.impact();
       total += pts;
-      $("#pz-msg").textContent = pts ? `${msg} +${pts}` : msg;
+      $("#pz-msg").textContent = msg;
       pose++;
       setTimeout(() => {
         if (pose >= POSES) return end();

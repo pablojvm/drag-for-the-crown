@@ -261,6 +261,7 @@ const CLASSIC_TITLES = ["Elige tu look", "¿Cómo sales a la pasarela?", "Final 
 function RunwayUI() {
   const rw = useGame((s) => s.rw);
   const back = useGame((s) => s.back);
+  const story = useGame((s) => s.hist.scene === "runway");
   const queenId = useGame((s) => s.queenId);
   const [concept, setConcept] = useState("");
   const conceptRef = useRef<HTMLInputElement>(null);
@@ -281,11 +282,21 @@ function RunwayUI() {
         {rw.done ? (
           <div className="nx-panel small">
             <p className="nx-eyebrow">El jurado ha visto tu pasarela</p>
-            <h2>{verdict(rw.score || 0)}</h2>
-            <p className="nx-score">{rw.score} / 100</p>
-            {rw.lines?.supreme && <p className="nx-jury"><b>Supremme</b> {rw.lines.supreme}</p>}
-            {rw.lines?.ana && <p className="nx-jury"><b>Ana</b> {rw.lines.ana}</p>}
-            <p className="nx-muted">{rw.msg}</p>
+            {story ? (
+              // En el modo historia no se sabe nada hasta las valoraciones, al final del episodio
+              <>
+                <h2>Fin de tu pasarela</h2>
+                <p className="nx-muted">⚖️ El jurado ha tomado nota. Lo sabrás en las valoraciones.</p>
+              </>
+            ) : (
+              <>
+                <h2>{verdict(rw.score || 0)}</h2>
+                <p className="nx-score">{rw.score} / 100</p>
+                {rw.lines?.supreme && <p className="nx-jury"><b>Supremme</b> {rw.lines.supreme}</p>}
+                {rw.lines?.ana && <p className="nx-jury"><b>Ana</b> {rw.lines.ana}</p>}
+                <p className="nx-muted">{rw.msg}</p>
+              </>
+            )}
             {back ? <button className="nx-btn" onClick={backFromScene}>{back}</button> : (
               <>
                 <button className="nx-btn" onClick={() => send({ type: "runway", queenId })}>Otra pasarela</button>

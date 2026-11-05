@@ -1178,12 +1178,27 @@ Puntúa de 0 a 100. Devuelve JSON {"rima":0,"gracia":0,"personaje":0,"supreme":"
   }
 
   // Girl Groups: nombre y estilo de la banda, tu estrofa y la IA compone el tema con las demás
+  // Girl Groups: nombres de banda (los propuestos para la tuya y el de la banda rival)
+  const GG_BANDAS = ["Las Lentejuelas Asesinas", "Purpurina Mecánica", "Las Tías Buenas del Barrio", "Peluca Sónica", "Las Hijas del Desamor", "Tacón y Rímel", "Las Chulapas del Bloque", "Laca y Veneno", "Las Divinas Ruinas", "Rímel Atómico"];
+  // El nombre de la banda rival (se decide una vez por episodio)
+  function ggRival() {
+    if (!S.gg || S.gg.ep !== S.ep) return null;
+    if (!S.gg.rival) S.gg.rival = pick1(GG_BANDAS.filter((b) => b !== S.gg.band));
+    return S.gg.rival;
+  }
+  // Y el de cada uno de los demás grupos (Girl Groups por grupos): uno distinto para cada uno, fijo en el episodio
+  function ggBandOf(i) {
+    if (!S.gg || S.gg.ep !== S.ep) return null;
+    S.gg.others = S.gg.others || {};
+    if (!S.gg.others[i]) S.gg.others[i] = pick1(GG_BANDAS.filter((b) => b !== S.gg.band && !Object.values(S.gg.others).includes(b))) || `Grupo ${i + 1}`;
+    return S.gg.others[i];
+  }
   function liveGirlGroups(el, done) {
     ensureTeam();
     const mates = crew(3);
     if (!mates.length) mates.push(pick1(S.rivals));
     const STY = [["pop", "💖 Pop de verbena"], ["rap", "🎤 Rap chulapo"], ["reggaeton", "🍑 Reguetón"], ["euro", "🪩 Eurovisión"]];
-    const SUG = shuffle(["Las Lentejuelas Asesinas", "Purpurina Mecánica", "Las Tías Buenas del Barrio", "Peluca Sónica", "Las Hijas del Desamor", "Tacón y Rímel"]).slice(0, 3);
+    const SUG = shuffle(GG_BANDAS.slice()).slice(0, 3);
     el.innerHTML = `
       <div class="story-card live">
         <p class="eyebrow">🎤 Girl Groups · vuestra banda</p>
@@ -1216,7 +1231,7 @@ Devuelve JSON {"titulo":"...","estribillo":["...","...","...","..."],"estrofas":
       const coro = r.estribillo.slice(0, 4).map((v) => IA.clean(str(v)));
       const est = (Array.isArray(r.estrofas) ? r.estrofas : []).filter((x) => x && mates.some((q) => q.name === str(x.reina)) && Array.isArray(x.versos));
       const title = IA.clean(str(r.titulo)) || band;
-      S.gg = { ep: S.ep, band, title };
+      S.gg = { ...(S.gg || {}), ep: S.ep, band, title };
       el.innerHTML = `
         <div class="story-card live">
           <p class="eyebrow">🎤 «${esc(title)}» · ${esc(band)}</p>
