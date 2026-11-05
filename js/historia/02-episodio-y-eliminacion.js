@@ -1987,6 +1987,59 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       },
     );
   }
+  // El sorteo de las parejas de la Segunda Oportunidrag, a la vista: cada reina en competición, una a una, saca a su eliminada
+  // list: [{ a: reina en competición, b: su eliminada (o null si va sola), fixed: ya elegida }]
+  function repescaSorteo(list, o, then) {
+    const pool = [...new Set(list.map((p) => p.b).filter(Boolean))];
+    const label = (q) => (q === S.queen ? "Tú" : q.name);
+    const mine = (p) => p.a === S.queen || p.b === S.queen;
+    let k = 0, timer = 0;
+    setSet("werkroom");
+    body().innerHTML = `
+      <div class="story-card rp-draw">
+        <p class="eyebrow">🎲 Segunda Oportunidrag · el sorteo de las parejas</p>
+        <h3>${esc(o.title)}</h3>
+        ${o.extra || ""}
+        <div class="rp-pairs">${list.map((p, i) => `<div class="rp-pair ${mine(p) ? "me" : ""}" data-i="${i}" style="--i:${i}"><span><i style="background-image:url('${photo(p.a)}')"></i>${esc(label(p.a))}</span><b>+</b><span class="rp-slot"><i></i>?</span></div>`).join("")}</div>
+        <p class="muted" id="rp-note" hidden>${o.note}</p>
+        <div class="row"><button class="btn btn-ghost" id="rp-skip">Saltar el sorteo</button><button class="btn btn-primary" id="story-next" hidden disabled>¡Al escenario!</button></div>
+      </div>`;
+    const slot = (i) => body().querySelector(`[data-i="${i}"] .rp-slot`);
+    const put = (el, q, done) => {
+      if (!el) return;
+      el.innerHTML = q ? `<i style="background-image:url('${photo(q)}')"></i>${esc(label(q))}` : done ? "<em>Va sola</em>" : "<i></i>?";
+      el.classList.toggle("spin", !done);
+      el.classList.toggle("done", !!done);
+    };
+    const finish = () => {
+      clearTimeout(timer);
+      cleanup = null;
+      list.forEach((p, i) => put(slot(i), p.b, true));
+      const sk = $("#rp-skip"), nt = $("#rp-note"), go = $("#story-next");
+      if (sk) sk.hidden = true;
+      if (nt) nt.hidden = false;
+      if (go) { go.hidden = false; go.disabled = false; }
+    };
+    function next() {
+      if (k >= list.length) return finish();
+      const el = slot(k), p = list[k];
+      // La que ya está elegida (o la que va sola) no gira
+      if (p.fixed || !p.b || pool.length < 2) { put(el, p.b, true); k++; timer = setTimeout(next, 450); return; }
+      let n = 0;
+      const tick = () => {
+        if (n < 9) { put(el, pool[(n * 3 + k) % pool.length], false); n++; timer = setTimeout(tick, 60 + n * 22); return; }
+        put(el, p.b, true);
+        if (mine(p)) Sound.powerup && Sound.powerup(); else Sound.countdown && Sound.countdown(false);
+        k++;
+        timer = setTimeout(next, mine(p) ? 1100 : 650);
+      };
+      tick();
+    }
+    cleanup = () => clearTimeout(timer);
+    $("#rp-skip").addEventListener("click", finish);
+    $("#story-next").addEventListener("click", () => { clearTimeout(timer); cleanup = null; then(); });
+    timer = setTimeout(next, 600);
+  }
   // Parejas de la Segunda Oportunidrag: cada reina en competición con una eliminada
   function repescaPairs(then) {
     const comp = [S.queen, ...S.rivals];
@@ -2002,17 +2055,12 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       [...(myPick ? [] : [S.queen]), ...shuffle(S.rivals.filter((q) => q !== imm))].forEach((q) => { const o = rest.shift(); if (o) pairs[q === S.queen ? "me" : q.id] = o.id; });
       Object.values(pairs).forEach((id) => { const q = qById(id); if (q) ps[id] = clamp(Math.round(rivalScore(q) + rnd(-8, 8)), 0, 99); });
       S.rp = { ep: S.ep, pairs, ps };
-      const nm = (k) => (k === "me" ? "Tú" : (qById(k) || {}).name || k);
-      body().innerHTML = `
-        <div class="story-card">
-          <p class="eyebrow">🔁 Segunda Oportunidrag · las parejas</p>
-          <h3>${pairs.me ? `Tu pareja: ${esc(qById(pairs.me).name)}` : "Te toca ir sola"}</h3>
-          ${imm ? `<p class="twist-note">🎤 ${esc(imm.name)} es la maestra de ceremonias: no compite esta semana.</p>` : ""}
-          <div class="rp-pairs">${Object.entries(pairs).map(([k, o]) => `<div class="rp-pair ${k === "me" ? "me" : ""}"><span><i style="background-image:url('${photo(k === "me" ? S.queen : qById(k))}')"></i>${esc(nm(k))}</span><b>+</b><span><i style="background-image:url('${photo(qById(o))}')"></i>${esc(qById(o).name)}</span></div>`).join("")}</div>
-          <p class="muted">Si vuestra pareja gana, ${pairs.me ? esc(qById(pairs.me).name) : "tu compañera"} vuelve a la competición. Si quedáis entre las tres peores, lip sync a tres bandas: solo se salva una.</p>
-          <button class="btn btn-primary" id="story-next">¡Al escenario!</button>
-        </div>`;
-      $("#story-next").addEventListener("click", then);
+      const list = [...(pairs.me ? [{ a: S.queen, b: qById(pairs.me), fixed: !!myPick }] : [{ a: S.queen, b: null }]), ...S.rivals.filter((q) => q !== imm).map((q) => ({ a: q, b: pairs[q.id] ? qById(pairs[q.id]) : null }))];
+      repescaSorteo(list, {
+        title: myPick ? `Tú ya has elegido: ${myPick.name}. El resto, a sorteo` : "¿Con quién te tocará?",
+        extra: imm ? `<p class="twist-note">🎤 ${esc(imm.name)} es la maestra de ceremonias: no compite esta semana.</p>` : "",
+        note: `Si vuestra pareja gana, ${pairs.me ? esc(qById(pairs.me).name) : "tu compañera"} vuelve a la competición. Si quedáis entre las tres peores, lip sync a tres bandas: solo se salva una.`,
+      }, then);
     };
     if (S.miniWin !== "me" || pool.length < 2) return assign(null);
     body().innerHTML = `
@@ -2066,10 +2114,16 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     const mate = comp[0];
     const pairs = [{ c: mate, o: null, me: true }, ...comp.slice(1).map((c) => ({ c, o: outs.shift() || null }))];
     S.rp = { ep: S.ep, pairs: { me: mate.id }, ps: {}, home: true };
+    // Primero el anuncio; luego el sorteo de las parejas, a la vista; y tu compañera te saluda
+    const sorteo = (then) => repescaSorteo(pairs.map((p) => ({ a: p.c, b: p.me ? S.queen : p.o })), {
+      title: "¿Con quién te tocará?",
+      extra: mcQ ? `<p class="twist-note">🎤 ${esc(mcQ.name)} es la maestra de ceremonias: no compite esta semana.</p>` : "",
+      note: "La eliminada de la pareja ganadora vuelve a la competición. Las tres peores parejas: lip sync a tres bandas.",
+    }, then);
     dialog(
-      [["host", "¡Reinas eliminadas, volvéis al taller! Ha llegado la SEGUNDA OPORTUNIDRAG."], ["host", "Cada una hará un monólogo a dúo con una reina en competición. La eliminada de la pareja ganadora... vuelve."], ["r1", "{yo}, me ha tocado contigo. Vamos a matarlas de risa."]],
+      [["host", "¡Reinas eliminadas, volvéis al taller! Ha llegado la SEGUNDA OPORTUNIDRAG."], ["host", "Cada una hará un monólogo a dúo con una reina en competición. La eliminada de la pareja ganadora... vuelve."], ["host", "Y las parejas... ¡las decide el sorteo!"]],
       ctxWith(mate),
-      () => {
+      () => sorteo(() => dialog([["r1", "{yo}, me ha tocado contigo. Vamos a matarlas de risa."]], ctxWith(mate), () => {
         body().innerHTML = `
           <div class="story-card intro">
             <img class="story-queen" src="${sprite(S.queen)}" alt="">
@@ -2088,7 +2142,11 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
             if (typeof window.__forceScore === "number") raw = window.__forceScore;
             Music.stop();
             const forced = typeof window.__forceScore === "number"; // solo pruebas: la nota forzada vale para las dos de la pareja
-            pairs.forEach((p) => (p.s = p.me ? raw * 0.6 + (forced ? raw : rivalScore(p.c)) * 0.4 : p.o ? rivalScore(p.c) * 0.6 + rivalScore(p.o) * 0.4 : rivalScore(p.c)));
+            // Todas se puntúan por lo que pide el stand-up (Comedia y Carisma); tu nota, como cualquier semana, con el dado
+            // de tus atributos, y tu pareja suma las ganas de volver (src/core/balance.ts)
+            S.curTipo = "repescaStand";
+            const mine = forced ? raw : myDado(raw);
+            pairs.forEach((p) => (p.s = p.me ? mine * 0.6 + (forced ? raw : rivalScore(p.c)) * 0.4 + (forced ? 0 : BALANCE.repescaDesdeCasa) : p.o ? rivalScore(p.c) * 0.6 + rivalScore(p.o) * 0.4 : rivalScore(p.c)));
             pairs.sort((a, b) => b.s - a.s);
             const n = pairs.length;
             const nb = n >= 5 ? 3 : 2;
@@ -2123,7 +2181,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
             $("#story-next").addEventListener("click", () => aftermath(null, "La Segunda Oportunidrag no ha salido bien.", S.flags.myPlace));
           });
         });
-      },
+      })),
     );
   }
 

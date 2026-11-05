@@ -2857,3 +2857,12 @@ body.portrait .mp-fmts { grid-template-columns: 1fr 1fr; }
 /* Dentro de la versión nueva: el fondo (el plató) lo pinta el motor nuevo detrás del marco */
 html.dftc-embed, html.dftc-embed body { background: transparent !important; }
 html.dftc-embed #bg, html.dftc-embed #story-set { display: none !important; }
+
+/* Sorteo de las parejas de la Segunda Oportunidrag */
+.rp-draw .rp-pair { animation: card-rise .4s var(--ease-out, ease) both; animation-delay: calc(var(--i, 0) * 60ms); }
+.rp-slot { transition: transform .15s; }
+.rp-slot.spin { opacity: .65; filter: blur(.4px); }
+.rp-slot.done { animation: rp-land .35s var(--ease-spring, ease) both; }
+.rp-slot em { font-style: italic; opacity: .7; }
+@keyframes rp-land { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .rp-draw .rp-pair, .rp-slot.done { animation: none; } }

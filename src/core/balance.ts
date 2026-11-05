@@ -13,5 +13,8 @@ export const BALANCE = {
   // Lip sync simulado entre rivales
   lipSync: { fortaleza: 4, debilidad: -6, porRecord: 1, poderFactor: 0.4, escala: 44, min: 0.25, max: 0.75 },
   repescaCuando: 7,
+  // Segunda Oportunidrag desde casa: lo que suma tu pareja por las ganas de volver (las eliminadas vuelven con hambre).
+  // Con 8, jugando bien (80 en el monólogo) vuelves más o menos una de cada dos veces; sin ella, una de cada seis
+  repescaDesdeCasa: 8,
 };
 export type Balance = typeof BALANCE;
