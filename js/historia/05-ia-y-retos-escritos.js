@@ -1179,7 +1179,7 @@ Puntúa de 0 a 100. Devuelve JSON {"rima":0,"gracia":0,"personaje":0,"supreme":"
 
   // Girl Groups: nombre y estilo de la banda, tu estrofa y la IA compone el tema con las demás
   // Girl Groups: nombres de banda (los propuestos para la tuya y el de la banda rival)
-  const GG_BANDAS = ["Las Lentejuelas Asesinas", "Purpurina Mecánica", "Las Tías Buenas del Barrio", "Peluca Sónica", "Las Hijas del Desamor", "Tacón y Rímel", "Las Chulapas del Bloque", "Laca y Veneno", "Las Divinas Ruinas", "Rímel Atómico"];
+  const GG_BANDAS = DFTC.BANDAS;
   // El nombre de la banda rival (se decide una vez por episodio)
   function ggRival() {
     if (!S.gg || S.gg.ep !== S.ep) return null;
@@ -1210,6 +1210,9 @@ Puntúa de 0 a 100. Devuelve JSON {"rima":0,"gracia":0,"personaje":0,"supreme":"
         <div class="choice-col">${STY.map(([k, t]) => `<button class="btn btn-ghost" data-st="${k}">${t}</button>`).join("")}</div>
       </div>`;
     const inp = el.querySelector("#gg-n");
+    // Si la banda ya tiene nombre (multijugador), se queda puesto
+    const preset = S.gg && S.gg.ep === S.ep && S.gg.band;
+    if (preset) { inp.value = preset; inp.readOnly = true; el.querySelectorAll("[data-n]").forEach((b) => b.remove()); }
     el.querySelector(".ft-form").addEventListener("submit", (e) => e.preventDefault());
     el.querySelectorAll("[data-n]").forEach((b) => b.addEventListener("click", () => (inp.value = b.dataset.n)));
     el.querySelectorAll("[data-st]").forEach((b) => b.addEventListener("click", () => {

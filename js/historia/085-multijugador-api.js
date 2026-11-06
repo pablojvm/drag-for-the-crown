@@ -3,7 +3,7 @@
   // La temporada en directo (src/mp) lleva su propio flujo; aquí solo se le prestan los retos, la pasarela,
   // el lip sync, las notas, los diálogos y los textos del jurado. Mientras dura (S.mp) no se guarda la partida individual;
   // la IA solo se usa si la sala se creó con ella (S.mpIA).
-  const MP_RETOS = ["snatch", "roast", "rusical", "actuacion", "diseno", "makeover", "impro"];
+  const MP_RETOS = ["snatch", "roast", "rusical", "actuacion", "diseno", "makeover", "impro", "equipos", "publicidad"];
   const mpQ = (k) => (k === "me" ? S.queen : qById(k));
   const mpApi = {
     begin(queenId, seasonId, rivalIds, opts = {}) {
@@ -125,7 +125,21 @@
         runLipsync(el.querySelector("#mp-ls-play"), rival, (won, score) => { cleanup = null; cb(!!won, Math.round(score || 0)); });
       }, o.curtain || "LIP SYNC"));
     },
-    retos: () => MP_RETOS.map((k) => ({ tipo: k, titulo: RETOS[k].titulo(), desc: RETOS[k].desc, noRunway: !!RETOS[k].noRunway, ctrl: RETOS[k].ctrl })),
+    retos: () => MP_RETOS.filter((k) => RETOS[k]).map((k) => ({ tipo: k, titulo: RETOS[k].titulo(), desc: RETOS[k].desc, noRunway: !!RETOS[k].noRunway, ctrl: RETOS[k].ctrl, ...(RETOS[k].groups ? { groups: RETOS[k].groups } : {}) })),
+    /** Minirretos (los del modo historia). */
+    minis: () => Object.keys(MINIRETOS).map((id) => ({ id, titulo: MINIRETOS[id].titulo(), desc: MINIRETOS[id].desc, ctrl: MINIRETOS[id].ctrl })),
+    /** Juega el minirreto (nota de 0 a 100). */
+    runMini(el, id, cb) {
+      const m = MINIRETOS[id] || MINIRETOS.posado;
+      Music.play("reto");
+      m.run(el, (raw) => { cleanup = null; Music.stop(); cb(Math.round(clamp(typeof window.__forceScore === "number" ? window.__forceScore : raw, 0, 100))); });
+    },
+    /** Nota de una reina del juego en el minirreto (como en el modo historia). */
+    miniScore: (qId) => { const q = qById(qId); return q ? Math.round(clamp(rivalScore(q) + rnd(-12, 8), 0, 99)) : 40; },
+    /** El sorteo de las parejas de la Segunda Oportunidrag, a la vista (list: [{ a, b }] con ids de reina). */
+    sorteo(el, list, o, cb) {
+      repescaSorteo(list.map((p) => ({ a: qById(p.a), b: p.b ? qById(p.b) : null, fixed: !!p.fixed })).filter((p) => p.a), { ...o, el }, cb);
+    },
     categorias: () => (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA.filter((t) => !t.rv).map((t) => ({ n: t.n, d: t.d })) : CATEGORIAS.map((n) => ({ n, d: "" }))),
     setEp(ep, rivalIds) {
       if (!S) return;
@@ -134,6 +148,9 @@
     },
     play(tipo, titulo, el, cb, extra = {}) {
       S.curTipo = tipo; S.curEpTipo = S.ep; S.curTitulo = titulo; S.team = null; S.cGroups = null; S.curPieces = null; S.lastLook = null;
+      // Reto por grupos: con quién vas (y en el Girl Groups, el nombre de vuestra banda)
+      if (extra.team && extra.team.length) S.team = extra.team.map(qById).filter(Boolean);
+      S.gg = extra.band ? { ep: S.ep, band: extra.band } : null;
       // Segunda Oportunidrag: con quién haces el monólogo
       S.rp = extra.partner ? { ep: S.ep, pairs: { me: extra.partner }, ps: {} } : null;
       S.meOut = !!extra.out;

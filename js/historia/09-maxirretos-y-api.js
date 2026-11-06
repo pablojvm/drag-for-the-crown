@@ -181,12 +181,13 @@
     if (IA.ready() && !mxGirlGroups.classic) return aiOrClassic(el, "Girl Groups", "🎤", () => liveGirlGroups(el, done), () => { mxGirlGroups.classic = true; mxGirlGroups(el, (sc) => { mxGirlGroups.classic = false; done(sc); }); });
     ensureTeam();
     const mate = pick1(S.team) || pick1(S.rivals);
+    const named = S.gg && S.gg.ep === S.ep && S.gg.band;
     const steps = [
-      () => ({
+      ...(named ? [] : [() => ({
         q: "🎀 ¿Cómo se llama vuestra banda?",
         sub: "Así os llamará el jurado.",
         opts: shuffle(GG_BANDAS.slice()).slice(0, 3).map((b) => ({ t: `«${esc(b)}»`, go: () => { S.gg = { ep: S.ep, band: b }; return {}; } })),
-      }),
+      })]),
       () => ({
         q: "✍️ Escribe tu estrofa del himno",
         sub: "¿Qué tono le das?",

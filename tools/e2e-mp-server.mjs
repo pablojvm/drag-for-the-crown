@@ -67,7 +67,7 @@ for (let i = 0; i < 3000; i++) {
     for (const b of bots) {
       const me = s.players.find((p) => p.id === b.id);
       const t = s.twist, opt = t?.options?.find((k) => k !== "p:" + b.id) || t?.options?.[0];
-      const data = { reto: 50 + Math.floor(Math.random() * 40), final: 50 + Math.floor(Math.random() * 40), ready: true, ls: { won: Math.random() < 0.5, score: 60 }, box: [A, B, C].indexOf(b) };
+      const data = { mini: 40 + Math.floor(Math.random() * 60), reto: 50 + Math.floor(Math.random() * 40), final: 50 + Math.floor(Math.random() * 40), ready: true, ls: { won: Math.random() < 0.5, score: 60 }, box: [A, B, C].indexOf(b) };
       if (opt) data.pick = t.need ? t.options.slice(0, t.need - (t.sure?.length || 0)).join(",") : opt;
       const top = s.top || s.duel?.top;
       if (top) data.elim = (s.rows || []).map((r) => r.key).filter((k) => !top.includes?.(k)).pop();

@@ -39,6 +39,9 @@ for (let i = 0; i < 80; i++) {
   const ph = await A.evaluate(() => window.__mpRoom.state.phase);
   if (ph === "reto") break;
   if (ph === "maletas") { for (const p of [A, B]) await p.evaluate(() => window.__mpRoom.submit({ ready: true })); }
+  // Minirreto: las dos lo entregan; si después hay que elegir grupos o pareja, la anfitriona sigue
+  else if (ph === "mini") { for (const p of [A, B]) await p.evaluate(() => window.__mpRoom.submit({ mini: 70 })); }
+  else if (ph === "equipos") await A.evaluate(() => window.__mpRoom.skip());
   else await A.evaluate(() => window.__mpRoom.next());
   await A.waitForTimeout(250);
 }

@@ -69,3 +69,22 @@ export function criticaJurado(o: CriticaCtx): [Habla, string][] {
   else if (nw >= 2 && o.nivel === "top") out.push(["ambrossi", `Ya llevas ${nw} victorias y no aflojas. Así se hace.`]);
   return out;
 }
+
+// ---------- Retos por grupos ----------
+/** Nombres de banda para el Girl Groups (la de cada grupo, distinta). */
+export const BANDAS = ["Las Lentejuelas Asesinas", "Purpurina Mecánica", "Las Tías Buenas del Barrio", "Peluca Sónica", "Las Hijas del Desamor", "Tacón y Rímel", "Las Chulapas del Bloque", "Laca y Veneno", "Las Divinas Ruinas", "Rímel Atómico"];
+/** Nombres de los grupos de los demás retos (como en el modo historia: Pareja Rosa, Grupo Oro...). */
+export const COLORES_GRUPO = ["Rosa", "Oro", "Turquesa", "Lila", "Coral", "Esmeralda"];
+/** Lo que dice el jurado de cada grupo antes de las críticas una a una ({g}: el nombre del grupo). */
+export const GRUPO_CRIT: Record<Nivel, [Habla, string][][]> = {
+  top: [[["host", "{g}: como grupo habéis funcionado de maravilla. Se notaba que había un plan."], ["judge", "Y el conjunto tenía una idea clara. Ninguna se ha quedado atrás."]],
+    [["host", "{g}: eso es un grupo. Química, ritmo y todas a la misma altura."], ["judge", "Visualmente erais una unidad. Así se presenta un reto en grupo."]]],
+  mid: [[["host", "{g}: como grupo habéis cumplido, pero os faltaba algo para destacar."], ["judge", "Había cosas buenas, pero el conjunto no terminaba de cuadrar."]],
+    [["host", "{g}: correcto, sin más. Esperaba un poco más de chispa de vosotras juntas."], ["judge", "Cada una ha hecho lo suyo, pero no os he visto como grupo."]]],
+  low: [[["host", "{g}: como grupo no ha funcionado. Cada una iba por su lado."], ["judge", "El conjunto no se sostenía. Faltaba una idea común."]],
+    [["host", "{g}: lo siento, pero como grupo ha sido de lo más flojo de la noche."], ["judge", "Se notaba que no os habíais puesto de acuerdo. Y eso en el escenario se ve."]]],
+};
+export function grupoCritica(nombre: string, nivel: Nivel, rnd: () => number = Math.random): [Habla, string][] {
+  const b = GRUPO_CRIT[nivel];
+  return b[Math.floor(rnd() * b.length)].map(([k, t]) => [k, t.replace("{g}", nombre)] as [Habla, string]);
+}

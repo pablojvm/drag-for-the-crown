@@ -267,7 +267,8 @@
     S.runwayBonus = 0;
     S.captains = null;
     const maxi = S.curEpTipo === S.ep && S.curTipo ? S.curTipo : pickReto();
-    const team = RETOS[maxi].team && S.rivals.length >= 3;
+    // Retos por equipos o por grupos: las ganadoras del minirreto serán las capitanas
+    const team = (RETOS[maxi].team || (RETOS[maxi].groups && S.rivals.length + 1 >= RETOS[maxi].groups * 2)) && S.rivals.length >= 3;
     if (!S.miniOrder || S.miniOrder.some((k) => !MINIRETOS[k])) S.miniOrder = shuffle(ORDEN_MINI);
     const tipo = S.miniOrder[(S.ep - 1) % S.miniOrder.length];
     const mini = MINIRETOS[tipo];
@@ -416,8 +417,10 @@
     // Elección por turnos: las mejores del minirreto son capitanas y van eligiendo de una en una (ronda tras ronda)
     const byKey = (k) => (k === "me" ? S.queen : qById(k));
     const nG = Math.max(2, Math.floor(all.length / size));
-    const prev = prevRank(all);
-    const rank = prev || (S.miniRank || []).map(byKey).filter((q) => q && all.includes(q));
+    // Las capitanas son las mejores del minirreto de esta semana (si no lo hubo, las mejores del capítulo anterior)
+    const mini = (S.miniRank || []).map(byKey).filter((q) => q && all.includes(q));
+    const byMini = mini.length >= nG;
+    const rank = byMini ? mini : prevRank(all) || mini;
     const caps = [...rank, ...shuffle(all.filter((q) => !rank.includes(q)))].slice(0, nG);
     const groups = caps.map((c) => [c]);
     const pool = all.filter((q) => !caps.includes(q));
@@ -432,7 +435,7 @@
         <div class="story-card">
           <p class="eyebrow">${size === 2 ? "Reto por parejas" : "Reto por grupos"} · eligen las capitanas</p>
           <h3>${myTurn ? "Te toca elegir" : "Las capitanas eligen por turnos"}</h3>
-          <p class="muted">Capitanas ${prev ? "por cómo quedaron el capítulo anterior" : "por orden del minirreto"}: ${caps.map((c) => `<b>${esc(nm(c))}</b>`).join(", ")}. Cada una elige a una por turno.</p>
+          <p class="muted">Capitanas ${byMini ? "las ganadoras del minirreto" : "por cómo quedaron el capítulo anterior"}: ${caps.map((c) => `<b>${esc(nm(c))}</b>`).join(", ")}. Cada una elige a una por turno.</p>
           <div class="groups-grid">${groups.map((g, i) => `<div class="group-col ${g.includes(S.queen) ? "mine" : ""} ${i === turn % nG && !full() ? "on" : ""}" style="--i:${i}"><b>${groupWord(size)} ${GROUP_NAMES[i % GROUP_NAMES.length]}</b>${g.map((q) => `<span><i style="background-image:url('${photo(q)}')"></i>${esc(nm(q))}${q === caps[i] ? " 👑" : ""}</span>`).join("")}</div>`).join("")}</div>
           ${log.length ? `<p class="muted">${esc(log[log.length - 1])}</p>` : ""}
           ${myTurn ? `<div class="hub-grid">${pool.map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}</button>`).join("")}</div>` : `<div class="ia-dots"><i></i><i></i><i></i></div>`}
@@ -1994,17 +1997,18 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     const label = (q) => (q === S.queen ? "Tú" : q.name);
     const mine = (p) => p.a === S.queen || p.b === S.queen;
     let k = 0, timer = 0;
-    setSet("werkroom");
-    body().innerHTML = `
+    const host = o.el || body();
+    if (!o.el) setSet("werkroom");
+    host.innerHTML = `
       <div class="story-card rp-draw">
         <p class="eyebrow">🎲 Segunda Oportunidrag · el sorteo de las parejas</p>
         <h3>${esc(o.title)}</h3>
         ${o.extra || ""}
         <div class="rp-pairs">${list.map((p, i) => `<div class="rp-pair ${mine(p) ? "me" : ""}" data-i="${i}" style="--i:${i}"><span><i style="background-image:url('${photo(p.a)}')"></i>${esc(label(p.a))}</span><b>+</b><span class="rp-slot"><i></i>?</span></div>`).join("")}</div>
         <p class="muted" id="rp-note" hidden>${o.note}</p>
-        <div class="row"><button class="btn btn-ghost" id="rp-skip">Saltar el sorteo</button><button class="btn btn-primary" id="story-next" hidden disabled>¡Al escenario!</button></div>
+        <div class="row"><button class="btn btn-ghost" id="rp-skip">Saltar el sorteo</button><button class="btn btn-primary" id="story-next" hidden disabled>${esc(o.go || "¡Al escenario!")}</button></div>
       </div>`;
-    const slot = (i) => body().querySelector(`[data-i="${i}"] .rp-slot`);
+    const slot = (i) => host.querySelector(`[data-i="${i}"] .rp-slot`);
     const put = (el, q, done) => {
       if (!el) return;
       el.innerHTML = q ? `<i style="background-image:url('${photo(q)}')"></i>${esc(label(q))}` : done ? "<em>Va sola</em>" : "<i></i>?";
@@ -2015,7 +2019,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       clearTimeout(timer);
       cleanup = null;
       list.forEach((p, i) => put(slot(i), p.b, true));
-      const sk = $("#rp-skip"), nt = $("#rp-note"), go = $("#story-next");
+      const sk = host.querySelector("#rp-skip"), nt = host.querySelector("#rp-note"), go = host.querySelector("#story-next");
       if (sk) sk.hidden = true;
       if (nt) nt.hidden = false;
       if (go) { go.hidden = false; go.disabled = false; }
@@ -2036,8 +2040,8 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       tick();
     }
     cleanup = () => clearTimeout(timer);
-    $("#rp-skip").addEventListener("click", finish);
-    $("#story-next").addEventListener("click", () => { clearTimeout(timer); cleanup = null; then(); });
+    host.querySelector("#rp-skip").addEventListener("click", finish);
+    host.querySelector("#story-next").addEventListener("click", () => { clearTimeout(timer); cleanup = null; then(); });
     timer = setTimeout(next, 600);
   }
   // Parejas de la Segunda Oportunidrag: cada reina en competición con una eliminada

@@ -6,10 +6,11 @@ import { nivelNota } from "../core/dado";
 import { lookRival } from "../core/reinas";
 import { buildBracket } from "../core/bracket";
 import { bottomSize, weekLabels, allCritiqued } from "../core/week";
+import { BANDAS, COLORES_GRUPO, grupoCritica, NOMBRE_JURADO } from "../core/criticas";
 import { allWinnersCut, allWinnersTier, lalaScore } from "../core/finales";
 import { rescueFromBottom, coinResult, lipstickKind, addHalfHearts } from "../core/dinamicas";
 
-export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "final" | "corona";
+export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
 /** Formato de la temporada: normal (las dos peores hacen lip sync) o All Stars (lip sync del top 2 y la ganadora elimina). */
 export type Formato = "normal" | "allstars" | "winners" | "repesca" | "suerte" | "corazon" | "moneda";
@@ -32,9 +33,9 @@ const CAJAS_VER = 3500;
 export const DURACION: Record<Ritmo, Record<Exclude<Phase, "lobby" | "corona">, number>> = {
   // Las pantallas que se miran (anuncio, críticas, Untucked, veredicto, pintalabios, track) no tienen reloj:
   // las pasa la anfitriona, y todas ven lo mismo que ella. El reloj es solo para lo que se juega.
-  normal: { lalaparuza: 180, cajas: 60, maletas: 600, anuncio: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 180, decision: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, final: 180 },
-  rapido: { lalaparuza: 150, cajas: 40, maletas: 420, anuncio: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 150, decision: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, final: 150 },
-  libre: { lalaparuza: 0, cajas: 0, maletas: 0, anuncio: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, comodin: 0, sorpresa: 0, pintalabios: 0, track: 0, final: 0 },
+  normal: { lalaparuza: 180, cajas: 60, maletas: 600, anuncio: 0, mini: 120, equipos: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 180, decision: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, final: 180 },
+  rapido: { lalaparuza: 150, cajas: 40, maletas: 420, anuncio: 0, mini: 90, equipos: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 150, decision: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, final: 150 },
+  libre: { lalaparuza: 0, cajas: 0, maletas: 0, anuncio: 0, mini: 0, equipos: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, comodin: 0, sorpresa: 0, pintalabios: 0, track: 0, final: 0 },
 };
 /** Pantallas que lleva la anfitriona (diálogo sincronizado y botón de seguir). */
 export const WATCH: Phase[] = ["anuncio", "resultados", "untucked", "veredicto", "sorpresa", "pintalabios", "track", "corona"];
@@ -65,7 +66,7 @@ export interface Pair { a: string; b: string; winner?: string }
 export interface DuelMove { tag: string; imp: number; msg: string; energy?: number; at?: number; auto?: boolean }
 export const DUEL_STEPS = 6;
 export const DUEL_STEP_MS = 25000;
-export interface Sub { walk?: number; reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string; box?: number; heart?: string; duel?: DuelMove[]; duelMove?: DuelMove; duelStep?: number }
+export interface Sub { mini?: number; walk?: number; reto?: number; final?: number; ls?: { won: boolean; score: number }; elim?: string; jury?: string; ready?: boolean; pick?: string; box?: number; heart?: string; duel?: DuelMove[]; duelMove?: DuelMove; duelStep?: number }
 /** Momento de un giro en el que alguien decide (comodín): la suerte, el corazón, la moneda o el bloqueo del All Winners. */
 export interface Twist {
   kind: "suerte" | "corazon" | "moneda" | "bloqueo" | "corte";
@@ -111,7 +112,8 @@ export interface Reveal { ep: number; by: string; go: string; went: string }
 export interface LzMatch { a: string | null; b: string | null; w?: string; slot?: number }
 /** Lalaparuza: sin taller ni pasarela, eliminatorias de lip sync con todo el reparto (como en el modo historia). */
 export const LALA: Reto = { tipo: "lalaparuza", titulo: "Lalaparuza: el torneo de lip syncs", desc: "Sin taller: eliminatorias directas de lip sync entre todas. La que gane el torneo gana el reto; las que caigan pronto, al bottom.", noRunway: true };
-export interface Reto { tipo: string; titulo: string; desc: string; noRunway: boolean; cat?: { n: string; d: string } }
+export interface Reto { tipo: string; titulo: string; desc: string; noRunway: boolean; cat?: { n: string; d: string }; /** Reto por grupos: de cuántas (2 = parejas). */ groups?: number }
+export interface MiniDef { id: string; titulo: string; desc: string }
 export interface RoomState {
   v: number;
   code: string;
@@ -163,6 +165,14 @@ export interface RoomState {
   /** Segunda Oportunidrag: parejas del monólogo y la maestra de ceremonias (la ganadora del reto anterior, que no compite). */
   rp?: { ep: number; pairs: { c: string; o: string | null }[]; mc?: string };
   rpDone?: boolean;
+  /** Minirreto de la semana: cuál es y, al acabar, la nota de cada una y el orden (la primera, la ganadora). */
+  mini?: MiniDef & { ep: number; scores?: Record<string, number>; rank?: string[] };
+  /** Reto por grupos: las capitanas (las mejores del minirreto) eligen por turnos. members[i][0] es la capitana. */
+  groups?: { ep: number; size: number; names: string[]; members: string[][]; turn: number; at: number; done?: boolean };
+  /** Lo que dice el jurado de cada grupo (de mejor a peor). */
+  gcrit?: { name: string; keys: string[]; lines: [string, string][] }[];
+  /** Segunda Oportunidrag: la ganadora del minirreto elige a su eliminada; el resto, a sorteo. */
+  draft?: { ep: number; by?: string; options: string[]; at: number; pick?: string; done?: boolean };
   planShift?: number;
   script?: Script;
   pause?: Pause;
@@ -189,6 +199,10 @@ export interface Engine {
   rnd(): number;
   /** Reto de la Segunda Oportunidrag (stand-up en parejas). */
   repesca?(): Reto;
+  /** Minirretos (sin ellos, no hay minirreto). */
+  minis?(): MiniDef[];
+  /** Nota de una reina del juego en el minirreto. */
+  miniScore?(queenId: string, miniId: string): number;
 }
 
 export const pkey = (pid: string) => "p:" + pid;
@@ -254,7 +268,8 @@ export function makePlan(n: number, e: Pick<Engine, "retos" | "categorias" | "rn
 /** Categorías de pasarela del plan (lo que hay que llevar en la maleta). */
 export const planCats = (s: Pick<RoomState, "plan">) => (s.plan || []).map((p) => p.cat?.n).filter(Boolean) as string[];
 
-function nextEpisode(s: RoomState, now: number, e: Engine): RoomState {
+function nextEpisode(s0: RoomState, now: number, e: Engine): RoomState {
+  const s: RoomState = { ...s0, mini: undefined, groups: undefined, draft: undefined };
   const all = e.retos();
   const ep = s.ep + 1;
   // Segunda Oportunidrag: cuando quedan siete, vuelven las eliminadas en parejas
@@ -291,6 +306,8 @@ export function allIn(s: RoomState): boolean {
   const ps = alivePlayers(s).filter((p) => pkey(p.id) !== mcOf(s));
   if (s.phase === "maletas") return ps.every((p) => s.subs[p.id]?.ready);
   if (s.phase === "cajas") return false; // se espera un momento para que cada una vea su caja (ver tick)
+  if (s.phase === "mini") return ps.every((p) => s.subs[p.id]?.mini != null);
+  if (s.phase === "equipos") return false; // lo lleva el reloj de la elección (ver tick)
   const extra = rpPlayers(s);
   if (s.phase === "reto") return ps.every((p) => s.subs[p.id]?.reto != null || s.subs[p.id]?.final != null) && extra.every((id) => s.subs[id]?.reto != null || s.subs[id]?.final != null);
   if (s.phase === "pasarela") return ps.every((p) => s.subs[p.id]?.final != null);
@@ -315,6 +332,83 @@ export function allIn(s: RoomState): boolean {
   return false;
 }
 
+// ------------------------------ Minirreto, grupos y parejas ------------------------------
+/** Ventaja en el reto para la ganadora del minirreto (si no hay grupos). */
+export const MINI_VENTAJA = 5;
+/** Tiempo de cada jugadora para elegir (grupos o pareja) y pausa entre las elecciones del juego. */
+export const PICK_MS = 25000;
+export const NPC_PICK_MS = 1400;
+/** Tiempo para ver cómo han quedado los grupos o el sorteo de las parejas antes del reto. */
+export const VER_EQUIPOS = 7000;
+export const VER_SORTEO = 16000;
+const miniKeys = (s: RoomState) => aliveKeys(s).filter((k) => k !== mcOf(s));
+function startMini(s: RoomState, now: number, e: Engine): RoomState | null {
+  const list = e.minis?.() || [];
+  if (!list.length) return null;
+  const m = list[(s.ep - 1 + s.code.charCodeAt(0)) % list.length];
+  return { ...s, mini: { id: m.id, titulo: m.titulo, desc: m.desc, ep: s.ep }, phase: "mini", deadline: limite(now, DURACION[s.ritmo].mini), v: s.v + 1 };
+}
+function endMini(s: RoomState, e: Engine): RoomState {
+  const m = s.mini!;
+  const scores: Record<string, number> = {};
+  miniKeys(s).forEach((k) => (scores[k] = isP(k) ? Math.max(0, Math.min(100, Math.round(s.subs[idOf(k)]?.mini ?? 20))) : Math.round(e.miniScore ? e.miniScore(idOf(k), m.id) : e.rivalScore(idOf(k), m.id))));
+  const rank = Object.keys(scores).sort((a, b) => scores[b] - scores[a] || (e.rnd() < 0.5 ? -1 : 1));
+  return { ...s, mini: { ...m, scores, rank } };
+}
+const shuffleBy = <T,>(a: T[], e: Pick<Engine, "rnd">) => a.map((x) => [e.rnd(), x] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+/** Tras el minirreto: la Segunda Oportunidrag (pareja), un reto por grupos (las capitanas eligen) o directo al reto. */
+function afterMini(s: RoomState, now: number, e: Engine): RoomState {
+  const rank = s.mini?.rank || [];
+  if (s.rp && s.rp.ep === s.ep) {
+    const w = rank[0];
+    const options = s.out.map((o) => o.key);
+    const by = w && isP(w) && s.rp.pairs.some((p) => p.c === w) && options.length >= 2 ? w : undefined;
+    return { ...s, draft: { ep: s.ep, by, options, at: now, done: !by }, phase: "equipos", deadline: by ? (s.ritmo === "libre" ? 0 : now + PICK_MS) : now + VER_SORTEO, v: s.v + 1 };
+  }
+  const size = s.reto?.groups || 0;
+  const ks = aliveKeys(s);
+  if (size >= 2 && ks.length >= size * 2) {
+    const nG = Math.floor(ks.length / size);
+    const caps = rank.slice(0, nG);
+    const names = s.reto!.tipo === "equipos" ? shuffleBy(BANDAS, e).slice(0, nG).map((b) => `«${b}»`) : caps.map((_, i) => `${size === 2 ? "Pareja" : "Grupo"} ${COLORES_GRUPO[i % COLORES_GRUPO.length]}`);
+    return { ...s, groups: { ep: s.ep, size, names, members: caps.map((c) => [c]), turn: 0, at: now }, phase: "equipos", deadline: 0, v: s.v + 1 };
+  }
+  return { ...s, phase: "reto", deadline: limite(now, dur(s, "reto")), v: s.v + 1 };
+}
+/** La capitana a la que le toca elegir. */
+export const capOf = (s: RoomState) => { const g = s.groups!; return g.members[g.turn % g.members.length][0]; };
+/** Las que quedan por elegir. */
+export const draftPool = (s: RoomState) => { const g = s.groups; const taken = new Set((g?.members || []).flat()); return aliveKeys(s).filter((k) => !taken.has(k)); };
+/** Lo que elegiría el juego: la más fuerte para el reto que queda (con un poco de azar). */
+function autoPick(s: RoomState, e: Engine): string {
+  const pool = draftPool(s);
+  const tipo = s.reto?.tipo || "";
+  const val = (k: string) => e.rivalScore(isP(k) ? queenOfKey(s, k) : idOf(k), tipo);
+  return pool.map((k) => [val(k), k] as const).sort((a, b) => b[0] - a[0])[0]?.[1] || pool[0];
+}
+function draftPick(s: RoomState, cap: string, pick: string, now: number): RoomState {
+  const g = s.groups;
+  if (!g || g.done || cap !== capOf(s)) return s;
+  const pool = draftPool(s);
+  if (!pool.includes(pick)) return s;
+  const i = g.turn % g.members.length;
+  const members = g.members.map((m, j) => (j === i ? [...m, pick] : m));
+  const done = pool.length <= 1;
+  return { ...s, groups: { ...g, members, turn: g.turn + 1, at: now, done }, deadline: done ? now + VER_EQUIPOS : 0, v: s.v + 1 };
+}
+/** La pareja de la Segunda Oportunidrag: la elegida pasa a ir con quien la ha elegido (y su antigua pareja, con la otra). */
+function pairPick(s: RoomState, by: string, pick: string, now: number, auto = false): RoomState {
+  const d = s.draft;
+  if (!d || d.done || (!auto && by !== d.by) || !d.options.includes(pick) || !s.rp) return s;
+  let pairs = s.rp.pairs;
+  const mine = pairs.find((p) => p.c === by);
+  if (mine) {
+    const had = mine.o;
+    pairs = pairs.map((p) => (p === mine ? { ...p, o: pick } : p.o === pick ? { ...p, o: had } : p));
+  }
+  return { ...s, rp: { ...s.rp, pairs }, draft: { ...d, pick, done: true }, deadline: now + VER_SORTEO, v: s.v + 1 };
+}
+
 /** Notas, etiquetas y críticas de la semana. */
 export function scoreWeek(s: RoomState, e: Engine): RoomState {
   const tipo = s.reto!.tipo;
@@ -322,15 +416,29 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
   const own = (k: string) => (lz && lz[k] != null ? lz[k] : isP(k) ? s.subs[idOf(k)]?.final ?? s.subs[idOf(k)]?.reto ?? NO_PRESENTO : e.rivalScore(idOf(k), tipo));
   // Segunda Oportunidrag: la nota es de la pareja (60 % la que compite, 40 % la eliminada)
   const pairOf = (k: string) => (s.rp && s.rp.ep === s.ep ? s.rp.pairs.find((p) => p.c === k) : undefined);
-  const rows: Row[] = aliveKeys(s).filter((k) => k !== mcOf(s)).map((k) => { const pr = pairOf(k); const sc = own(k); return { key: k, score: pr && pr.o ? Math.round(sc * 0.6 + own(pr.o) * 0.4) : sc, label: "" }; });
+  // Reto por grupos (y sin grupos, la ganadora del minirreto lleva ventaja)
+  const G = s.groups && s.groups.ep === s.ep && s.groups.done ? s.groups : null;
+  const miniWin = !G && s.mini && s.mini.ep === s.ep ? s.mini.rank?.[0] : undefined;
+  let rows: Row[] = aliveKeys(s).filter((k) => k !== mcOf(s)).map((k) => { const pr = pairOf(k); const sc = Math.min(100, own(k) + (k === miniWin ? MINI_VENTAJA : 0)); return { key: k, score: pr && pr.o ? Math.round(sc * 0.6 + own(pr.o) * 0.4) : sc, label: "" }; });
   rows.sort((a, b) => b.score - a.score || (e.rnd() < 0.5 ? -1 : 1));
+  // Por grupos: se ordenan los grupos por su media y, dentro de cada uno, por la nota de cada una (como en la historia)
+  let groupOf: Record<string, number> | null = null;
+  let order: number[] = [];
+  if (G) {
+    const avg = G.members.map((m) => { const r = rows.filter((x) => m.includes(x.key)); return r.reduce((t, x) => t + x.score, 0) / Math.max(1, r.length); });
+    order = G.members.map((_, i) => i).sort((a, b) => avg[b] - avg[a]);
+    rows = order.flatMap((gi) => rows.filter((r) => G.members[gi].includes(r.key)));
+    groupOf = {};
+    order.forEach((gi, pos) => G.members[gi].forEach((k) => (groupOf![k] = pos)));
+  }
   const n = rows.length;
   // Bottom de tres en la moneda (con seis o más) y en la Segunda Oportunidrag (lip sync a tres bandas)
   // Las mismas reglas que el modo historia (src/core/week.ts)
   const twist = s.fmt || "normal";
-  const nb = bottomSize({ twist, n, repescaWeek: !!(s.rp && s.rp.ep === s.ep) });
+  const lastGroupSize = G ? rows.filter((r) => groupOf![r.key] === order.length - 1).length : undefined;
+  const nb = bottomSize({ twist, n, repescaWeek: !!(s.rp && s.rp.ep === s.ep), lastGroupSize });
   const blocked = s.block && s.block.ep === s.ep ? s.block.id : null;
-  const labels = weekLabels(rows.map((r) => ({ key: r.key })), { twist, nb, bottom: rows.slice(n - nb).map((r) => r.key), blocked });
+  const labels = weekLabels(rows.map((r) => ({ key: r.key, group: groupOf ? groupOf[r.key] : undefined })), { twist, nb, bottom: rows.slice(n - nb).map((r) => r.key), blocked, nGroups: G ? order.length : undefined });
   rows.forEach((r, i) => (r.label = labels[i]));
   const allCrit = allCritiqued(n, twist);
   const crit = rows
@@ -349,7 +457,9 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
       return { key: r.key, lines };
     })
     .sort(() => e.rnd() - 0.5); // desordenadas: que el orden no delate posiciones
-  return { ...s, rows, crit };
+  // Por grupos: antes de las críticas una a una, el jurado valora cada grupo por su nombre
+  const gcrit = G ? order.map((gi, pos) => ({ name: G.names[gi], keys: G.members[gi], lines: grupoCritica(G.names[gi], pos === 0 ? "top" : pos === order.length - 1 ? "low" : "mid", e.rnd).map(([k, t]) => [NOMBRE_JURADO[k], t] as [string, string]) })) : undefined;
+  return { ...s, rows, crit, gcrit };
 }
 
 const writeTrack = (s: RoomState, rows: Row[]) => {
@@ -720,7 +830,17 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
     }
     case "anuncio":
       if (s.reto?.tipo === LALA.tipo) return lzStart(s, now, e);
+      return startMini(s, now, e) || at("reto", dur(s, "reto"));
+    case "mini":
+      return afterMini(endMini(s, e), now, e);
+    case "equipos": {
+      // Si no ha terminado la elección (se acabó el tiempo o la anfitriona sigue), se completa sola
+      const g = s.groups && s.groups.ep === s.ep ? s.groups : null;
+      if (g && !g.done) { let t = s; while (t.groups && !t.groups.done) t = draftPick(t, capOf(t), autoPick(t, e), now); return t; }
+      const d = s.draft && s.draft.ep === s.ep ? s.draft : null;
+      if (d && !d.done) return pairPick(s, d.by || "", d.options[Math.floor(e.rnd() * d.options.length)], now, true);
       return at("reto", dur(s, "reto"));
+    }
     case "lalaparuza":
       return lzNext(s, now, e);
     case "reto":
@@ -886,6 +1006,12 @@ export function tick(s: RoomState, now: number, e: Engine): RoomState {
   if (s.phase === "lobby" || s.phase === "corona" || s.pause || s.paused) return s;
   // Cajitas: cuando todas han elegido, unos segundos para ver lo que hay en la tuya
   if (s.phase === "cajas" && alivePlayers(s).every((p) => s.subs[p.id]?.box != null) && (!s.deadline || s.deadline > now + CAJAS_VER)) return { ...s, deadline: now + CAJAS_VER, v: s.v + 1 };
+  // Elección de grupos: las capitanas del juego eligen solas (con una pausa para verlo); las jugadoras tienen su tiempo
+  if (s.phase === "equipos" && s.groups && s.groups.ep === s.ep && !s.groups.done) {
+    const cap = capOf(s);
+    const wait = isP(cap) ? (s.ritmo === "libre" ? Infinity : PICK_MS) : NPC_PICK_MS;
+    return now - s.groups.at >= wait ? draftPick(s, cap, autoPick(s, e), now) : s;
+  }
   // Duelos entre jugadoras: el reloj de la fase no corta a nadie a mitad; cada paso tiene su propio tope
   const duels = (s.pairs || []).filter((p) => !p.winner && isP(p.a) && isP(p.b) && ["lipsync", "final", "lalaparuza"].includes(s.phase));
   if (duels.length) {
@@ -941,7 +1067,7 @@ export function duelTimeouts(s: RoomState, now: number): RoomState {
   }
   return t;
 }
-export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase, data: Sub): RoomState {
+export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase, data: Sub, now: number = Date.now()): RoomState {
   // Temporada del corazón: la jugadora eliminada elige a quién deja su medio corazón (hasta que se destapa)
   if (data.heart) {
     const k = pkey(pid);
@@ -952,6 +1078,12 @@ export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase,
   }
   if (ep !== s.ep || phase !== s.phase) return s;
   if (data.duelMove) return addDuelMove(s, pkey(pid), data.duelStep ?? -1, data.duelMove);
+  // Elección de grupos (la capitana a la que le toca) o de la pareja de la Segunda Oportunidrag
+  if (phase === "equipos" && data.pick) {
+    if (s.groups && s.groups.ep === s.ep && !s.groups.done) return draftPick(s, pkey(pid), String(data.pick), now);
+    if (s.draft && s.draft.ep === s.ep && !s.draft.done && s.draft.by === pkey(pid)) return pairPick(s, pkey(pid), String(data.pick), now);
+    return s;
+  }
   const p = s.players.find((x) => x.id === pid);
   // Las eliminadas solo juegan su monólogo de la Segunda Oportunidrag
   if (!p || (!p.alive && !(rpPlayers(s).includes(pid) && (phase === "reto" || phase === "pasarela")))) return s;

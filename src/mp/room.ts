@@ -176,7 +176,7 @@ export class Room {
   /** Lo que el servidor necesita para montar la temporada (los mismos retos y pasarelas que ve quien crea la sala). */
   private content() {
     const e = this.engine();
-    return { retos: e.retos(), categorias: e.categorias(), repesca: e.repesca?.() };
+    return { retos: e.retos(), categorias: e.categorias(), repesca: e.repesca?.(), minis: e.minis?.() };
   }
   create(name: string, season: string, ritmo: Ritmo, opts: { fmt?: Formato; ia?: boolean; custom?: RoomState["custom"] } = {}): Promise<string> {
     return serverUp().then((up) => {

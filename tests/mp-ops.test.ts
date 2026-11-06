@@ -112,3 +112,86 @@ describe("Críticas del look aparte del reto", () => {
     });
   });
 });
+
+describe("Minirreto, grupos y parejas en el multijugador", () => {
+  const start = (season = "es1", fmt?: "repesca") => {
+    let s = newRoom("ABCDE", { id: "ana", name: "Ana", queen: null, joined: 1, alive: false }, season, "normal", fmt ? { fmt } : {});
+    s = applyOp(s, "ana", { t: "pick", queen: "pupi" }, 1, e);
+    return applyOp(s, "ana", { t: "start", cast }, 1, e);
+  };
+  it("después del anuncio hay minirreto; la ganadora lleva ventaja en el reto", async () => {
+    const { advance, scoreWeek, MINI_VENTAJA } = await import("../src/mp/model");
+    let s = start();
+    s = advance(s, 10, e); // maletas -> anuncio
+    expect(s.phase).toBe("anuncio");
+    s = { ...s, reto: { tipo: "snatch", titulo: "Snatch", desc: "", noRunway: true } };
+    s = advance(s, 20, e);
+    expect(s.phase).toBe("mini");
+    expect(s.mini?.titulo).toBeTruthy();
+    s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: "mini", data: { mini: 100 } }, 30, e);
+    s = advance(s, 40, e);
+    expect(s.phase).toBe("reto");
+    expect(s.mini?.rank?.[0]).toBe("p:ana");
+    s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: "reto", data: { reto: 60, final: 60 } }, 50, e);
+    const r = scoreWeek(s, e).rows!.find((x) => x.key === "p:ana")!;
+    expect(r.score).toBe(60 + MINI_VENTAJA);
+  });
+  it("reto por grupos: las mejores del minirreto son capitanas, eligen por turnos y el jurado valora cada grupo por su nombre", async () => {
+    const { advance, tick, scoreWeek, capOf, draftPool } = await import("../src/mp/model");
+    let s = start();
+    s = advance(s, 10, e);
+    s = { ...s, reto: { tipo: "equipos", titulo: "Girl Groups", desc: "", noRunway: true, groups: 3 } };
+    s = advance(s, 20, e);
+    s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: "mini", data: { mini: 100 } }, 30, e);
+    s = advance(s, 40, e);
+    expect(s.phase).toBe("equipos");
+    const g = s.groups!;
+    expect(g.members.length).toBe(2); // 8 reinas, grupos de 3
+    expect(g.members[0][0]).toBe("p:ana"); // la ganadora del minirreto es la primera capitana
+    expect(g.names.every((n) => /^«.+»$/.test(n))).toBe(true); // Girl Groups: nombres de banda
+    // Le toca a Ana: elige ella; una que no está libre no vale
+    expect(capOf(s)).toBe("p:ana");
+    const pick = draftPool(s)[0];
+    s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: "equipos", data: { pick } }, 50, e);
+    expect(s.groups!.members[0]).toContain(pick);
+    expect(applyOp(s, "ana", { t: "submit", ep: s.ep, phase: "equipos", data: { pick: draftPool(s)[0] } }, 60, e)).toBe(s); // no es su turno
+    // La otra capitana (del juego) elige sola; y así hasta acabar (Ana, si tarda, elige el juego por ella)
+    let now = 60;
+    for (let i = 0; i < 40 && !s.groups!.done; i++) s = tick(s, (now += 30000), e);
+    expect(s.groups!.done).toBe(true);
+    expect(s.groups!.members.flat().sort()).toEqual([...new Set(s.groups!.members.flat())].sort());
+    expect(s.groups!.members.flat().length).toBe(8);
+    s = tick(s, (now += 10000), e);
+    expect(s.phase).toBe("reto");
+    s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: "reto", data: { reto: 70, final: 70 } }, now, e);
+    const w = scoreWeek(s, e);
+    expect(w.gcrit!.length).toBe(2);
+    expect(w.gcrit![0].lines[0][1]).toContain(w.gcrit![0].name);
+    // La ganadora sale del grupo ganador y el bottom, del último
+    const top = w.gcrit![0].keys, last = w.gcrit![1].keys;
+    expect(top).toContain(w.rows!.find((r) => r.label === "WIN")!.key);
+    w.rows!.filter((r) => /^BTM/.test(r.label)).forEach((r) => expect(last).toContain(r.key));
+  });
+  it("Segunda Oportunidrag: la ganadora del minirreto elige a su eliminada y el resto va a sorteo", async () => {
+    const { advance } = await import("../src/mp/model");
+    let s = start("es3", "repesca");
+    // Ya hay tres eliminadas y es la semana de la Segunda Oportunidrag
+    const outs = ["inti", "arantxa", "dovima"].map((q) => ({ key: "n:" + q, ep: 1, place: "x" }));
+    s = { ...s, npcs: s.npcs.filter((q) => !["inti", "arantxa", "dovima"].includes(q)), out: outs, phase: "track", ep: 4, track: {} };
+    s = advance(s, 10, e);
+    expect(s.rp?.ep).toBe(s.ep);
+    s = advance(s, 20, e); // anuncio -> mini
+    expect(s.phase).toBe("mini");
+    s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: "mini", data: { mini: 100 } }, 30, e);
+    s = advance(s, 40, e);
+    expect(s.phase).toBe("equipos");
+    expect(s.draft!.by).toBe("p:ana");
+    s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: "equipos", data: { pick: "n:dovima" } }, 50, e);
+    expect(s.draft!.done).toBe(true);
+    expect(s.rp!.pairs.find((p) => p.c === "p:ana")!.o).toBe("n:dovima");
+    const os = s.rp!.pairs.map((p) => p.o).filter(Boolean);
+    expect(new Set(os).size).toBe(os.length); // ninguna eliminada en dos parejas
+    s = advance(s, 60, e);
+    expect(s.phase).toBe("reto");
+  });
+});

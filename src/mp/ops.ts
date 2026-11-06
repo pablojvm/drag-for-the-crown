@@ -43,7 +43,7 @@ export function applyOp(s: RoomState, from: string, op: Op, now: number, e: Engi
     case "leave":
       return s.phase === "lobby" ? { ...s, players: s.players.filter((x) => x.id !== from), v: s.v + 1 } : s;
     case "submit":
-      return applySubmit(s, from, Number(op.ep), op.phase, stamp(op.data || {}, now));
+      return applySubmit(s, from, Number(op.ep), op.phase, stamp(op.data || {}, now), now);
     case "pausa":
       return proposePause(s, from, now);
     case "voto":
