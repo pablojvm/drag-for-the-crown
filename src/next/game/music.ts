@@ -26,7 +26,7 @@ export function setMusic(on: boolean) {
 function sync() {
   if (!theme) return;
   const s = get();
-  const want = unlocked && musicOn && !s.muted && (s.screen === "menu" || s.screen === "temporada");
+  const want = unlocked && musicOn && !s.muted && s.screen === "menu";
   if (want && theme.paused) theme.play().catch(() => {});
   if (!want && !theme.paused) theme.pause();
 }

@@ -11,10 +11,8 @@ import { EMOTES, LS_PHASES, LS_STEPS, REPITE, type LsKind } from "../../core/lip
 import { chooseLook, chooseWalk, chooseMoment, chooseVoice, submitConcept, chooseConceptMoment, answerAna, WALK_OPTS } from "../game/runway";
 import { MOMENT_NAMES } from "../../core/concepto";
 import { queenOf } from "../game/queens";
-import { backFromScene } from "../game/temporada";
-import { openHistoria, hasHistoria } from "../game/historia";
+import { openHistoria, hasHistoria, backFromScene } from "../game/historia";
 import { HistoriaUI } from "./Historia";
-import { TemporadaUI } from "./Temporada";
 import { MenuBar } from "./Cuenta";
 import { unlockMusic } from "../game/music";
 
@@ -41,7 +39,6 @@ export function App() {
         {screen === "result" && <Result />}
         {screen === "lipsync" && <LipSyncUI />}
         {screen === "runway" && <RunwayUI />}
-        {screen === "temporada" && <TemporadaUI />}
         {(screen === "historia" || histScene) && <HistoriaUI />}
         <Toasts />
       </div>

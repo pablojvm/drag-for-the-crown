@@ -67,6 +67,8 @@ export function onHistoria(d: Msg) {
 }
 const reply = (data: Record<string, unknown>) => { try { frame?.postMessage({ type: "dftc-historia-res", ...data }, location.origin); } catch { /* marco cerrado */ } };
 
+/** El botón de volver de la pasarela o del lip sync (cuando los ha pedido la historia o el multijugador). */
+export function backFromScene() { historiaBack(); }
 /** El botón de volver de la pasarela o del lip sync, si los pidió la historia. true si era suyo. */
 export function historiaBack(): boolean {
   const sc = get().hist.scene;

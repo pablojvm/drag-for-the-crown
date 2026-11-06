@@ -103,7 +103,12 @@ describe("Críticas del look aparte del reto", () => {
     s = applyOp(s, "ana", { t: "start", cast }, 1, e2);
     return import("../src/mp/model").then(({ advance, scoreWeek }) => {
       let now = 10;
-      for (let i = 0; i < 30 && s.phase !== "pasarela"; i++) { s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: s.phase, data: { reto: 10, ready: true } }, now, e2); s = advance(s, (now += 1000), e2); }
+      // Un reto individual con pasarela (los hay sin ella o por grupos)
+      for (let i = 0; i < 30 && s.phase !== "pasarela"; i++) {
+        if (s.phase === "anuncio") s = { ...s, reto: { tipo: "rusical", titulo: "Rusical", desc: "", noRunway: false, cat: { n: "Neón ochentero", d: "" } } };
+        s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: s.phase, data: { reto: 10, ready: true, mini: 10 } }, now, e2);
+        s = advance(s, (now += 1000), e2);
+      }
       expect(s.phase).toBe("pasarela");
       s = applyOp(s, "ana", { t: "submit", ep: s.ep, phase: s.phase, data: { final: 20, walk: 95 } }, now, e2);
       scoreWeek(s, e2);

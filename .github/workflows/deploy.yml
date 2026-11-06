@@ -63,8 +63,6 @@ jobs:
           - { name: grupos, run: npm run e2e:grupos }
           - { name: multijugador-nueva, run: npm run e2e:mp-nueva }
           - { name: jurado, run: npm run e2e:jurado }
-          # El modo temporada del motor nuevo ya no se abre desde la portada: basta con una temporada
-          - { name: temporada, run: node tools/e2e-temporada.mjs http://localhost:4173/ }
     name: "Prueba: ${{ matrix.name }}"
     steps:
       - uses: actions/checkout@v4

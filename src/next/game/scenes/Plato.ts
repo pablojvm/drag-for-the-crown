@@ -17,7 +17,7 @@ export class Plato extends Phaser.Scene {
     this.events.once("shutdown", () => removeEventListener("nx-dlg", onDlg));
     const draw = () => {
       this.children.removeAll(true);
-      const bgKey = (get().screen === "historia" ? get().hist.bg : get().ts?.bg) === "stage" ? "stage" : "werkroom";
+      const bgKey = get().hist.bg === "stage" ? "stage" : "werkroom";
       const bg = this.add.image(W / 2, H / 2, bgKey);
       bg.setScale(Math.max(W / bg.width, H / bg.height));
       this.add.rectangle(W / 2, H / 2, W, H, 0x14031f, 0.35);
@@ -31,7 +31,7 @@ export class Plato extends Phaser.Scene {
       }
     };
     draw();
-    const bgOf = () => (get().screen === "historia" ? get().hist.bg : get().ts?.bg);
+    const bgOf = () => get().hist.bg;
     let bg = bgOf();
     // Si cambia tu reina (la eliges o llega de la historia), se carga su imagen sin reiniciar la escena
     let queen = get().queenId;
