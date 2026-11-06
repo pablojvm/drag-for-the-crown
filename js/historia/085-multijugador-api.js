@@ -34,6 +34,8 @@
       dropKeys();
       if (cleanup) cleanup();
       cleanup = null;
+      // Si estaba en la pasarela o el lip sync del motor nuevo, vuelve a la sala
+      if (window.__dftcCancel) window.__dftcCancel();
     },
     /** Lo de esta jugadora que hay que guardar con la partida (maletas y armario). */
     local: () => (S ? { prepLooks: S.prepLooks || {}, mpCloset: S.mpCloset || null, usedLooks: S.usedLooks || [], runwayPlan: S.runwayPlan || [] } : null),

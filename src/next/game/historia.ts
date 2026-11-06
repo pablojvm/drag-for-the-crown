@@ -12,7 +12,7 @@ import { juradoListo } from "./jurado";
 import type { LsAttrs } from "../../core/lipsync";
 import type { Tag } from "../../core/runway";
 
-export type HistoriaModo = "" | "nueva" | "seguir";
+export type HistoriaModo = "" | "nueva" | "seguir" | "mp";
 let modo: HistoriaModo = "";
 let frame: Window | null = null;
 export const historiaModo = () => modo;
@@ -47,6 +47,10 @@ export function onHistoria(d: Msg) {
     set({ hist: { ...get().hist, bg: d.name === "stage" || d.name === "panel" ? "stage" : "werkroom" }, ...(d.queen ? { queenId: d.queen } : {}) });
   }
   if (d.ev === "busy") set({ hist: { ...get().hist, busy: !!d.on } });
+  if (d.ev === "cancel" && get().hist.scene) {
+    set({ screen: "historia", back: null, hist: { ...get().hist, scene: null } });
+    send({ type: "scene", key: "Plato" });
+  }
   if (d.queen && d.queen !== get().queenId && (d.ev === "lipsync" || d.ev === "runway")) set({ queenId: d.queen });
   if (d.ev === "lipsync" && d.rival) {
     set({ hist: { ...get().hist, scene: "lipsync" } });

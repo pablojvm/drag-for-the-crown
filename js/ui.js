@@ -40,8 +40,11 @@ const UI = (() => {
   }
   // Modo historia dentro de la versión nueva (clasico.html?historia en un marco): se entra directo a la historia
   // y, en vez de volver al menú clásico, se avisa a la versión nueva para que cierre el marco
-  const EMBED = (() => { try { return window.parent !== window && new URLSearchParams(location.search).has("historia"); } catch (e) { return false; } })();
-  const EMBED_MODE = EMBED ? new URLSearchParams(location.search).get("historia") || "" : "";
+  // (y el multijugador igual: clasico.html?mp&embed)
+  const QS = new URLSearchParams(location.search);
+  const EMBED = (() => { try { return window.parent !== window && (QS.has("historia") || (QS.has("mp") && QS.has("embed"))); } catch (e) { return false; } })();
+  const EMBED_MP = EMBED && QS.has("mp");
+  const EMBED_MODE = EMBED ? QS.get("historia") || "" : "";
   let embedOn = false;
   const toParent = (ev) => { try { window.parent.postMessage({ type: "dftc-historia", ev }, location.origin); } catch (e) {} };
   if (EMBED) {
@@ -51,6 +54,8 @@ const UI = (() => {
     // La pasarela y los lip syncs se juegan en las escenas del motor nuevo: se piden y se espera el resultado
     const waiting = {};
     window.__dftcAwait = (kind, data, cb) => { waiting[kind] = cb; window.__dftcEmbed(kind, data); };
+    // Se acabó el tiempo (multijugador): se cierra la escena sin esperar su resultado
+    window.__dftcCancel = () => { if (!waiting.lipsync && !waiting.runway) return; waiting.lipsync = waiting.runway = null; window.__dftcEmbed("cancel", {}); };
     addEventListener("message", (e) => {
       if (e.origin !== location.origin || e.source !== window.parent || !e.data || e.data.type !== "dftc-historia-res") return;
       const cb = waiting[e.data.kind];
@@ -688,7 +693,12 @@ const UI = (() => {
     $("#btn-play").disabled = false;
     $("#btn-story").disabled = false;
     $("#btn-play-label").textContent = "Arcade";
-    if (EMBED) {
+    if (EMBED_MP) {
+      // La sala se abre sola (?mp); cuando ya se ve, se avisa a la versión nueva
+      mode = "story";
+      const wait = () => (document.querySelector("#screen-story.active") ? ((embedOn = true), toParent("ready")) : setTimeout(wait, 100));
+      wait();
+    } else if (EMBED) {
       embedOn = true;
       mode = "story";
       if (EMBED_MODE === "nueva") show("franchise");

@@ -414,6 +414,17 @@
   const EMOTES = DFTC.EMOTES;
   const REPITE = DFTC.REPITE;
   function runLipsync(el, rival, done, songPick, bonus = 0) {
+    // Dentro de la versión nueva: el lip sync se baila en su escena (Phaser), con tus atributos y la misma rival
+    if (window.__dftcAwait) {
+      const a = attrsOf(S.queen);
+      const strength = DFTC.rivalStrength(attrsOf(rival), { form: S.form[rival.id] || 0, boost: seasonBoost(), noise: rnd(-12, 12) });
+      el.innerHTML = `<div class="story-card"><p class="eyebrow">💋 Lip sync</p><h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3><p class="muted">En el escenario...</p></div>`;
+      Music.stop();
+      return window.__dftcAwait("lipsync", { rival: rival.id, queen: S.queen.id, strength, attrs: { performance: a.performance, carisma: a.carisma, estilo: a.estilo } }, (r) => {
+        const mine = (r.mine || 0) + bonus;
+        done(mine >= strength, Math.round(Math.min(100, (mine / Math.max(1, strength)) * 60)));
+      });
+    }
     const ra = attrsOf(rival);
     const song = songPick || null;
     // Escala pensada para que, con atributos iguales, la jugadora gane algo más de la mitad de las veces
@@ -493,21 +504,6 @@
     Music.play("reto");
     const lsb = S.lsBonus || 0;
     S.lsBonus = 0;
-    // Dentro de la versión nueva: el lip sync se baila en su escena (Phaser), con tus atributos y la misma rival
-    if (window.__dftcAwait) {
-      const a = attrsOf(S.queen);
-      const strength = DFTC.rivalStrength(attrsOf(rival), { form: S.form[rival.id] || 0, boost: seasonBoost(), noise: rnd(-12, 12) });
-      $("#story-play").innerHTML = `<div class="story-card"><p class="eyebrow">💋 Lip sync</p><h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3><p class="muted">En el escenario...</p></div>`;
-      Music.stop();
-      const go = () => window.__dftcAwait("lipsync", { rival: rival.id, queen: S.queen.id, strength, attrs: { performance: a.performance, carisma: a.carisma, estilo: a.estilo } }, (r) => {
-        const mine = (r.mine || 0) + lsb;
-        let won = mine >= strength;
-        if (typeof window.__forceScore === "number") won = window.__forceScore >= 50;
-        Music.stop();
-        cb({ won, score: Math.round(Math.min(100, (mine / Math.max(1, strength)) * 60) * 10) });
-      });
-      return go();
-    }
     runLipsync($("#story-play"), rival, (won, score) => {
       cleanup = null;
       Music.stop();

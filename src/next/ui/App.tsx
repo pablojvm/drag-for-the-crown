@@ -106,7 +106,8 @@ function Modos({ onArcade }: { onArcade: () => void }) {
     const id = MODOS[i].id;
     if (id === "historia") openHistoria(saved ? "nueva" : "");
     else if (id === "arcade") onArcade();
-    else location.href = id === "mp" ? "./clasico.html?mp" : "./clasico.html";
+    else if (id === "mp") openHistoria("mp");
+    else location.href = "./clasico.html";
   };
   return (
     <div className="nx-modes">

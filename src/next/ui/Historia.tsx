@@ -7,7 +7,13 @@ export function HistoriaUI() {
   const [ready, setReady] = useState(false);
   const away = useGame((s) => !!s.hist.scene);
   const frame = useRef<HTMLIFrameElement>(null);
-  const [src] = useState(() => `./clasico.html?historia${historiaModo() ? "=" + historiaModo() : ""}`);
+  // El multijugador, igual: clasico.html?mp&embed (pasa ?mpserver= si viene en la dirección, para las pruebas)
+  const [src] = useState(() => {
+    const m = historiaModo();
+    if (m !== "mp") return `./clasico.html?historia${m ? "=" + m : ""}`;
+    const sv = new URLSearchParams(location.search).get("mpserver");
+    return `./clasico.html?mp&embed${sv !== null ? `&mpserver=${encodeURIComponent(sv)}` : ""}`;
+  });
   useEffect(() => {
     const on = (e: MessageEvent) => {
       if (e.origin !== location.origin || e.source !== frame.current?.contentWindow || e.data?.type !== "dftc-historia") return;
@@ -20,8 +26,8 @@ export function HistoriaUI() {
   }, []);
   return (
     <div className={`nx-historia ${ready ? "on" : ""} ${away ? "away" : ""}`}>
-      {!ready && <div className="nx-historia-wait" role="status"><h2>Modo historia</h2><div className="nx-dots" aria-hidden="true"><i /><i /><i /></div></div>}
-      <iframe ref={frame} src={src} title="Modo historia" className={ready ? "on" : ""} allow="autoplay; fullscreen; clipboard-write" />
+      {!ready && <div className="nx-historia-wait" role="status"><h2>{historiaModo() === "mp" ? "Multijugador" : "Modo historia"}</h2><div className="nx-dots" aria-hidden="true"><i /><i /><i /></div></div>}
+      <iframe ref={frame} src={src} title={historiaModo() === "mp" ? "Multijugador" : "Modo historia"} className={ready ? "on" : ""} allow="autoplay; fullscreen; clipboard-write" />
     </div>
   );
 }
