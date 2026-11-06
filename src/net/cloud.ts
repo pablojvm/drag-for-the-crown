@@ -1,6 +1,7 @@
 // Conexión con el servidor (Supabase): IA con cuota, partida en la nube, Hall of Fame mundial y memoria larga.
 // Si no hay VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY el juego funciona igual que antes, solo en este navegador.
 import { createClient, type SupabaseClient, type Session } from "@supabase/supabase-js";
+import { turnstileToken } from "./turnstile";
 
 // La URL y la clave publishable son públicas (acaban en el navegador); las variables VITE_* solo las sustituyen
 const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || "https://dfrpawqeganamczjjafi.supabase.co";
@@ -47,7 +48,9 @@ class Cloud {
       const { data } = await this.sb.auth.getSession();
       this.session = data.session;
       if (!this.session) {
-        const r = await this.sb.auth.signInAnonymously();
+        // Antes de crear la invitada, Cloudflare Turnstile comprueba que es una persona (src/net/turnstile.ts)
+        const captchaToken = await turnstileToken();
+        const r = await this.sb.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined);
         this.session = r.data.session;
       }
       this.sb.auth.onAuthStateChange((_e, s) => { this.session = s; });
