@@ -26,6 +26,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Los tipos del servidor de salas también se comprueban (necesitan sus dependencias)
+      - run: npm ci --prefix server
       - run: npm run check
       - run: npm run lint
       - run: npm test
