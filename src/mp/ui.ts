@@ -1040,7 +1040,7 @@ room.onWait = (secs) => {
   if (!card) return;
   let w = card.querySelector<HTMLElement>(".mp-wake");
   if (!w) { w = document.createElement("p"); w.className = "muted mp-wake"; card.appendChild(w); }
-  w.textContent = `☕ Despertando el servidor de salas (es gratuito y se duerme si nadie juega)... ${secs} s. Tarda menos de un minuto.`;
+  w.textContent = `💄 Preparando el werkroom... ${secs} s`;
 };
 export function openMultiplayer() {
   // Que el servidor vaya despertando mientras se elige temporada
