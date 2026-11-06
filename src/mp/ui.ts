@@ -1,5 +1,5 @@
 // Pantallas de la temporada en directo (dentro de la pantalla del modo historia, con su propio flujo)
-import { Room } from "./room";
+import { Room, wakeServer } from "./room";
 import { carousel } from "../ui/carousel";
 import { ask } from "../ui/confirm";
 import { mcOf, capOf, draftPool, type LzMatch, type DuelMove, DUEL_STEP_MS, DURACION, IA_EXTRA, FORMATOS, topeEpisodio, alivePlayers, aliveKeys, standings, ppeOf, planCats, isWatch, isP, idOf, pkey, type RoomState, type Engine, type Ritmo, type Formato } from "./model";
@@ -1033,7 +1033,18 @@ room.onFail = (msg) => {
 };
 room.onChat = (m) => { chatLog.push({ name: m.name, text: m.text, me: m.from === room.me }); drawChat(); };
 
+// Servidor gratuito despertando: se avisa en la pantalla de «Abriendo/Entrando en la sala...»
+room.onWait = (secs) => {
+  if (room.state) return;
+  const card = document.querySelector("#story-body .story-card");
+  if (!card) return;
+  let w = card.querySelector<HTMLElement>(".mp-wake");
+  if (!w) { w = document.createElement("p"); w.className = "muted mp-wake"; card.appendChild(w); }
+  w.textContent = `☕ Despertando el servidor de salas (es gratuito y se duerme si nadie juega)... ${secs} s. Tarda menos de un minuto.`;
+};
 export function openMultiplayer() {
+  // Que el servidor vaya despertando mientras se elige temporada
+  wakeServer();
   clearInterval(timer);
   timer = window.setInterval(tickTimer, 250);
   if (room.state) return render(room.state);

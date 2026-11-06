@@ -32,18 +32,31 @@ const MP_URLS: string[] = (() => {
 /** El que ha respondido (se usa ese). */
 let MP_URL = MP_URLS[0] || "";
 let alive: Promise<boolean> | null = null;
-const ping = (u: string) => fetch(u.replace(/^ws/, "http").replace(/\/$/, "") + "/salud", { signal: AbortSignal.timeout(6000) }).then((r) => r.ok, () => false);
-/** ¿Responde algún servidor? Si no (aún no está desplegado, se ha caído o está despertando), se juega como antes, sin servidor. */
-export const serverUp = () =>
+const ping = (u: string, ms = 6000) => fetch(u.replace(/^ws/, "http").replace(/\/$/, "") + "/salud", { signal: AbortSignal.timeout(ms) }).then((r) => r.ok, () => false);
+/** Cuánto se espera a que despierte un servidor gratuito (Render se duerme si nadie lo usa y tarda casi un minuto). */
+export const DESPERTAR_MS = 75000;
+/** ¿Responde algún servidor? Si está despertando, se espera (avisando de cuánto llevamos) en vez de crear la sala sin él:
+ * así todas acaban en el mismo sitio. Solo si no responde nadie en ese tiempo, se juega sin servidor. */
+export const serverUp = (onWait?: (secs: number) => void) =>
   (alive ||= !MP_URLS.length
     ? Promise.resolve(false)
-    : Promise.all(MP_URLS.map(ping)).then((oks) => {
-      const i = oks.indexOf(true);
-      if (i >= 0) MP_URL = MP_URLS[i];
-      // Si nadie responde, se vuelve a probar la próxima vez (un servidor gratuito puede estar despertando)
-      else setTimeout(() => (alive = null), 0);
-      return i >= 0;
-    }));
+    : (async () => {
+      const t0 = Date.now();
+      for (;;) {
+        const oks = await Promise.all(MP_URLS.map((u) => ping(u)));
+        const i = oks.indexOf(true);
+        // Respondió: se recuerda unos minutos (luego se vuelve a mirar, por si se ha dormido)
+        if (i >= 0) { MP_URL = MP_URLS[i]; setTimeout(() => (alive = null), 5 * 60000); return true; }
+        if (Date.now() - t0 > DESPERTAR_MS) break;
+        onWait?.(Math.round((Date.now() - t0) / 1000));
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+      // Nadie ha respondido: se vuelve a probar la próxima vez
+      setTimeout(() => (alive = null), 0);
+      return false;
+    })());
+/** Despierta el servidor en cuanto se abre el multijugador (mientras se elige temporada ya va arrancando). */
+export const wakeServer = () => { MP_URLS.forEach((u) => ping(u, 60000).catch(() => {})); };
 
 interface SRoom { send(t: string, d?: unknown): void; onMessage(t: string, cb: (d: any) => void): unknown; leave(consented?: boolean): Promise<unknown>; roomId: string; onLeave(cb: (code: number) => void): unknown }
 
@@ -62,6 +75,8 @@ export class Room {
   onChat: (m: { from: string; name: string; text: string }) => void = () => {};
   /** No se ha podido entrar o se ha perdido la sala del servidor. */
   onFail: (msg: string) => void = () => {};
+  /** Mientras el servidor despierta: los segundos que llevamos esperando. */
+  onWait: (secs: number) => void = () => {};
 
   constructor(private engine: () => Engine, private castOf: (season: string) => string[]) {}
 
@@ -179,7 +194,7 @@ export class Room {
     return { retos: e.retos(), categorias: e.categorias(), repesca: e.repesca?.(), minis: e.minis?.() };
   }
   create(name: string, season: string, ritmo: Ritmo, opts: { fmt?: Formato; ia?: boolean; custom?: RoomState["custom"] } = {}): Promise<string> {
-    return serverUp().then((up) => {
+    return serverUp(this.onWait).then((up) => {
       if (up) return this.serverJoin({ name, create: { season, ritmo, fmt: opts.fmt, ia: opts.ia, custom: opts.custom, content: this.content() } }).catch((e) => (this.fail(e), ""));
       const code = newCode();
       this.connect(code);
@@ -192,7 +207,7 @@ export class Room {
   }
   join(code: string, name: string): Promise<void> {
     code = code.toUpperCase();
-    return serverUp().then(async (up) => {
+    return serverUp(this.onWait).then(async (up) => {
       if (up) {
         try { await this.serverJoin({ name }, code); return; } catch (e) {
           // Puede ser una sala sin servidor (la creó alguien cuando el servidor no respondía): se prueba también así
@@ -211,7 +226,7 @@ export class Room {
   resume(saved: RoomState, myOldId: string): Promise<void> {
     this.me = myOldId;
     sessionStorage.setItem("dftc-mp-id", myOldId);
-    return serverUp().then((up) => {
+    return serverUp(this.onWait).then((up) => {
       if (up) return void this.serverJoin({ name: saved.players.find((p) => p.id === myOldId)?.name || "Reina", resume: saved, create: { season: saved.season, ritmo: saved.ritmo, content: this.content() } }).catch((e) => this.fail(e));
       this.connect(saved.code);
       this.state = resumeRoom(saved, this.me, Date.now());
