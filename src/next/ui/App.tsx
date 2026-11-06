@@ -28,6 +28,9 @@ export function App() {
   }, []);
   const screen = useGame((s) => s.screen);
   const histScene = useGame((s) => s.hist.scene);
+  // ./?mp (los enlaces de antes al multijugador): se abre directamente la sala
+  const autoMp = useRef(new URLSearchParams(location.search).has("mp"));
+  useEffect(() => { if (screen === "menu" && autoMp.current) { autoMp.current = false; openHistoria("mp"); } }, [screen]);
   return (
     <div className="nx-root">
       <div className="nx-canvas" ref={host} />
@@ -65,7 +68,6 @@ const MODOS = [
   { id: "historia", cls: "s-story", kicker: "Temporada completa", name: "Modo historia", desc: "Retos, pasarela, críticas y lip syncs hasta la corona.", art: ["images/modo-historia.png"] },
   { id: "arcade", cls: "s-arcade", kicker: "Partida rápida", name: "Arcade", desc: "Duelo de tacones, lip sync y pasarela con tu reina.", art: ["images/modo-arcade.png"] },
   { id: "mp", cls: "s-mp", kicker: "En directo con amigas", name: "Multijugador", desc: "Una temporada a la vez, con tiempo por episodio.", art: ["images/queens/alexandra-del-raval.png", "images/queens/carmen-farala.png", "images/queens/arantxa-castilla-la-mancha.png"] },
-  { id: "clasico", cls: "s-next", kicker: "La de siempre", name: "Versión clásica", desc: "El juego de antes, con su modo historia y su multijugador.", art: ["images/queens/the-macarena.png", "images/queens/pupi-poisson.png", "images/queens/sagittaria.png"] },
 ] as const;
 
 // Al volver de una partida rápida se vuelve a la elección de reina, no a la portada
@@ -104,7 +106,6 @@ function Modos({ onArcade }: { onArcade: () => void }) {
     if (id === "historia") openHistoria(saved ? "nueva" : "");
     else if (id === "arcade") onArcade();
     else if (id === "mp") openHistoria("mp");
-    else location.href = "./clasico.html";
   };
   return (
     <div className="nx-modes">

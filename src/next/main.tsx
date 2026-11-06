@@ -1,4 +1,4 @@
-// Entrada del juego (Phaser 4 + React). La versión clásica sigue en clasico.html (con el multijugador en directo).
+// Entrada del juego (Phaser 4 + React). El modo historia y el multijugador de siempre viven en clasico.html, que se abre en un marco.
 import "../net/cloud"; // cuenta y jurado en directo
 import { createRoot } from "react-dom/client";
 import { App } from "./ui/App";

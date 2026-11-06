@@ -2,6 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <script>
+    // La versión clásica ya no se abre sola: el modo historia y el multijugador viven dentro de la versión nueva
+    // (que abre esta página en un marco). Quien llegue aquí directamente va a la portada nueva.
+    // (Las pruebas automáticas y ?dev la siguen abriendo.)
+    if (window.parent === window && !navigator.webdriver && !/[?&](dev|historia|embed)\b/.test(location.search)) location.replace("./" + (/[?&]mp\b/.test(location.search) ? "?mp" : ""));
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Drag for the Crown: minijuego arcade de navegador hecho con JavaScript y Canvas.">
   <meta name="theme-color" content="#ffe0ef">
