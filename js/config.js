@@ -171,17 +171,24 @@ function storyCrown(sid) {
   if (R && R.player && (store.get("dftc-story-wins", []) || []).includes(sid)) return { queen: R.player, runner: null };
   return null;
 }
-function allWinnersCast() {
-  const used = new Set(), cast = [];
-  // Temporadas normales, All Stars y el All Stars a tu gusto
-  [...REGULAR_ES(), ...PLAYABLE_AS(), { id: "escustom" }].forEach((t) => {
+// All Winners: de cada temporada, la reina que la ganó contigo (o tu finalista, si esa ya está) y, de las que
+// aún no has ganado, su ganadora de verdad. Solo te puedes presentar con una de las tuyas.
+function allWinnersOrigin() {
+  const used = new Set(), out = {};
+  const add = (id, o) => { if (id && !used.has(id)) { used.add(id); out[id] = o; return true; } return false; };
+  [...REGULAR_ES(), ...PLAYABLE_AS(), { id: "escustom", name: "All Stars a tu gusto", cast: [] }].forEach((t) => {
+    const name = t.name || t.id;
     const c = storyCrown(t.id);
-    if (!c) return;
-    // Si la ganadora ya está (p. ej. ganó también una temporada normal), entra su runner-up
-    const pickId = !used.has(c.queen) ? c.queen : c.runner && !used.has(c.runner) ? c.runner : null;
-    if (pickId) { used.add(pickId); cast.push(pickId); }
+    if (c) { if (!add(c.queen, { season: name, how: "win" })) add(c.runner, { season: name, how: "runner" }); return; }
+    const cast = t.cast || [];
+    if (cast.length > 1 && !t.enEmision && !add(cast[cast.length - 1], { season: name, how: "canon" })) add(cast[cast.length - 2], { season: name, how: "canon" });
   });
-  return cast;
+  return out;
+}
+function allWinnersCast() {
+  const o = allWinnersOrigin();
+  // Si no has ganado ninguna, no hay All Winners (se ve bloqueado)
+  return Object.values(o).some((x) => x.how === "win") ? Object.keys(o) : [];
 }
 const ALL_QUEEN_IDS = () => [...new Set(TEMPORADAS_ES.flatMap((t) => t.cast || []))];
 function specialSeasons() {
@@ -206,7 +213,7 @@ function storyUnlock(s) {
   const need = { esas1: ["es3"], esas2: ["es5"] }[s.id];
   if (need) return need.every((x) => wins.includes(x)) ? { ok: true } : { ok: false, why: `Gana la ${nameOf(need[0])}` };
   if (s.id === "escustom") return reg.every((t) => wins.includes(t.id)) ? { ok: true } : { ok: false, why: "Gana todas las temporadas" };
-  if (s.id === "esaw") return [...reg, ...PLAYABLE_AS()].every((t) => wins.includes(t.id)) ? { ok: true } : { ok: false, why: "Gana todas las temporadas y los All Stars" };
+  if (s.id === "esaw") return wins.some((w) => w !== "esaw") ? { ok: true } : { ok: false, why: "Gana al menos una temporada" };
   return { ok: true };
 }
 const allSeasons = () => [

@@ -137,7 +137,8 @@ const UI = (() => {
         <span class="f-progress"><span class="progress"><span style="width:${(won / total) * 100}%"></span></span>
         <small>👑 ${won} de ${total} ${total === 1 ? "temporada ganada" : "temporadas ganadas"} ${mode === "story" ? "en historia" : "en arcade"}</small></span>`
         }`;
-      const fLock = mode === "story" && !f.comingSoon && f.seasons.length && !f.seasons.some((x) => storyUnlock({ ...x, franchise: f }).ok) ? storyUnlock({ ...f.seasons[0], franchise: f }).why : null;
+      // (con las especiales: el All Winners se abre con una sola temporada ganada)
+      const fLock = mode === "story" && !f.comingSoon && f.seasons.length && ![...f.seasons, ...list].some((x) => storyUnlock({ ...x, franchise: f }).ok) ? storyUnlock({ ...f.seasons[0], franchise: f }).why : null;
       if (fLock) { card.classList.add("locked"); card.insertAdjacentHTML("beforeend", `<span class="soon-badge">🔒 ${esc(fLock)}</span>`); }
       card.addEventListener("click", () => {
         if (f.comingSoon || fLock) {
@@ -252,6 +253,9 @@ const UI = (() => {
   // Arcade: en cada temporada empiezas con una reina; ganar con ella desbloquea la siguiente
   const arcadeUnlocked = (sid) => store.get("dftc-arcade-queens", {})[sid] || 1;
   const lockedArcade = (q) => mode === "arcade" && !!currentSeason && currentSeason.cast.indexOf(q.id) >= arcadeUnlocked(currentSeason.id);
+  // All Winners: te presentas con una de tus ganadoras (las demás son las ganadoras de las temporadas que no has ganado)
+  const lockedAW = (q) => mode === "story" && !!currentSeason && currentSeason.special === "winners" && typeof allWinnersOrigin === "function" && (allWinnersOrigin()[q.id] || {}).how !== "win";
+  const lockedQueen = (q) => lockedArcade(q) || lockedAW(q);
   function unlockNextQueen(season, queenId) {
     const all = store.get("dftc-arcade-queens", {});
     const have = all[season.id] || 1;
@@ -268,13 +272,17 @@ const UI = (() => {
     const cols = cast.length > 8 ? 5 : Math.min(cast.length, 4);
     grid.style.width = `${cols * (cast.length > 8 ? 150 : 200) + (cols - 1) * (cast.length > 8 ? 12 : 16)}px`;
     grid.classList.toggle("compact", cast.length > 8);
+    // All Winners: en cada reina, la temporada que ganó contigo
+    const origin = mode === "story" && currentSeason.special === "winners" && typeof allWinnersOrigin === "function" ? allWinnersOrigin() : {};
+    const originTxt = (q) => { const o = origin[q.id]; return o ? (o.how === "runner" ? `🥈 Finalista ${o.season}` : `👑 Ganadora ${o.season}`) : ""; };
     cast.forEach((q) => {
-      const locked = lockedArcade(q);
+      const locked = lockedQueen(q);
       const card = document.createElement("button");
       card.className = "queen-card" + (locked ? " locked" : "") + (selected && selected.id === q.id ? " selected" : "");
       card.dataset.id = q.id;
       card.innerHTML = `
         <span class="portrait" style="background-image:${portraitBg(q, currentSeason && currentSeason.id)}"></span>
+        ${originTxt(q) ? `<span class="aw-origin ${origin[q.id].how}" title="${origin[q.id].how === "win" ? "La ganaste con ella" : origin[q.id].how === "runner" ? "Fue tu finalista" : "Aún no has ganado esta temporada"}">${esc(originTxt(q))}</span>` : ""}
         <span class="name">${esc(q.name)}</span>
         <span class="check" aria-hidden="true">✓</span>`;
       card.addEventListener("click", () => selectQueen(q));
@@ -288,14 +296,14 @@ const UI = (() => {
   }
 
   function openDetails(q) {
-    const locked = lockedArcade(q);
+    const locked = lockedQueen(q);
     $("#det-portrait").style.backgroundImage = portraitBg(q, currentSeason && currentSeason.id);
     $("#det-portrait").classList.toggle("locked", locked);
     $("#det-name").textContent = q.name;
     const pos = currentSeason ? currentSeason.cast.indexOf(q.id) : -1;
     const n = currentSeason ? currentSeason.cast.length : 0;
     $("#det-place").textContent =
-      pos < 0 ? "" : mode === "story" ? "📖 En la historia, todo depende de ti" : currentSeason.enEmision ? "📺 Temporada en emisión" : pos === n - 1 ? "👑 Ganadora de la temporada" : `Puesto ${n - pos}º de ${n}`;
+      pos < 0 ? "" : mode === "story" && currentSeason.special === "winners" && typeof allWinnersOrigin === "function" && allWinnersOrigin()[q.id] ? (({ how, season }) => how === "win" ? `👑 Ganadora ${season}` : how === "runner" ? `🥈 Finalista ${season} · Solo puedes presentarte con una de tus ganadoras` : `👑 Ganadora ${season} · Gana esa temporada para presentarte con ella`)(allWinnersOrigin()[q.id]) : mode === "story" ? "📖 En la historia, todo depende de ti" : currentSeason.enEmision ? "📺 Temporada en emisión" : pos === n - 1 ? "👑 Ganadora de la temporada" : `Puesto ${n - pos}º de ${n}`;
     $("#det-quote").textContent = q.quote ? `“${q.quote}”` : "";
     $(".power-label").textContent = mode === "story" ? "🎭 Su carácter" : "✨ Poder especial";
     if (mode === "story" && Story.preview) {
@@ -351,7 +359,7 @@ const UI = (() => {
     openDetails(q);
     selected = q;
     grid.querySelectorAll(".queen-card").forEach((c) => c.classList.toggle("selected", c.dataset.id === q.id));
-    btnStart.disabled = lockedArcade(q);
+    btnStart.disabled = lockedQueen(q);
     Sound.stopAll();
     if (q.voice) Sound.voice(q.id);
   }
@@ -360,7 +368,7 @@ const UI = (() => {
   function startGame() {
     if (!selected || !currentSeason) return;
     if (mode === "story") return Story.start(selected, currentSeason);
-    if (lockedArcade(selected)) return;
+    if (lockedQueen(selected)) return;
     Achievements.unlock("debut");
     show("game");
     Game.start(Wardrobe.boosted(selected), currentSeason, showEnd);

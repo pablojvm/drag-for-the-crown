@@ -153,7 +153,8 @@ export function desbloqueo(id: string, wins: string[]): { ok: boolean; why?: str
   const need = ({ esas1: ["es3"], esas2: ["es5"] } as Record<string, string[]>)[id];
   if (need) return need.every((x) => wins.includes(x)) ? { ok: true } : { ok: false, why: `Gana la ${nombre(need[0])}` };
   if (id === "escustom") return reg.every((t) => wins.includes(t.id)) ? { ok: true } : { ok: false, why: "Gana todas las temporadas" };
-  if (id === "esaw") return [...reg, ...ALLSTARS()].every((t) => wins.includes(t.id)) ? { ok: true } : { ok: false, why: "Gana todas las temporadas y los All Stars" };
+  // All Winners: basta con haber ganado una temporada (te presentas con una de tus ganadoras)
+  if (id === "esaw") return wins.some((w) => w !== "esaw") ? { ok: true } : { ok: false, why: "Gana al menos una temporada" };
   return { ok: true };
 }
 /** All Winners: las ganadoras de las temporadas ya emitidas (si una repite, entra su finalista). */
