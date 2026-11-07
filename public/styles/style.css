@@ -2916,3 +2916,17 @@ body.portrait .mp-cs-cast { grid-template-columns: 1fr; text-align: center; just
 .queen-card .aw-origin { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 2; max-width: calc(100% - 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 4px 10px; border-radius: 999px; border-radius: 10px; background: linear-gradient(135deg, #ffe27a, #f5b700); color: #3b0d4f; font: 800 11px/1.2 Poppins, sans-serif; text-align: center; box-shadow: 0 6px 14px -8px rgba(0,0,0,.6); }
 #queen-grid.compact .queen-card .aw-origin { font-size: 10px; top: 6px; padding: 3px 8px; }
 .queen-card .aw-origin.canon, .queen-card .aw-origin.runner { background: rgba(43,18,56,.85); color: #fff; }
+/* Partida personalizada: al cambiar de dinámica, los colores se funden y el texto se cruza */
+@property --fc { syntax: "<color>"; inherits: true; initial-value: #ff3d9a; }
+@property --fc2 { syntax: "<color>"; inherits: true; initial-value: #ff9a3d; }
+.mp-customset { transition: --fc .6s var(--ease-out, ease), --fc2 .6s var(--ease-out, ease); }
+.mp-cs-hero { display: grid; align-content: center; }
+.mp-cs-in { grid-area: 1 / 1; transition: opacity .3s ease, transform .35s var(--ease-out, ease); }
+.mp-cs-in.in { opacity: 0; transform: translateX(18px); }
+.mp-cs-in.out { opacity: 0; transform: translateX(-14px); pointer-events: none; transition-duration: .16s, .2s; }
+.mp-cs-in.entra { transition-delay: .13s; }
+.mp-cs-in .mp-cs-big { transition: transform .5s var(--ease-spring, ease); }
+.mp-cs-in.in .mp-cs-big { transform: rotate(-20deg) scale(.7); }
+.mp-cs-in.out .mp-cs-big { transform: rotate(15deg) scale(.8); }
+.mp-cs-faces i { transition: background .6s ease; }
+@media (prefers-reduced-motion: reduce) { .mp-customset, .mp-cs-in, .mp-cs-in .mp-cs-big { transition: none; } }

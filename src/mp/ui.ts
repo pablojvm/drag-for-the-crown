@@ -173,24 +173,27 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
   let size = Math.max(6, Math.min(14, +(W.store?.get("dftc-mp-csize", 10) || 10)));
   // Unas caras de muestra para el reparto (cambian al abrir la pantalla)
   const muestra = (api().allQueens() as { id: string; season?: string }[]).map((x) => [Math.random(), x] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]).slice(0, 14);
-  const draw = (anim = false) => {
-    const L = FMT_LOOK[fmt];
-    const F = FORMATOS[fmt];
-    const caras = Array.from({ length: size }, (_, i) => i === 0
+  const facesHTML = (nuevas = -1) => Array.from({ length: size }, (_, i) => {
+    const cls = i >= nuevas && nuevas >= 0 ? " nueva" : "";
+    return i === 0
       ? `<i class="me" title="Tú"><span>Tú</span></i>`
-      : pick === "azar" ? `<i class="q" style="--d:${i}"><span>?</span></i>` : `<i style="--d:${i};background-image:url('${Q(muestra[(i - 1) % muestra.length].id, muestra[(i - 1) % muestra.length].season).photo}')"></i>`).join("");
-    body().innerHTML = `
-      <div class="story-card mp-entry mp-customset" style="--fc:${L.c};--fc2:${L.c2}">
-        <p class="eyebrow">✨ Partida personalizada · reinas de todas las temporadas</p>
-        <div class="mp-cs">
-          <div class="mp-cs-list" role="radiogroup" aria-label="Dinámica">${(Object.keys(FORMATOS) as Formato[]).map((k) => `<button type="button" role="radio" class="mp-fmt ${k === fmt ? "on" : ""}" data-f="${k}" aria-checked="${k === fmt}" style="--fc:${FMT_LOOK[k].c};--fc2:${FMT_LOOK[k].c2}"><span class="mp-fmt-ic">${FORMATOS[k].icon}</span><b>${esc(FORMATOS[k].n)}</b></button>`).join("")}</div>
-          <div class="mp-cs-hero ${anim ? "pop" : ""}">
-            <span class="mp-cs-big" aria-hidden="true">${F.icon}</span>
+      : pick === "azar" ? `<i class="q${cls}" style="--d:${nuevas >= 0 ? 0 : i}"><span>?</span></i>` : `<i class="${cls}" style="--d:${nuevas >= 0 ? 0 : i};background-image:url('${Q(muestra[(i - 1) % muestra.length].id, muestra[(i - 1) % muestra.length].season).photo}')"></i>`;
+  }).join("");
+  const heroHTML = () => {
+    const L = FMT_LOOK[fmt], F = FORMATOS[fmt];
+    return `<span class="mp-cs-big" aria-hidden="true">${F.icon}</span>
             <p class="mp-cs-kicker">La dinámica</p>
             <h3>${esc(F.n)}</h3>
             <p class="mp-cs-desc">${esc(F.d)}</p>
-            <ul class="mp-cs-rules">${L.reglas.map((r, i) => `<li style="--i:${i}">${esc(r)}</li>`).join("")}</ul>
-          </div>
+            <ul class="mp-cs-rules">${L.reglas.map((r, i) => `<li style="--i:${i}">${esc(r)}</li>`).join("")}</ul>`;
+  };
+  const L0 = FMT_LOOK[fmt], F0 = FORMATOS[fmt];
+  body().innerHTML = `
+      <div class="story-card mp-entry mp-customset" style="--fc:${L0.c};--fc2:${L0.c2}">
+        <p class="eyebrow">✨ Partida personalizada · reinas de todas las temporadas</p>
+        <div class="mp-cs">
+          <div class="mp-cs-list" role="radiogroup" aria-label="Dinámica">${(Object.keys(FORMATOS) as Formato[]).map((k) => `<button type="button" role="radio" class="mp-fmt ${k === fmt ? "on" : ""}" data-f="${k}" aria-checked="${k === fmt}" style="--fc:${FMT_LOOK[k].c};--fc2:${FMT_LOOK[k].c2}"><span class="mp-fmt-ic">${FORMATOS[k].icon}</span><b>${esc(FORMATOS[k].n)}</b></button>`).join("")}</div>
+          <div class="mp-cs-hero pop" aria-live="polite"><div class="mp-cs-in">${heroHTML()}</div></div>
         </div>
         <div class="mp-cs-cast">
           <div class="mp-cs-castinfo">
@@ -199,20 +202,68 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
               <button type="button" role="radio" data-p="azar" aria-checked="${pick === "azar"}">🎲 Al azar</button>
               <button type="button" role="radio" data-p="elegidas" aria-checked="${pick === "elegidas"}">👑 Las elijo yo</button>
             </div>
-            <small>${pick === "azar" ? "Las rivales se sortean al empezar." : "Las eliges en la sala, antes de empezar."}</small>
+            <small class="mp-cs-pickinfo"></small>
           </div>
-          <div class="mp-cs-faces" aria-hidden="true">${caras}</div>
-          <div class="mp-size"><span>Reinas</span><span><button type="button" class="round-btn" data-s="-1" aria-label="Menos reinas" ${size <= 6 ? "disabled" : ""}>−</button><b>${size}</b><button type="button" class="round-btn" data-s="1" aria-label="Más reinas" ${size >= 14 ? "disabled" : ""}>+</button></span></div>
+          <div class="mp-cs-faces" aria-hidden="true">${facesHTML()}</div>
+          <div class="mp-size"><span>Reinas</span><span><button type="button" class="round-btn" data-s="-1" aria-label="Menos reinas">−</button><b class="mp-cs-n">${size}</b><button type="button" class="round-btn" data-s="1" aria-label="Más reinas">+</button></span></div>
         </div>
-        <div class="row"><button class="btn btn-ghost" id="mp-cback">Volver</button><button class="btn btn-primary mp-cs-go" id="mp-ccreate">${F.icon} Crear sala</button></div>
+        <div class="row"><button class="btn btn-ghost" id="mp-cback">Volver</button><button class="btn btn-primary mp-cs-go" id="mp-ccreate"><span class="mp-cs-goic">${F0.icon}</span> Crear sala</button></div>
       </div>`;
-    document.querySelectorAll<HTMLElement>("[data-f]").forEach((b) => (b.onclick = () => { if (fmt === b.dataset.f) return; fmt = b.dataset.f as Formato; W.store?.set("dftc-mp-cfmt", fmt); draw(true); }));
-    document.querySelectorAll<HTMLElement>("[data-p]").forEach((b) => (b.onclick = () => { pick = b.dataset.p as any; W.store?.set("dftc-mp-cpick", pick); draw(); }));
-    document.querySelectorAll<HTMLElement>("[data-s]").forEach((b) => (b.onclick = () => { size = Math.max(6, Math.min(14, size + +b.dataset.s!)); W.store?.set("dftc-mp-csize", size); draw(); }));
-    $("#mp-cback")!.onclick = entry;
-    $("#mp-ccreate")!.onclick = () => room.create(name, CUSTOM, ritmo, { fmt, ia, custom: { pick, size, rivals: [] } });
+  const card = $(".mp-customset") as HTMLElement;
+  const hero = $(".mp-cs-hero") as HTMLElement;
+  const calma = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let swap = 0;
+  const cast = () => {
+    ($(".mp-cs-pickinfo") as HTMLElement).textContent = pick === "azar" ? "Las rivales se sortean al empezar." : "Las eliges en la sala, antes de empezar.";
+    document.querySelectorAll<HTMLElement>("[data-p]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.p === pick)));
+    ($(".mp-cs-n") as HTMLElement).textContent = String(size);
+    (document.querySelector('[data-s="-1"]') as HTMLButtonElement).disabled = size <= 6;
+    (document.querySelector('[data-s="1"]') as HTMLButtonElement).disabled = size >= 14;
   };
-  draw(true);
+  cast();
+  // Cambiar de dinámica: los colores se funden de una a otra y el texto se cruza, sin repintar la pantalla
+  const setFmt = (k: Formato) => {
+    if (k === fmt) return;
+    fmt = k;
+    W.store?.set("dftc-mp-cfmt", fmt);
+    const L = FMT_LOOK[fmt];
+    card.style.setProperty("--fc", L.c);
+    card.style.setProperty("--fc2", L.c2);
+    document.querySelectorAll<HTMLElement>("[data-f]").forEach((b) => { const on = b.dataset.f === fmt; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
+    ($(".mp-cs-goic") as HTMLElement).textContent = FORMATOS[fmt].icon;
+    const id = ++swap;
+    const viejo = hero.querySelector(".mp-cs-in:not(.out)") as HTMLElement | null;
+    const nuevo = document.createElement("div");
+    nuevo.className = "mp-cs-in in entra";
+    nuevo.innerHTML = heroHTML();
+    hero.querySelectorAll(".mp-cs-in.out").forEach((n) => n.remove());
+    if (viejo && !calma) {
+      viejo.classList.add("out");
+      setTimeout(() => viejo.remove(), 320);
+    } else viejo?.remove();
+    hero.appendChild(nuevo);
+    requestAnimationFrame(() => requestAnimationFrame(() => { if (id === swap) nuevo.classList.remove("in"); }));
+    setTimeout(() => nuevo.classList.remove("entra"), 700);
+  };
+  document.querySelectorAll<HTMLElement>("[data-f]").forEach((b) => (b.onclick = () => setFmt(b.dataset.f as Formato)));
+  document.querySelectorAll<HTMLElement>("[data-p]").forEach((b) => (b.onclick = () => {
+    if (pick === b.dataset.p) return;
+    pick = b.dataset.p as any; W.store?.set("dftc-mp-cpick", pick);
+    ($(".mp-cs-faces") as HTMLElement).innerHTML = facesHTML();
+    cast();
+  }));
+  document.querySelectorAll<HTMLElement>("[data-s]").forEach((b) => (b.onclick = () => {
+    const antes = size;
+    size = Math.max(6, Math.min(14, size + +b.dataset.s!));
+    if (size === antes) return;
+    W.store?.set("dftc-mp-csize", size);
+    const f = $(".mp-cs-faces") as HTMLElement;
+    if (size > antes) f.insertAdjacentHTML("beforeend", facesHTML(antes).split("</i>").slice(antes, size).map((x) => x + "</i>").join(""));
+    else f.lastElementChild?.remove();
+    cast();
+  }));
+  $("#mp-cback")!.onclick = entry;
+  $("#mp-ccreate")!.onclick = () => room.create(name, CUSTOM, ritmo, { fmt, ia, custom: { pick, size, rivals: [] } });
 }
 function savedHTML() {
   const list = Object.values(savedAll()).sort((a, b) => b.date - a.date);
