@@ -2819,12 +2819,6 @@ body.portrait .mp-saved-row { flex-direction: column; align-items: stretch; }
 /* ---------- Multijugador: dinámicas y partida personalizada ---------- */
 .mp-season.mp-custom { background: linear-gradient(135deg, #ff4fb0 0%, #8a3cff 55%, #2bb7ff 100%); }
 .mp-customset { text-align: center; }
-.mp-fmts { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin: 12px 0 16px; text-align: left; }
-.mp-fmt { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 16px; border: 2px solid transparent; background: rgba(255,255,255,.75); cursor: pointer; font: inherit; color: var(--ink); transition: transform .15s, border-color .15s; }
-.mp-fmt b { font: 800 15px/1.2 Poppins, sans-serif; }
-.mp-fmt small { color: var(--ink-soft); font-size: 12px; line-height: 1.35; }
-.mp-fmt:hover { transform: translateY(-2px); }
-.mp-fmt.on { border-color: var(--pink); background: #fff; box-shadow: 0 10px 24px -14px rgba(255,61,154,.7); }
 .mp-cfgrow { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
 .mp-size { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 700 13px/1.2 Poppins, sans-serif; color: var(--ink); }
 .mp-size span { display: flex; align-items: center; gap: 10px; }
@@ -2839,7 +2833,6 @@ body.portrait .mp-saved-row { flex-direction: column; align-items: stretch; }
 .mp-status p { margin: 2px 0; font-weight: 600; }
 .mp-gifts { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
 .mp-stars { margin-top: 10px; }
-body.portrait .mp-fmts { grid-template-columns: 1fr 1fr; }
 .mp-stars span { min-width: 84px; padding: 6px 8px; font-size: 12px; }
 .mp-stars span i { width: 34px; height: 34px; }
 /* Multijugador: cajitas de la reina de la suerte con el nombre de quien la ha cogido */
@@ -2866,3 +2859,55 @@ html.dftc-embed #bg, html.dftc-embed #story-set { display: none !important; }
 .rp-slot em { font-style: italic; opacity: .7; }
 @keyframes rp-land { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .rp-draw .rp-pair, .rp-slot.done { animation: none; } }
+
+/* ---------- Partida personalizada: la dinámica, en grande ---------- */
+.mp-customset { --fc: #ff3d9a; --fc2: #ff9a3d; width: 1120px; }
+.mp-cs { display: grid; grid-template-columns: 300px 1fr; gap: 18px; margin: 10px 0 16px; text-align: left; }
+.mp-cs-list { display: flex; flex-direction: column; gap: 8px; }
+.mp-fmt { position: relative; display: flex; align-items: center; gap: 12px; padding: 9px 14px 9px 9px; border-radius: 16px; border: 2px solid transparent; background: rgba(255,255,255,.72); cursor: pointer; font: 800 15px/1.2 Poppins, sans-serif; color: var(--ink); text-align: left; transition: transform .2s var(--ease-spring, ease), background .2s, border-color .2s, box-shadow .2s; }
+.mp-fmt-ic { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 12px; font-size: 22px; background: linear-gradient(135deg, var(--fc), var(--fc2)); box-shadow: inset 0 -3px 0 rgba(0,0,0,.15); }
+.mp-fmt:hover { transform: translateX(4px); background: #fff; }
+.mp-fmt.on { border-color: var(--fc); background: #fff; box-shadow: 0 12px 26px -16px var(--fc); transform: translateX(8px); }
+.mp-fmt.on::after { content: ""; position: absolute; right: -11px; top: 50%; width: 14px; height: 14px; background: #fff; border-right: 2px solid var(--fc); border-top: 2px solid var(--fc); transform: translateY(-50%) rotate(45deg); }
+.mp-cs-hero { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; padding: 30px 34px; border-radius: 26px; color: #fff; background: radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,.28), transparent 55%), linear-gradient(135deg, var(--fc), var(--fc2)); box-shadow: 0 24px 50px -26px var(--fc), inset 0 1px 0 rgba(255,255,255,.35); }
+.mp-cs-hero.pop { animation: mp-cs-pop .45s var(--ease-out, ease) both; }
+.mp-cs-hero.pop .mp-cs-big { animation: mp-cs-spin .6s var(--ease-spring, ease) both; }
+.mp-cs-big { position: absolute; right: 18px; bottom: -30px; font-size: 210px; line-height: 1; opacity: .32; filter: drop-shadow(0 10px 20px rgba(0,0,0,.25)); pointer-events: none; }
+.mp-cs-kicker { margin: 0 0 4px; font: 800 12px/1 Poppins, sans-serif; letter-spacing: .2em; text-transform: uppercase; opacity: .85; }
+.mp-cs-hero h3 { margin: 0 0 10px; font: 400 46px/1 Bungee, sans-serif; color: #fff; text-shadow: 3px 3px 0 rgba(0,0,0,.18); max-width: 75%; }
+.mp-cs-desc { margin: 0 0 16px; font-size: 16px; line-height: 1.45; max-width: 70%; }
+.mp-cs-rules { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; max-width: 70%; }
+.mp-cs-rules li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,.18); backdrop-filter: blur(4px); font: 700 14px/1.3 Poppins, sans-serif; animation: mp-cs-rise .4s var(--ease-out, ease) both; animation-delay: calc(var(--i) * 70ms + 120ms); }
+.mp-cs-rules li::before { content: "✦"; color: #fff3b0; }
+.mp-cs-cast { display: grid; grid-template-columns: 210px 1fr auto; align-items: center; gap: 18px; margin: 0 0 16px; padding: 14px 18px; border-radius: 20px; background: rgba(255,255,255,.7); text-align: left; }
+.mp-cs-castinfo { display: flex; flex-direction: column; gap: 6px; }
+.mp-cs-castinfo b { font: 800 15px/1 Poppins, sans-serif; color: var(--ink); }
+.mp-cs-castinfo small { font-size: 12px; color: var(--ink-soft); }
+.mp-cs-seg { display: inline-flex; padding: 3px; border-radius: 999px; background: rgba(59,13,79,.08); }
+.mp-cs-seg button { padding: 7px 12px; border: 0; border-radius: 999px; background: transparent; font: 700 13px/1 Poppins, sans-serif; color: var(--ink); cursor: pointer; transition: background .2s, color .2s; }
+.mp-cs-seg button[aria-checked="true"] { background: var(--fc); color: #fff; box-shadow: 0 6px 14px -8px var(--fc); }
+.mp-cs-faces { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding-left: 12px; }
+.mp-cs-faces i { display: grid; place-items: center; width: 46px; height: 46px; margin-left: -12px; border-radius: 50%; border: 3px solid #fff; background: #e9d7ef center top / cover; box-shadow: 0 6px 12px -8px rgba(60,0,60,.6); font-style: normal; animation: mp-cs-face .35s var(--ease-spring, ease) both; animation-delay: calc(var(--d, 0) * 25ms); }
+.mp-cs-faces i span { font: 800 13px/1 Poppins, sans-serif; color: var(--ink); }
+.mp-cs-faces i.q { background: linear-gradient(135deg, #f6e7f4, #e2d3ee); }
+.mp-cs-faces i.q span { font-size: 18px; color: var(--ink-soft); }
+.mp-cs-faces i.me { background: linear-gradient(135deg, var(--fc), var(--fc2)); z-index: 1; }
+.mp-cs-faces i.me span { color: #fff; }
+.mp-customset .mp-size { flex-direction: column; }
+.mp-customset .round-btn:disabled { opacity: .35; cursor: default; }
+.mp-cs-go { background: linear-gradient(135deg, var(--fc), var(--fc2)) !important; }
+@keyframes mp-cs-pop { from { opacity: .4; transform: scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes mp-cs-spin { from { transform: rotate(-25deg) scale(.6); } to { transform: none; } }
+@keyframes mp-cs-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes mp-cs-face { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+body.portrait .mp-customset { width: auto; }
+body.portrait .mp-cs { grid-template-columns: 1fr; }
+body.portrait .mp-cs-list { display: grid; grid-template-columns: 1fr 1fr; }
+body.portrait .mp-fmt.on::after { display: none; }
+body.portrait .mp-cs-cast { grid-template-columns: 1fr; text-align: center; justify-items: center; }
+@media (prefers-reduced-motion: reduce) { .mp-cs-hero.pop, .mp-cs-hero.pop .mp-cs-big, .mp-cs-rules li, .mp-cs-faces i { animation: none; } }
+.mp-customset .mp-cs-hero h3 { color: #fff; background: none; -webkit-text-fill-color: #fff; text-shadow: 3px 3px 0 rgba(0,0,0,.2); }
+.mp-customset .mp-cs-hero p, .mp-customset .mp-cs-hero li { color: #fff; }
+.mp-customset .mp-cs-cast { grid-template-columns: 270px 1fr auto; }
+.mp-cs-seg button { white-space: nowrap; }
+.mp-cs-seg { align-self: flex-start; width: fit-content; }

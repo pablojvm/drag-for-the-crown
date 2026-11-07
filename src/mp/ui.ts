@@ -157,32 +157,62 @@ function entry() {
   document.querySelectorAll<HTMLElement>("[data-forget]").forEach((b) => (b.onclick = () => ask("La partida guardada se borrará de este dispositivo.", { title: "¿Borrar la partida guardada?", ok: "Borrar", icon: "🗑️", danger: true }).then((y) => { if (y) { savedPut(b.dataset.forget!, null); entry(); } })));
 }
 // Partida personalizada: dinámica, cuántas reinas y cómo se eligen las rivales
+// Cómo es cada dinámica: su color y tres claves para entenderla de un vistazo
+const FMT_LOOK: Record<Formato, { c: string; c2: string; reglas: string[] }> = {
+  normal: { c: "#ff3d9a", c2: "#ff9a3d", reglas: ["Reto y pasarela cada semana", "Las dos peores, al lip sync", "La que pierde se va a casa"] },
+  allstars: { c: "#e0245e", c2: "#7a1fa2", reglas: ["Las dos mejores bailan por el poder", "Cada una guarda en secreto su pintalabios", "La ganadora manda a casa a una del bottom"] },
+  winners: { c: "#f5b700", c2: "#ff6b3d", reglas: ["Aquí no se va nadie", "El top 2 baila por la estrella y bloquea", "Las 4 con más estrellas, a la final"] },
+  repesca: { c: "#2bb8d6", c2: "#6a5cff", reglas: ["Cuando quedan siete, vuelven las eliminadas", "Monólogo por parejas", "Lip sync a tres bandas: se salva una"] },
+  suerte: { c: "#2fbf71", c2: "#00a6a6", reglas: ["Una cajita esconde la reina de la suerte", "Salva a quien quiera, una sola vez", "Nadie sabe quién la tiene"] },
+  corazon: { c: "#ff4d6d", c2: "#c2127f", reglas: ["Cada eliminada deja medio corazón", "Con uno entero, salvas a una del bottom", "Los corazones se destapan en el veredicto"] },
+  moneda: { c: "#c9a227", c2: "#8a5a00", reglas: ["Bottom de tres cada semana", "Cara: las salvadas votan a quién salvar", "Cruz: votan a quién condenar"] },
+};
 function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
   let fmt: Formato = (W.store?.get("dftc-mp-cfmt", "allstars") as Formato) || "allstars";
   let pick: "elegidas" | "azar" = W.store?.get("dftc-mp-cpick", "azar") === "elegidas" ? "elegidas" : "azar";
   let size = Math.max(6, Math.min(14, +(W.store?.get("dftc-mp-csize", 10) || 10)));
-  const draw = () => {
+  // Unas caras de muestra para el reparto (cambian al abrir la pantalla)
+  const muestra = (api().allQueens() as { id: string; season?: string }[]).map((x) => [Math.random(), x] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]).slice(0, 14);
+  const draw = (anim = false) => {
+    const L = FMT_LOOK[fmt];
+    const F = FORMATOS[fmt];
+    const caras = Array.from({ length: size }, (_, i) => i === 0
+      ? `<i class="me" title="Tú"><span>Tú</span></i>`
+      : pick === "azar" ? `<i class="q" style="--d:${i}"><span>?</span></i>` : `<i style="--d:${i};background-image:url('${Q(muestra[(i - 1) % muestra.length].id, muestra[(i - 1) % muestra.length].season).photo}')"></i>`).join("");
     body().innerHTML = `
-      <div class="story-card mp-entry mp-customset">
-        <p class="eyebrow">✨ Partida personalizada</p>
-        <h3>Elige la dinámica</h3>
-        <div class="mp-fmts">${(Object.keys(FORMATOS) as Formato[]).map((k) => `<button type="button" class="mp-fmt ${k === fmt ? "on" : ""}" data-f="${k}" aria-pressed="${k === fmt}"><b>${FORMATOS[k].icon} ${esc(FORMATOS[k].n)}</b><small>${esc(FORMATOS[k].d)}</small></button>`).join("")}</div>
-        <div class="mp-cfgrow">
-          <div class="mp-ritmo" role="radiogroup" aria-label="Rivales">
-            <button type="button" role="radio" data-p="azar" aria-checked="${pick === "azar"}"><b>🎲 Rivales al azar</b><small>Se sortean al empezar</small></button>
-            <button type="button" role="radio" data-p="elegidas" aria-checked="${pick === "elegidas"}"><b>👑 Las elijo yo</b><small>En la sala, antes de empezar</small></button>
+      <div class="story-card mp-entry mp-customset" style="--fc:${L.c};--fc2:${L.c2}">
+        <p class="eyebrow">✨ Partida personalizada · reinas de todas las temporadas</p>
+        <div class="mp-cs">
+          <div class="mp-cs-list" role="radiogroup" aria-label="Dinámica">${(Object.keys(FORMATOS) as Formato[]).map((k) => `<button type="button" role="radio" class="mp-fmt ${k === fmt ? "on" : ""}" data-f="${k}" aria-checked="${k === fmt}" style="--fc:${FMT_LOOK[k].c};--fc2:${FMT_LOOK[k].c2}"><span class="mp-fmt-ic">${FORMATOS[k].icon}</span><b>${esc(FORMATOS[k].n)}</b></button>`).join("")}</div>
+          <div class="mp-cs-hero ${anim ? "pop" : ""}">
+            <span class="mp-cs-big" aria-hidden="true">${F.icon}</span>
+            <p class="mp-cs-kicker">La dinámica</p>
+            <h3>${esc(F.n)}</h3>
+            <p class="mp-cs-desc">${esc(F.d)}</p>
+            <ul class="mp-cs-rules">${L.reglas.map((r, i) => `<li style="--i:${i}">${esc(r)}</li>`).join("")}</ul>
           </div>
-          <label class="mp-size">Reinas en la temporada <span><button type="button" class="round-btn" data-s="-1" aria-label="Menos">−</button><b>${size}</b><button type="button" class="round-btn" data-s="1" aria-label="Más">+</button></span></label>
         </div>
-        <div class="row"><button class="btn btn-ghost" id="mp-cback">Volver</button><button class="btn btn-primary" id="mp-ccreate">Crear sala</button></div>
+        <div class="mp-cs-cast">
+          <div class="mp-cs-castinfo">
+            <b>El reparto</b>
+            <div class="mp-cs-seg" role="radiogroup" aria-label="Rivales">
+              <button type="button" role="radio" data-p="azar" aria-checked="${pick === "azar"}">🎲 Al azar</button>
+              <button type="button" role="radio" data-p="elegidas" aria-checked="${pick === "elegidas"}">👑 Las elijo yo</button>
+            </div>
+            <small>${pick === "azar" ? "Las rivales se sortean al empezar." : "Las eliges en la sala, antes de empezar."}</small>
+          </div>
+          <div class="mp-cs-faces" aria-hidden="true">${caras}</div>
+          <div class="mp-size"><span>Reinas</span><span><button type="button" class="round-btn" data-s="-1" aria-label="Menos reinas" ${size <= 6 ? "disabled" : ""}>−</button><b>${size}</b><button type="button" class="round-btn" data-s="1" aria-label="Más reinas" ${size >= 14 ? "disabled" : ""}>+</button></span></div>
+        </div>
+        <div class="row"><button class="btn btn-ghost" id="mp-cback">Volver</button><button class="btn btn-primary mp-cs-go" id="mp-ccreate">${F.icon} Crear sala</button></div>
       </div>`;
-    document.querySelectorAll<HTMLElement>("[data-f]").forEach((b) => (b.onclick = () => { fmt = b.dataset.f as Formato; W.store?.set("dftc-mp-cfmt", fmt); draw(); }));
+    document.querySelectorAll<HTMLElement>("[data-f]").forEach((b) => (b.onclick = () => { if (fmt === b.dataset.f) return; fmt = b.dataset.f as Formato; W.store?.set("dftc-mp-cfmt", fmt); draw(true); }));
     document.querySelectorAll<HTMLElement>("[data-p]").forEach((b) => (b.onclick = () => { pick = b.dataset.p as any; W.store?.set("dftc-mp-cpick", pick); draw(); }));
     document.querySelectorAll<HTMLElement>("[data-s]").forEach((b) => (b.onclick = () => { size = Math.max(6, Math.min(14, size + +b.dataset.s!)); W.store?.set("dftc-mp-csize", size); draw(); }));
     $("#mp-cback")!.onclick = entry;
     $("#mp-ccreate")!.onclick = () => room.create(name, CUSTOM, ritmo, { fmt, ia, custom: { pick, size, rivals: [] } });
   };
-  draw();
+  draw(true);
 }
 function savedHTML() {
   const list = Object.values(savedAll()).sort((a, b) => b.date - a.date);
