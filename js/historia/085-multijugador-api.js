@@ -45,7 +45,7 @@
     maletas(el, cats, budget, cb) {
       S.runwayPlan = cats.slice();
       S.ballPlan = [];
-      // Tu armario del multijugador se queda de una partida a otra y se paga con lentejuelas;
+      // Tu armario del multijugador se queda de una partida a otra y se paga con lipsticks;
       // si no te llega para lo básico, producción pone lo que falta solo para esta sala
       if (!S.mpGrantDone) { S.mpGrantDone = true; S.mpGrant = neededBudget(cats); }
       S.prepLooks = S.prepLooks || {};
@@ -63,7 +63,7 @@
             <p class="eyebrow">📞 Los Javis · tus pasarelas</p>
             <h3>${cats.length} looks que preparar</h3>
             <div class="sched">${cats.map((c, i) => { const t = themeOf(c); return `<div class="sched-ep" style="--i:${i}"><b>👠 Pasarela</b><span>${esc(c)}</span>${t ? `<small>${esc(t.d)}</small>` : ""}</div>`; }).join("")}</div>
-            <p class="gold">${S.mpGrant ? `✨ Producción pone <b>${S.mpGrant.toLocaleString("es-ES")} lentejuelas</b> para lo que te falta (solo valen en esta sala).` : "✨ Con tu armario y tus lentejuelas te llega: producción no pone nada esta vez."} Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
+            <p class="gold">${S.mpGrant ? `💄 Producción pone <b>${euros(S.mpGrant)}</b> para lo que te falta (solo valen en esta sala).` : "💄 Con tu armario y tus lipsticks te llega: producción no pone nada esta vez."} Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
             <p class="muted">👗 Tu armario del multijugador es aparte del de la historia y se guarda para la próxima partida.</p>
             <button class="btn btn-primary" id="mp-maletas-go">👗 Preparar mis looks</button>
           </div>`;
@@ -182,8 +182,8 @@
       const m = DFTC.lsMove({ kind, emote: emoteIdx, clim, energy, lastTag, attrs: attrsOf(S.queen), roll: Math.random() });
       return { tag: m.tag, imp: m.imp, energy: m.energy, msg: m.msg };
     },
-    /** Premio del multijugador: lentejuelas al monedero de siempre. */
-    reward(n, why) { const got = Wallet.add(n); if (got) Toast.show(`✨ +${got} lentejuelas`, why); return got; },
+    /** Premio del multijugador: lipsticks a su monedero. */
+    reward(n, why) { const got = Wallet.add(n); if (got) Toast.show(`💄 +${DFTC.cantidad(got, "mp")}`, why); return got; },
     /** Nota final de la semana de la jugadora (el dado manda, su juego lo mueve). */
     finalScore(tipo, raw, walk, live) {
       S.curTipo = tipo;

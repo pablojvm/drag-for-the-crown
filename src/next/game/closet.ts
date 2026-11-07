@@ -1,5 +1,8 @@
-// Tu armario y tu dinero: el mismo que el del modo historia de siempre (se guarda en "dftc-closet" en este navegador).
+// Tu armario y tus rudollars: los mismos que los del modo historia (se guardan en "dftc-closet" en este navegador).
+// También las mejoras de las reinas del arcade ("dftc-upgrades"), que se pagan con rudollars.
 import { priceOf, prendaById } from "../../core/armario";
+import { cantidad } from "../../core/monedas";
+import type { ArcadeQueen } from "./data";
 import { touch } from "./cuenta";
 
 export interface Closet { money: number; owned: Record<string, number> }
@@ -32,4 +35,31 @@ export function buy(id: string): boolean {
   put(c);
   return true;
 }
-export const euros = (n: number) => `${Math.round(n).toLocaleString("es-ES")} €`;
+export const euros = (n: number) => cantidad(n);
+export const rudollars = () => getCloset().money;
+
+type Stat = keyof ArcadeQueen["stats"];
+const UP = "dftc-upgrades";
+const ups = (): Record<string, Partial<Record<Stat, number>>> => { try { return JSON.parse(localStorage.getItem(UP) || "{}") || {}; } catch { return {}; } };
+/** Las estadísticas de la reina con sus mejoras (hasta 5). */
+export function boosted(q: ArcadeQueen): ArcadeQueen {
+  const u = ups()[q.id] || {};
+  const st = { ...q.stats };
+  (Object.keys(st) as Stat[]).forEach((k) => (st[k] = Math.min(5, st[k] + (u[k] || 0))));
+  return { ...q, stats: st };
+}
+export const upgradeCost = (q: ArcadeQueen, k: Stat) => 120 + boosted(q).stats[k] * 80;
+export const canUpgrade = (q: ArcadeQueen, k: Stat) => boosted(q).stats[k] < 5;
+/** +1 a una estadística, con rudollars (false si no llega o ya está al máximo). */
+export function upgrade(q: ArcadeQueen, k: Stat): boolean {
+  if (!canUpgrade(q, k)) return false;
+  const p = upgradeCost(q, k);
+  const c = getCloset();
+  if (c.money < p) return false;
+  c.money -= p;
+  put(c);
+  const all = ups();
+  all[q.id] = { ...(all[q.id] || {}), [k]: ((all[q.id] || {})[k] || 0) + 1 };
+  try { localStorage.setItem(UP, JSON.stringify(all)); } catch { /* sin almacenamiento */ }
+  return true;
+}

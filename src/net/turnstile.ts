@@ -20,7 +20,7 @@ function load(): Promise<any> {
 }
 
 /** Un token de Turnstile (o null si no se puede). Normalmente no se ve nada; si Cloudflare duda, sale la casilla. */
-export async function turnstileToken(timeoutMs = 20000): Promise<string | null> {
+export async function turnstileToken(timeoutMs = 20000, visible = false): Promise<string | null> {
   if (!SITE_KEY || typeof document === "undefined") return null;
   // Las pruebas automáticas no pasan por Turnstile (en Supabase se puede dejar sin activar para ellas)
   if (navigator.webdriver) return null;
@@ -42,10 +42,10 @@ export async function turnstileToken(timeoutMs = 20000): Promise<string | null> 
     try {
       id = ts.render(box, {
         sitekey: SITE_KEY,
-        appearance: "interaction-only",
+        appearance: visible ? "always" : "interaction-only",
         language: "es",
         callback: (t: string) => end(t),
-        "error-callback": () => end(null),
+        "error-callback": (code: string) => { console.warn("[turnstile] error", code); end(null); },
         "expired-callback": () => end(null),
       });
     } catch { end(null); }

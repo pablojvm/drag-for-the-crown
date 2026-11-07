@@ -495,3 +495,7 @@ body:has(.nx-dlg) .nx-ts-panel { visibility: hidden; }
 .nx-historia iframe.on { visibility: visible; }
 .nx-historia-wait { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; }
 .nx-historia-wait h2 { margin: 0; font: 400 clamp(26px, 5vw, 40px)/1 Bungee, sans-serif; color: var(--nx-pink); }
+/* Mejoras de la reina con rudollars */
+.nx-up { margin-top: 4px; padding: 3px 8px; border: 0; border-radius: 999px; background: linear-gradient(135deg, #ff3d9a, #ff9a3d); color: #fff; font: 700 11px/1.2 Poppins, sans-serif; cursor: pointer; white-space: nowrap; }
+.nx-up:disabled { opacity: .4; cursor: default; }
+.nx-up:not(:disabled):hover { transform: translateY(-1px); }

@@ -1,9 +1,49 @@
 // ---------------------------------------------------------------------------
-// Extras: lentejuelas (moneda), armario (mejoras de estadísticas), logros,
+// Extras: monedas (rudollars en el modo normal, lipsticks en el multijugador), mejoras de reina, logros,
 // avisos, confeti, telón y música sintetizada propia.
 // ---------------------------------------------------------------------------
 
-// ------------------------------ Lentejuelas --------------------------------
+// ------------------------------ Monedas --------------------------------
+// Rudollars (modo normal): van con tu armario de la historia ("dftc-closet").
+const Rudollars = {
+  get balance() {
+    return Math.max(0, Math.round((store.get("dftc-closet", { money: 0, owned: {} }) || {}).money || 0));
+  },
+  add(n) {
+    n = Math.round(n);
+    if (!n) return 0;
+    const c = store.get("dftc-closet", { money: 0, owned: {} });
+    c.money = Math.max(0, Math.round((c.money || 0) + n));
+    store.set("dftc-closet", c);
+    Rudollars.refresh();
+    return n;
+  },
+  spend(n) {
+    if (this.balance < n) return false;
+    this.add(-n);
+    return true;
+  },
+  refresh() {
+    document.querySelectorAll(".rudollars").forEach((el) => (el.textContent = this.balance.toLocaleString("es-ES")));
+  },
+};
+// Mejoras de reina en la historia: +1 a un atributo (hasta 2 por atributo), con rudollars
+const Mejoras = {
+  all() { return store.get("dftc-mejoras", {}); },
+  of(id) { return this.all()[id] || {}; },
+  cost(id, k, valor) { return DFTC.costeMejora(this.of(id)[k] || 0, valor); },
+  can(id, k, valor) { return DFTC.puedeMejorar(this.of(id)[k] || 0, valor); },
+  buy(id, k, valor) {
+    if (!this.can(id, k, valor) || !Rudollars.spend(this.cost(id, k, valor))) return false;
+    const all = this.all();
+    all[id] = { ...(all[id] || {}), [k]: ((all[id] || {})[k] || 0) + 1 };
+    store.set("dftc-mejoras", all);
+    Achievements.unlock("armario");
+    return true;
+  },
+  apply(id, attrs) { return DFTC.conMejoras(attrs, this.of(id)); },
+};
+// Lipsticks (multijugador): el monedero donde antes iban las lentejuelas
 const Wallet = {
   get balance() {
     return store.get("dftc-sequins", 0);
@@ -49,7 +89,7 @@ const Wardrobe = {
   },
   upgrade(q, k) {
     if (!this.canUpgrade(q, k)) return false;
-    if (!Wallet.spend(this.cost(q, k))) return false;
+    if (!Rudollars.spend(this.cost(q, k))) return false;
     const all = this.all();
     all[q.id] = { ...(all[q.id] || {}), [k]: ((all[q.id] || {})[k] || 0) + 1 };
     store.set("dftc-upgrades", all);
@@ -76,8 +116,8 @@ const Achievements = {
     const l = LOGROS.find((x) => x.id === id);
     if (!l || this.has(id)) return;
     store.set("dftc-achievements", { ...this.done, [id]: new Date().toISOString() });
-    Wallet.add(l.reward);
-    Toast.show(`${l.icon} Logro: ${l.name}`, `+${l.reward} lentejuelas`);
+    Rudollars.add(l.reward);
+    Toast.show(`${l.icon} Logro: ${l.name}`, `💵 +${DFTC.cantidad(l.reward)}`);
     Music.sfx("achievement");
   },
 };

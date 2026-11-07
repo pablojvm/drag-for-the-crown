@@ -11,6 +11,7 @@ export * from "./week";
 export * from "./finales";
 export * from "./dinamicas";
 export * from "./lipsync";
+export * from "./monedas";
 export * from "./runway";
 export * from "./temas";
 export * from "./guion";

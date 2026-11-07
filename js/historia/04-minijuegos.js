@@ -883,12 +883,13 @@
   // Ficha de modo historia para la pantalla de elegir reina
   function preview(q) {
     const t = traitsOf(q);
-    return { attrs: baseAttrs(q, Wardrobe.statsOf(q)), names: ATTR_NAMES, car: RASGOS.car[t.car], fort: RASGOS.fort[t.fort], titles: Nem.titles(q.id) };
+    return { attrs: Mejoras.apply(q.id, baseAttrs(q, Wardrobe.statsOf(q))), names: ATTR_NAMES, car: RASGOS.car[t.car], fort: RASGOS.fort[t.fort], titles: Nem.titles(q.id) };
   }
   function attrsOf(q) {
     const up = q === S.queen ? Wardrobe.statsOf(q) : q.stats;
     const st = q === S.queen ? Object.fromEntries(Object.keys(q.stats).map((k) => [k, Math.min(up[k], q.stats[k] + 1)])) : q.stats;
-    const a = baseAttrs(q, st);
+    // Tu reina, con las mejoras que le has comprado con rudollars (en el multijugador no cuentan: es otra economía)
+    const a = q === S.queen && !S.mp ? Mejoras.apply(q.id, baseAttrs(q, st)) : baseAttrs(q, st);
     if (q === S.queen) Object.entries(S.attrGrowth || {}).forEach(([k, v]) => (a[k] = clamp(a[k] + v, 1, 10)));
     return a;
   }

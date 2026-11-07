@@ -50,7 +50,14 @@ class Cloud {
       if (!this.session) {
         // Antes de crear la invitada, Cloudflare Turnstile comprueba que es una persona (src/net/turnstile.ts)
         const captchaToken = await turnstileToken();
-        const r = await this.sb.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined);
+        let r = await this.sb.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined);
+        // Si Supabase no da por buena la comprobación, otra vez con la casilla a la vista (y se avisa en la consola)
+        if (!r.data.session && !navigator.webdriver) {
+          console.warn("[nube] no se ha podido entrar como invitada", r.error?.message || "", captchaToken ? "(con token)" : "(sin token de Turnstile)");
+          const t2 = await turnstileToken(60000, true);
+          if (t2) r = await this.sb.auth.signInAnonymously({ options: { captchaToken: t2 } });
+          if (!r.data.session) console.warn("[nube] sigue sin entrar", r.error?.message || "");
+        }
         this.session = r.data.session;
       }
       this.sb.auth.onAuthStateChange((_e, s) => { this.session = s; });

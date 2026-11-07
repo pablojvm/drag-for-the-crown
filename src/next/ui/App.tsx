@@ -15,6 +15,8 @@ import { openHistoria, hasHistoria, backFromScene } from "../game/historia";
 import { HistoriaUI } from "./Historia";
 import { MenuBar } from "./Cuenta";
 import { unlockMusic } from "../game/music";
+import { boosted, canUpgrade, upgradeCost, upgrade } from "../game/closet";
+import { rudollars, toast } from "../game/logros";
 
 export function App() {
   const host = useRef<HTMLDivElement>(null);
@@ -59,8 +61,12 @@ function Loading() {
   );
 }
 
-function Stat({ label, v }: { label: string; v: number }) {
-  return <span className="nx-stat"><small>{label}</small><b>{"★".repeat(v)}<em>{"★".repeat(5 - v)}</em></b></span>;
+function Stat({ label, v, up }: { label: string; v: number; up?: { cost: number; ok: boolean; buy: () => void } | null }) {
+  return (
+    <span className="nx-stat"><small>{label}</small><b>{"★".repeat(v)}<em>{"★".repeat(5 - v)}</em></b>
+      {up && <button className="nx-up" disabled={!up.ok} title={up.ok ? "Mejorar con rudollars" : "Te faltan rudollars"} onClick={up.buy}>+1 · {up.cost.toLocaleString("es-ES")} 💵</button>}
+    </span>
+  );
 }
 
 // Portada como la de la versión clásica: el logo y un carrusel con los modos de juego
@@ -141,7 +147,12 @@ function ArcadeMenu({ onBack }: { onBack: () => void }) {
   const best = useGame((s) => s.best);
   const start = useGame((s) => s.queenId);
   const [pick, setPick] = useState(ARCADE_QUEENS.some((x) => x.id === start) ? start : ARCADE_QUEENS[0].id);
-  const q = ARCADE_QUEENS.find((x) => x.id === pick)!;
+  const base = ARCADE_QUEENS.find((x) => x.id === pick)!;
+  const [, refresh] = useState(0);
+  const q = boosted(base);
+  const money = rudollars();
+  // Mejoras con rudollars: +1 a una estadística (hasta 5)
+  const up = (k: keyof typeof q.stats) => canUpgrade(base, k) ? { cost: upgradeCost(base, k), ok: money >= upgradeCost(base, k), buy: () => { if (upgrade(base, k)) { toast("💪 ¡Mejorada!", `${base.name} +1`); refresh((n) => n + 1); } } } : null;
   return (
     <div className="nx-menu">
       <div className="nx-panel">
@@ -157,9 +168,10 @@ function ArcadeMenu({ onBack }: { onBack: () => void }) {
         </div>
         <p className="nx-power"><b>✨ {q.power.name}:</b> {q.power.desc}</p>
         <div className="nx-stats">
-          <Stat label="Velocidad" v={q.stats.speed} /><Stat label="Cadencia" v={q.stats.rate} /><Stat label="Poder" v={q.stats.power} />
-          <span className="nx-stat"><small>Vidas</small><b>{"❤️".repeat(startLives(q))}</b></span>
+          <Stat label="Velocidad" v={q.stats.speed} up={up("speed")} /><Stat label="Cadencia" v={q.stats.rate} up={up("rate")} /><Stat label="Poder" v={q.stats.power} up={up("power")} />
+          <span className="nx-stat"><small>Vidas</small><b>{"❤️".repeat(startLives(q))}</b>{up("lives") && <button className="nx-up" disabled={!up("lives")!.ok} onClick={up("lives")!.buy}>+1 · {up("lives")!.cost.toLocaleString("es-ES")} 💵</button>}</span>
         </div>
+        <p className="nx-muted">💵 Tienes {money.toLocaleString("es-ES")} rudollars. Los ganas jugando (arcade, historia y logros) y te sirven para el armario y para mejorar a tus reinas.</p>
         <div className="nx-row">
           <button className="nx-btn" onClick={() => send({ type: "start", queenId: pick })}>Arcade</button>
           <button className="nx-btn ghost" onClick={() => send({ type: "lipsync", queenId: pick })}>💋 Lip sync</button>

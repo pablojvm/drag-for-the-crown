@@ -2,6 +2,8 @@
 // Las reglas (vidas, daño, dificultad, puntos) viven en ../rules.ts y tienen tests.
 import Phaser from "phaser";
 import { ARCADE_QUEENS } from "../data";
+import { boosted, addMoney } from "../closet";
+import { toast } from "../logros";
 import { rivalFor, rivalsOf, moveSpeed, fireDelay, heelDamage, startLives, hitPoints, roundBonus, ROUNDS, MAX_LIVES, SPECIAL_PER_HIT, POWERUP_CHANCE, powerupType, POWER_MS, DOUBLE_MS, SPONGE_POINTS } from "../rules";
 import { sfx } from "../sfx";
 import { get, set, saveBest } from "../../store";
@@ -36,7 +38,7 @@ export class Arcade extends Phaser.Scene {
 
   create() {
     const { width: W, height: H } = this.scale;
-    const me = ARCADE_QUEENS.find((q) => q.id === get().queenId)!;
+    const me = boosted(ARCADE_QUEENS.find((q) => q.id === get().queenId)!);
     const bg = this.add.image(W / 2, H / 2, "stage");
     bg.setScale(Math.max(W / bg.width, H / bg.height)).setTint(0x6a4a7a);
     // Velo oscuro para que se lean bien las reinas y los tacones
@@ -97,7 +99,7 @@ export class Arcade extends Phaser.Scene {
 
   update(time: number, delta: number) {
     if (this.over || get().paused) return;
-    const me = ARCADE_QUEENS.find((q) => q.id === get().queenId)!;
+    const me = boosted(ARCADE_QUEENS.find((q) => q.id === get().queenId)!);
     const sp = moveSpeed(me);
     const left = this.cursors.left.isDown || this.keys.A.isDown, right = this.cursors.right.isDown || this.keys.D.isDown;
     const up = this.cursors.up.isDown || this.keys.W.isDown, down = this.cursors.down.isDown || this.keys.S.isDown;
@@ -148,7 +150,7 @@ export class Arcade extends Phaser.Scene {
   private hitRival(h: Img) {
     h.destroy();
     if (this.over) return;
-    const me = ARCADE_QUEENS.find((q) => q.id === get().queenId)!;
+    const me = boosted(ARCADE_QUEENS.find((q) => q.id === get().queenId)!);
     const s = get();
     const combo = s.combo + 1;
     const hp = Math.max(0, s.rivalHp - heelDamage(me));
@@ -195,6 +197,9 @@ export class Arcade extends Phaser.Scene {
     this.physics.pause();
     const s = get();
     saveBest(s.score);
+    // Lo que ganas en el arcade va a tus rudollars (para el armario y para mejorar a tus reinas)
+    const got = Math.round(s.score / 80);
+    if (got > 0) { addMoney(got); toast("💵 Rudollars", `+${got} por tu partida`); }
     if (won) sfx.win(); else sfx.lose();
     this.time.delayedCall(700, () => set({ screen: "result", result: { won, score: s.score, round: s.round } }));
     unlock(["debut", ...(won ? ["corona-arcade"] : [])]);
@@ -207,7 +212,7 @@ export class Arcade extends Phaser.Scene {
   /** Poder especial de la reina (con la barra llena). */
   private special() {
     if (this.over || get().paused || get().special < 1) return;
-    const me = ARCADE_QUEENS.find((q) => q.id === get().queenId)!;
+    const me = boosted(ARCADE_QUEENS.find((q) => q.id === get().queenId)!);
     const p = me.power;
     set({ special: 0 });
     sfx.power();

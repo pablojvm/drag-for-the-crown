@@ -2935,3 +2935,6 @@ body.portrait .mp-cs-queen { opacity: .35; }
 .mp-record { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 6px 0 12px; }
 .mp-record span { padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.75); font: 600 13px/1.2 Poppins, sans-serif; color: var(--ink); box-shadow: 0 4px 12px -8px rgba(60,0,60,.5); }
 .mp-record b { font-weight: 800; color: var(--pink, #ff3d9a); }
+/* Mejoras de reina en la ficha de la historia (con rudollars) */
+.story-stat .up-btn { margin-left: 6px; white-space: nowrap; }
+#det-stats .stat-row.story-stat:has(.up-btn, .up-max) { grid-template-columns: 110px 1fr 24px auto !important; }

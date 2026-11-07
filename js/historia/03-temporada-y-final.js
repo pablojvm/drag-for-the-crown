@@ -769,7 +769,7 @@
       const crowns = store.get("dftc-story-wins", []);
       if (FRANCHISES.find((f) => f.id === "es").seasons.filter((x) => !x.enEmision).every((x) => crowns.includes(x.id))) Achievements.unlock("espana");
     } else Music.stop();
-    const earned = Wallet.add(S.points / 40);
+    const earned = Math.max(0, Math.round(S.points / 40));
     const pNum = parseInt(place, 10) || 99;
     const prize = won ? 2500 : pNum === 2 ? 1000 : pNum <= 4 ? 500 : 150;
     // La corona queda en la memoria: la ganadora vuelve más fuerte en las siguientes temporadas
@@ -779,7 +779,7 @@
       if (l === "WINNER") { Nem.addPower(q.id, 3); Nem.addTitle(q.id, S.season.name); }
       if (l === "RUNNER-UP" || l === "3ª") Nem.addPower(q.id, 1);
     });
-    Closet.add(prize);
+    Closet.add(prize + earned);
     body().innerHTML = `
       <div class="story-card end ${won ? "won" : ""}">
         <img class="story-queen" src="${sprite(S.queen)}" alt="">
@@ -787,7 +787,7 @@
           <p class="eyebrow">${esc(S.season.name)} · resultado final</p>
           <h3>${won ? `¡${esc(S.queen.name)}, eres la ganadora! 👑` : `Sashay away... puesto ${placeTxt(place)}`}</h3>
           <p>${won ? "La corona es tuya. Felicidrages." : reason || `${esc(rival.name)} te ha ganado el lip sync.`}</p>
-          <p class="story-pts">Track record: ${(entry.ppe || 0).toFixed(2).replace(".", ",")} PPE · +${earned} ✨ · 💶 +${prize.toLocaleString("es-ES")} € para tu armario</p>
+          <p class="story-pts">Track record: ${(entry.ppe || 0).toFixed(2).replace(".", ",")} PPE · 💵 +${euros(prize + earned)} para tu armario</p>
           <p class="muted">Retos ganados: ${S.wins} · Veces en el bottom: ${S.bottoms} · Lip syncs ganados: ${S.lipsyncs} · Aliadas: ${allies().length}</p>
           ${pos >= 0 ? `<label class="name-entry active story-name">Puesto ${pos + 1} del Top 10 de historia. Tu nombre:
             <input id="story-name" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="${esc(entry.name)}"></label>` : ""}

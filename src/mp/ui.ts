@@ -523,7 +523,7 @@ function render(s: RoomState) {
     return watch(s, "stage", () => s.fmt === "winners"
       ? [["host", "Reinas, ha llegado el momento."], ...(qd ? [["host", `${qd}, tú ya eres la Queen of She Done Already Done Had Herses.`] as [string, string]] : []), ["host", `La corona de Reina de reinas es para... ¡${champ}!`], ["judge", "Larga vida a la reina de reinas."]]
       : [["host", "Reinas, ha llegado el momento."], ["host", `La ganadora de esta temporada en directo es... ¡${champ}!`], ["judge", "Larga vida a la reina."]],
-      () => `<p class="eyebrow">Gran final${s.fmt === "winners" ? " · All Winners" : ""}</p>${qd ? `<p class="twist-note">💅 QoSDADHH: <b>${esc(qd)}</b></p>` : ""}<h3>👑 ${esc(champ)}${keyPlayer(s, s.champion!) ? ` (${esc(keyPlayer(s, s.champion!))})` : ""}, ¡eres la ganadora!</h3>${track(s)}${W.store?.get(`dftc-mp-paid:${s.code}:${room.me}`, 0) ? `<p class="twist-note">✨ Te llevas <b>${W.store.get(`dftc-mp-paid:${s.code}:${room.me}`, 0)}</b> lentejuelas para la tienda.</p>` : ""}<button class="btn btn-primary" id="mp-exit2">Salir</button>`,
+      () => `<p class="eyebrow">Gran final${s.fmt === "winners" ? " · All Winners" : ""}</p>${qd ? `<p class="twist-note">💅 QoSDADHH: <b>${esc(qd)}</b></p>` : ""}<h3>👑 ${esc(champ)}${keyPlayer(s, s.champion!) ? ` (${esc(keyPlayer(s, s.champion!))})` : ""}, ¡eres la ganadora!</h3>${track(s)}${W.store?.get(`dftc-mp-paid:${s.code}:${room.me}`, 0) ? `<p class="twist-note">💄 Te llevas <b>${W.store.get(`dftc-mp-paid:${s.code}:${room.me}`, 0)}</b> lipsticks para tu armario del multijugador.</p>` : ""}<button class="btn btn-primary" id="mp-exit2">Salir</button>`,
       () => { $("#mp-exit2")!.onclick = exit; if (!crownShown) { crownShown = true; W.Confetti?.burst?.(2500); } });
   }
 }
@@ -1087,9 +1087,9 @@ function recordHTML() {
   const c = W.store?.get("dftc-mp-closet", {}) || {};
   const prendas = Object.keys(c.owned || {}).length;
   const lent = +(W.store?.get("dftc-sequins", 0) || 0);
-  return `<div class="mp-record"><span>✨ <b>${lent.toLocaleString("es-ES")}</b> lentejuelas</span><span>👗 <b>${prendas}</b> ${prendas === 1 ? "prenda" : "prendas"} en tu armario</span><span>🎬 <b>${r.partidas}</b> ${r.partidas === 1 ? "temporada" : "temporadas"}</span><span>🏆 <b>${r.victorias}</b> retos ganados</span><span>👑 <b>${r.coronas}</b> ${r.coronas === 1 ? "corona" : "coronas"}</span></div>`;
+  return `<div class="mp-record"><span>💄 <b>${lent.toLocaleString("es-ES")}</b> lipsticks</span><span>👗 <b>${prendas}</b> ${prendas === 1 ? "prenda" : "prendas"} en tu armario</span><span>🎬 <b>${r.partidas}</b> ${r.partidas === 1 ? "temporada" : "temporadas"}</span><span>🏆 <b>${r.victorias}</b> retos ganados</span><span>👑 <b>${r.coronas}</b> ${r.coronas === 1 ? "corona" : "coronas"}</span></div>`;
 }
-// Lo que se gana en el multijugador va a tus lentejuelas (con ellas compras en tu armario del multijugador)
+// Lo que se gana en el multijugador va a tus lipsticks (con ellos compras en tu armario del multijugador)
 const PAY: Record<string, number> = { WIN: 25, BWIN: 25, TOP2: 20, BTOP: 20, HIGH: 18, SAFE: 15, RTRN: 15, LOW: 12, BTM2: 10, BTM3: 10, ELIM: 10, ELIMF: 10, "3ª": 20, QOSD: 25, "RUNNER-UP": 30, WINNER: 60 };
 function payout(s: RoomState | null) {
   if (!s || s.phase === "lobby" || s.phase === "maletas") return;

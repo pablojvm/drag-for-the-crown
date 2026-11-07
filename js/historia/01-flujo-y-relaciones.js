@@ -50,6 +50,9 @@
     Achievements.unlock("debut");
     UI.show("story");
     Sound.stopAll();
+    // Si la IA no está disponible, que se sepa (si no, parece que el juego no la ofrece)
+    // (la nube puede tardar unos segundos en conectar: se mira un poco después)
+    setTimeout(() => { if (S && !S.mp && !IA.ready()) Toast.show("🤖 Sin IA en esta partida", "No hay conexión con la IA: los retos y la pasarela van con sus opciones de siempre."); }, 4000);
     javisCall(nextEpisode);
   }
 

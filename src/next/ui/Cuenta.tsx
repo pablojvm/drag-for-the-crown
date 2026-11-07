@@ -1,10 +1,10 @@
-// Barra del menú: tu cuenta, tus lentejuelas, Hall of Fame, logros y ajustes.
+// Barra del menú: tu cuenta, tus rudollars y lipsticks, Hall of Fame, logros y ajustes.
 import { useEffect, useState } from "react";
 import { useGame, setMuted } from "../store";
 import { signIn, signOut, refreshAcct, localBoard, worldTop, playerName, setPlayerName, storyWins, type TopRow } from "../game/cuenta";
 import type { TrackSnap } from "../game/track";
 import { TrackTabla } from "./Track";
-import { logrosDone, sequins } from "../game/logros";
+import { logrosDone, sequins, rudollars } from "../game/logros";
 import { isMusicOn, setMusic } from "../game/music";
 import { LOGROS } from "../../core/logros";
 import { REINAS_ES, queenImg } from "../../core/reinas";
@@ -25,7 +25,8 @@ export function MenuBar() {
           <span><b>{acct.name}</b><small>{acct.google ? "Guardado en tu cuenta" : acct.ready ? "Guardado en la nube" : "Partida en este dispositivo"}</small></span>
         </button>
         <div className="nx-topbar-r">
-          <span className="nx-chip" title="Lentejuelas">✨ {sequins()}</span>
+          <span className="nx-chip" title="Rudollars (modo normal)">💵 {rudollars().toLocaleString("es-ES")}</span>
+          <span className="nx-chip" title="Lipsticks (multijugador)">💄 {sequins().toLocaleString("es-ES")}</span>
           <button className="nx-round" aria-label="Hall of Fame" title="Hall of Fame" onClick={() => toggle("fama")}>🏆</button>
           <button className="nx-round" aria-label="Logros" title="Logros" onClick={() => toggle("logros")}>🎖️</button>
           <button className="nx-round" aria-label="Ajustes" title="Ajustes" onClick={() => toggle("ajustes")}>⚙️</button>
@@ -54,7 +55,7 @@ function CuentaPanel() {
       <h2>{acct.google ? acct.email : "Juegas como invitada"}</h2>
       <p className="nx-muted nx-center-txt">
         {acct.google
-          ? "Tu progreso (temporadas, armario, logros y lentejuelas) te sigue en cualquier dispositivo donde entres con esta cuenta."
+          ? "Tu progreso (temporadas, armario, logros, rudollars y lipsticks) te sigue en cualquier dispositivo donde entres con esta cuenta."
           : acct.ready
             ? acct.googleOn ? "Tu progreso se guarda en la nube desde este navegador. Entra con Google para llevártelo a cualquier dispositivo." : "Tu progreso se guarda en la nube desde este navegador."
             : "Tu progreso se guarda solo en este navegador."}

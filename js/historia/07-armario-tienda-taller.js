@@ -11,11 +11,11 @@
   };
   const statOf = (it) => (typeof ARMARIO_STATS !== "undefined" && ARMARIO_STATS[it.id]) || [2, 3];
   const priceOf = (it) => PRICE[slotOf(it)][statOf(it)[0]];
-  // Multijugador: su propio armario (se guarda de una partida a otra) y se paga con lentejuelas, no con euros
+  // Modo normal: rudollars. Multijugador: su propio armario (se guarda de una partida a otra) y se paga con lipsticks
   const MP_CLOSET_KEY = "dftc-mp-closet";
   const enMP = () => !!(S && S.mp);
-  const euros = (n) => (enMP() ? `${Math.round(n).toLocaleString("es-ES")} ✨` : `${Math.round(n).toLocaleString("es-ES")} €`);
-  const MONEY_IC = () => (enMP() ? "✨" : "💶");
+  const euros = (n) => DFTC.cantidad(n, enMP() ? "mp" : "normal");
+  const MONEY_IC = () => (enMP() ? "💄" : "💵");
   const Closet = {
     get() {
       // Lo que pone producción en esta sala (S.mpGrant) se gasta primero y no sale de la partida
@@ -32,7 +32,7 @@
           d += g;
           if (d < 0) Wallet.spend(Math.min(-d, Wallet.balance));
         }
-        const { money, ...rest } = c; // las lentejuelas van en su monedero
+        const { money, ...rest } = c; // los lipsticks van en su monedero
         store.set(MP_CLOSET_KEY, rest);
       } else store.set(CLOSET_KEY, c);
       document.querySelectorAll(".closet-money").forEach((e) => (e.textContent = euros(this.money)));
@@ -51,7 +51,7 @@
   };
   function earn(n, why) {
     Closet.add(n);
-    Toast.show(enMP() ? `✨ +${Math.round(n)} lentejuelas` : `💶 +${euros(n)}`, why);
+    Toast.show(`${MONEY_IC()} +${euros(n)}`, why);
   }
   const themeOf = (cat) => (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).find((t) => t.n === cat) || null;
   // ¿Esta pieza encaja con esta pasarela?
@@ -184,7 +184,7 @@
           <div class="sched">${shuffle(plan.slice()).map((c, i) => { const t = themeOf(c); const ball = (S.ballPlan || []).includes(c) && !(S.runwayPlan || []).includes(c); const bb = ball && BALLS.find((b) => b.c.some((x) => x[0] === c)); const bx = bb && bb.c.find((x) => x[0] === c); return `<div class="sched-ep" style="--i:${i}"><b>${ball ? `🎭 ${bb ? esc(bb.n) : "Look para el Ball"}` : "👠 Pasarela"}</b><span>${esc(c)}</span>${t ? `<small>${esc(t.d)}</small>` : bx ? `<small>${esc(bx[2])}</small>` : ""}</div>`; }).join("")}</div>
           <p class="gold">💡 Cada temática está abierta: interprétala a tu manera y defiéndela en la pasarela.</p>
           <p class="muted">El orden de los retos y las pasarelas es sorpresa: puede cambiar sobre la marcha. Luego vienen el reencuentro y la gran final. Si te eliminan antes, lo que no uses se queda en tu armario para la próxima temporada.</p>
-          <p class="gold">${grant ? `💶 Producción te ingresa ${euros(grant)} para lo que te falta.` : "💶 Con tu armario y tus ahorros te llega: producción no pone nada esta vez."} Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
+          <p class="gold">${grant ? `💵 Producción te ingresa ${euros(grant)} para lo que te falta.` : "💵 Con tu armario y tus ahorros te llega: producción no pone nada esta vez."} Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
           <p class="muted">🛑 Solo puedes comprar ahora. Lo que ganes en la temporada (minirretos, retos, corona) te servirá para la siguiente.</p>
           <button class="btn btn-primary" id="story-go">👗 Preparar mis looks</button>
         </div>`;
@@ -641,9 +641,9 @@
             <div class="tl-right"><div class="tl-form">
               ${plan.length ? `<div class="tl-row"><h4>👠 Tus pasarelas</h4><div class="chip-row">${plan.map((c) => `<span class="plan-chip" title="${esc((themeOf(c) || {}).d || "")}">${esc(c)}</span>`).join("")}</div></div>` : ""}
               <div class="tl-row"><h4>👗 Silueta</h4><div class="chip-row">${TALLER.shapes.map((x) => `<button class="plan-chip ${d.shape === x.k ? "on" : ""}" data-sh="${x.k}">${esc(x.n)} <small>${String(x.m).replace(".", ",")} m</small></button>`).join("")}</div></div>
-              <div class="tl-row"><h4>🧵 Tela</h4><div class="chip-row">${TALLER.telas.map((x) => `<button class="plan-chip ${d.tela === x.k ? "on" : ""}" data-te="${x.k}">${esc(x.n)} <small>${x.eur} ${enMP() ? "✨" : "€"}/m</small></button>`).join("")}</div></div>
+              <div class="tl-row"><h4>🧵 Tela</h4><div class="chip-row">${TALLER.telas.map((x) => `<button class="plan-chip ${d.tela === x.k ? "on" : ""}" data-te="${x.k}">${esc(x.n)} <small>${x.eur} ${MONEY_IC()}/m</small></button>`).join("")}</div></div>
               ${T(d.tela).fixed ? "" : `<div class="tl-row"><h4>🎨 Color</h4><div class="tl-colors">${TALLER.colores.map(([n, c]) => `<button class="tl-sw ${d.color === c ? "on" : ""}" data-co="${c}" title="${esc(n)}" style="--c:${c}"></button>`).join("")}</div></div>`}
-              <div class="tl-row"><h4>✨ Adornos <small class="muted">(hasta 2)</small></h4><div class="chip-row">${TALLER.adornos.map((x) => `<button class="plan-chip ${d.adornos.includes(x.k) ? "on" : ""}" data-ad="${x.k}">${esc(x.n)} <small>${x.eur} ${enMP() ? "✨" : "€"}</small></button>`).join("")}</div></div>
+              <div class="tl-row"><h4>✨ Adornos <small class="muted">(hasta 2)</small></h4><div class="chip-row">${TALLER.adornos.map((x) => `<button class="plan-chip ${d.adornos.includes(x.k) ? "on" : ""}" data-ad="${x.k}">${esc(x.n)} <small>${x.eur} ${MONEY_IC()}</small></button>`).join("")}</div></div>
               <div class="tl-row"><h4>🏷️ Nombre</h4><input class="tl-name" maxlength="48" value="${esc(d.name || r.auto)}"></div>
               </div>
               <div class="tl-buy">

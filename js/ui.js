@@ -86,6 +86,7 @@ const UI = (() => {
     current = name;
     if (name !== "story") Music.stop();
     Wallet.refresh();
+    Rudollars.refresh();
     Object.entries(screens).forEach(([k, el]) => el.classList.toggle("active", k === name));
     btnPause.style.visibility = name === "game" ? "visible" : "hidden";
     touch.classList.toggle("active", name === "game");
@@ -309,17 +310,28 @@ const UI = (() => {
     if (mode === "story" && Story.preview) {
       // Modo historia: sus atributos de historia (1-10), no las estadísticas del arcade
       const P = Story.preview(q);
+      const up = Mejoras.of(q.id);
+      // Mejoras de reina: +1 a un atributo con rudollars (hasta 2 por atributo)
       $("#det-stats").innerHTML =
         Object.entries(P.attrs)
           .map(([k, v]) => `
         <div class="stat-row story-stat">
           <span>${P.names[k]}</span>
-          <span class="pips ten">${Array.from({ length: 10 }, (_, i) => `<i class="${i < v ? "on" : ""}"></i>`).join("")}</span>
+          <span class="pips ten">${Array.from({ length: 10 }, (_, i) => `<i class="${i < v - (up[k] || 0) ? "on" : i < v ? "on up" : ""}"></i>`).join("")}</span>
           <b class="stat-n">${v}</b>
+          ${locked ? "" : Mejoras.can(q.id, k, v) ? `<button class="up-btn" data-k="${k}" data-v="${v}" title="Mejorar ${esc(P.names[k])}">+1 · ${Mejoras.cost(q.id, k, v).toLocaleString("es-ES")} 💵</button>` : `<span class="up-max">${(up[k] || 0) ? "MAX" : ""}</span>`}
         </div>`)
           .join("") +
+        `<p class="wallet-line">💵 Tienes <b class="rudollars">${Rudollars.balance.toLocaleString("es-ES")}</b> rudollars · cada atributo se puede mejorar dos veces</p>` +
         `<p class="wallet-line">${P.fort ? `${P.fort.icon} Fortaleza: <b>${esc(P.fort.n)}</b> · ${esc(P.fort.d)}` : ""}</p>` +
         (P.titles.length ? `<p class="wallet-line">👑 Coronas en historia: <b>${P.titles.map(esc).join(", ")}</b></p>` : "");
+      $("#det-stats").querySelectorAll(".up-btn").forEach((b) =>
+        b.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (Mejoras.buy(q.id, b.dataset.k, +b.dataset.v)) { Music.sfx("coin"); Toast.show("💪 ¡Mejorada!", `${q.name} · ${P.names[b.dataset.k]} +1`); openDetails(q); }
+          else Toast.show("Te faltan rudollars", "Gánalos en la historia: retos, minirretos, logros y la final");
+        }),
+      );
       $("#det-power").textContent = P.car ? P.car.n : "";
       $("#det-power-desc").textContent = P.car ? P.car.d : "";
       $("#det-lock").innerHTML = "";
@@ -334,17 +346,17 @@ const UI = (() => {
         <div class="stat-row">
           <span>${label}</span>
           <span class="pips">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= q.stats[k] ? "on" : i <= st[k] ? "on up" : ""}"></i>`).join("")}</span>
-          ${Wardrobe.canUpgrade(q, k) ? `<button class="up-btn" data-k="${k}" title="Mejorar en el armario">+ ${Wardrobe.cost(q, k)} ✨</button>` : `<span class="up-max">MAX</span>`}
+          ${Wardrobe.canUpgrade(q, k) ? `<button class="up-btn" data-k="${k}" title="Mejorar">+ ${Wardrobe.cost(q, k)} 💵</button>` : `<span class="up-max">MAX</span>`}
         </div>`,
         )
-        .join("") + `<p class="wallet-line">🧵 Armario · tienes <b class="sequins">${Wallet.balance}</b> lentejuelas ✨</p>`;
+        .join("") + `<p class="wallet-line">💵 Tienes <b class="rudollars">${Rudollars.balance.toLocaleString("es-ES")}</b> rudollars</p>`;
     $("#det-stats").querySelectorAll(".up-btn").forEach((b) =>
       b.addEventListener("click", (e) => {
         e.stopPropagation();
         if (Wardrobe.upgrade(q, b.dataset.k)) {
           Music.sfx("coin");
           openDetails(q);
-        } else Toast.show("Te faltan lentejuelas", "Gánalas jugando partidas y retos");
+        } else Toast.show("Te faltan rudollars", "Gánalos jugando partidas y retos");
       }),
     );
     $("#det-power").textContent = q.power.name;
@@ -397,8 +409,8 @@ const UI = (() => {
       msg = `🏆 ¡Has completado ${stats.seasonObj.franchise.name}!`;
     const newQueen = stats.won ? unlockNextQueen(stats.seasonObj, stats.queen) : null;
     if (newQueen) msg = (msg ? msg + " · " : "") + `👑 ¡Desbloqueada ${newQueen.name}!`;
-    const earned = Wallet.add(stats.score / 80);
-    if (earned) msg = (msg ? msg + " · " : "") + `+${earned} lentejuelas ✨`;
+    const earned = Rudollars.add(stats.score / 80);
+    if (earned) msg = (msg ? msg + " · " : "") + `💵 +${DFTC.cantidad(earned)}`;
     if (stats.won) {
       Achievements.unlock("corona-arcade");
       Confetti.burst();
@@ -453,7 +465,7 @@ const UI = (() => {
   function renderAchievements() {
     const done = Achievements.done;
     $("#ach-grid").innerHTML =
-      `<p class="ach-sum">${Object.keys(done).length}/${LOGROS.length} logros · <b class="sequins">${Wallet.balance}</b> lentejuelas ✨</p>` +
+      `<p class="ach-sum">${Object.keys(done).length}/${LOGROS.length} logros · <b class="rudollars">${Rudollars.balance.toLocaleString("es-ES")}</b> rudollars 💵 · <b class="sequins">${Wallet.balance}</b> lipsticks 💄</p>` +
       LOGROS.map((l) => `<div class="ach ${done[l.id] ? "done" : ""}"><i>${done[l.id] ? l.icon : "🔒"}</i><div><strong>${esc(l.name)}</strong><small>${esc(l.desc)}</small></div><em>+${l.reward} ✨</em></div>`).join("");
   }
   // Reinas reinantes: la ganadora original de cada temporada, o la que ganó tu última partida
