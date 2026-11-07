@@ -9,14 +9,28 @@ export class Plato extends Phaser.Scene {
     loadQueens(this, [get().queenId]);
   }
   create() {
-    const { width: W, height: H } = this.scale;
     let me: Phaser.GameObjects.Image | null = null;
+    // En móviles y tabletas el plató es un fondo quieto: se pinta y el bucle de Phaser se duerme hasta que
+    // cambie algo (decorado, reina, tamaño). Así la historia y el multijugador, que van encima, van fluidos.
+    const quieto = typeof matchMedia !== "undefined" && (matchMedia("(pointer: coarse)").matches || matchMedia("(prefers-reduced-motion: reduce)").matches);
+    const loop = this.game.loop;
+    let idle = 0;
+    const poke = () => {
+      if (!quieto) return;
+      loop.wake();
+      clearTimeout(idle);
+      idle = window.setTimeout(() => { if (this.scene.isActive() && !this.load.isLoading()) loop.sleep(); else poke(); }, 500);
+    };
+    this.events.once("shutdown", () => { clearTimeout(idle); loop.wake(); });
     // Mientras hay una conversación, la reina que habla sale en grande: la del plató se aparta
-    const onDlg = () => me?.setVisible(!document.querySelector(".nx-dlg") && !(get().screen === "historia" && get().hist.busy));
+    const onDlg = () => { const v = !document.querySelector(".nx-dlg") && !(get().screen === "historia" && get().hist.busy); if (me && me.visible !== v) { me.setVisible(v); poke(); } };
     addEventListener("nx-dlg", onDlg);
     this.events.once("shutdown", () => removeEventListener("nx-dlg", onDlg));
     const draw = () => {
+      const { width: W, height: H } = this.scale;
+      this.tweens.killAll();
       this.children.removeAll(true);
+      me = null;
       const bgKey = get().hist.bg === "stage" ? "stage" : "werkroom";
       const bg = this.add.image(W / 2, H / 2, bgKey);
       bg.setScale(Math.max(W / bg.width, H / bg.height));
@@ -27,8 +41,9 @@ export class Plato extends Phaser.Scene {
         q.setScale((H * 0.62) / q.height);
         me = q;
         onDlg();
-        this.tweens.add({ targets: q, y: q.y - 8, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+        if (!quieto) this.tweens.add({ targets: q, y: q.y - 8, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
       }
+      poke();
     };
     draw();
     const bgOf = () => get().hist.bg;
@@ -42,6 +57,7 @@ export class Plato extends Phaser.Scene {
         if (this.textures.exists(key)) draw();
         else {
           this.textures.once(`addtexture-${key}`, () => { if (this.scene.isActive()) draw(); });
+          poke();
           loadQueens(this, [queen]);
           if (!this.load.isLoading()) this.load.start();
         }
@@ -51,8 +67,11 @@ export class Plato extends Phaser.Scene {
       onDlg();
     });
     this.events.once("shutdown", unsub);
-    const onResize = () => this.scene.restart();
+    // Al cambiar de tamaño (en el móvil pasa a menudo: la barra del navegador, girarlo) se vuelve a pintar, sin reiniciar
+    const onResize = () => draw();
     this.scale.on("resize", onResize);
-    this.events.once("shutdown", () => this.scale.off("resize", onResize));
+    // Con el bucle dormido Phaser no ve el cambio de tamaño: se le despierta
+    addEventListener("resize", poke);
+    this.events.once("shutdown", () => { this.scale.off("resize", onResize); removeEventListener("resize", poke); });
   }
 }

@@ -72,9 +72,13 @@ const UI = (() => {
       const busy = !b || !!document.querySelector("#story-body .dlg-char, #story-body .story-queen, .modal.show, .track-modal") || over();
       if (busy !== lastBusy) { lastBusy = busy; window.__dftcEmbed("busy", { on: busy }); }
     };
-    const later = () => { if (!raf) raf = requestAnimationFrame(check); };
+    const later = (ms) => {
+      // El texto que se va escribiendo en los diálogos no cambia nada: no se mira (en el iPhone eso costaba mucho)
+      if (ms && ms.length && ms.every((m) => m.target && m.target.closest && m.target.closest(".dlg-text, .caret"))) return;
+      if (!raf) raf = requestAnimationFrame(check);
+    };
     new MutationObserver(later).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
-    addEventListener("resize", later);
+    addEventListener("resize", () => later());
   }
   function show(name) {
     if (EMBED && embedOn && name === "menu") return toParent("exit");

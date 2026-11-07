@@ -27,6 +27,7 @@ export function startGame(parent: HTMLElement) {
   tx.addImage = (key, ...a) => (tx.exists(key) ? tx.get(key) : addImage(key, ...a));
   // Cambia de escena; si ya es la que está en marcha (otra pasarela, revancha), la reinicia
   const go = (key: string) => {
+    game.loop.wake(); // el plató puede tenerlo dormido (móviles)
     game.scene.getScenes(true).forEach((s) => { if (s.scene.key !== key) s.scene.stop(); });
     if (game.scene.isActive(key)) game.scene.getScene(key).scene.restart();
     else game.scene.start(key);

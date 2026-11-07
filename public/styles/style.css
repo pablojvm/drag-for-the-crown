@@ -2938,3 +2938,21 @@ body.portrait .mp-cs-queen { opacity: .35; }
 /* Mejoras de reina en la ficha de la historia (con rudollars) */
 .story-stat .up-btn { margin-left: 6px; white-space: nowrap; }
 #det-stats .stat-row.story-stat:has(.up-btn, .up-max) { grid-template-columns: 110px 1fr 24px auto !important; }
+
+/* ------------------------------ iPhone, iPad y móviles ------------------------------ */
+/* El desenfoque de fondo (backdrop-filter) es lo que más cuesta a Safari en iOS, sobre todo con el plató
+   del motor nuevo detrás: en pantallas táctiles se quita (los fondos ya son casi opacos). */
+@media (hover: none) and (pointer: coarse) {
+  *, *::before, *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  .dlg-char { filter: none; }
+}
+/* En vertical, las pantallas que no caben se pueden desplazar (antes se cortaban y no llegabas a los botones) */
+body.portrait .screen:not(#screen-game):not(#screen-story) { justify-content: flex-start; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: 60px; }
+body.portrait .screen:not(#screen-game):not(#screen-story) > :first-child { margin-top: auto; }
+body.portrait .screen:not(#screen-game):not(#screen-story) > :last-child { margin-bottom: auto; }
+/* Dentro de la versión nueva, en vertical: hueco arriba para el botón de sonido */
+html.dftc-embed body.portrait #screen-story { padding-top: 70px; }
+html.dftc-embed body.portrait .screen:not(#screen-game):not(#screen-story) { padding-top: 90px; }
+/* En vertical (iPad sobre todo) el diálogo ocupa lo que queda de pantalla: antes medía fijo y la caja de texto se salía por abajo */
+body.portrait .dlg { height: 100%; max-height: 1040px; min-height: 620px; }
+body.portrait .dlg-char { height: min(520px, calc(100% - 330px)); }

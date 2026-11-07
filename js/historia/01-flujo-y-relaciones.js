@@ -201,6 +201,7 @@
     return { name: q.name, role: (roleKnown(q) ? `${roleOf(q).icon} ${roleOf(q).name} · ` : "") + relLabel(q), img: sprite(q), side: key === "r2" || key === "r3" ? "left" : "right" };
   }
   // lines: [[speaker, text]]; choices: opcional, se muestran al final
+  const TOUCH = typeof matchMedia !== "undefined" && matchMedia("(hover: none) and (pointer: coarse)").matches;
   function dialog(lines, ctx, then, choices) {
     let i = 0;
     const scene = document.createElement("div");
@@ -219,7 +220,7 @@
         <div class="dlg-box">
           <p class="dlg-name">${esc(w.name)} <small>${esc(w.role)}</small></p>
           <p class="dlg-text"></p>
-          <p class="dlg-hint">Clic, Espacio o Enter para continuar ▸</p>
+          <p class="dlg-hint">${TOUCH ? "Toca para continuar ▸" : "Clic, Espacio o Enter para continuar ▸"}</p>
           ${canSay(k) ? `<button class="btn btn-ghost dlg-say" id="dlg-say">✍️ Responder</button>` : ""}
         </div>
         <button class="btn btn-ghost dlg-skip" id="dlg-skip">Saltar</button>`;
