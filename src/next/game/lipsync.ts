@@ -42,9 +42,17 @@ export function lipSyncMove(kind: LsKind, rnd: () => number = Math.random) {
   const them = RIVAL_LINES[pi][Math.floor(rnd() * 2)].replace("{r}", rv.name);
   const step = ls.step + 1;
   const done = step >= LS_STEPS;
-  set({ ls: { ...ls, step, energy: m.energy, lastTag: m.tag, mine: ls.mine + m.imp, emote: Math.floor(rnd() * EMOTES.length), last: { me: toYou(m.msg), them }, anim: ls.anim + 1, done } });
-  if (done) setTimeout(() => { const l = get().ls; if (l) verdictSound(l.mine >= l.rival); }, 900);
+  set({ ls: { ...ls, step, energy: m.energy, lastTag: m.tag, lastOk: m.ok, lastImp: m.imp, mine: ls.mine + m.imp, emote: Math.floor(rnd() * EMOTES.length), last: { me: toYou(m.msg), them }, anim: ls.anim + 1, done } });
+  // El veredicto lo dice la escena después del suspense (revealLipSync); por si la escena no está, se dice igual
+  if (done) setTimeout(revealLipSync, typeof document !== "undefined" && document.hidden ? 0 : 8000);
 }
 
+/** Se dice el veredicto (una sola vez): suena Shantay o Sashay y aparece el resultado. */
+export function revealLipSync() {
+  const l = get().ls;
+  if (!l || !l.done || l.reveal) return;
+  set({ ls: { ...l, reveal: true } });
+  verdictSound(l.mine >= l.rival);
+}
 /** El público de la rival crece con la canción: al final, su fuerza completa. */
 export const rivalSoFar = (ls: { rival: number; step: number }) => ls.rival * (ls.step / LS_STEPS);

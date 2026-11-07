@@ -55,12 +55,13 @@ await A.fr.evaluate((me) => window.__mpRoom.hostDo((x) => {
   return { ...x, pairs: [{ a: "p:" + me, b: bot }], players: x.players.map((p) => ({ ...p, alive: true })), subs: {}, deadline: Date.now() + 120000, v: x.v + 1 };
 }), meA);
 await A.p.waitForTimeout(1500);
+await A.p.bringToFront(); // la escena (Phaser) solo avanza en la pestaña que se ve
 await A.fr.locator("#mp-ls-go").click({ timeout: 10000 }).catch(() => fail("botón del lip sync", A.p));
 // El lip sync se baila en la escena del motor nuevo
 await A.p.waitForFunction(() => window.__dftcNext.getState().hist.scene === "lipsync", null, { timeout: 15000 }).catch(() => fail("lip sync en el motor nuevo", A.p));
 for (let k = 0; k < 6; k++) { await A.p.locator(".nx-opt").nth([1, 2, 1, 2, 0, 1][k]).click({ timeout: 10000 }); await A.p.waitForTimeout(450); }
 if (SHOT) await A.p.screenshot({ path: `${SHOT}/mpn-lipsync.png` });
-await A.p.getByRole("button", { name: "Volver a la historia" }).click({ timeout: 10000 });
+await A.p.getByRole("button", { name: "Volver a la historia" }).click({ timeout: 20000 });
 await A.p.waitForTimeout(1500);
 const ls = await A.fr.evaluate((me) => window.__mpRoom.state.subs[me]?.ls || null, meA);
 const back = await A.p.evaluate(() => window.__dftcNext.getState().screen);

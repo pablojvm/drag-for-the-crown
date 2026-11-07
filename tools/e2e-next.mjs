@@ -62,6 +62,8 @@ for (let k = 0; k < 6; k++) {
   await page.waitForTimeout(450);
   if (k === 2 && SHOTS) await page.screenshot({ path: `${SHOTS}/next-lipsync.png` });
 }
+// Antes del veredicto hay suspense (focos y corte al jurado): se espera a que lo digan
+await page.waitForSelector(".nx-ls-panel h2:text-matches('Shantay|Sashay')", { timeout: 15000 }).catch(() => {});
 const lsEnd = (await page.locator(".nx-ls-panel h2").textContent({ timeout: 5000 }).catch(() => "")) || "";
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/next-lipsync-end.png` });
 // Y una pasarela entera (look, paso, momento final y voz en off)

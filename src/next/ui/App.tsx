@@ -227,7 +227,13 @@ function LipSyncUI() {
         <MuteBtn />
       </div>
       <div className="nx-ls-panel">
-        {ls.done ? (
+        {ls.done && !ls.reveal ? (
+          <div className="nx-panel small" aria-live="polite">
+            <p className="nx-eyebrow">Lip sync for your life</p>
+            <h2 className="nx-step-title">Las dos lo han dado todo...</h2>
+            <div className="nx-dots" aria-hidden="true"><i /><i /><i /></div>
+          </div>
+        ) : ls.done ? (
           <div className="nx-panel small">
             <p className="nx-eyebrow">Lip sync for your life</p>
             <h2>{won ? "¡Shantay, you stay! 💃" : "Sashay away..."}</h2>

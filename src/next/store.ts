@@ -15,6 +15,11 @@ export interface LipSyncState {
   last: { me: string; them: string } | null;
   anim: number; // cambia en cada movimiento: Phaser anima a las dos reinas
   done: boolean;
+  /** Tu último movimiento: si salió y cuánto conectó (para el montaje de la escena). */
+  lastOk?: boolean;
+  lastImp?: number;
+  /** Ya se ha dicho el veredicto (tras el suspense de la escena). */
+  reveal?: boolean;
   /** Atributos de tu reina si vienen del modo historia (con lo que ha crecido en la temporada). */
   attrs?: import("../core/lipsync").LsAttrs;
 }
