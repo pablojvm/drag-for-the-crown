@@ -179,9 +179,22 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
       ? `<i class="me" title="Tú"><span>Tú</span></i>`
       : pick === "azar" ? `<i class="q${cls}" style="--d:${nuevas >= 0 ? 0 : i}"><span>?</span></i>` : `<i class="${cls}" style="--d:${nuevas >= 0 ? 0 : i};background-image:url('${Q(muestra[(i - 1) % muestra.length].id, muestra[(i - 1) % muestra.length].season).photo}')"></i>`;
   }).join("");
+  // Una reina de una temporada con esa dinámica, de fondo en el panel (recortada); si no hay, el emoji
+  const conFmt = (W.allSeasons() as any[]).filter((se) => se.cast && se.cast.length);
+  const fotoFmt = {} as Record<Formato, { src: string; name: string } | null>;
+  (Object.keys(FORMATOS) as Formato[]).forEach((k) => {
+    const ses = conFmt.filter((se) => api().formato(se.id) === k && (k !== "normal" || (!se.special && /^es\d/.test(se.id))));
+    let ids = ses.flatMap((se) => (se.cast as string[]).map((id) => [id, se.id] as const));
+    // All Winners: una de las ganadoras de las temporadas de España
+    if (!ids.length && k === "winners") ids = conFmt.filter((se) => !se.special && /^es\d/.test(se.id)).map((se) => [se.cast[se.cast.length - 1] as string, se.id] as const);
+    const r = ids.length ? ids[Math.floor(Math.random() * ids.length)] : null;
+    const q = r ? Q(r[0], r[1]) : null;
+    fotoFmt[k] = q && q.sprite ? { src: q.sprite, name: q.name } : null;
+    if (fotoFmt[k]) new Image().src = fotoFmt[k]!.src; // precargada, para que no aparezca a trozos
+  });
   const heroHTML = () => {
-    const L = FMT_LOOK[fmt], F = FORMATOS[fmt];
-    return `<span class="mp-cs-big" aria-hidden="true">${F.icon}</span>
+    const L = FMT_LOOK[fmt], F = FORMATOS[fmt], ft = fotoFmt[fmt];
+    return `${ft ? `<img class="mp-cs-queen" src="${ft.src}" alt="" aria-hidden="true">` : `<span class="mp-cs-big" aria-hidden="true">${F.icon}</span>`}
             <p class="mp-cs-kicker">La dinámica</p>
             <h3>${esc(F.n)}</h3>
             <p class="mp-cs-desc">${esc(F.d)}</p>

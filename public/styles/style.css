@@ -2925,8 +2925,9 @@ body.portrait .mp-cs-cast { grid-template-columns: 1fr; text-align: center; just
 .mp-cs-in.in { opacity: 0; transform: translateX(18px); }
 .mp-cs-in.out { opacity: 0; transform: translateX(-14px); pointer-events: none; transition-duration: .16s, .2s; }
 .mp-cs-in.entra { transition-delay: .13s; }
-.mp-cs-in .mp-cs-big { transition: transform .5s var(--ease-spring, ease); }
-.mp-cs-in.in .mp-cs-big { transform: rotate(-20deg) scale(.7); }
-.mp-cs-in.out .mp-cs-big { transform: rotate(15deg) scale(.8); }
+.mp-cs-hero.pop .mp-cs-big { animation: none; }
+.mp-cs-queen { position: absolute; right: 0; bottom: 0; height: 106%; max-width: 44%; object-fit: contain; object-position: right bottom; pointer-events: none; filter: drop-shadow(0 14px 24px rgba(0,0,0,.3)); -webkit-mask-image: linear-gradient(to top, transparent 0, #000 22%); mask-image: linear-gradient(to top, transparent 0, #000 22%); }
+.mp-cs-in.in, .mp-cs-in.out { transform: none; }
+body.portrait .mp-cs-queen { opacity: .35; }
 .mp-cs-faces i { transition: background .6s ease; }
-@media (prefers-reduced-motion: reduce) { .mp-customset, .mp-cs-in, .mp-cs-in .mp-cs-big { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .mp-customset, .mp-cs-in { transition: none; } }
