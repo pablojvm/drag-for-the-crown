@@ -11,11 +11,32 @@
   };
   const statOf = (it) => (typeof ARMARIO_STATS !== "undefined" && ARMARIO_STATS[it.id]) || [2, 3];
   const priceOf = (it) => PRICE[slotOf(it)][statOf(it)[0]];
-  const euros = (n) => `${Math.round(n).toLocaleString("es-ES")} €`;
+  // Multijugador: su propio armario (se guarda de una partida a otra) y se paga con lentejuelas, no con euros
+  const MP_CLOSET_KEY = "dftc-mp-closet";
+  const enMP = () => !!(S && S.mp);
+  const euros = (n) => (enMP() ? `${Math.round(n).toLocaleString("es-ES")} ✨` : `${Math.round(n).toLocaleString("es-ES")} €`);
+  const MONEY_IC = () => (enMP() ? "✨" : "💶");
   const Closet = {
-    // En la temporada en directo se usa un armario aparte, con el presupuesto de la sala (no toca el tuyo)
-    get() { if (S && S.mp) return (S.mpCloset = S.mpCloset || { money: 0, owned: {} }); return store.get(CLOSET_KEY, { money: 0, owned: {} }); },
-    set(c) { if (S && S.mp) S.mpCloset = c; else store.set(CLOSET_KEY, c); document.querySelectorAll(".closet-money").forEach((e) => (e.textContent = euros(c.money))); },
+    get() {
+      // Lo que pone producción en esta sala (S.mpGrant) se gasta primero y no sale de la partida
+      if (enMP()) { const c = store.get(MP_CLOSET_KEY, { owned: {} }); return { ...c, owned: c.owned || {}, money: Wallet.balance + (S.mpGrant || 0) }; }
+      return store.get(CLOSET_KEY, { money: 0, owned: {} });
+    },
+    set(c) {
+      if (enMP()) {
+        let d = Math.round(c.money) - (Wallet.balance + (S.mpGrant || 0));
+        if (d > 0) Wallet.add(d);
+        else if (d < 0) {
+          const g = Math.min(-d, S.mpGrant || 0);
+          S.mpGrant = (S.mpGrant || 0) - g;
+          d += g;
+          if (d < 0) Wallet.spend(Math.min(-d, Wallet.balance));
+        }
+        const { money, ...rest } = c; // las lentejuelas van en su monedero
+        store.set(MP_CLOSET_KEY, rest);
+      } else store.set(CLOSET_KEY, c);
+      document.querySelectorAll(".closet-money").forEach((e) => (e.textContent = euros(this.money)));
+    },
     get money() { return this.get().money; },
     has(id) { return !!this.get().owned[id]; },
     add(n) { const c = this.get(); c.money = Math.max(0, Math.round(c.money + n)); this.set(c); },
@@ -30,7 +51,7 @@
   };
   function earn(n, why) {
     Closet.add(n);
-    Toast.show(`💶 +${euros(n)}`, why);
+    Toast.show(enMP() ? `✨ +${Math.round(n)} lentejuelas` : `💶 +${euros(n)}`, why);
   }
   const themeOf = (cat) => (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).find((t) => t.n === cat) || null;
   // ¿Esta pieza encaja con esta pasarela?
@@ -105,6 +126,7 @@
   // Lo mínimo para cubrir cada pasarela (look + peluca + toque final más baratos que encajan)
   // Lo que te falta para cubrir el plan: lo que ya tienes cuenta gratis y una peluca o un toque sirven para varias pasarelas
   function neededBudget(plan) {
+    // (en el multijugador también se usa para lo que pone producción en la sala)
     let total = 0;
     const usedL = new Set(), haveWA = { peluca: [], zapatos: [], acc: [] };
     plan.forEach((cat) => {
@@ -217,7 +239,7 @@
     // Looks ya reservados para otras pasarelas (no se repiten)
     const tk = new Map(Object.entries(S.prepLooks || {}).filter(([c, x]) => c !== cat && x.look && !x.look.loan).map(([c, x]) => [x.look.id, c]));
     const items = (k) => {
-      let L = ARMARIO[k].filter((x) => k !== "look" || !x.rv || (TH && TH.rv));
+      let L = ARMARIO[k].filter((x) => (k !== "look" || !x.rv || (TH && TH.rv)) && (!isHecho(x) || Closet.has(x.id)));
       // Pasarela de reveal: en Looks solo salen los que se transforman
       if (k === "look" && TH && TH.rv) L = L.filter((x) => x.rv);
       if (filt === "mine") L = L.filter((x) => Closet.has(x.id));
@@ -346,7 +368,7 @@
           <div class="ls-left"></div>
           <div class="ls-right">
             <div class="ls-top">
-              <b class="shop-money">💶 <span class="closet-money">${euros(Closet.money)}</span></b>
+              <b class="shop-money">${MONEY_IC()} <span class="closet-money">${euros(Closet.money)}</span></b>
               <button class="btn btn-ghost small-btn" id="ls-loan">🔁 Préstamo de producción</button>
               <button class="btn btn-ghost small-btn" id="ls-taller">✂️ Taller</button>
             </div>
@@ -364,8 +386,8 @@
     host.querySelectorAll(".shop-f").forEach((b) => b.addEventListener("click", () => { filt = b.dataset.f; renderTabs(); }));
     $("#ls-loan").addEventListener("click", () => {
       const rvT = tab === "look" && TH && TH.rv;
-      const pool = rvT ? ARMARIO.look.filter((x) => x.rv && !Closet.has(x.id) && !tk.has(x.id)) : ARMARIO[tab].filter((x) => !Closet.has(x.id) && !tk.has(x.id) && statOf(x)[0] <= 2 && (tab !== "look" || !x.rv));
-      const it = pick1(pool.length ? pool : ARMARIO[tab].filter((x) => !Closet.has(x.id) && !tk.has(x.id) && (!rvT || x.rv)));
+      const pool = rvT ? ARMARIO.look.filter((x) => x.rv && !Closet.has(x.id) && !tk.has(x.id)) : ARMARIO[tab].filter((x) => !isHecho(x) && !Closet.has(x.id) && !tk.has(x.id) && statOf(x)[0] <= 2 && (tab !== "look" || !x.rv));
+      const it = pick1(pool.length ? pool : ARMARIO[tab].filter((x) => !isHecho(x) && !Closet.has(x.id) && !tk.has(x.id) && (!rvT || x.rv)));
       if (!it) return;
       Toast.show("🔁 Préstamo de producción", `${it.n}: básico y sin gastar, pero puntúa poco`);
       pick(tab, it, true);
@@ -397,7 +419,7 @@
       return ok[c] !== false && ["peluca", "acc"].every((k) => ARMARIO[k].some((x) => Closet.has(x.id) && fitsRunway(k, x, c)));
     };
     function items() {
-      let L = ARMARIO[tab].slice();
+      let L = ARMARIO[tab].filter((x) => !isHecho(x) || Closet.has(x.id));
       if (filt === "plan") L = L.filter((x) => fitsPlan(tab, x).length);
       else if (filt === "mine") L = L.filter((x) => Closet.has(x.id));
       else if (filt !== "all") L = L.filter((x) => fitsRunway(tab, x, filt));
@@ -412,7 +434,7 @@
         <div class="shop">
           <div class="shop-top">
             <h3>🛍️ La tienda</h3>
-            <b class="shop-money">💶 <span class="closet-money">${euros(Closet.money)}</span></b>
+            <b class="shop-money">${MONEY_IC()} <span class="closet-money">${euros(Closet.money)}</span></b>
             <button class="btn btn-ghost" id="shop-taller">✂️ Taller de costura</button>
             <button class="btn btn-primary" id="shop-done">${first ? "Terminar compras: preparar los looks 👗" : "Cerrar"}</button>
           </div>
@@ -509,8 +531,9 @@
   const isHecho = (it) => !!(it && String(it.id).startsWith("hecho-"));
   // Mete en el catálogo los looks que has cosido (se guardan con tu armario)
   function syncHechos() {
-    const c = Closet.get();
-    (c.hechos || []).forEach((h) => {
+    // Los de los dos armarios (el del modo historia y el del multijugador), para que se vean sus fotos
+    const hs = [...(store.get(CLOSET_KEY, {}).hechos || []), ...(store.get(MP_CLOSET_KEY, {}).hechos || [])];
+    hs.forEach((h) => {
       if (!ARMARIO.look.some((x) => x.id === h.id)) ARMARIO.look.push(h);
       if (typeof ARMARIO_STATS !== "undefined") ARMARIO_STATS[h.id] = h.st;
       slotMap[h.id] = "look";
@@ -604,7 +627,7 @@
         <div class="shop taller">
           <div class="shop-top">
             <h3>✂️ Taller de costura</h3>
-            <b class="shop-money">💶 <span class="closet-money">${euros(money)}</span></b>
+            <b class="shop-money">${MONEY_IC()} <span class="closet-money">${euros(money)}</span></b>
             <button class="btn btn-ghost" id="tl-back">← Volver a la tienda</button>
           </div>
           <div class="tl-grid">
@@ -618,9 +641,9 @@
             <div class="tl-right"><div class="tl-form">
               ${plan.length ? `<div class="tl-row"><h4>👠 Tus pasarelas</h4><div class="chip-row">${plan.map((c) => `<span class="plan-chip" title="${esc((themeOf(c) || {}).d || "")}">${esc(c)}</span>`).join("")}</div></div>` : ""}
               <div class="tl-row"><h4>👗 Silueta</h4><div class="chip-row">${TALLER.shapes.map((x) => `<button class="plan-chip ${d.shape === x.k ? "on" : ""}" data-sh="${x.k}">${esc(x.n)} <small>${String(x.m).replace(".", ",")} m</small></button>`).join("")}</div></div>
-              <div class="tl-row"><h4>🧵 Tela</h4><div class="chip-row">${TALLER.telas.map((x) => `<button class="plan-chip ${d.tela === x.k ? "on" : ""}" data-te="${x.k}">${esc(x.n)} <small>${x.eur} €/m</small></button>`).join("")}</div></div>
+              <div class="tl-row"><h4>🧵 Tela</h4><div class="chip-row">${TALLER.telas.map((x) => `<button class="plan-chip ${d.tela === x.k ? "on" : ""}" data-te="${x.k}">${esc(x.n)} <small>${x.eur} ${enMP() ? "✨" : "€"}/m</small></button>`).join("")}</div></div>
               ${T(d.tela).fixed ? "" : `<div class="tl-row"><h4>🎨 Color</h4><div class="tl-colors">${TALLER.colores.map(([n, c]) => `<button class="tl-sw ${d.color === c ? "on" : ""}" data-co="${c}" title="${esc(n)}" style="--c:${c}"></button>`).join("")}</div></div>`}
-              <div class="tl-row"><h4>✨ Adornos <small class="muted">(hasta 2)</small></h4><div class="chip-row">${TALLER.adornos.map((x) => `<button class="plan-chip ${d.adornos.includes(x.k) ? "on" : ""}" data-ad="${x.k}">${esc(x.n)} <small>${x.eur} €</small></button>`).join("")}</div></div>
+              <div class="tl-row"><h4>✨ Adornos <small class="muted">(hasta 2)</small></h4><div class="chip-row">${TALLER.adornos.map((x) => `<button class="plan-chip ${d.adornos.includes(x.k) ? "on" : ""}" data-ad="${x.k}">${esc(x.n)} <small>${x.eur} ${enMP() ? "✨" : "€"}</small></button>`).join("")}</div></div>
               <div class="tl-row"><h4>🏷️ Nombre</h4><input class="tl-name" maxlength="48" value="${esc(d.name || r.auto)}"></div>
               </div>
               <div class="tl-buy">

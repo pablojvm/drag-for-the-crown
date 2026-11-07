@@ -93,6 +93,7 @@ function entry() {
   body().innerHTML = `
     <div class="story-card mp-entry">
       <h3>Una temporada con tus amigas, a la vez</h3>
+      ${recordHTML()}
       <p class="muted">Cada una es una reina; el resto del reparto lo juega el juego.${online ? "" : " <b>Sin servidor:</b> de momento solo funciona entre pestañas de este navegador."}</p>
       <div class="mp-toprow">
         <label class="mp-field">Tu nombre <input id="mp-name" maxlength="12" value="${esc(myName())}"></label>
@@ -435,7 +436,7 @@ function render(s: RoomState) {
       // Como en la historia: suena la sirena, entra Supremme y, en All Stars, pregunta por el pintalabios que no se vio
       const base: [string, string][] = api().announceLines(s.ep, s.season);
       const lines: [string, string][] = [["@siren", ""], ...base.slice(0, 1), ...(rv ? [["host", `Antes de nada... ${keyName(s, rv.by)}, la semana pasada no llegamos a verlo. ¿A quién habías elegido tú?`], ["@reveal", ""]] as [string, string][] : []), ...base.slice(1)];
-      if (s.reto!.cat) lines.push(["judge", `Y en la pasarela quiero veros con «${s.reto!.cat.n}». ${s.reto!.cat.d || ""}`.trim()]);
+      // La pasarela no se dice aquí: la anuncia Supremme después del reto («La categoría es...»)
       if (AS(s) && s.ep === 1) lines.push(["host", "Recordad: esto es un All Stars. Las dos mejores de cada semana harán un lip sync por el poder, y antes cada una elegirá en secreto su pintalabios."]);
       // Partida personalizada: se presenta la dinámica elegida
       if (s.season === CUSTOM && s.ep === 1) lines.splice(1, 0, ["host", `¡Bienvenidas a una temporada muy especial! Reinas de todas las ediciones... y la dinámica: ${FORMATOS[(s.fmt || "normal") as Formato].n}.`], ["judge", FORMATOS[(s.fmt || "normal") as Formato].d]);
@@ -445,7 +446,7 @@ function render(s: RoomState) {
         lines.splice(1, 0, ["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["host", "Cada una de vosotras hará un monólogo con una de ellas. La eliminada de la pareja ganadora... vuelve a la competición. Y las tres peores parejas: lip sync a tres bandas, se salva una."], ...(mc ? [["host", `${keyName(s, mc)}, tú ganaste la semana pasada: esta semana no compites. Serás nuestra maestra de ceremonias.`] as [string, string]] : []));
       }
       return lines;
-    }, () => `${heartChoice(s)}${myStatus(s)}<p class="eyebrow">Episodio ${s.ep}${s.fmt && s.fmt !== "normal" ? ` · ${FORMATOS[s.fmt as Formato].icon} ${FORMATOS[s.fmt as Formato].n}` : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="twist-note">👠 Pasarela de la semana: <b>«${esc(s.reto!.cat.n)}»</b>. ${esc(s.reto!.cat.d)}${me ? " Tu look ya está en la maleta." : ""}</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.reto!.tipo === "lalaparuza" ? "Hoy no hay taller ni pasarela: lip syncs eliminatorios, ronda a ronda." : s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Para jugar el reto tenéis ${Math.round(((DURACION[s.ritmo].reto * (s.ia ? IA_EXTRA : 1)) / 60))} minutos.`}</p>`);
+    }, () => `${heartChoice(s)}${myStatus(s)}<p class="eyebrow">Episodio ${s.ep}${s.fmt && s.fmt !== "normal" ? ` · ${FORMATOS[s.fmt as Formato].icon} ${FORMATOS[s.fmt as Formato].n}` : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="muted">👠 Después del reto, pasarela: la categoría se anuncia entonces.</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.reto!.tipo === "lalaparuza" ? "Hoy no hay taller ni pasarela: lip syncs eliminatorios, ronda a ronda." : s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Para jugar el reto tenéis ${Math.round(((DURACION[s.ritmo].reto * (s.ia ? IA_EXTRA : 1)) / 60))} minutos.`}</p>`);
   }
   if (s.phase === "mini" && s.mini) return miniPhase(s, me);
   if (s.phase === "equipos") return equiposPhase(s);
@@ -1080,7 +1081,15 @@ function lobby(s: RoomState) {
   }, "mp-lobby");
 }
 
-// Lo que se gana en el multijugador va a tus lentejuelas (las mismas del modo historia y la tienda)
+const mpRecord = (): { partidas: number; coronas: number; victorias: number } => ({ partidas: 0, coronas: 0, victorias: 0, ...(W.store?.get("dftc-mp-record", {}) || {}) });
+function recordHTML() {
+  const r = mpRecord();
+  const c = W.store?.get("dftc-mp-closet", {}) || {};
+  const prendas = Object.keys(c.owned || {}).length;
+  const lent = +(W.store?.get("dftc-sequins", 0) || 0);
+  return `<div class="mp-record"><span>✨ <b>${lent.toLocaleString("es-ES")}</b> lentejuelas</span><span>👗 <b>${prendas}</b> ${prendas === 1 ? "prenda" : "prendas"} en tu armario</span><span>🎬 <b>${r.partidas}</b> ${r.partidas === 1 ? "temporada" : "temporadas"}</span><span>🏆 <b>${r.victorias}</b> retos ganados</span><span>👑 <b>${r.coronas}</b> ${r.coronas === 1 ? "corona" : "coronas"}</span></div>`;
+}
+// Lo que se gana en el multijugador va a tus lentejuelas (con ellas compras en tu armario del multijugador)
 const PAY: Record<string, number> = { WIN: 25, BWIN: 25, TOP2: 20, BTOP: 20, HIGH: 18, SAFE: 15, RTRN: 15, LOW: 12, BTM2: 10, BTM3: 10, ELIM: 10, ELIMF: 10, "3ª": 20, QOSD: 25, "RUNNER-UP": 30, WINNER: 60 };
 function payout(s: RoomState | null) {
   if (!s || s.phase === "lobby" || s.phase === "maletas") return;
@@ -1092,6 +1101,9 @@ function payout(s: RoomState | null) {
   const n = 20 + labs.reduce((a, l) => a + (PAY[l] || 0), 0);
   W.store?.set(key, n);
   const won = s.champion === mine;
+  // Tu historial en el multijugador (se guarda de una partida a otra)
+  const r = mpRecord();
+  W.store?.set("dftc-mp-record", { partidas: r.partidas + 1, coronas: r.coronas + (won ? 1 : 0), victorias: r.victorias + labs.filter((l) => l === "WIN" || l === "BWIN").length });
   api().reward(n, won ? "¡Corona en directo!" : "Por tu temporada en directo");
 }
 function exit() {

@@ -524,6 +524,18 @@
       });
     });
   }
+  // Después del reto, Supremme anuncia la pasarela: «La categoría es...»
+  function catAnnounce(cat, then) {
+    const TH = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).find((t) => t.n === cat);
+    setSet("stage");
+    const lines = [
+      ["host", pick1(["¡Reinas, se acabó el reto! Ahora, a lo que de verdad importa...", "Muy bien, reinas. Respirad, que todavía queda la pasarela.", "Reinas, el reto ya está. Pero esta noche aún tenéis que desfilar."])],
+      ["host", `${pick1(["La categoría es...", "La categoría de esta noche es...", "Y la categoría es..."])} ¡«${cat}»!`],
+      ...(TH && TH.d ? [["judge", TH.d]] : []),
+      ["host", pick1(["Que gane la mejor drag queen... ¡y no la caguéis!", "Quiero ver esa temática bien defendida. ¡A la pasarela!", "A ver quién la entiende mejor. ¡Pasarela!"])],
+    ];
+    dialog(lines, ctxWith(S.queen), () => then && then());
+  }
   // La pasarela de cada semana, con su categoría
   function runway(then) {
     flowGo("pasarela");
@@ -545,6 +557,9 @@
     }
     const cat = tema ? tema.n : planned && !window.__forceTheme ? planned : pick1(CATEGORIAS);
     S.runwayCat = cat;
+    catAnnounce(cat, () => runwayCard(cat, tema, then));
+  }
+  function runwayCard(cat, tema, then) {
     body().innerHTML = `
       <div class="story-card intro">
         <img class="story-queen" src="${sprite(S.queen)}" alt="">

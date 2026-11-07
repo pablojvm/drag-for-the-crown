@@ -2931,3 +2931,7 @@ body.portrait .mp-cs-cast { grid-template-columns: 1fr; text-align: center; just
 body.portrait .mp-cs-queen { opacity: .35; }
 .mp-cs-faces i { transition: background .6s ease; }
 @media (prefers-reduced-motion: reduce) { .mp-customset, .mp-cs-in { transition: none; } }
+/* Multijugador: tu historial y tu armario, guardados de una partida a otra */
+.mp-record { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 6px 0 12px; }
+.mp-record span { padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.75); font: 600 13px/1.2 Poppins, sans-serif; color: var(--ink); box-shadow: 0 4px 12px -8px rgba(60,0,60,.5); }
+.mp-record b { font-weight: 800; color: var(--pink, #ff3d9a); }

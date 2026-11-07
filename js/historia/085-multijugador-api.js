@@ -15,7 +15,7 @@
       const season = seasonById(seasonId) || { id: "mpcustom", name: "Temporada personalizada", year: "", cast: [queenId, ...rivalIds], franchise: { id: "es", name: "Drag Race España" } };
       S = { ...blankState(qById(queenId), season, rivalIds.map(qById).filter(Boolean)), rng: newSeed(), mp: true, mpIA: !!opts.ia, ep: 1, flags: { prepped: true } };
       // Lo de cada una que no viaja por la sala (maletas y armario de la temporada), por si se reanuda
-      if (opts.local) ["prepLooks", "mpCloset", "usedLooks", "runwayPlan"].forEach((k) => opts.local[k] !== undefined && (S[k] = opts.local[k]));
+      if (opts.local) ["prepLooks", "mpGrant", "mpGrantDone", "usedLooks", "runwayPlan"].forEach((k) => opts.local[k] !== undefined && (S[k] = opts.local[k]));
       // Con IA cada una elige en cada reto si lo hace en directo (escribiendo) o con opciones
       [mxSnatch, mxActing, mxRusical, mxGirlGroups, mxMateriales, mxMakeover, mxImpro, mxPublicidad, mxRoast].forEach((f) => (f.classic = !opts.ia));
       return true;
@@ -38,14 +38,16 @@
       if (window.__dftcCancel) window.__dftcCancel();
     },
     /** Lo de esta jugadora que hay que guardar con la partida (maletas y armario). */
-    local: () => (S ? { prepLooks: S.prepLooks || {}, mpCloset: S.mpCloset || null, usedLooks: S.usedLooks || [], runwayPlan: S.runwayPlan || [] } : null),
+    local: () => (S ? { prepLooks: S.prepLooks || {}, mpGrant: S.mpGrant || 0, mpGrantDone: !!S.mpGrantDone, usedLooks: S.usedLooks || [], runwayPlan: S.runwayPlan || [] } : null),
     /** Presupuesto de la sala para las maletas (igual para todas: lo justo para un look por pasarela y algo más). */
     budget: (cats) => Math.ceil((basicBudget(cats) * 1.25) / 50) * 50,
     /** Maletas: los Javis llaman, producción da el presupuesto y se preparan los looks de todas las pasarelas. */
     maletas(el, cats, budget, cb) {
       S.runwayPlan = cats.slice();
       S.ballPlan = [];
-      if (!S.mpCloset) S.mpCloset = { money: budget, owned: {} };
+      // Tu armario del multijugador se queda de una partida a otra y se paga con lentejuelas;
+      // si no te llega para lo básico, producción pone lo que falta solo para esta sala
+      if (!S.mpGrantDone) { S.mpGrantDone = true; S.mpGrant = neededBudget(cats); }
       S.prepLooks = S.prepLooks || {};
       setSet("lounge");
       const lines = [
@@ -61,7 +63,8 @@
             <p class="eyebrow">📞 Los Javis · tus pasarelas</p>
             <h3>${cats.length} looks que preparar</h3>
             <div class="sched">${cats.map((c, i) => { const t = themeOf(c); return `<div class="sched-ep" style="--i:${i}"><b>👠 Pasarela</b><span>${esc(c)}</span>${t ? `<small>${esc(t.d)}</small>` : ""}</div>`; }).join("")}</div>
-            <p class="gold">💶 Producción te da <b class="closet-money">${euros(Closet.money)}</b> para esta temporada. Es tu presupuesto: no toca tu armario del modo historia.</p>
+            <p class="gold">${S.mpGrant ? `✨ Producción pone <b>${S.mpGrant.toLocaleString("es-ES")} lentejuelas</b> para lo que te falta (solo valen en esta sala).` : "✨ Con tu armario y tus lentejuelas te llega: producción no pone nada esta vez."} Tienes <b class="closet-money">${euros(Closet.money)}</b>.</p>
+            <p class="muted">👗 Tu armario del multijugador es aparte del de la historia y se guarda para la próxima partida.</p>
             <button class="btn btn-primary" id="mp-maletas-go">👗 Preparar mis looks</button>
           </div>`;
         el.querySelector("#mp-maletas-go").addEventListener("click", () => prepAllLooks(() => { cleanup = null; cb(); }));
@@ -160,7 +163,7 @@
       // Si se hizo en directo, lo que pensó el jurado viaja con la nota para las críticas
       RETOS[tipo].run(el, (raw) => { cleanup = null; cb(Math.round(raw), S.liveEp === S.ep ? juryTxt() : ""); });
     },
-    runway(el, cat, cb) { runRunwayNew(el, cat, (walk) => { cleanup = null; cb(Math.round(walk)); }); },
+    runway(el, cat, cb) { const id = runId; catAnnounce(cat, () => { if (id !== runId) return; el = body(); el.innerHTML = `<div id="story-play"></div>`; runRunwayNew(el.querySelector("#story-play"), cat, (walk) => { cleanup = null; cb(Math.round(walk)); }); }); },
     lipsync(el, rivalId, cb) { runLipsync(el, qById(rivalId), (won, score) => { cleanup = null; cb(!!won, Math.round(score || 0)); }); },
     /** Temporada del corazón: la grabación de la eliminada (r1 es ella; {dest}, a quien se lo deja). */
     heartVideo(fav) { return [...pickFresh(CORAZON_VIDEO.intro), ...pickFresh(CORAZON_VIDEO[fav ? "cariño" : "estrategia"])]; },
