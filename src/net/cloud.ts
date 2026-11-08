@@ -144,15 +144,20 @@ class Cloud {
     // Invitada con progreso: se enlaza Google a esta partida. Invitada sin progreso (p. ej. un móvil nuevo): se entra directamente en la cuenta
     const hasProgress = progressOf((k) => localStorage.getItem(k)) >= 1000;
     if (this.session && this.isGuest && hasProgress) {
-      const { error } = await this.sb.auth.linkIdentity({ provider: "google", options: { redirectTo } });
+      const { error } = await this.sb.auth.linkIdentity({ provider: "google", options: { redirectTo, queryParams: { prompt: "select_account" } } });
       if (!error) return;
     }
-    await this.sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+    // Google pregunta siempre con qué cuenta entrar (si no, entra sola con la última)
+    await this.sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo, queryParams: { prompt: "select_account" } } });
   }
   async signOut() {
     if (!this.sb) return;
     await this.push();
     await this.sb.auth.signOut();
+    // Lo de esa cuenta queda en la nube; este navegador vuelve a empezar como invitada (se guardan solo los ajustes)
+    const KEEP = /^dftc-(claves|ia-|muted|next-muted|next-music)/;
+    Object.keys(localStorage).filter((k) => (k.startsWith("dftc-") && !KEEP.test(k)) || k.startsWith("sb-dftc-auth")).forEach((k) => localStorage.removeItem(k));
+    sessionStorage.removeItem("dftc-pulled");
     location.reload();
   }
 
