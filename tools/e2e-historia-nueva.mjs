@@ -30,7 +30,7 @@ await fr.locator("#btn-start").click();
 const state = () => page.evaluate(() => { const s = window.__dftcNext.getState(); return { screen: s.screen, scene: s.hist.scene, back: s.back }; });
 const VALID = /^(WIN|TOP2|BTOP|HIGH|SAFE|LOW|BTM2|BTM3|ELIM|BWIN)$/;
 let looks = 0, done = null, javis = false, phaser = { runway: 0, lipsync: 0 }, shotRw = false, shotLs = false;
-for (let i = 0; i < 9000 && !done; i++) {
+for (let i = 0; i < 20000 && !done; i++) {
   await page.waitForTimeout(40);
   const st = await state();
   if (st.scene) {
@@ -44,14 +44,16 @@ for (let i = 0; i < 9000 && !done; i++) {
     continue;
   }
   if (!javis) javis = /Javis/.test(await fr.locator("#screen-story").innerText().catch(() => ""));
-  done = await fr.evaluate(() => {
+  // Hay retos sin pasarela: si el capítulo 1 no ha pasado por las escenas del motor nuevo, se sigue con el 2 (y el 3)
+  const needEp = phaser.runway + phaser.lipsync > 0 ? 2 : 4;
+  done = await fr.evaluate((needEp) => {
     try {
       const d = JSON.parse(localStorage.getItem("dftc-story-save") || "null");
-      if (!d || d.ep < 2) return null;
+      if (!d || d.ep < needEp) return null;
       const labs = Object.values(d.track || {}).map((t) => t[1]).filter(Boolean);
       return labs.length ? labs : null;
     } catch { return null; }
-  });
+  }, needEp);
   const r = await fr.evaluate(() => {
     const q = (s) => document.querySelector(s);
     const cp = q("#rw-cp");
