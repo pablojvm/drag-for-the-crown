@@ -1001,6 +1001,11 @@ function lalaparuza(s: RoomState, myKey: string | null) {
   const pairs = s.pairs || [];
   const mine = myKey ? pairs.find((p) => p.a === myKey || p.b === myKey) : null;
   const rn = lzName(s, L.round);
+  // Antes de cada ronda: el cuadro como va y los cruces de esta ronda
+  if (L.show) {
+    const intro0 = L.round === (L.rounds[0].length ? 0 : 1) ? `<p class="muted">Eliminatorias de lip sync con todo el reparto. El cuadro se ordena por la temporada${L.rounds[0].length ? ": las últimas van a la ronda previa" : ""}. ${s.fmt === "allstars" || s.fmt === "winners" ? "Las dos que lleguen a la final son el top 2" : "La que gane el torneo gana el reto"}; las que caigan pronto, al bottom.</p>` : "";
+    return info(`<p class="eyebrow">🏆 Lalaparuza · cuadro del torneo</p><h3>Ahora: ${esc(rn)}</h3>${intro0}<div class="lz-next">${pairs.map((p) => `<span class="${p.a === myKey || p.b === myKey ? "me" : ""}">${esc(keyName(s, p.a))} <b>vs</b> ${esc(keyName(s, p.b))}</span>`).join("")}</div>${mine ? `<p class="twist-note">💃 Te toca: contra ${esc(keyName(s, mine.a === myKey ? mine.b : mine.a))}.</p>` : ""}${lzBracket(s)}<p class="muted">Los lip syncs empiezan en unos segundos...</p>${skipBtn(s)}`, undefined, "lz-card");
+  }
   if (mine && myKey && isP(mine.a) && isP(mine.b) && !(s.subs[room.me] || {}).ls) return duel(s, mine, myKey, `🏆 Lalaparuza · ${rn}`);
   if (mine && !(s.subs[room.me] || {}).ls) {
     const rival = mine.a === myKey ? mine.b : mine.a;

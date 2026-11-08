@@ -164,7 +164,7 @@ export interface RoomState {
   /** All Winners: semana de la Lalaparuza. */
   lzEp?: number;
   /** Lalaparuza: el cuadro de lip syncs (rondas; la 0 es la ronda previa) y hasta dónde llega cada una. */
-  lala?: { rounds: LzMatch[][]; R: number; round: number; reached: Record<string, number>; ls: Record<string, number>; champ?: string; top2?: string[]; done?: boolean; score?: Record<string, number> };
+  lala?: { rounds: LzMatch[][]; R: number; round: number; reached: Record<string, number>; ls: Record<string, number>; champ?: string; top2?: string[]; done?: boolean; score?: Record<string, number>; show?: boolean };
   /** Segunda Oportunidrag: parejas del monólogo y la maestra de ceremonias (la ganadora del reto anterior, que no compite). */
   rp?: { ep: number; pairs: { c: string; o: string | null }[]; mc?: string };
   rpDone?: boolean;
@@ -355,6 +355,7 @@ export function allIn(s: RoomState): boolean {
     const vs = finalVoters(s).filter(isP).map(idOf);
     return vs.length > 0 && vs.every((id) => s.subs[id]?.pick != null);
   }
+  if (s.phase === "lalaparuza" && s.lala?.show) return false;
   if (s.phase === "lipsync" || s.phase === "final" || s.phase === "lalaparuza") {
     const inPairs = [...(s.pairs || []).filter((x) => !x.winner).flatMap((x) => [x.a, x.b]), ...(s.triple || []), ...(s.quad || [])].filter(isP).map(idOf);
     // Si solo bailan reinas del juego, se deja verlo hasta el tope
@@ -734,7 +735,14 @@ function lzRound(s: RoomState, now: number): RoomState {
   const pairs: Pair[] = ms.map((m) => ({ a: m.a!, b: m.b! }));
   const anyP = pairs.some((p) => isP(p.a) || isP(p.b));
   const subs = Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, ls: undefined }]));
-  return { ...s, subs, pairs, finalStage: 300 + L.round, phase: "lalaparuza", deadline: anyP ? limite(now, DURACION[s.ritmo].lalaparuza) : now + 7000, v: s.v + 1 };
+  // Antes de cada ronda se ve el cuadro (cómo va y quién se enfrenta a quién); luego empiezan los lip syncs
+  return { ...s, lala: { ...L, show: true }, subs, pairs, finalStage: 300 + L.round, phase: "lalaparuza", deadline: now + (anyP ? LZ_VER : LZ_VER_NPC), v: s.v + 1 };
+}
+/** Cuánto se ve el cuadro antes de cada ronda, y cuánto dura una ronda que solo bailan reinas del juego. */
+export const LZ_VER = 9000, LZ_VER_NPC = 8000, LZ_NPC = 9000;
+function lzGo(s: RoomState, now: number): RoomState {
+  const anyP = (s.pairs || []).some((p) => isP(p.a) || isP(p.b));
+  return { ...s, lala: { ...s.lala!, show: false }, duelKey: undefined, phase: "lalaparuza", deadline: anyP ? limite(now, DURACION[s.ritmo].lalaparuza) : now + LZ_NPC, v: s.v + 1 };
 }
 function lzNext(s: RoomState, now: number, e: Engine): RoomState {
   const L = s.lala!;
@@ -1044,6 +1052,7 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       return at("reto", dur(s, "reto"));
     }
     case "lalaparuza":
+      if (s.lala?.show) return lzGo(s, now);
       return lzNext(s, now, e);
     case "reto":
       if (!s.reto!.noRunway) return at("pasarela", D.pasarela);
@@ -1258,7 +1267,7 @@ export function tick(s: RoomState, now: number, e: Engine): RoomState {
     return now - s.groups.at >= wait ? draftPick(s, cap, autoPick(s, e), now) : s;
   }
   // Duelos entre jugadoras: el reloj de la fase no corta a nadie a mitad; cada paso tiene su propio tope
-  const duels = (s.pairs || []).filter((p) => !p.winner && isP(p.a) && isP(p.b) && ["lipsync", "final", "lalaparuza"].includes(s.phase));
+  const duels = (s.pairs || []).filter((p) => !p.winner && isP(p.a) && isP(p.b) && ["lipsync", "final", "lalaparuza"].includes(s.phase) && !(s.phase === "lalaparuza" && s.lala?.show));
   if (duels.length) {
     const key = `${s.ep}:${s.phase}:${s.finalStage || 0}`;
     if (s.duelKey !== key) return { ...s, duelKey: key, duelAt: now, v: s.v + 1 };
