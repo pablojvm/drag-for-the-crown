@@ -87,9 +87,20 @@ export class Room {
   // ------------------------------ Con servidor ------------------------------
   private async serverJoin(opts: Record<string, unknown>, code?: string) {
     const { Client } = await import("@colyseus/sdk");
-    const c = new Client(MP_URL);
     const o = { id: this.me, secret: secretOf(this.me), joined: this.joinedAt, ...opts };
-    const r = (code ? await c.joinById(code, o) : await c.create("dftc", o)) as unknown as SRoom;
+    // Si el servidor que respondió falla al crear la sala (se está reiniciando, versión vieja...), se prueba con los otros
+    // (para unirse a una sala con código hay que ir al mismo servidor donde se creó: ahí no se cambia)
+    const urls = code ? [MP_URL] : [MP_URL, ...MP_URLS.filter((u) => u !== MP_URL)];
+    let r: SRoom | null = null, last: unknown = null;
+    for (const u of urls) {
+      if (u !== MP_URL && !(await ping(u))) continue;
+      try {
+        r = (code ? await new Client(u).joinById(code, o) : await new Client(u).create("dftc", o)) as unknown as SRoom;
+        MP_URL = u;
+        break;
+      } catch (e) { last = e; console.warn("[salas]", u, (e as Error)?.message || e); }
+    }
+    if (!r) throw last;
     this.srv = r;
     r.onMessage("state", (d: { s: RoomState; now: number }) => {
       if (!d || !d.s || (this.state && this.state.code === d.s.code && d.s.v <= this.state.v)) return;
@@ -104,7 +115,7 @@ export class Room {
   }
   private fail(e: unknown) {
     const m = String((e as Error)?.message || e || "");
-    this.onFail(/ya está/.test(m) ? "Esa jugadora ya está en la sala." : /not found|no rooms|locked|full/i.test(m) ? "No existe esa sala o está llena." : "No se ha podido conectar con la sala.");
+    this.onFail(/ya está/.test(m) ? "Esa jugadora ya está en la sala." : /not found|no rooms|locked|full/i.test(m) ? "No existe esa sala o está llena." : `No se ha podido conectar con la sala.${m ? ` (${m.slice(0, 80)})` : ""}`);
   }
 
   // ------------------------------ Sin servidor ------------------------------
