@@ -528,11 +528,10 @@
   function catAnnounce(cat, then) {
     const TH = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).find((t) => t.n === cat);
     setSet("stage");
+    // Como en el programa: solo habla Supremme
     const lines = [
-      ["host", pick1(["¡Reinas, se acabó el reto! Ahora, a lo que de verdad importa...", "Muy bien, reinas. Respirad, que todavía queda la pasarela.", "Reinas, el reto ya está. Pero esta noche aún tenéis que desfilar."])],
-      ["host", `${pick1(["La categoría es...", "La categoría de esta noche es...", "Y la categoría es..."])} ¡«${cat}»!`],
-      ...(TH && TH.d ? [["judge", TH.d]] : []),
-      ["host", pick1(["Que gane la mejor drag queen... ¡y no la caguéis!", "Quiero ver esa temática bien defendida. ¡A la pasarela!", "A ver quién la entiende mejor. ¡Pasarela!"])],
+      ["host", `${pick1(["Esta semana veremos en pasarela...", "Reinas, esta semana en pasarela veremos...", "La categoría de esta semana es..."])} ¡«${cat}»!${TH && TH.d ? ` ${TH.d}` : ""}`],
+      ["host", "Racers, enciendan sus motores... ¡y que gane la mejor drag queen!"],
     ];
     dialog(lines, ctxWith(S.queen), () => then && then());
   }
@@ -763,7 +762,10 @@
       const meRow = rows.find((r) => r.me);
       const meSafe = !allCrit && labOf.get(meRow) === "SAFE";
       const safeFirst = Math.random() < 0.5;
-      const safeTxt = `<p>${safe.length ? `${safe.map(nm).join(", ")}: <b>estáis salvadas</b>. Podéis volver al backstage.` : allCrit ? `Quedáis ${n}: a partir de ahora <b>todas recibís valoración</b>.` : "Esta semana no se salva nadie de antemano."}</p>${safe.length ? faces(safe, "safe") : ""}`;
+      // «Ya no hay salvadas» se explica solo la primera semana que pasa
+      const firstAll = allCrit && !S.flags.noSafe;
+      if (allCrit) S.flags.noSafe = 1;
+      const safeTxt = `<p>${safe.length ? `${safe.map(nm).join(", ")}: <b>estáis salvadas</b>. Podéis volver al backstage.` : allCrit ? (firstAll ? `Quedáis ${n}: a partir de ahora <b>todas recibís valoración</b>.` : "Todas recibís valoración.") : "Esta semana no se salva nadie de antemano."}</p>${safe.length ? faces(safe, "safe") : ""}`;
       const judgedTxt = allCrit
         ? `<p>${judged.map(nm).join(", ")}: esta semana <b>todas recibís la valoración del jurado</b>.</p>${faces(judged)}`
         : tw === "winners" ? `<p>${judged.map(nm).join(", ")}: <b>esta semana recibís las críticas del jurado</b>.</p>${faces(judged)}` : `<p>${judged.map(nm).join(", ")}... <b>sois las mejores y las peores del programa de hoy</b>.</p>${faces(judged)}`;
@@ -774,7 +776,7 @@
           <p class="eyebrow">${esc(titulo)} · la pasarela ha terminado</p>
           <h3>Supremme tiene algo que deciros...</h3>
           ${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
-          ${allCrit ? `<p>Quedáis ${n}: a partir de ahora ya no hay salvadas.</p>` + judgedTxt : safeFirst && safe.length ? safeTxt + judgedTxt : judgedTxt + (safe.length ? `<p>Las demás, <b>estáis a salvo</b>.</p>${faces(safe, "safe")}` : "")}
+          ${allCrit ? (firstAll ? `<p>Quedáis ${n}: a partir de ahora ya no hay salvadas.</p>` : "") + judgedTxt : safeFirst && safe.length ? safeTxt + judgedTxt : judgedTxt + (safe.length ? `<p>Las demás, <b>estáis a salvo</b>.</p>${faces(safe, "safe")}` : "")}
           <p class="call-me">${meSafe ? "✨ Estás a salvo esta semana." : "👀 Te toca escuchar al jurado."}</p>
           <button class="btn btn-primary" id="story-next">Continuar</button>
         </div>`;

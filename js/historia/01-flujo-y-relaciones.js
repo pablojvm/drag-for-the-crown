@@ -659,6 +659,8 @@
     const lk = S.lastLook;
     const b = ["judge", lk && Math.random() < 0.7 ? pickFresh(ESTILO_CRITICA[lookN]).replace("{pieza}", (lookN === "top" ? lk.best : lk.worst).toLowerCase()).replace("{cat}", lk.cat) : pickFresh(JURADO.pasarela[lookN])];
     lines.push(a, [b[0], `${pickFresh(JURADO.aperturaAna)} ${b[1]}`]);
+    // Cuando un look le encanta, Ana suelta su «ovaaahhh» con los deditos
+    if (lookN === "top" && Math.random() < 0.45) lines.push(["judge", pickFresh(JURADO.ovah)]);
     if (Math.random() < 0.55) lines.push(...pickFresh(JAVIS.critica[nivel]));
     if (score >= 90 && (verdict === "win" || verdict === "none")) lines.push(["judge", "Has subido el nivel esta semana."]);
     if (score < 30) lines.push(["host", "Hoy te he visto despistada, {yo}."]);

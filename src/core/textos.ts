@@ -63,8 +63,16 @@ export const JURADO = {
     mid: ["El look de pasarela, bonito pero previsible.", "En pasarela, correcta. Nada más.", "El look lo he visto otras veces, pero te sienta bien."],
     low: ["Y el look de pasarela... mejor no hablemos de la peluca.", "Ese look parecía sacado del fondo del armario.", "En pasarela me has dejado fría."],
   },
-  aperturaAna: ["Voy a ser directa, {yo}.", "{yo}, vamos con el look.", "A ver, {yo}...", "{yo}, te he estado observando toda la semana.", "Mira, {yo}, te lo digo con cariño."],
-  aperturaSupreme: ["{yo}, te toca.", "Vamos contigo, {yo}.", "{yo}, cariño, da un paso al frente.", "Turno de {yo}. Nervios, ¿eh?"],
+  aperturaAna: ["Voy a ser directa, {yo}.", "{yo}, vamos con el look.", "A ver, {yo}...", "{yo}, te he estado observando toda la semana.", "Mira, {yo}, te lo digo con cariño.", "{yo}, hablemos de moda.", "Lo primero que he pensado al verte salir, {yo}:", "{yo}, el look.", "Yo me fijo en todo, {yo}, ya lo sabes."],
+  aperturaSupreme: [
+    "{yo}, te toca.", "Vamos contigo, {yo}.", "{yo}, cariño, da un paso al frente.", "Turno de {yo}. Nervios, ¿eh?",
+    "{yo}, ven aquí, que tengo cosas que decirte.", "A ver, {yo}... ¿qué ha pasado esta semana?", "{yo}, mírame a los ojos.",
+    "{yo}, esta semana me has hecho pensar mucho.", "Siguiente: {yo}.", "{yo}, respira, que esto va rápido.",
+    "{yo}, no pongas esa cara, que todavía no he dicho nada.", "Mi niña {yo}, adelante.", "{yo}... ay, {yo}.",
+    "Vamos con una que ha dado que hablar: {yo}.", "{yo}, ¿cómo te has sentido con el reto?", "Cuéntame, {yo}: ¿estás contenta con lo de hoy?",
+  ],
+  /** Lo que dice Ana Locking cuando un look le encanta (y hace los deditos). */
+  ovah: ["¡Un ovaaahhh! ¡Deditos!", "Esto es un ovaaahhh. Y lo sabes. ¡Deditos!", "¡Ovaaahhh! Mira, mira: ¡deditos, deditos!", "Me levanto y todo: ¡un ovaaahhh! ¡Deditos!"],
   veredicto: {
     win: ["¡{yo}, felicidrages! Eres la ganadora del reto.", "{yo}, has ganado esta semana. ¡Enhorabuena!", "La ganadora de la semana es... ¡{yo}!"],
     safe: ["{yo}, estás a salvo. Puedes volver al taller.", "{yo}, esta semana te salvas.", "Estás a salvo, {yo}. Pero no te relajes."],

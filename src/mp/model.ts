@@ -188,6 +188,13 @@ export interface RoomState {
   pause?: Pause;
   paused?: boolean;
   finalStage?: number;
+  /** Giros de final de temporada: pase directo a la final (con cinco) y primera finalista (con seis, inmune la semana siguiente). */
+  paseEp?: number;
+  pase?: string;
+  finalistaEp?: number;
+  immune?: { key: string; ep: number };
+  /** Doble shantay o doble sashay (como mucho uno de cada por temporada). */
+  doubles?: { shantay?: number; sashay?: number };
   /** Gran final: la forma que ha tocado, Miss Simpatía (del reencuentro) y lo de cada forma. */
   finalFmt?: FinalFmt;
   reunionDone?: boolean;
@@ -308,6 +315,10 @@ function nextEpisode(s0: RoomState, now: number, e: Engine): RoomState {
   if (!s.used.includes(LALA.tipo) && (s.lzEp ? ep === s.lzEp && n >= 5 : ep >= 2 && (n === 8 || n === 16))) {
     return { ...s, ep, reto: { ...LALA }, used: [...s.used, LALA.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, decision: undefined, twist: undefined, twistResult: undefined, bottom: undefined, triple: undefined, protectedKeys: undefined, rp: undefined, lala: undefined, note: undefined, script: undefined, reveal: s.reveal && s.reveal.ep === s.ep ? s.reveal : undefined, planShift: (s.planShift || 0) + 1, epNames: { ...s.epNames, [ep]: LALA.titulo }, phase: "anuncio", deadline: 0, v: s.v + 1 };
   }
+  // A veces, con seis, la ganadora será la primera finalista; con cinco, la ganadora tiene el pase directo a la final
+  const giros = !isAS(s) && !isAW(s);
+  if (giros && n === 6 && s.finalistaEp == null && e.rnd() < 0.4) s.finalistaEp = ep;
+  else if (giros && n === 5 && s.paseEp == null && !s.pase && e.rnd() < 0.4) s.paseEp = ep;
   const planned = (s.plan || [])[ep - 1 - (s.planShift || 0)];
   let r: Reto;
   if (planned && all.some((x) => x.tipo === planned.tipo)) {
@@ -458,6 +469,13 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
     order.forEach((gi, pos) => G.members[gi].forEach((k) => (groupOf![k] = pos)));
   }
   const n = rows.length;
+  // Primera finalista: esta semana no puede caer al bottom (se sube justo por encima)
+  const imm = s.immune && s.immune.ep === s.ep ? s.immune.key : null;
+  if (imm && !G) {
+    const nbGuess = bottomSize({ twist: s.fmt || "normal", n, repescaWeek: !!(s.rp && s.rp.ep === s.ep) });
+    const i = rows.findIndex((r) => r.key === imm);
+    if (i >= n - nbGuess && n - nbGuess - 1 >= 0) { const [r] = rows.splice(i, 1); rows.splice(n - nbGuess - 1, 0, r); }
+  }
   // Bottom de tres en la moneda (con seis o más) y en la Segunda Oportunidrag (lip sync a tres bandas)
   // Las mismas reglas que el modo historia (src/core/week.ts)
   const twist = s.fmt || "normal";
@@ -466,6 +484,8 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
   const blocked = s.block && s.block.ep === s.ep ? s.block.id : null;
   const labels = weekLabels(rows.map((r) => ({ key: r.key, group: groupOf ? groupOf[r.key] : undefined })), { twist, nb, bottom: rows.slice(n - nb).map((r) => r.key), blocked, nGroups: G ? order.length : undefined });
   rows.forEach((r, i) => (r.label = labels[i]));
+  // Doble victoria: si las dos mejores van casi empatadas, a veces ganan las dos
+  if (!G && !isAS(s) && !isAW(s) && n >= 5 && rows[0]?.label === "WIN" && rows[1]?.label === "HIGH" && rows[0].score - rows[1].score <= 1 && e.rnd() < 0.5) rows[1].label = "WIN";
   const allCrit = allCritiqued(n, twist);
   const crit = rows
     .filter((r) => allCrit || r.label !== "SAFE")
@@ -855,6 +875,21 @@ function startFinal(s0: RoomState, now: number, e: Engine): RoomState {
     return { ...t, ...extra, pairs, finalStage, phase: "final", deadline: anyP ? limite(now, D.final) : now + 8000, v: s0.v + 1 };
   };
   const nm = (k: string) => nameOfKey(s, k, e);
+  // Pase directo: la que lo tiene espera en la final; las demás se juegan el otro puesto
+  const pase = s0.pase && sd.includes(s0.pase) && sd.length >= 3 ? s0.pase : undefined;
+  const rest0 = pase ? sd.filter((k) => k !== pase) : sd;
+  if (pase && fmt !== "reto") {
+    if (fmt === "track") {
+      let t = s;
+      rest0.slice(1).forEach((k) => (t = eliminate(t, k, rest0.length > 2 ? `3ª/${rest0.length + 1}ª` : "3ª", "3ª")));
+      return go(t, [{ a: rest0[0], b: pase }], 2, { note: `${nm(pase)} tiene el pase directo. ${nm(rest0[0])}, la mejor del resto de la temporada, se la juega con ella.` });
+    }
+    if (fmt === "cuatro") return go(s, [], 5, { quad: rest0.slice(), note: `${nm(pase)} tiene el pase directo y espera en la final.` });
+    // Súper Lalaparuza, la reina de la pista y votan las eliminadas: lip syncs en cadena entre las demás
+    const order = rest0.slice().reverse();
+    const queue = fmt === "votan" ? order.slice(2) : [...order.slice(2), pase];
+    return go(s, [{ a: order[0], b: order[1] }], 4, { chain: queue, note: `${nm(pase)} tiene el pase directo: espera ${fmt === "votan" ? "a la ganadora, y la corona la votan las eliminadas" : "a la que gane la cadena de lip syncs"}.` });
+  }
   if (fmt === "reto") {
     // Un último reto con pasarela (sin grupos ni Lalaparuza): lo que no se haya hecho aún, si queda
     const all = e.retos().filter((r) => !r.groups && r.tipo !== LALA.tipo && !r.noRunway);
@@ -892,11 +927,12 @@ function quadNext(s: RoomState, now: number, e: Engine): RoomState {
   };
   const sc = Object.fromEntries(Q.map((k) => [k, score(k)]));
   const ranked = Q.slice().sort((a, b) => sc[b] - sc[a]);
-  const top = ranked.slice(0, 2), rest = ranked.slice(2);
+  const pase = s.pase && aliveKeys(s).includes(s.pase) && !Q.includes(s.pase) ? s.pase : undefined;
+  const top = pase ? [ranked[0], pase] : ranked.slice(0, 2), rest = pase ? ranked.slice(1) : ranked.slice(2);
   let t: RoomState = { ...s, quad: undefined, subs: {} };
   rest.forEach((k) => (t = eliminate(t, k, rest.length > 1 ? `3ª/${2 + rest.length}ª` : "3ª", "3ª")));
   const anyP = top.some(isP);
-  return { ...t, pairs: [{ a: top[0], b: top[1] }], finalStage: 2, note: `El jurado salva a ${top.map((k) => nameOfKey(t, k, e)).join(" y ")}: se juegan la corona.`, phase: "final", deadline: anyP ? limite(now, DURACION[s.ritmo].final) : now + 8000, v: s.v + 1 };
+  return { ...t, pairs: [{ a: top[0], b: top[1] }], finalStage: 2, note: pase ? `El jurado salva a ${nameOfKey(t, top[0], e)}: se juega la corona con ${nameOfKey(t, pase, e)}, que tenía el pase directo.` : `El jurado salva a ${top.map((k) => nameOfKey(t, k, e)).join(" y ")}: se juegan la corona.`, phase: "final", deadline: anyP ? limite(now, DURACION[s.ritmo].final) : now + 8000, v: s.v + 1 };
 }
 /** La reina de la pista: la que pierde se va; la que gana espera a la siguiente. La última que queda, gana. */
 function chainNext(t0: RoomState, now: number, e: Engine): RoomState {
@@ -905,6 +941,10 @@ function chainNext(t0: RoomState, now: number, e: Engine): RoomState {
   const loser = p.winner === p.a ? p.b : p.a;
   const queue = t0.chain || [];
   let t = t0;
+  if (!queue.length && t0.finalFmt === "votan" && t0.pase && aliveKeys(t0).includes(t0.pase) && p.winner !== t0.pase) {
+    t = eliminate(t, loser, "3ª", "3ª");
+    return toVote({ ...t, chain: undefined }, p.winner, t0.pase, `${nameOfKey(t, p.winner, e)} se gana el sitio en la final con ${nameOfKey(t, t0.pase, e)}.`, now);
+  }
   if (!queue.length) {
     t = eliminate(t, loser, "2ª", "RUNNER-UP");
     t = { ...t, chain: undefined, track: { ...t.track, [p.winner]: { ...(t.track[p.winner] || {}), [t0.ep]: "WINNER" } } };
@@ -995,7 +1035,12 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
     case "pasarela": {
       let scored = scoreWeek(s, e);
       // Reto final: las dos mejores, al lip sync por la corona; el resto, terceras
-      if (s.finalRun) scored = { ...scored, rows: (scored.rows || []).map((r, i) => ({ ...r, label: i < 2 ? "TOP2" : "3ª" })) };
+      if (s.finalRun) {
+        const pase = s.pase;
+        const best = (scored.rows || []).find((r) => r.key !== pase)?.key;
+        const topK = pase ? [pase, best] : (scored.rows || []).slice(0, 2).map((r) => r.key);
+        scored = { ...scored, rows: (scored.rows || []).map((r) => ({ ...r, label: topK.includes(r.key) ? "TOP2" : "3ª" })) };
+      }
       // Que dé tiempo a escuchar las críticas de todas
       const secs = D.resultados > 0 ? Math.max(D.resultados, 8 + (scored.crit || []).length * POR_CRITICA) : 0;
       return { ...scored, phase: "resultados", deadline: limite(now, secs), v: s.v + 1 };
@@ -1006,10 +1051,15 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       return at("veredicto", D.veredicto, { track: writeTrack(s, s.rows || []) });
     case "veredicto": {
       const rows = s.rows || [];
+      // Pase directo / primera finalista: se lo lleva la ganadora del reto
+      const winK = rows.find((r) => r.label === "WIN")?.key;
+      if (winK && s.paseEp === s.ep && !s.pase) s = { ...s, pase: winK };
+      if (winK && s.finalistaEp === s.ep && !s.immune) s = { ...s, immune: { key: winK, ep: s.ep + 1 } };
       if (s.finalRun) {
-        const top = rows.slice(0, 2).map((r) => r.key);
+        const pase = s.pase && rows.some((r) => r.key === s.pase) ? s.pase : undefined;
+        const top = pase ? [rows.find((r) => r.key !== pase)!.key, pase] : rows.slice(0, 2).map((r) => r.key);
         let t: RoomState = { ...s, finalRun: false, subs: {} };
-        const rest = rows.slice(2).map((r) => r.key);
+        const rest = rows.map((r) => r.key).filter((k) => !top.includes(k));
         rest.forEach((k) => (t = eliminate(t, k, rest.length > 1 ? `3ª/${2 + rest.length}ª` : "3ª", "3ª")));
         const pairs: Pair[] = [{ a: top[0], b: top[1] }];
         const anyP = top.some(isP);
@@ -1090,11 +1140,27 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
         return { ...t, decision: { ...d, by: p.winner, go, kind }, reveal, note: `${nm(p.winner)} saca su pintalabios: ${nm(go)} se va a casa (${why}). ${nm(stay)} se queda.`, phase: "pintalabios", deadline: limite(now, D.pintalabios), v: s.v + 1 };
       }
       let t: RoomState = { ...s, pairs };
+      const nm = (k: string) => nameOfKey(t, k, e);
+      // Muy de vez en cuando: doble shantay (las dos lo han bordado) o doble sashay (las dos, fatal)
+      const p0 = pairs.length === 1 ? pairs[0] : null;
+      if (p0) {
+        // En el duelo entre jugadoras la nota es la suma de los seis movimientos: se lleva a 0-100
+        const duelo = isP(p0.a) && isP(p0.b);
+        const lsOf = (k: string) => (isP(k) ? Math.min(100, (s.subs[idOf(k)]?.ls?.score ?? 0) / (duelo ? 1.3 : 1)) : Math.max(0, Math.min(100, 50 + ppeOf(s, k) * 6 + (e.rnd() - 0.5) * 40)));
+        const sa = lsOf(p0.a), sb = lsOf(p0.b);
+        const d = s.doubles || {};
+        const n = aliveKeys(s).length;
+        if (!d.shantay && Math.min(sa, sb) >= 82 && n > 5 && e.rnd() < 0.35)
+          return { ...t, doubles: { ...d, shantay: s.ep }, note: `¡Doble shantay! ${nm(p0.a)} y ${nm(p0.b)} lo han dado todo: las dos os quedáis.`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+        if (!d.sashay && Math.max(sa, sb) <= 30 && n >= 7 && e.rnd() < 0.35) {
+          [p0.a, p0.b].forEach((k) => (t = eliminate(t, k, `${n - 1}º/${n}º`, "ELIM", e)));
+          return { ...t, doubles: { ...d, sashay: s.ep }, note: `Doble sashay: ni ${nm(p0.a)} ni ${nm(p0.b)} se lo han ganado. Las dos os vais a casa.`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+        }
+      }
       pairs.forEach((p) => {
         const loser = p.winner === p.a ? p.b : p.a;
         t = eliminate(t, loser, `${aliveKeys(t).length}º`, "ELIM", e);
       });
-      const nm = (k: string) => nameOfKey(t, k, e);
       const note = pairs.map((p) => `${nm(p.winner!)} se queda. ${nm(p.winner === p.a ? p.b : p.a)} se va a casa.`).join(" ");
       return { ...t, note, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
     }

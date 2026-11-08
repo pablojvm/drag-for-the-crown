@@ -57,6 +57,8 @@ export function criticaJurado(o: CriticaCtx): [Habla, string][] {
     const estilo = (ESTILO_CRITICA[look] as string[]).filter((t) => !t.includes("{pieza}") && (o.cat || !t.includes("{cat}")));
     const txt = estilo.length && rnd() < 0.5 ? pick(estilo).replace(/\{cat\}/g, o.cat || "") : pick(JURADO.pasarela[look]).replace(/^(y |por cierto, )/i, "").replace(/^./, (c) => c.toUpperCase());
     out.push(["judge", `${yo(pick(JURADO.aperturaAna))} ${txt}`]);
+    // Cuando un look le encanta, Ana suelta su «ovaaahhh» con los deditos
+    if (look === "top" && rnd() < 0.45) out.push(["judge", pick(JURADO.ovah)]);
   }
   if (rnd() < 0.55) out.push(...pick(JAVIS_CRITICA[o.nivel]).map(([k, t]) => [k, yo(t)] as [Habla, string]));
   // El jurado se acuerda de cómo vas

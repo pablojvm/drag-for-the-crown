@@ -74,4 +74,32 @@ describe("gran final del multijugador", () => {
       expect(applySubmit(s, voter.id, s.ep, "votacion", { pick: "zz" }).subs[voter.id]).toBeUndefined();
     }
   });
+  for (const fmt of Object.keys(FINALES) as FinalFmt[]) {
+    it(`con pase directo, la final «${FINALES[fmt].n}» llega a la corona y la del pase llega al último duelo`, () => {
+      for (const seed of [1, 2, 3, 7]) {
+        const r = toReunion(seed, fmt);
+        const e = r.e;
+        let g = r.g;
+        if (aliveKeys(r.s).length < 3) continue;
+        const pase = aliveKeys(r.s)[0];
+        let s: RoomState = { ...r.s, pase };
+        while (s.phase !== "corona" && g++ < 4000) s = advance(s, g * 1000, e);
+        expect(s.phase).toBe("corona");
+        expect(aliveKeys(s)).toHaveLength(1);
+        // La del pase acaba ganadora o subcampeona
+        expect(["WINNER", "RUNNER-UP"]).toContain(s.track[pase][s.ep]);
+      }
+    });
+  }
+  it("la primera finalista no cae al bottom la semana siguiente", () => {
+    const e = engine(3);
+    let s = room(3);
+    let g = 0;
+    while (!(s.phase === "pasarela" && aliveKeys(s).length >= 5) && g++ < 2000) s = advance(s, g * 1000, e);
+    const imm = aliveKeys(s)[aliveKeys(s).length - 1];
+    s = { ...s, immune: { key: imm, ep: s.ep } };
+    s = advance(s, g * 1000, e); // críticas
+    const row = (s.rows || []).find((r) => r.key === imm);
+    expect(row && /^BTM/.test(row.label)).toBe(false);
+  });
 });
