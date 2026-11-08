@@ -200,7 +200,9 @@
           <div class="votes">${ranked.slice(0, 4)
             .map((q) => `<div class="vote-col ${q === win ? "top" : ""}"><i style="background-image:url('${photo(q)}')"></i><b>${esc(q === S.queen ? "Tú" : q.name)}</b><span>${votes.get(q).length} voto${votes.get(q).length === 1 ? "" : "s"}</span><div class="voters">${votes.get(q).map((v) => `<img src="${photo(v)}" title="${esc(v === S.queen ? "Tú" : v.name)}">`).join("")}</div></div>`)
             .join("")}</div>
-          <p>Tu voto fue para <b>${esc(myVote.name)}</b>. Las cuatro finalistas pasan a la gran final.</p>
+          <p>Tu voto fue para <b>${esc(myVote.name)}</b>.</p>
+          <p>👑 Las finalistas de ${esc(S.season.name)}: <b>${esc([...(S.meOut ? [] : [S.queen]), ...S.rivals].map((q) => (q === S.queen ? "tú" : q.name)).join(", ").replace(/, ([^,]*)$/, " y $1"))}</b>.</p>
+          <p class="twist-note">${DFTC.FINALES[finalFmtOf()].icon} La gran final será... <b>${esc(DFTC.FINALES[finalFmtOf()].n)}</b>. ${esc(DFTC.FINALES[finalFmtOf()].d)}</p>
           <button class="btn btn-primary" id="story-next">¡A la gran final!</button>
         </div>`;
       S.flags.reunion = true;
@@ -240,7 +242,7 @@
           if (S.lipsyncs >= 3) Achievements.unlock("superviviente");
         }
         header();
-        cb(res.won);
+        cb(res.won, res.score);
       });
     }, o.curtain));
   }
@@ -509,7 +511,8 @@
     run(ranked.slice(0, TOP));
   }
 
-  function finale() {
+  // La final de siempre (Súper Lalaparuza); las demás formas, en 036-finales.js
+  function finaleLala() {
     setSet("stage");
     if (S.bottoms === 0) Achievements.unlock("sin-bottom");
     S.epNames[S.ep] = "Final";
@@ -631,6 +634,10 @@
     S.epNames[S.ep] = EP_SHORT[tipo] || "Reto";
     const rows = S.rivals.map((q) => ({ q, s: rivalScore(q) + rnd(-10, 10) })).sort((a, b) => b.s - a.s);
     const n = rows.length;
+    // Primera finalista: esta semana no cae al bottom
+    const immK = S.flags.immF && S.flags.immF.ep === S.ep ? S.flags.immF.key : null;
+    const ii = immK ? rows.findIndex((r) => keyOf(r.q) === immK) : -1;
+    if (ii >= n - 2 && n >= 4) { const [r] = rows.splice(ii, 1); rows.splice(n - 3, 0, r); }
     const allCrit = n <= 6;
     rows.forEach((r, k) => {
       const lab = k === 0 ? "WIN" : k >= n - 2 ? "BTM2" : k <= (n <= 7 ? 1 : 2) ? "HIGH" : k >= n - 3 ? "LOW" : "SAFE";
@@ -639,7 +646,8 @@
       S.record[key] = (S.record[key] || 0) + (k === 0 ? 3 : k >= n - 2 ? 0 : 1);
       S.form[r.q.id] = clamp((S.form[r.q.id] || 0) + (k === 0 ? 2 : k >= n - 2 ? 3 : 0) + rnd(-2, 2), -10, 10);
     });
-    if (n === 5 && !asLike(twistOf())) S.flags.pase = keyOf(rows[0].q);
+    if (n === 5 && !asLike(twistOf()) && !S.flags.pase && Math.random() < 0.4) S.flags.pase = keyOf(rows[0].q);
+    if (n === 6 && !asLike(twistOf()) && !S.flags.immF && Math.random() < 0.4) S.flags.immF = { key: keyOf(rows[0].q), ep: S.ep + 1 };
     if (twistOf() === "repesca" && !S.flags.repesca && S.rivals.length === REPESCA_AT + 1) S.flags.immune = rows[0].q.id;
     if (twistOf() === "repesca" && !S.flags.repesca && S.rivals.length <= REPESCA_AT) {
       const gone = [rows[n - 2].q, rows[n - 1].q];
@@ -676,7 +684,7 @@
       reunion();
     }, "EL REENCUENTRO");
   }
-  function afterFinal() {
+  function afterFinalLala() {
     Curtain.run(() => {
       setSet("stage");
       S.ep++;

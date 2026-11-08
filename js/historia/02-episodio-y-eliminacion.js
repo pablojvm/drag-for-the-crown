@@ -334,6 +334,22 @@
     S.curTitulo = RETOS[tipo].titulo();
     return tipo;
   }
+  // Giros de final de temporada (como en el multijugador): con seis, a veces la ganadora será la primera finalista
+  // (y la semana siguiente no puede caer al bottom); con cinco, a veces la ganadora se lleva el pase directo
+  function girosAnuncio() {
+    const n = S.rivals.length + 1;
+    const tw = twistOf();
+    const out = [];
+    if (!asLike(tw) && !S.meOut) {
+      if (n === 6 && S.flags.finalistaEp == null && Math.random() < 0.4) S.flags.finalistaEp = S.ep;
+      if (n === 5 && S.flags.paseEp == null && Math.random() < 0.4) S.flags.paseEp = S.ep;
+    }
+    const imm = S.flags.immF && S.flags.immF.ep === S.ep ? S.flags.immF.key : null;
+    if (imm) out.push(["host", `${imm === "me" ? S.queen.name : (qById(imm) || {}).name}, eres la primera finalista: esta semana no puedes caer al bottom. Eso sí, ganar... también puedes ganar.`]);
+    if (S.flags.finalistaEp === S.ep) out.push(["host", "Y atención, reinas: la ganadora del reto de hoy será la primera finalista de la temporada. Y la semana que viene no podrá caer al bottom."]);
+    if (S.flags.paseEp === S.ep) out.push(["host", "Y una cosa más: la ganadora del reto de hoy se lleva el pase directo a la gran final."], ["judge", "Mientras las demás se lo juegan todo, ella esperará en la final. Merece la pena ganar hoy."]);
+    return out;
+  }
   // ¡Suena la sirena! Supremme entra al taller y anuncia el maxirreto
   function announce(then) {
     setReto();
@@ -356,7 +372,7 @@
     const ctx = ctxWith(pick1(S.rivals), { reto: S.curTitulo });
     const anuncio = () => S.curTipo === "repescaStand"
       ? dialog([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", `Esta semana: ${S.curTitulo}. Cada una de vosotras hará un monólogo con una de ellas.`], ["host", "La eliminada de la pareja ganadora... vuelve a la competición. Y las reinas de las tres peores parejas harán un lip sync a tres bandas: solo se salva una."], ...(S.flags.immune ? [["host", `${S.flags.immune === "me" ? "{yo}" : (qById(S.flags.immune) || {}).name}, tú ganaste la semana pasada: esta semana no compites. Serás nuestra maestra de ceremonias.`]] : [])], ctx, then)
-      : dialog(pickFresh(HISTORIA.anuncio), ctx, then);
+      : dialog([...pickFresh(HISTORIA.anuncio), ...girosAnuncio()], ctx, then);
     // All Stars: nada más entrar, Supremme pregunta a la que perdió el lip sync qué pintalabios había elegido
     const P = S.asPending && S.asPending.ep === S.ep - 1 ? S.asPending : null;
     if (S.ep !== 1 && P) {
@@ -675,6 +691,12 @@
     // Tamaño del bottom: regla compartida con el multijugador (src/core/week.ts)
     const lastGroupSize = groupOf ? rows.filter((r) => groupOf.get(r) === nGroups - 1).length : undefined;
     const nb = DFTC.bottomSize({ twist: tw, n, repescaWeek: S.curTipo === "repescaStand" && repescaNow(), lastGroupSize });
+    // Primera finalista: esta semana no puede caer al bottom (se sube justo por encima)
+    const immK = S.flags.immF && S.flags.immF.ep === S.ep ? S.flags.immF.key : null;
+    if (immK && !groupOf) {
+      const i = rows.findIndex((r) => keyOf(r.q) === immK);
+      if (i >= n - nb && n - nb - 1 >= 1) { const [r] = rows.splice(i, 1); rows.splice(n - nb - 1, 0, r); }
+    }
     let bottomRows = rows.slice(n - nb);
     const notes = [];
     // El reto anterior a la Segunda Oportunidrag da inmunidad para esa semana
@@ -722,7 +744,8 @@
         if (S.phase && S.phase.ep === S.ep && S.phase.paid) return;
         if (S.phase && S.phase.ep === S.ep) { S.phase.paid = 1; }
         logEv(`Gana el reto ${won ? S.queen.name : winner.q.name}; en el bottom: ${bottomRows.map((r) => r.q.name).join(" y ")}`);
-        if (n === 5 && !asLike(tw)) { S.flags.pase = keyOf(winner.q); logEv(`${winner.me ? S.queen.name : winner.q.name} gana el pase directo a la gran final`); }
+        if (n === 5 && !asLike(tw) && S.flags.paseEp === S.ep) { S.flags.pase = keyOf(winner.q); logEv(`${winner.me ? S.queen.name : winner.q.name} gana el pase directo a la gran final`); Toast.show("🎟️ Pase directo a la final", winner.me ? "¡Es tuyo!" : `Para ${winner.q.name}`); }
+        if (n === 6 && !asLike(tw) && S.flags.finalistaEp === S.ep) { S.flags.immF = { key: keyOf(winner.q), ep: S.ep + 1 }; Toast.show("👑 Primera finalista", winner.me ? "¡Eres tú! La semana que viene no puedes caer al bottom" : `${winner.q.name} ya está en la final`); }
         if (won && !asLike(tw)) { growAttr(((RETOS[S.curTipo] || {}).attrs || [])[0]); earn(300, "Ganas el reto de la semana"); }
         else if (myPos <= 2 && !bottom) earn(80, "Entre las mejores de la semana");
         if (won && !asLike(tw)) meWonReto();

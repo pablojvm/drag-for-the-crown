@@ -508,6 +508,16 @@
     body().innerHTML = `<div id="story-play"></div>`;
     RETOS[tipo].run($("#story-play"), (sc) => { cleanup = null; cb && cb(sc); window.__lastScore = sc; });
   };
+  // Para las pruebas: salta a la gran final con una forma concreta (out: verla desde el público)
+  const _finalTest = (fmt, out = false) => {
+    if (cleanup) cleanup();
+    while (S.rivals.length > (out ? 4 : 3)) eliminate(S.rivals[S.rivals.length - 1]);
+    S.flags.reunion = true;
+    S.flags.finalFmt = fmt;
+    if (out) { S.meOut = true; S.flags.myPlace = 6; S.flags.outEp = S.ep; return afterFinal(); }
+    S.ep++;
+    finale();
+  };
   // Simulador de equilibrio (sin pantalla): juega N temporadas solo con rivales y cuenta wins, bottoms y coronas.
   // En la consola: DFTC_SIM("es1", 500)
   function simulate(seasonId, n = 300) {
@@ -543,5 +553,5 @@
     return out;
   }
   window.DFTC_SIM = (sid = "es1", n = 300) => { const r = simulate(sid, n); if (r) console.table(r); return r; };
-  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), preview, _test, simulate, repetirEpisodio: repeatEpisode, mp: mpApi, lastEntryId: null };
+  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), preview, _test, _finalTest, simulate, repetirEpisodio: repeatEpisode, mp: mpApi, lastEntryId: null };
 })();

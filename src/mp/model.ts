@@ -24,16 +24,9 @@ export const FORMATOS: Record<Formato, { n: string; icon: string; d: string }> =
   corazon: { n: "Temporada del corazón", icon: "❤️", d: "Cada eliminada deja medio corazón. Con uno entero salvas a alguien del bottom." },
   moneda: { n: "Temporada de la moneda", icon: "🪙", d: "Bottom de tres y moneda al aire: cara, las salvadas votan a quién salvar; cruz, a quién condenar." },
 };
-/** Formas de la gran final (se sortea una en el reencuentro). All Winners tiene la suya. */
-export type FinalFmt = "torneo" | "reto" | "track" | "votan" | "cuatro" | "cadena";
-export const FINALES: Record<FinalFmt, { n: string; icon: string; d: string }> = {
-  torneo: { n: "Súper Lalaparuza", icon: "🏆", d: "Lip syncs eliminatorios: semifinales (1.ª contra 4.ª y 2.ª contra 3.ª) y las dos que ganan se juegan la corona." },
-  reto: { n: "Reto final", icon: "🎤", d: "Un último reto con su pasarela. Las dos mejores se juegan la corona en un lip sync; las demás quedan terceras." },
-  track: { n: "El track record manda", icon: "📊", d: "Las dos con mejor temporada van directas al lip sync por la corona. Lo que has hecho cada semana, cuenta." },
-  votan: { n: "Votan las eliminadas", icon: "🗳️", d: "Semifinales de lip sync y, entre las dos que lleguen, la corona la deciden con su voto todas las eliminadas." },
-  cuatro: { n: "Lip sync a cuatro", icon: "💃", d: "Todas bailan a la vez la misma canción, y de ese lip sync sale la ganadora. El jurado decide cómo quedan las demás." },
-  cadena: { n: "La reina de la pista", icon: "🔥", d: "Lip syncs en cadena: la que gana se queda en la pista y espera a la siguiente. Empieza la de peor temporada; la mejor espera al final." },
-};
+// Formas de la gran final: compartidas con el modo historia (src/core/finales.ts)
+import type { FinalFmt } from "../core/finales";
+export { FINALES, type FinalFmt } from "../core/finales";
 /** Cuándo llega la Segunda Oportunidrag (reinas en competición). */
 export const REPESCA_AT = 7;
 

@@ -701,8 +701,8 @@
     (S.track[k] = S.track[k] || {})[S.ep] = lab;
   }
   const TRACK_CLASS = (l) =>
-    l === "WIN" || l === "WINNER" ? "t-win" : l === "BWIN" ? "t-win t-blocked" : l === "BTOP" ? "t-top2 t-blocked" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" ? "t-third" : l === "MISSC" ? "t-miss" : l === "RTRN" ? "t-rtrn" : l === "MC" ? "t-mc" : l === "FINALISTA" ? "t-third" : l === "QOSD" ? "t-qosd" : l === "ELIMF" ? "t-elim" : "t-none";
-  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", MISSC: "MISS CONGENIALITY", RTRN: "RTRN", MC: "MC", FINALISTA: "FINALISTA", SINESTRELLA: "SIN ⭐", QOSD: "QoSDADHH", ELIMF: "ELIMINADA", BWIN: "WIN", BTOP: "TOP2" };
+    l === "WIN" || l === "WINNER" ? "t-win" : l === "BWIN" ? "t-win t-blocked" : l === "BTOP" ? "t-top2 t-blocked" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" || l === "P3" || l === "P4" ? "t-third" : l === "MISSC" ? "t-miss" : l === "RTRN" ? "t-rtrn" : l === "MC" ? "t-mc" : l === "FINALISTA" ? "t-third" : l === "QOSD" ? "t-qosd" : l === "ELIMF" ? "t-elim" : "t-none";
+  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", P3: "3ª", P4: "4ª", MISSC: "MISS CONGENIALITY", RTRN: "RTRN", MC: "MC", FINALISTA: "FINALISTA", SINESTRELLA: "SIN ⭐", QOSD: "QoSDADHH", ELIMF: "ELIMINADA", BWIN: "WIN", BTOP: "TOP2" };
   // Puntuación del track record (PPE) de tu reina: media de sus resultados semana a semana
   function myPPE() {
     return DFTC.ppe(Object.values(S.track.me || {}));
@@ -712,7 +712,7 @@
     const everyone = [S.queen, ...S.rivals, ...S.out];
     const count = (k, test) => eps.filter((e) => test((S.track[k] || {})[e] || "")).length;
     // Orden de las que siguen: cómo quedaron en el último episodio con resultados
-    const ORDER = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, FINAL: 3, HIGH: 4, "3ª": 5, FINALISTA: 5, QOSD: 5.5, SAFE: 6, SINESTRELLA: 6.8, ELIMF: 8.5, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9, MC: 6, RTRN: 6.5 };
+    const ORDER = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, FINAL: 3, HIGH: 4, "3ª": 5, P3: 5, P4: 5.2, FINALISTA: 5, QOSD: 5.5, SAFE: 6, SINESTRELLA: 6.8, ELIMF: 8.5, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9, MC: 6, RTRN: 6.5 };
     const lastScored = [...eps].reverse().find((e) => everyone.some((q) => ORDER[(S.track[keyOf(q)] || {})[e]] !== undefined));
     const lastRank = (k) => { const l = lastScored && (S.track[k] || {})[lastScored]; return ORDER[l] !== undefined ? ORDER[l] : 7.5; };
     const lastEp = (k) => Math.max(0, ...eps.filter((e) => (S.track[k] || {})[e] && S.track[k][e] !== "MISSC"));

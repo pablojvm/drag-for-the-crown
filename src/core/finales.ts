@@ -26,3 +26,14 @@ export function lalaScore(o: { reached: number; R: number; champ: boolean; top2:
   const t = Math.max(-4, Math.min(4, o.tweak || 0));
   return Math.round(Math.max(0, Math.min(99, base + t)));
 }
+
+/** Formas de la gran final (se sortea una en el reencuentro). All Winners tiene la suya. */
+export type FinalFmt = "torneo" | "reto" | "track" | "votan" | "cuatro" | "cadena";
+export const FINALES: Record<FinalFmt, { n: string; icon: string; d: string }> = {
+  torneo: { n: "Súper Lalaparuza", icon: "🏆", d: "Un torneo de lip syncs entre las finalistas: la que sobreviva a todos se lleva la corona." },
+  reto: { n: "Reto final", icon: "🎤", d: "Un último reto con su pasarela. Las dos mejores se juegan la corona en un lip sync; las demás quedan terceras." },
+  track: { n: "El track record manda", icon: "📊", d: "Las dos con mejor temporada van directas al lip sync por la corona. Lo que has hecho cada semana, cuenta." },
+  votan: { n: "Votan las eliminadas", icon: "🗳️", d: "Semifinales de lip sync y, entre las dos que lleguen, la corona la deciden con su voto todas las eliminadas." },
+  cuatro: { n: "Lip sync a cuatro", icon: "💃", d: "Todas bailan a la vez la misma canción, y de ese lip sync sale la ganadora. El jurado decide cómo quedan las demás." },
+  cadena: { n: "La reina de la pista", icon: "🔥", d: "Lip syncs en cadena: la que gana se queda en la pista y espera a la siguiente. Empieza la de peor temporada; la mejor espera al final." },
+};
