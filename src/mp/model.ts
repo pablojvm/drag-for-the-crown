@@ -31,7 +31,7 @@ export const FINALES: Record<FinalFmt, { n: string; icon: string; d: string }> =
   reto: { n: "Reto final", icon: "🎤", d: "Un último reto con su pasarela. Las dos mejores se juegan la corona en un lip sync; las demás quedan terceras." },
   track: { n: "El track record manda", icon: "📊", d: "Las dos con mejor temporada van directas al lip sync por la corona. Lo que has hecho cada semana, cuenta." },
   votan: { n: "Votan las eliminadas", icon: "🗳️", d: "Semifinales de lip sync y, entre las dos que lleguen, la corona la deciden con su voto todas las eliminadas." },
-  cuatro: { n: "Lip sync a cuatro", icon: "💃", d: "Todas bailan a la vez la misma canción. El jurado salva a dos, y esas dos se juegan la corona." },
+  cuatro: { n: "Lip sync a cuatro", icon: "💃", d: "Todas bailan a la vez la misma canción, y de ese lip sync sale la ganadora. El jurado decide cómo quedan las demás." },
   cadena: { n: "La reina de la pista", icon: "🔥", d: "Lip syncs en cadena: la que gana se queda en la pista y espera a la siguiente. Empieza la de peor temporada; la mejor espera al final." },
 };
 /** Cuándo llega la Segunda Oportunidrag (reinas en competición). */
@@ -203,6 +203,8 @@ export interface RoomState {
   finalRun?: boolean;
   /** Lip sync a cuatro (o a tres): las que bailan a la vez. */
   quad?: string[];
+  /** Cómo se resolvió: en orden (de la cuarta a la primera), una fuera y dos subcampeonas, o solo la ganadora. Orden de la mejor a la peor. */
+  quadResult?: { mode: "orden" | "unaFuera" | "ganadora"; order: string[] };
   /** La reina de la pista: las que esperan su turno (en orden). */
   chain?: string[];
   /** Votan las eliminadas: las dos de la final y, al acabar, los votos. */
@@ -916,7 +918,9 @@ function startFinal(s0: RoomState, now: number, e: Engine): RoomState {
   const bye = sd.length === 3 ? sd[0] : undefined;
   return go(s, pairs, 1, { note: bye ? `${nm(bye)} pasa directa a la final.` : undefined });
 }
-/** Lip sync a cuatro (o a tres): las jugadoras bailan su lip sync; las del juego, por su temporada y un poco de suerte. */
+/** Lip sync a cuatro (o a tres): las jugadoras bailan su lip sync; las del juego, por su temporada y un poco de suerte.
+ *  Del mismo lip sync sale la ganadora. El jurado, a veces, las ordena de la cuarta a la primera; otras deja a una fuera
+ *  y hay dos subcampeonas; y otras dice solo la ganadora (las demás, ELIM). Con pase directo, la mejor se la juega con ella. */
 function quadNext(s: RoomState, now: number, e: Engine): RoomState {
   const Q = s.quad || [];
   const score = (k: string) => {
@@ -928,11 +932,30 @@ function quadNext(s: RoomState, now: number, e: Engine): RoomState {
   const sc = Object.fromEntries(Q.map((k) => [k, score(k)]));
   const ranked = Q.slice().sort((a, b) => sc[b] - sc[a]);
   const pase = s.pase && aliveKeys(s).includes(s.pase) && !Q.includes(s.pase) ? s.pase : undefined;
-  const top = pase ? [ranked[0], pase] : ranked.slice(0, 2), rest = pase ? ranked.slice(1) : ranked.slice(2);
   let t: RoomState = { ...s, quad: undefined, subs: {} };
-  rest.forEach((k) => (t = eliminate(t, k, rest.length > 1 ? `3ª/${2 + rest.length}ª` : "3ª", "3ª")));
-  const anyP = top.some(isP);
-  return { ...t, pairs: [{ a: top[0], b: top[1] }], finalStage: 2, note: pase ? `El jurado salva a ${nameOfKey(t, top[0], e)}: se juega la corona con ${nameOfKey(t, pase, e)}, que tenía el pase directo.` : `El jurado salva a ${top.map((k) => nameOfKey(t, k, e)).join(" y ")}: se juegan la corona.`, phase: "final", deadline: anyP ? limite(now, DURACION[s.ritmo].final) : now + 8000, v: s.v + 1 };
+  if (pase) {
+    ranked.slice(1).forEach((k) => (t = eliminate(t, k, ranked.length > 2 ? `3ª/${ranked.length + 1}ª` : "3ª", "3ª")));
+    const anyP = isP(ranked[0]) || isP(pase);
+    return { ...t, pairs: [{ a: ranked[0], b: pase }], finalStage: 2, note: `${nameOfKey(t, ranked[0], e)} gana el lip sync y se juega la corona con ${nameOfKey(t, pase, e)}, que tenía el pase directo.`, phase: "final", deadline: anyP ? limite(now, DURACION[s.ritmo].final) : now + 8000, v: s.v + 1 };
+  }
+  const r = e.rnd();
+  const mode: "orden" | "unaFuera" | "ganadora" = r < 0.45 ? "orden" : r < 0.75 ? "unaFuera" : "ganadora";
+  const [win, ...rest] = ranked;
+  const n = ranked.length;
+  if (mode === "orden") {
+    // De la cuarta a la segunda: cada una con su puesto
+    rest.slice().reverse().forEach((k, i) => {
+      const pos = n - i;
+      t = eliminate(t, k, `${pos}ª`, pos === 2 ? "RUNNER-UP" : `P${pos}`);
+    });
+  } else if (mode === "unaFuera") {
+    // Se va la última (ELIM) y las demás son subcampeonas
+    const last = rest[rest.length - 1];
+    rest.slice(0, -1).forEach((k) => (t = eliminate(t, k, rest.length > 2 ? `2ª/${n - 1}ª` : "2ª", "RUNNER-UP")));
+    if (last) t = eliminate(t, last, `${n}ª`, "ELIM");
+  } else rest.forEach((k) => (t = eliminate(t, k, `2ª/${n}ª`, "ELIM")));
+  t = { ...t, track: { ...t.track, [win]: { ...(t.track[win] || {}), [s.ep]: "WINNER" } } };
+  return { ...t, quadResult: { mode, order: ranked }, champion: win, phase: "corona", deadline: 0, v: s.v + 1 };
 }
 /** La reina de la pista: la que pierde se va; la que gana espera a la siguiente. La última que queda, gana. */
 function chainNext(t0: RoomState, now: number, e: Engine): RoomState {

@@ -56,7 +56,13 @@ describe("gran final del multijugador", () => {
         expect(aliveKeys(s)).toHaveLength(1);
         expect(finalists).toContain(s.champion);
         expect(s.track[s.champion!][s.ep]).toBe("WINNER");
-        expect(Object.values(s.track).filter((t) => t[s.ep] === "RUNNER-UP")).toHaveLength(1);
+        const ru = Object.values(s.track).filter((t) => t[s.ep] === "RUNNER-UP").length;
+        if (fmt === "cuatro" && s.quadResult) {
+          // Del mismo lip sync: en orden (una subcampeona), una fuera (dos o más) o solo la ganadora (ninguna)
+          const m = s.quadResult!.mode;
+          expect(m === "orden" ? ru === 1 : m === "unaFuera" ? ru >= 1 : ru === 0).toBe(true);
+          expect(s.quadResult!.order[0]).toBe(s.champion);
+        } else expect(ru).toBe(1);
         if (fmt === "votan") expect(Object.values(s.vote?.tally || {}).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
       }
     });

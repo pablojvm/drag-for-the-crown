@@ -593,7 +593,19 @@ function coronaLines(s: RoomState): [string, string][] {
     const t = s.vote.tally;
     L.push(["host", `Las eliminadas han votado. ${keyName(s, s.vote.a)}: ${t[s.vote.a]} ${t[s.vote.a] === 1 ? "voto" : "votos"}. ${keyName(s, s.vote.b)}: ${t[s.vote.b]} ${t[s.vote.b] === 1 ? "voto" : "votos"}.`]);
   }
-  if (runnerK) L.push(["host", `${keyName(s, runnerK)}, has hecho una temporada increíble y deberías estar muy orgullosa.`]);
+  const qr = s.quadResult;
+  if (qr) {
+    // Lip sync a cuatro: del mismo lip sync sale todo
+    const o = qr.order, nm = (k: string) => keyName(s, k);
+    L.push(["host", "Reinas, el jurado ha visto vuestro lip sync y ya ha tomado una decisión."]);
+    if (qr.mode === "orden") {
+      const ord = ["", "", "segundo", "tercer", "cuarto"];
+      for (let i = o.length - 1; i >= 2; i--) L.push(["host", `En ${ord[i + 1]} lugar... ${nm(o[i])}.`]);
+      L.push(["host", `Y quedan dos. ${nm(o[1])}, ${nm(o[0])}... una de vosotras es la ganadora. ${nm(o[1])}, eres la subcampeona de la temporada.`]);
+    } else if (qr.mode === "unaFuera") {
+      L.push(["host", `${nm(o[o.length - 1])}, lo siento, esta noche te quedas fuera.`], ["host", o.length > 3 ? `${names(s, o.slice(1, -1))}: sois las subcampeonas de esta temporada.` : `${nm(o[1])}, eres la subcampeona de esta temporada.`]);
+    } else L.push(["host", "Esta noche no hay puestos: solo hay una corona."]);
+  } else if (runnerK) L.push(["host", `${keyName(s, runnerK)}, has hecho una temporada increíble y deberías estar muy orgullosa.`]);
   L.push(["host", `Pero la ganadora de esta temporada... la nueva reina de Drag Race España es... ¡${champ}!`], ["ambrossi", "¡Que le pongan la corona y el cetro!"], ["judge", "Larga vida a la reina."]);
   if (s.miss) L.push(["calvo", `Y no nos olvidamos de nuestra Miss Simpatía, ${keyName(s, s.miss.key)}. ¡Un aplauso!`]);
   return L;
@@ -1035,10 +1047,10 @@ function lipsync(s: RoomState, myKey: string | null) {
     const lbl = `💃 Lip sync a ${T.length === 3 ? "tres" : "cuatro"}`;
     if (myKey && T.includes(myKey) && !(s.subs[room.me] || {}).ls) {
       const others = T.filter((k) => k !== myKey);
-      return play(s, s.phase, (el) => api().lipsyncShow(el, keyQueen(s, others[0]), { eyebrow: `${lbl} · gran final`, curtain: T.length === 3 ? "LIP SYNC A TRES" : "LIP SYNC A CUATRO", note: `Contra ${names(s, others)}. El jurado salva a dos para el lip sync por la corona.`, rivals: others.map((k) => keyQueen(s, k)) }, (won: boolean, score: number) => { playing = null; room.submit({ ls: { won, score } }); }));
+      return play(s, s.phase, (el) => api().lipsyncShow(el, keyQueen(s, others[0]), { eyebrow: `${lbl} · gran final`, curtain: T.length === 3 ? "LIP SYNC A TRES" : "LIP SYNC A CUATRO", note: `Contra ${names(s, others)}. De este lip sync sale la ganadora.`, rivals: others.map((k) => keyQueen(s, k)) }, (won: boolean, score: number) => { playing = null; room.submit({ ls: { won, score } }); }));
     }
     if (myKey && T.includes(myKey)) return info(`<p class="eyebrow">${lbl}</p><h3>¡Hecho! Esperando al jurado...</h3>`);
-    return info(`<p class="eyebrow">${lbl} · gran final</p><h3>${esc(names(s, T))}</h3><div class="vs three">${T.map((k) => `<img src="${Q(keyQueen(s, k)).photo}" alt="${esc(keyName(s, k))}">`).join("")}</div><p class="muted">Todas bailan la misma canción. El jurado salva a dos.</p>${T.some(isP) ? skipBtn(s) : ""}`);
+    return info(`<p class="eyebrow">${lbl} · gran final</p><h3>${esc(names(s, T))}</h3><div class="vs three">${T.map((k) => `<img src="${Q(keyQueen(s, k)).photo}" alt="${esc(keyName(s, k))}">`).join("")}</div><p class="muted">Todas bailan la misma canción. De este lip sync sale la ganadora.</p>${T.some(isP) ? skipBtn(s) : ""}`);
   }
   // Lip sync a tres bandas: cada jugadora baila contra la más fuerte de las otras dos
   if (s.triple) {
@@ -1071,8 +1083,8 @@ function lipsync(s: RoomState, myKey: string | null) {
 function track(s: RoomState) {
   const eps = Object.keys(s.epNames).map(Number).sort((a, b) => a - b);
   const rows = standings(s);
-  const cls = (l: string) => ({ WIN: "t-win", BWIN: "t-win t-blocked", WINNER: "t-win", TOP2: "t-top2", BTOP: "t-top2 t-blocked", HIGH: "t-high", SAFE: "t-safe", LOW: "t-low", BTM2: "t-btm", BTM3: "t-btm", ELIM: "t-elim", ELIMF: "t-elim", RTRN: "t-rtrn", MC: "t-mc", "RUNNER-UP": "t-runner", "3ª": "t-third", QOSD: "t-qosd" } as Record<string, string>)[l] || "t-none";
-  const lab = (l: string) => ({ WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", "3ª": "3ª/4ª", BWIN: "WIN", BTOP: "TOP2", ELIMF: "ELIMINADA", QOSD: "QoSDADHH" } as Record<string, string>)[l] || l;
+  const cls = (l: string) => ({ WIN: "t-win", BWIN: "t-win t-blocked", WINNER: "t-win", TOP2: "t-top2", BTOP: "t-top2 t-blocked", HIGH: "t-high", SAFE: "t-safe", LOW: "t-low", BTM2: "t-btm", BTM3: "t-btm", ELIM: "t-elim", ELIMF: "t-elim", RTRN: "t-rtrn", MC: "t-mc", "RUNNER-UP": "t-runner", "3ª": "t-third", P3: "t-third", P4: "t-third", QOSD: "t-qosd" } as Record<string, string>)[l] || "t-none";
+  const lab = (l: string) => ({ WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", "3ª": "3ª/4ª", BWIN: "WIN", BTOP: "TOP2", ELIMF: "ELIMINADA", QOSD: "QoSDADHH", P3: "3ª", P4: "4ª" } as Record<string, string>)[l] || l;
   const AW = s.fmt === "winners";
   const lastEp = (k: string) => Math.max(0, ...eps.filter((e) => (s.track[k] || {})[e]));
   return `<div class="track-wrap"><table class="track"><thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(s.epNames[e])}</small></th>`).join("")}${AW ? "<th>⭐</th>" : ""}<th>PPE</th></tr></thead><tbody>${rows
