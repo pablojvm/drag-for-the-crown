@@ -86,6 +86,9 @@
     },
     /** Reto de la Segunda Oportunidrag (stand-up en parejas con las eliminadas). */
     repescaReto: () => ({ tipo: "repescaStand", titulo: RETOS.repescaStand.titulo(), desc: RETOS.repescaStand.desc, noRunway: true, ctrl: RETOS.repescaStand.ctrl }),
+    /** All Winners: las reinas con las que has ganado tú una temporada (y cuál), y las ganadoras de siempre. */
+    myWinners: () => Object.entries(allWinnersOrigin()).filter(([, o]) => o.how === "win").map(([id, o]) => ({ id, season: o.season })),
+    canonWinners: () => [...REGULAR_ES(), ...PLAYABLE_AS()].filter((t) => t.cast && t.cast.length > 1 && !t.enEmision).map((t) => t.cast[t.cast.length - 1]),
     /** Todas las reinas de todas las temporadas (para la partida personalizada), con su temporada. */
     allQueens: () => {
       const seen = new Map();

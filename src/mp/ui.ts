@@ -277,7 +277,10 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
     cast();
   }));
   $("#mp-cback")!.onclick = entry;
-  $("#mp-ccreate")!.onclick = () => room.create(name, CUSTOM, ritmo, { fmt, ia, custom: { pick, size, rivals: [] } });
+  $("#mp-ccreate")!.onclick = () => {
+    if (fmt === "winners" && !(api().myWinners() as unknown[]).length) { W.Toast?.show?.("👑 All Winners", "Gana al menos una temporada en el modo historia para presentarte con tu ganadora."); return; }
+    room.create(name, CUSTOM, ritmo, { fmt, ia, custom: { pick, size, rivals: [] } });
+  };
 }
 function savedHTML() {
   const list = Object.values(savedAll()).sort((a, b) => b.date - a.date);
@@ -1119,6 +1122,7 @@ let lobbyFilter = "all";
 function lobby(s: RoomState) {
   const custom = s.season === CUSTOM;
   const se = W.seasonById(s.season);
+  const myWinIds = new Set<string>(s.fmt === "winners" ? (api().myWinners() as { id: string }[]).map((x) => x.id) : []);
   const all = custom ? (api().allQueens() as { id: string; season: string }[]) : castOf(s.season).map((id) => ({ id, season: s.season }));
   const cast = all.map((x) => x.id);
   const taken = new Map(s.players.filter((p) => p.queen).map((p) => [p.queen!, p]));
@@ -1130,15 +1134,21 @@ function lobby(s: RoomState) {
   if (!lobbyFocus || !cast.includes(lobbyFocus)) lobbyFocus = mine?.queen || cast[0];
   // En la personalizada se filtran por temporada (son muchas)
   const seasonsIn = [...new Set(all.map((x) => x.season))];
-  const shown = custom && lobbyFilter !== "all" ? all.filter((x) => x.season === lobbyFilter) : all;
+  const shown0 = custom && lobbyFilter !== "all" ? all.filter((x) => x.season === lobbyFilter) : all;
+  const shown = s.fmt === "winners" ? [...shown0].sort((a, b) => (myWinIds.has(b.id) ? 1 : 0) - (myWinIds.has(a.id) ? 1 : 0)) : shown0;
   const compact = shown.length > 8;
   const fmtTxt = `${FORMATOS[(s.fmt || "normal") as Formato].icon} ${FORMATOS[(s.fmt || "normal") as Formato].n}`;
+  // All Winners: cada una solo se presenta con una de sus ganadoras (las de su modo historia)
+  const AWr = s.fmt === "winners";
+  const myW = new Map<string, string>(AWr ? (api().myWinners() as { id: string; season: string }[]).map((x) => [x.id, x.season]) : []);
+  const canPick = (id: string) => !AWr || myW.has(id);
   const card = (id: string, mode: "pick" | "rival") => {
     const t = taken.get(id);
     const other = t && t.id !== room.me;
     const isRival = rivals.includes(id);
     const cls = mode === "pick" ? `${t && t.id === room.me ? "selected" : ""} ${other ? "taken" : ""} ${isRival ? "rival" : ""}` : `${isRival ? "selected" : ""} ${t ? "taken" : ""}`;
-    return `<button class="queen-card ${cls} ${id === lobbyFocus ? "active" : ""}" data-${mode === "pick" ? "q" : "r"}="${id}"><span class="portrait" style="background-image:url('${Q(id).photo}')"></span><span class="name">${esc(Q(id).name)}</span><span class="check" aria-hidden="true">✓</span>${t && (other || mode === "rival") ? `<span class="mp-taken">🎮 ${esc(t.name)}</span>` : isRival && mode === "pick" ? `<span class="mp-taken">⚔️ Rival</span>` : ""}</button>`;
+    const aw = AWr && mode === "pick" ? (myW.has(id) ? `<span class="aw-origin" title="Ganadora ${esc(myW.get(id)!)}">👑 ${esc(myW.get(id)!.replace(/^Temporada /, "T").replace(/^All Stars /, "AS"))}</span>` : "") : "";
+    return `<button class="queen-card ${cls} ${AWr && mode === "pick" && !canPick(id) ? "aw-lock" : ""} ${id === lobbyFocus ? "active" : ""}" data-${mode === "pick" ? "q" : "r"}="${id}">${aw}<span class="portrait" style="background-image:url('${Q(id).photo}')"></span><span class="name">${esc(Q(id).name)}</span><span class="check" aria-hidden="true">✓</span>${t && (other || mode === "rival") ? `<span class="mp-taken">🎮 ${esc(t.name)}</span>` : isRival && mode === "pick" ? `<span class="mp-taken">⚔️ Rival</span>` : ""}</button>`;
   };
   info(`
     <p class="eyebrow">Sala ${esc(s.code)} · ${custom ? "Personalizada" : esc(se?.name || "")} · ${fmtTxt} · ritmo ${s.ritmo === "rapido" ? "rápido" : s.ritmo === "libre" ? "sin límite" : "normal"}${s.ia ? " · ✍️ con IA" : ""}</p>
@@ -1146,6 +1156,7 @@ function lobby(s: RoomState) {
     <p class="muted">Pásaselo a tus amigas. ${custom ? `Cada una elige una reina de cualquier temporada. ${cfg?.pick === "elegidas" ? `La anfitriona elige ${need} rivales.` : `Las ${need} rivales se sortean al empezar.`} ${esc(FORMATOS[(s.fmt || "normal") as Formato].d)}` : "Cada una elige una reina; las que no cojáis las juega el juego."} ${s.ritmo === "libre" ? "Sin límite de tiempo." : `Tope de juego por episodio: ${Math.round(topeEpisodio(s.ritmo) / 60)} minutos.`}</p>
     <div class="mp-players">${s.players.map((p) => `<span class="mp-face ${p.id === room.me ? "me" : ""}"><i style="background-image:url('${p.queen ? Q(p.queen).photo : ""}')"></i><b>${esc(p.name)}${p.id === s.host ? " 👑" : ""}</b><small>${p.queen ? esc(Q(p.queen).name) : "eligiendo..."}</small></span>`).join("")}</div>
     <h4>${mine?.queen ? "Tu reina: " + esc(Q(mine.queen).name) : "Elige tu reina"}</h4>
+    ${AWr ? `<p class="${myW.size ? "gold" : "twist-note"}">${myW.size ? `👑 All Winners: solo puedes presentarte con una de tus ganadoras (${esc([...myW.keys()].map((id) => Q(id).name).join(", "))}).` : "👑 All Winners: aún no has ganado ninguna temporada. Gana una en el modo historia para presentarte con tu ganadora."}</p>` : ""}
     ${custom ? `<div class="mp-filter" role="tablist">${["all", ...seasonsIn].map((k) => `<button type="button" class="chip ${k === lobbyFilter ? "on" : ""}" data-fil="${k}">${k === "all" ? "Todas" : esc(W.seasonById(k)?.name || k)}</button>`).join("")}</div>` : ""}
     <div class="mp-select">
       <div class="mp-qgrid ${compact ? "compact" : ""}">${shown.map((x) => card(x.id, "pick")).join("")}</div>
@@ -1163,7 +1174,7 @@ function lobby(s: RoomState) {
       const id = b.dataset.q!;
       lobbyFocus = id;
       const t = taken.get(id);
-      if ((!t || t.id === room.me) && !rivals.includes(id)) room.pick(id);
+      if ((!t || t.id === room.me) && !rivals.includes(id) && canPick(id)) room.pick(id);
       const st = room.state;
       if (st) lobby(st);
     }));
@@ -1187,7 +1198,9 @@ function lobby(s: RoomState) {
       if (!custom) return room.start();
       // Reparto: las jugadoras + las rivales elegidas (o sorteadas ahora)
       const mineQ = s.players.map((p) => p.queen!).filter(Boolean);
-      const pool = cast.filter((q) => !mineQ.includes(q) && !rivals.includes(q)).sort(() => Math.random() - 0.5);
+      // All Winners: las rivales, ganadoras de verdad (y si no llegan, el resto)
+      const ganadoras = new Set<string>(s.fmt === "winners" ? api().canonWinners() : []);
+      const pool = cast.filter((q) => !mineQ.includes(q) && !rivals.includes(q)).sort(() => Math.random() - 0.5).sort((a, b) => (ganadoras.has(b) ? 1 : 0) - (ganadoras.has(a) ? 1 : 0));
       const rv = cfg?.pick === "elegidas" ? rivals : [...rivals, ...pool].slice(0, need);
       room.start([...mineQ, ...rv]);
     };

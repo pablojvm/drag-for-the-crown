@@ -2966,3 +2966,8 @@ body.portrait .dlg-char { height: min(520px, calc(100% - 330px)); }
 .lz-next span.me { background: linear-gradient(135deg, #ff3d9a, #ff9a3d); color: #fff; }
 .lz-next b { color: var(--pink, #ff3d9a); margin: 0 4px; }
 .lz-next span.me b { color: #fff; }
+/* All Winners en el multijugador: las que no son tus ganadoras, en gris (se pueden ver, no elegir) */
+.mp-qgrid .queen-card.aw-lock { filter: grayscale(1) opacity(.6); }
+.mp-qgrid .queen-card.aw-lock.taken { filter: none; }
+.mp-qgrid .queen-card .aw-origin { font-size: 10px; padding: 3px 8px; top: 6px; }
+.mp-qgrid .queen-card.aw-lock { cursor: default; }
