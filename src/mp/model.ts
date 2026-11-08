@@ -10,7 +10,7 @@ import { BANDAS, COLORES_GRUPO, grupoCritica, NOMBRE_JURADO } from "../core/crit
 import { allWinnersCut, allWinnersTier, lalaScore } from "../core/finales";
 import { rescueFromBottom, coinResult, lipstickKind, addHalfHearts } from "../core/dinamicas";
 
-export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "final" | "corona";
+export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "reencuentro" | "finalistas" | "votacion" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
 /** Formato de la temporada: normal (las dos peores hacen lip sync) o All Stars (lip sync del top 2 y la ganadora elimina). */
 export type Formato = "normal" | "allstars" | "winners" | "repesca" | "suerte" | "corazon" | "moneda";
@@ -24,6 +24,16 @@ export const FORMATOS: Record<Formato, { n: string; icon: string; d: string }> =
   corazon: { n: "Temporada del corazón", icon: "❤️", d: "Cada eliminada deja medio corazón. Con uno entero salvas a alguien del bottom." },
   moneda: { n: "Temporada de la moneda", icon: "🪙", d: "Bottom de tres y moneda al aire: cara, las salvadas votan a quién salvar; cruz, a quién condenar." },
 };
+/** Formas de la gran final (se sortea una en el reencuentro). All Winners tiene la suya. */
+export type FinalFmt = "torneo" | "reto" | "track" | "votan" | "cuatro" | "cadena";
+export const FINALES: Record<FinalFmt, { n: string; icon: string; d: string }> = {
+  torneo: { n: "Súper Lalaparuza", icon: "🏆", d: "Lip syncs eliminatorios: semifinales (1.ª contra 4.ª y 2.ª contra 3.ª) y las dos que ganan se juegan la corona." },
+  reto: { n: "Reto final", icon: "🎤", d: "Un último reto con su pasarela. Las dos mejores se juegan la corona en un lip sync; las demás quedan terceras." },
+  track: { n: "El track record manda", icon: "📊", d: "Las dos con mejor temporada van directas al lip sync por la corona. Lo que has hecho cada semana, cuenta." },
+  votan: { n: "Votan las eliminadas", icon: "🗳️", d: "Semifinales de lip sync y, entre las dos que lleguen, la corona la deciden con su voto todas las eliminadas." },
+  cuatro: { n: "Lip sync a cuatro", icon: "💃", d: "Todas bailan a la vez la misma canción. El jurado salva a dos, y esas dos se juegan la corona." },
+  cadena: { n: "La reina de la pista", icon: "🔥", d: "Lip syncs en cadena: la que gana se queda en la pista y espera a la siguiente. Empieza la de peor temporada; la mejor espera al final." },
+};
 /** Cuándo llega la Segunda Oportunidrag (reinas en competición). */
 export const REPESCA_AT = 7;
 
@@ -33,12 +43,12 @@ const CAJAS_VER = 3500;
 export const DURACION: Record<Ritmo, Record<Exclude<Phase, "lobby" | "corona">, number>> = {
   // Las pantallas que se miran (anuncio, críticas, Untucked, veredicto, pintalabios, track) no tienen reloj:
   // las pasa la anfitriona, y todas ven lo mismo que ella. El reloj es solo para lo que se juega.
-  normal: { lalaparuza: 180, cajas: 60, maletas: 600, anuncio: 0, mini: 120, equipos: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 180, decision: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, final: 180 },
-  rapido: { lalaparuza: 150, cajas: 40, maletas: 420, anuncio: 0, mini: 90, equipos: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 150, decision: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, final: 150 },
-  libre: { lalaparuza: 0, cajas: 0, maletas: 0, anuncio: 0, mini: 0, equipos: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, comodin: 0, sorpresa: 0, pintalabios: 0, track: 0, final: 0 },
+  normal: { lalaparuza: 180, cajas: 60, maletas: 600, anuncio: 0, mini: 120, equipos: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 180, decision: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, reencuentro: 0, finalistas: 0, votacion: 60, final: 180 },
+  rapido: { lalaparuza: 150, cajas: 40, maletas: 420, anuncio: 0, mini: 90, equipos: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 150, decision: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, reencuentro: 0, finalistas: 0, votacion: 45, final: 150 },
+  libre: { lalaparuza: 0, cajas: 0, maletas: 0, anuncio: 0, mini: 0, equipos: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, comodin: 0, sorpresa: 0, pintalabios: 0, track: 0, reencuentro: 0, finalistas: 0, votacion: 0, final: 0 },
 };
 /** Pantallas que lleva la anfitriona (diálogo sincronizado y botón de seguir). */
-export const WATCH: Phase[] = ["anuncio", "resultados", "untucked", "veredicto", "sorpresa", "pintalabios", "track", "corona"];
+export const WATCH: Phase[] = ["anuncio", "resultados", "untucked", "veredicto", "sorpresa", "pintalabios", "track", "reencuentro", "finalistas", "corona"];
 export const isWatch = (p: Phase) => WATCH.includes(p);
 /** Con IA (frases escritas) el reto dura más: escribir lleva tiempo. */
 export const IA_EXTRA = 1.75;
@@ -178,6 +188,18 @@ export interface RoomState {
   pause?: Pause;
   paused?: boolean;
   finalStage?: number;
+  /** Gran final: la forma que ha tocado, Miss Simpatía (del reencuentro) y lo de cada forma. */
+  finalFmt?: FinalFmt;
+  reunionDone?: boolean;
+  miss?: { key: string; votes: Record<string, number> };
+  /** Reto final en marcha (el episodio de la final con reto y pasarela). */
+  finalRun?: boolean;
+  /** Lip sync a cuatro (o a tres): las que bailan a la vez. */
+  quad?: string[];
+  /** La reina de la pista: las que esperan su turno (en orden). */
+  chain?: string[];
+  /** Votan las eliminadas: las dos de la final y, al acabar, los votos. */
+  vote?: { a: string; b: string; tally?: Record<string, number> };
   /** All Winners: eliminatoria de lip syncs (primero la QoSDADHH y luego la corona). */
   bracket?: { kind: "qosd" | "corona"; seeds: string[]; alive: string[]; round: number; bye?: string };
   awFinal?: { top: string[]; bottom: string[]; tierB: string; qosd?: string };
@@ -323,8 +345,12 @@ export function allIn(s: RoomState): boolean {
     if (!d || !ps.length) return false; // si eligen reinas del juego, se espera al tope (se ve el momento)
     return ps.every((k) => s.subs[idOf(k)]?.elim != null);
   }
+  if (s.phase === "votacion") {
+    const vs = finalVoters(s).filter(isP).map(idOf);
+    return vs.length > 0 && vs.every((id) => s.subs[id]?.pick != null);
+  }
   if (s.phase === "lipsync" || s.phase === "final" || s.phase === "lalaparuza") {
-    const inPairs = [...(s.pairs || []).filter((x) => !x.winner).flatMap((x) => [x.a, x.b]), ...(s.triple || [])].filter(isP).map(idOf);
+    const inPairs = [...(s.pairs || []).filter((x) => !x.winner).flatMap((x) => [x.a, x.b]), ...(s.triple || []), ...(s.quad || [])].filter(isP).map(idOf);
     // Si solo bailan reinas del juego, se deja verlo hasta el tope
     if (!inPairs.length) return false;
     return inPairs.every((id) => s.subs[id]?.ls != null);
@@ -796,6 +822,125 @@ function bracketNext(s: RoomState, now: number, e: Engine): RoomState {
   t = { ...t, track: { ...t.track, [alive[0]]: { ...(t.track[alive[0]] || {}), [s.ep]: "WINNER" } } };
   return { ...t, champion: alive[0], phase: "corona", deadline: 0, v: s.v + 1 };
 }
+// ------------------------------ Reencuentro y gran final ------------------------------
+/** El reencuentro: vuelven las eliminadas, se vota Miss Simpatía y se sortea cómo será la final. */
+function reunion(s: RoomState, e: Engine): RoomState {
+  const n = aliveKeys(s).length;
+  const opts: FinalFmt[] = n >= 3 ? ["torneo", "reto", "track", "votan", "cuatro", "cadena"] : ["torneo", "reto", "track", "votan"];
+  const finalFmt = opts[Math.floor(e.rnd() * opts.length)];
+  return { ...s, reunionDone: true, finalFmt, subs: {}, note: undefined, script: undefined, phase: "reencuentro", deadline: 0, v: s.v + 1 };
+}
+/** Miss Simpatía: votan todas (las jugadoras eligen; las reinas del juego, al azar). Nadie se vota a sí misma. */
+function missSimpatia(s: RoomState, e: Engine): { key: string; votes: Record<string, number> } {
+  const all = [...aliveKeys(s), ...s.out.map((o) => o.key)];
+  const votes: Record<string, number> = {};
+  all.forEach((v) => {
+    const own = isP(v) ? s.subs[idOf(v)]?.pick : undefined;
+    const others = all.filter((k) => k !== v);
+    const pick = own && others.includes(own) ? own : others[Math.floor(e.rnd() * others.length)];
+    if (pick) votes[pick] = (votes[pick] || 0) + 1;
+  });
+  const key = Object.keys(votes).sort((a, b) => votes[b] - votes[a] || e.rnd() - 0.5)[0] || all[0];
+  return { key, votes };
+}
+/** Empieza la gran final con la forma que ha tocado. */
+function startFinal(s0: RoomState, now: number, e: Engine): RoomState {
+  const D = DURACION[s0.ritmo];
+  const sd = seeds(s0);
+  const ep = s0.ep + 1;
+  const fmt: FinalFmt = sd.length < 3 && (s0.finalFmt === "cuatro" || s0.finalFmt === "cadena") ? "torneo" : s0.finalFmt || "torneo";
+  const s: RoomState = { ...s0, ep, finalFmt: fmt, epNames: { ...s0.epNames, [ep]: "Gran final" }, reto: undefined, rows: undefined, crit: undefined, subs: {}, note: undefined, script: undefined, pairs: undefined, triple: undefined, bottom: undefined, twist: undefined, twistResult: undefined };
+  const go = (t: RoomState, pairs: Pair[], finalStage: number, extra: Partial<RoomState> = {}): RoomState => {
+    const anyP = pairs.some((p) => isP(p.a) || isP(p.b)) || (extra.quad || []).some(isP);
+    return { ...t, ...extra, pairs, finalStage, phase: "final", deadline: anyP ? limite(now, D.final) : now + 8000, v: s0.v + 1 };
+  };
+  const nm = (k: string) => nameOfKey(s, k, e);
+  if (fmt === "reto") {
+    // Un último reto con pasarela (sin grupos ni Lalaparuza): lo que no se haya hecho aún, si queda
+    const all = e.retos().filter((r) => !r.groups && r.tipo !== LALA.tipo && !r.noRunway);
+    const pool = all.filter((r) => !s.used.includes(r.tipo));
+    const src = pool.length ? pool : all.length ? all : e.retos();
+    const r: Reto = { ...src[Math.floor(e.rnd() * src.length)] };
+    if (!r.noRunway) { const cats = e.categorias(); r.cat = cats[Math.floor(e.rnd() * cats.length)]; }
+    return { ...s, reto: r, used: [...s.used, r.tipo], finalRun: true, epNames: { ...s.epNames, [ep]: `Gran final · ${r.titulo}` }, phase: "anuncio", deadline: 0, v: s0.v + 1 };
+  }
+  if (fmt === "track") {
+    let t = s;
+    const rest = sd.slice(2);
+    rest.forEach((k) => (t = eliminate(t, k, rest.length > 1 ? `3ª/${2 + rest.length}ª` : "3ª", "3ª")));
+    return go(t, [{ a: sd[0], b: sd[1] }], 2, { note: `${nm(sd[0])} y ${nm(sd[1])}, las dos mejores de la temporada, se juegan la corona.` });
+  }
+  if (fmt === "cuatro") return go(s, [], 5, { quad: sd.slice() });
+  if (fmt === "cadena") {
+    const order = sd.slice().reverse(); // empieza la de peor temporada
+    return go(s, [{ a: order[0], b: order[1] }], 4, { chain: order.slice(2), note: `${nm(order[0])} y ${nm(order[1])} abren la pista.` });
+  }
+  // Súper Lalaparuza y Votan las eliminadas: semifinales (con tres, la mejor pasa directa)
+  if (sd.length === 2) return fmt === "votan" ? toVote(s, sd[0], sd[1], "", now) : go(s, [{ a: sd[0], b: sd[1] }], 2);
+  const pairs: Pair[] = sd.length >= 4 ? [{ a: sd[0], b: sd[3] }, { a: sd[1], b: sd[2] }] : [{ a: sd[1], b: sd[2] }];
+  const bye = sd.length === 3 ? sd[0] : undefined;
+  return go(s, pairs, 1, { note: bye ? `${nm(bye)} pasa directa a la final.` : undefined });
+}
+/** Lip sync a cuatro (o a tres): las jugadoras bailan su lip sync; las del juego, por su temporada y un poco de suerte. */
+function quadNext(s: RoomState, now: number, e: Engine): RoomState {
+  const Q = s.quad || [];
+  const score = (k: string) => {
+    const ls = isP(k) ? s.subs[idOf(k)]?.ls : undefined;
+    if (ls) return ls.score + (ls.won ? 6 : 0);
+    if (isP(k)) return 20; // no ha bailado
+    return Math.max(0, Math.min(100, 52 + ppeOf(s, k) * 6 + (e.rnd() - 0.5) * 34));
+  };
+  const sc = Object.fromEntries(Q.map((k) => [k, score(k)]));
+  const ranked = Q.slice().sort((a, b) => sc[b] - sc[a]);
+  const top = ranked.slice(0, 2), rest = ranked.slice(2);
+  let t: RoomState = { ...s, quad: undefined, subs: {} };
+  rest.forEach((k) => (t = eliminate(t, k, rest.length > 1 ? `3ª/${2 + rest.length}ª` : "3ª", "3ª")));
+  const anyP = top.some(isP);
+  return { ...t, pairs: [{ a: top[0], b: top[1] }], finalStage: 2, note: `El jurado salva a ${top.map((k) => nameOfKey(t, k, e)).join(" y ")}: se juegan la corona.`, phase: "final", deadline: anyP ? limite(now, DURACION[s.ritmo].final) : now + 8000, v: s.v + 1 };
+}
+/** La reina de la pista: la que pierde se va; la que gana espera a la siguiente. La última que queda, gana. */
+function chainNext(t0: RoomState, now: number, e: Engine): RoomState {
+  const p = (t0.pairs || [])[0];
+  if (!p || !p.winner) return t0;
+  const loser = p.winner === p.a ? p.b : p.a;
+  const queue = t0.chain || [];
+  let t = t0;
+  if (!queue.length) {
+    t = eliminate(t, loser, "2ª", "RUNNER-UP");
+    t = { ...t, chain: undefined, track: { ...t.track, [p.winner]: { ...(t.track[p.winner] || {}), [t0.ep]: "WINNER" } } };
+    return { ...t, champion: p.winner, phase: "corona", deadline: 0, v: t0.v + 1 };
+  }
+  const n = aliveKeys(t).length;
+  t = eliminate(t, loser, `${n}ª`, "3ª");
+  const next = queue[0];
+  const pair: Pair = { a: p.winner, b: next };
+  const anyP = isP(pair.a) || isP(pair.b);
+  return { ...t, chain: queue.slice(1), pairs: [pair], subs: {}, note: `${nameOfKey(t, p.winner, e)} gana a ${nameOfKey(t, loser, e)} y sigue en la pista. Ahora llega ${nameOfKey(t, next, e)}.`, phase: "final", deadline: anyP ? limite(now, DURACION[t.ritmo].final) : now + 8000, v: t0.v + 1 };
+}
+/** Quiénes votan en la final: todas las eliminadas (jugadoras y reinas del juego). */
+export const finalVoters = (s: RoomState) => s.out.map((o) => o.key).filter((k) => !s.vote || (k !== s.vote.a && k !== s.vote.b));
+function toVote(s: RoomState, a: string, b: string, note: string, now: number): RoomState {
+  const t: RoomState = { ...s, vote: { a, b }, pairs: undefined, subs: {} };
+  const anyP = finalVoters(t).some(isP);
+  return { ...t, note: note || undefined, finalStage: 3, phase: "votacion", deadline: anyP ? limite(now, DURACION[s.ritmo].votacion) : now + 8000, v: s.v + 1 };
+}
+/** Recuento: las jugadoras votan; las reinas del juego, un poco por la temporada de cada una y otro poco por el corazón. */
+function countVotes(s: RoomState, now: number, e: Engine): RoomState {
+  const v = s.vote!;
+  const tally: Record<string, number> = { [v.a]: 0, [v.b]: 0 };
+  finalVoters(s).forEach((k) => {
+    const own = isP(k) ? s.subs[idOf(k)]?.pick : undefined;
+    if (own === v.a || own === v.b) { tally[own]++; return; }
+    const pa = Math.max(0.2, Math.min(0.8, 0.5 + (ppeOf(s, v.a) - ppeOf(s, v.b)) * 0.15));
+    tally[e.rnd() < pa ? v.a : v.b]++;
+  });
+  const champ = tally[v.a] !== tally[v.b] ? (tally[v.a] > tally[v.b] ? v.a : v.b) : ppeOf(s, v.a) >= ppeOf(s, v.b) ? v.a : v.b;
+  const loser = champ === v.a ? v.b : v.a;
+  let t: RoomState = { ...s, vote: { ...v, tally } };
+  t = eliminate(t, loser, "2ª", "RUNNER-UP");
+  t = { ...t, track: { ...t.track, [champ]: { ...(t.track[champ] || {}), [s.ep]: "WINNER" } } };
+  return { ...t, champion: champ, phase: "corona", deadline: 0, v: s.v + 1 };
+}
 function seeds(s: RoomState): string[] {
   // All Winners: por estrellas
   if (isAW(s)) return aliveKeys(s).sort((a, b) => (s.stars?.[b] || 0) - (s.stars?.[a] || 0) || ppeOf(s, b) - ppeOf(s, a));
@@ -830,6 +975,7 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
     }
     case "anuncio":
       if (s.reto?.tipo === LALA.tipo) return lzStart(s, now, e);
+      if (s.finalRun) return at("reto", dur(s, "reto"));
       return startMini(s, now, e) || at("reto", dur(s, "reto"));
     case "mini":
       return afterMini(endMini(s, e), now, e);
@@ -847,7 +993,9 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       if (!s.reto!.noRunway) return at("pasarela", D.pasarela);
     // falls through: sin pasarela aparte, directo a resultados
     case "pasarela": {
-      const scored = scoreWeek(s, e);
+      let scored = scoreWeek(s, e);
+      // Reto final: las dos mejores, al lip sync por la corona; el resto, terceras
+      if (s.finalRun) scored = { ...scored, rows: (scored.rows || []).map((r, i) => ({ ...r, label: i < 2 ? "TOP2" : "3ª" })) };
       // Que dé tiempo a escuchar las críticas de todas
       const secs = D.resultados > 0 ? Math.max(D.resultados, 8 + (scored.crit || []).length * POR_CRITICA) : 0;
       return { ...scored, phase: "resultados", deadline: limite(now, secs), v: s.v + 1 };
@@ -858,6 +1006,15 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       return at("veredicto", D.veredicto, { track: writeTrack(s, s.rows || []) });
     case "veredicto": {
       const rows = s.rows || [];
+      if (s.finalRun) {
+        const top = rows.slice(0, 2).map((r) => r.key);
+        let t: RoomState = { ...s, finalRun: false, subs: {} };
+        const rest = rows.slice(2).map((r) => r.key);
+        rest.forEach((k) => (t = eliminate(t, k, rest.length > 1 ? `3ª/${2 + rest.length}ª` : "3ª", "3ª")));
+        const pairs: Pair[] = [{ a: top[0], b: top[1] }];
+        const anyP = top.some(isP);
+        return { ...t, pairs, finalStage: 2, note: `${top.map((k) => nameOfKey(t, k, e)).join(" y ")} se juegan la corona.`, phase: "final", deadline: anyP ? limite(now, D.final) : now + 8000, v: s.v + 1 };
+      }
       if (!isAS(s) && !isAW(s)) {
         // Normal y temporadas con giro: el bottom, los comodines (corazón, suerte, moneda) y el lip sync
         const subs = Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, ls: undefined, pick: undefined }]));
@@ -968,24 +1125,30 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       if (isAW(s) ? s.ep < (s.weeks || 0) : aliveKeys(s).length > 4) return nextEpisode(s, now, e);
       // All Winners: como en el All Stars 7 (corte del top 4 por estrellas, QoSDADHH y corona)
       if (isAW(s)) return awCut(s, now, e);
-      // Gran final: lip syncs eliminatorios entre las cuatro (o tres) últimas
-      const sd = seeds(s);
-      const ep = s.ep + 1;
-      const pairs: Pair[] = sd.length >= 4 ? [{ a: sd[0], b: sd[3] }, { a: sd[1], b: sd[2] }] : sd.length === 3 ? [{ a: sd[1], b: sd[2] }] : [{ a: sd[0], b: sd[1] }];
-      const bye = sd.length === 3 ? sd[0] : undefined;
-      const anyP = pairs.some((p) => isP(p.a) || isP(p.b));
-      return { ...s, ep, epNames: { ...s.epNames, [ep]: "Gran final" }, reto: undefined, rows: undefined, crit: undefined, pairs, finalStage: sd.length === 2 ? 2 : 1, note: bye ? `${nameOfKey(s, bye, e)} pasa directa a la final.` : undefined, subs: {}, phase: "final", deadline: anyP ? limite(now, D.final) : now + 8000, v: s.v + 1 };
+      // Antes de la final, el reencuentro (vuelven las eliminadas, Miss Simpatía) y se anuncia la forma de la final
+      if (!s.reunionDone) return reunion(s, e);
+      return startFinal(s, now, e);
     }
+    case "reencuentro":
+      return { ...s, miss: missSimpatia(s, e), subs: {}, script: undefined, phase: "finalistas", deadline: 0, v: s.v + 1 };
+    case "finalistas":
+      return startFinal({ ...s, subs: {} }, now, e);
+    case "votacion":
+      return countVotes(s, now, e);
     case "final": {
       if (s.bracket) return bracketNext(s, now, e);
+      if (s.quad) return quadNext(s, now, e);
       const pairs = resolvePairs(s, e);
       let t: RoomState = { ...s, pairs };
+      if (s.finalStage === 4) return chainNext(t, now, e);
       if (s.finalStage === 1) {
         const winners = pairs.map((p) => p.winner!);
         const losers = pairs.map((p) => (p.winner === p.a ? p.b : p.a));
         const place = losers.length === 2 ? "3ª/4ª" : "3ª";
         losers.forEach((l) => (t = eliminate(t, l, place, "3ª")));
         const fin = aliveKeys(t).filter((k) => !winners.includes(k)).concat(winners);
+        // Votan las eliminadas: entre las dos que quedan, la corona la deciden ellas
+        if (s.finalFmt === "votan") return toVote(t, fin[0], fin[1], `${winners.map((k) => nameOfKey(t, k, e)).join(" y ")} ${winners.length > 1 ? "ganan sus" : "gana su"} lip sync.`, now);
         const pair: Pair = { a: fin[0], b: fin[1] };
         const anyP = isP(pair.a) || isP(pair.b);
         return { ...t, pairs: [pair], finalStage: 2, subs: {}, note: `${winners.map((k) => nameOfKey(t, k, e)).join(" y ")} pasan a la final.`, phase: "final", deadline: anyP ? limite(now, D.final) : now + 8000, v: s.v + 1 };
@@ -1085,6 +1248,12 @@ export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase,
     return s;
   }
   const p = s.players.find((x) => x.id === pid);
+  // Votos del reencuentro (Miss Simpatía) y de la final: votan todas, también las eliminadas
+  if (p && (phase === "reencuentro" || phase === "votacion")) {
+    const pick = String(data.pick || "");
+    const ok = phase === "reencuentro" ? pick !== pkey(pid) && [...aliveKeys(s), ...s.out.map((o) => o.key)].includes(pick) : !!s.vote && finalVoters(s).includes(pkey(pid)) && (pick === s.vote.a || pick === s.vote.b);
+    return ok ? { ...s, subs: { ...s.subs, [pid]: { ...(s.subs[pid] || {}), pick } }, v: s.v + 1 } : s;
+  }
   // Las eliminadas solo juegan su monólogo de la Segunda Oportunidrag
   if (!p || (!p.alive && !(rpPlayers(s).includes(pid) && (phase === "reto" || phase === "pasarela")))) return s;
   if (pkey(pid) === mcOf(s) && (phase === "reto" || phase === "pasarela")) return s;

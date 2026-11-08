@@ -10,7 +10,7 @@ const FMT = process.env.FMT || "normal";
 const SEASON = process.env.SEASON || "es1";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const rid = () => Math.random().toString(36).slice(2, 10);
-const WATCH = ["anuncio", "resultados", "untucked", "veredicto", "sorpresa", "pintalabios", "track", "corona"];
+const WATCH = ["anuncio", "resultados", "untucked", "veredicto", "sorpresa", "pintalabios", "track", "reencuentro", "finalistas", "corona"];
 const fail = (m) => { console.error("❌", m); process.exit(1); };
 
 function bot(name) {

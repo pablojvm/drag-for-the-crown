@@ -45,7 +45,7 @@ const joined = await A.evaluate(() => window.__mpRoom.state.players.filter((p) =
 await A.evaluate(() => window.__mpRoom.start());
 for (let i = 0; i < 600; i++) {
   if ((await A.evaluate(() => window.__mpRoom.state.phase)) === "lipsync") break;
-  await A.evaluate(() => { const r = window.__mpRoom, s = r.state; if (["anuncio", "resultados", "untucked", "veredicto", "sorpresa", "pintalabios", "track", "cajas"].includes(s.phase)) r.next(); else r.hostDo((x) => ({ ...x, deadline: 1, v: x.v + 1 })); });
+  await A.evaluate(() => { const r = window.__mpRoom, s = r.state; if (["anuncio", "resultados", "untucked", "veredicto", "sorpresa", "pintalabios", "track", "reencuentro", "finalistas", "cajas"].includes(s.phase)) r.next(); else r.hostDo((x) => ({ ...x, deadline: 1, v: x.v + 1 })); });
   await A.waitForTimeout(60);
 }
 // El lip sync de esta semana lo bailan las dos jugadoras
