@@ -681,7 +681,7 @@
       if (W.length && L.length) blocks = [{ rows: W, gi: 0, name: tn(W) }, { rows: L, gi: 1, name: tn(L) }];
     }
     const blockName = (b) => b.name || b.rows.map((r) => (r.me ? S.queen.name : r.q.name)).join(", ").replace(/, ([^,]*)$/, " y $1");
-    const blockTone = (b) => (b.gi === 0 ? "top" : b.gi === blocks.length - 1 ? "low" : "mid");
+    const blockTone = (b) => (b.gi === 0 || twistOf() === "winners" ? "top" : b.gi === blocks.length - 1 ? "low" : "mid");
     const n = rows.length;
     // Con 6 reinas o menos ya no hay salvadas: todas reciben valoración
     // En All Winners solo reciben críticas las de arriba (nunca todas)
@@ -815,7 +815,7 @@
         const others = shuffle(judged.filter((r) => !r.me));
         if (!others.length) return [];
         const lvl = (r) => { const l = labOf.get(r); return l === "WIN" || l === "TOP2" || l === "BTOP" ? "muy buena" : l === "HIGH" ? "buena" : /^BTM/.test(l) ? "muy floja" : l === "LOW" ? "floja" : "correcta"; };
-        const nivel = (r) => { const l = labOf.get(r); return ["WIN", "TOP2", "BTOP", "HIGH"].includes(l) ? "top" : /^BTM|LOW/.test(l) ? "low" : "mid"; };
+        const nivel = (r) => { const l = labOf.get(r); return twistOf() === "winners" || ["WIN", "TOP2", "BTOP", "HIGH"].includes(l) ? "top" : /^BTM|LOW/.test(l) ? "low" : "mid"; };
         const runwayCat = (RETOS[S.curTipo] || {}).noRunway ? null : S.lastLook && S.lastLook.cat;
         let ai = null;
         if (IA.ready()) {
@@ -823,7 +823,7 @@
           ai = await IA.chat(
             `Escribes las críticas del jurado de Drag Race España a cada reina. Supremme de Luxe (teatral, cariñosa pero exigente) habla sobre todo del reto, Ana Locking (moda, técnica, directa) sobre todo de la pasarela y el look, aunque las dos pueden comentar las dos cosas. Los Javis (Javier Ambrossi y Javier Calvo) también son jueces y a veces dan su valoración. Son SOLO valoraciones: nunca digas posiciones ni resultados (ni ganadora, ni mejores, ni peores, ni bottom, ni lip sync, ni a salvo), ni felicites, ni des notas ni números. ${aiSeason()}`,
             `Reto de esta semana: ${S.curTitulo || S.epNames[S.ep] || "reto"}. ${weekTxt()} Ojo: lo que hizo ${S.queen.name} (su producto, personaje o tema) es SOLO suyo; cada una de estas reinas hizo su propia versión del reto, así que no les atribuyas lo de ${S.queen.name}. ${runwayCat ? `Pasarela: «${runwayCat}».` : "Esta semana no hay pasarela aparte: habla del look con el que presentó el reto."}
-${blocks ? `Es un reto en grupo. Cómo ha quedado cada grupo, de mejor a peor (no lo digas, pero que el tono sea coherente): ${blocks.map((b) => blockName(b)).join(" > ")}. ` : ""}Reinas (valoración global de cada una): ${others.map((r) => `${r.q.name} (${lvl(r)})`).join("; ")}.
+${blocks ? `Es un reto en grupo. Cómo ha quedado cada grupo, de mejor a peor (no lo digas, pero que el tono sea coherente): ${blocks.map((b) => blockName(b)).join(" > ")}. ` : ""}${twistOf() === "winners" ? "Esto es un All Winners: solo se valora a las mejores de la semana y TODAS las críticas son positivas (nada negativo). " : ""}Reinas (valoración global de cada una): ${others.map((r) => `${r.q.name} (${lvl(r)})`).join("; ")}.
 Orden real de esta semana, de mejor a peor (no lo digas, pero que el tono sea coherente: la de arriba suena claramente mejor que las de abajo): ${rows.map((r) => (r.me ? S.queen.name : r.q.name)).join(" > ")}.
 Para cada una escribe "reto" (lo que le dice Supremme sobre su reto, concreto, máximo 22 palabras), "pasarela" (lo que le dice Ana sobre su look, inventa un look concreto que encaje con la categoría, máximo 22 palabras) y, solo en algunas, "javis" (un comentario de los Javis, máximo 18 palabras). Dirígete a ella por su nombre. Que cada crítica sea distinta.
 Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javis":"..."}]}`,
@@ -837,7 +837,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           if (c && str(c.reto) && str(c.pasarela)) return [["host", named(IA.clean(str(c.reto)))], ["judge", IA.clean(str(c.pasarela))], ...(str(c.javis) ? [[pick1(["ambrossi", "calvo"]), IA.clean(str(c.javis))]] : [])];
           const bank = DFTC.bancoReto(S.curTipo)[nivel(r)];
           const low1 = (t) => t.replace(/\{yo\}/g, r.q.name).replace(/^./, (c) => c.toLowerCase());
-          return [["host", `${r.q.name}, ${low1(pickFresh(bank))}`], ["judge", `${r.q.name}, ${low1(pickFresh(JURADO.pasarela[DFTC.nivelNota(DFTC.lookRival(r.q.id, S.ep))]).replace(/^(y |por cierto, )/i, ""))}`], ...(Math.random() < 0.35 ? pickFresh(JAVIS.critica[nivel(r)]).map(([k, t]) => [k, t.replace(/\{yo\}/g, r.q.name)]) : [])];
+          return [["host", `${r.q.name}, ${low1(pickFresh(bank))}`], ["judge", `${r.q.name}, ${low1(pickFresh(JURADO.pasarela[twistOf() === "winners" ? "top" : DFTC.nivelNota(DFTC.lookRival(r.q.id, S.ep))]).replace(/^(y |por cierto, )/i, ""))}`], ...(Math.random() < 0.35 ? pickFresh(JAVIS.critica[nivel(r)]).map(([k, t]) => [k, t.replace(/\{yo\}/g, r.q.name)]) : [])];
         });
       };
       // Reto en grupo: el jurado valora primero cada grupo en bloque
@@ -899,7 +899,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
             <h3>${myLab === "TOP2" || myLab === "BTOP" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? "¡Has ganado el reto! 👑" : /^BTM/.test(myLab) ? (tw === "winners" ? "Semana floja... pero sigues" : "Vas al lip sync...") : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
             <div class="verdict">
               ${blocks ? `<div class="v-row win" style="--i:0"><b>🏆 ${blocks[0].name ? `Gana ${/^«/.test(blocks[0].name) ? "" : /^Pareja/.test(blocks[0].name) ? "la " : "el "}${esc(blocks[0].name)}` : "Grupo ganador"}</b>${faces(blocks[0].rows)}</div>` : teamLine}
-              <div class="v-row win" style="--i:0"><b>${tw === "winners" ? "⭐ Top 2: os jugáis una estrella" : tw === "allstars" ? "💄 Top 2: os jugáis el poder" : n === 5 ? "👑 Ganadora del reto y 🎟️ pase directo a la gran final" : "👑 Felicidrages, ganadora del reto"}</b>${faces(wins)}</div>
+              <div class="v-row win" style="--i:0"><b>${tw === "winners" ? `<img class="ll-ic" src="./images/legendary-star-sm.png?v=2" alt=""> Top 2: os jugáis la Legendary Legend Star` : tw === "allstars" ? "💄 Top 2: os jugáis el poder" : n === 5 && S.flags.paseEp === S.ep ? "👑 Ganadora del reto y 🎟️ pase directo a la gran final" : n === 6 && S.flags.finalistaEp === S.ep ? "👑 Ganadora del reto y primera finalista" : "👑 Felicidrages, ganadora del reto"}</b>${tw === "winners" ? `<div class="call-faces">${wins.map((r, k) => `<span class="${r.me ? "me" : ""} ${labOf.get(r) === "TOP2" ? "ll-won" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}${labOf.get(r) === "TOP2" ? `<img class="ll-badge" src="./images/legendary-star-sm.png?v=2" alt="Legendary Legend Star">` : ""}</span>`).join("")}</div>` : faces(wins)}</div>
               ${highs.length ? `<div class="v-row high" style="--i:1"><b>✨ Buen trabajo, estáis a salvo</b>${faces(highs)}</div>` : ""}
               ${safesC.length ? `<div class="v-row high" style="--i:1"><b>🙂 Estáis a salvo</b>${faces(safesC)}</div>` : ""}
               ${lows.length ? `<div class="v-row low" style="--i:2"><b>😬 A salvo... por los pelos</b>${faces(lows)}</div>` : ""}

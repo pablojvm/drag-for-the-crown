@@ -492,7 +492,9 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
       const qid = isP(r.key) ? queenOfKey(s, r.key) : idOf(r.key);
       const walk = isP(r.key) ? s.subs[idOf(r.key)]?.walk : undefined;
       const antes = Object.keys(s.track[r.key] || {}).map(Number).filter((ep) => ep < s.ep).sort((a, b) => a - b).map((ep) => s.track[r.key][ep]);
-      const lines = e.critique(tipo, level, nm, nivelNota(walk ?? lookRival(qid, s.ep)), { cat: s.reto?.cat?.n, antes });
+      // All Winners: solo se valora a las mejores de la semana, y todo en positivo (también el look)
+      const lookLvl = isAW(s) ? "top" : nivelNota(walk ?? lookRival(qid, s.ep));
+      const lines = e.critique(tipo, isAW(s) ? "top" : level, nm, lookLvl, { cat: s.reto?.cat?.n, antes: isAW(s) ? [] : antes });
       // Reto en directo: Supremme le dice lo que el jurado apuntó mientras lo hacía
       const jury = isP(r.key) ? (s.subs[idOf(r.key)]?.jury || "").trim() : "";
       if (jury && lines[1]) lines[1] = [lines[1][0], `${nm}, ${jury.length > 240 ? jury.slice(0, 240).replace(/\s+\S*$/, "") + "..." : jury}`];
@@ -500,7 +502,7 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
     })
     .sort(() => e.rnd() - 0.5); // desordenadas: que el orden no delate posiciones
   // Por grupos: antes de las críticas una a una, el jurado valora cada grupo por su nombre
-  const gcrit = G ? order.map((gi, pos) => ({ name: G.names[gi], keys: G.members[gi], lines: grupoCritica(G.names[gi], pos === 0 ? "top" : pos === order.length - 1 ? "low" : "mid", e.rnd).map(([k, t]) => [NOMBRE_JURADO[k], t] as [string, string]) })) : undefined;
+  const gcrit = G ? (isAW(s) ? order.slice(0, 1) : order).map((gi, pos) => ({ name: G.names[gi], keys: G.members[gi], lines: grupoCritica(G.names[gi], pos === 0 ? "top" : pos === order.length - 1 ? "low" : "mid", e.rnd).map(([k, t]) => [NOMBRE_JURADO[k], t] as [string, string]) })) : undefined;
   return { ...s, rows, crit, gcrit };
 }
 

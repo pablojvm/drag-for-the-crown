@@ -651,7 +651,8 @@
     const bank = DFTC.bancoReto(S.curTipo)[nivel];
     // El look de pasarela no siempre va a la par que el reto
     const w = S.lastParts && S.lastParts.pasarela;
-    const lookN = typeof w === "number" ? (w >= 75 ? "top" : w >= 50 ? "mid" : "low") : Math.random() < 0.65 ? nivel : pick1(["top", "mid", "low"]);
+    // All Winners: solo se valora a las mejores de la semana, y todo en positivo (también el look)
+    const lookN = twistOf() === "winners" ? "top" : typeof w === "number" ? (w >= 75 ? "top" : w >= 50 ? "mid" : "low") : Math.random() < 0.65 ? nivel : pick1(["top", "mid", "low"]);
     const judgeFirst = Math.random() < 0.5;
     const lines = [];
     lines.push(["host", pickFresh(JURADO.aperturaSupreme)]);

@@ -65,7 +65,7 @@ function header(s: RoomState | null) {
   if (ex && $("#screen-story")?.classList.contains("mp")) ex.innerHTML = s && !s.paused ? "<i>←</i><span>Salir de la sala</span>" : "<i>←</i><span>Volver</span>";
   const se = s ? W.seasonById(s.season) : null;
   $("#story-season")!.textContent = s ? `👯 Temporada en directo · ${s.season === CUSTOM ? `Personalizada · ${FORMATOS[(s.fmt || "normal") as Formato].n}` : se ? se.name : ""} · Sala ${s.code}` : "👯 Temporada en directo";
-  const title: Record<string, string> = { lobby: "Sala de espera", maletas: "Maletas", cajas: "La reina de la suerte", lalaparuza: "Lalaparuza", anuncio: `Episodio ${s?.ep}`, mini: "Minirreto", equipos: s?.groups && s.groups.ep === s.ep ? (s.groups.size === 2 ? "Las parejas" : "Los grupos") : "Las parejas", reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && (s.fmt === "allstars" || s.fmt === "winners") ? "Lip sync por el poder" : s?.triple ? "Lip sync a tres bandas" : "Lip sync for your life", decision: "Los pintalabios", pintalabios: "El pintalabios", comodin: s?.twist ? ({ suerte: "La reina de la suerte", corazon: "El corazón", moneda: "La moneda", bloqueo: "El bloqueo", corte: "El corte del top 4" } as Record<string, string>)[s.twist.kind] : "Momento clave", sorpresa: "¡Sorpresa!", track: "Track record", reencuentro: "El reencuentro", finalistas: "Las finalistas", votacion: "Votan las eliminadas", final: "Gran final", corona: "¡Tenemos ganadora!" };
+  const title: Record<string, string> = { lobby: "Sala de espera", maletas: "Maletas", cajas: "La reina de la suerte", lalaparuza: "Lalaparuza", anuncio: `Episodio ${s?.ep}`, mini: "Minirreto", equipos: s?.groups && s.groups.ep === s.ep ? (s.groups.size === 2 ? "Las parejas" : "Los grupos") : "Las parejas", reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && s.fmt === "winners" ? "Lip sync por la estrella" : s && s.fmt === "allstars" ? "Lip sync por el poder" : s?.triple ? "Lip sync a tres bandas" : "Lip sync for your life", decision: "Los pintalabios", pintalabios: "El pintalabios", comodin: s?.twist ? ({ suerte: "La reina de la suerte", corazon: "El corazón", moneda: "La moneda", bloqueo: "El bloqueo", corte: "El corte del top 4" } as Record<string, string>)[s.twist.kind] : "Momento clave", sorpresa: "¡Sorpresa!", track: "Track record", reencuentro: "El reencuentro", finalistas: "Las finalistas", votacion: "Votan las eliminadas", final: "Gran final", corona: "¡Tenemos ganadora!" };
   $("#story-ep")!.innerHTML = `${esc(s ? (s.paused ? "Pausada" : title[s.phase]) : "Multijugador")} <span class="mp-timer" id="mp-timer"></span>`;
   // Pausa (con acuerdo de todas): solo con la temporada en marcha
   let pb = $("#mp-pause");
@@ -402,10 +402,10 @@ function myStatus(s: RoomState) {
   const out: string[] = [];
   if (s.fmt === "suerte" && s.luck === k) out.push("🍀 Tienes la reina de la suerte. Solo tú lo sabes: podrás usarla antes de un lip sync.");
   if (s.fmt === "corazon" && s.hearts?.[k]) out.push(`❤️ Tienes ${s.hearts[k] >= 2 ? "un corazón entero" : "medio corazón"}.`);
-  if (s.fmt === "winners") { out.push(`⭐ Llevas ${s.stars?.[k] || 0} estrella${(s.stars?.[k] || 0) === 1 ? "" : "s"}. Semana ${s.ep} de ${s.weeks}.`); if (s.block && s.block.ep === s.ep && s.block.id === k) out.push(`🚫 ${keyName(s, s.block.by)} te ha bloqueado: esta semana no puedes ganar estrella.`); }
+  if (s.fmt === "winners") { out.push(`Llevas ${s.stars?.[k] || 0} ${(s.stars?.[k] || 0) === 1 ? "Legendary Legend Star" : "Legendary Legend Stars"}. Semana ${s.ep} de ${s.weeks}.`); if (s.block && s.block.ep === s.ep && s.block.id === k) out.push(`🚫 ${keyName(s, s.block.by)} te ha bloqueado: esta semana no puedes ganar estrella.`); }
   const rp = s.rp && s.rp.ep === s.ep ? s.rp.pairs.find((p) => p.c === k || p.o === k) : undefined;
   if (rp) { const mate = rp.c === k ? rp.o : rp.c; out.push(mate ? `🎙️ Tu pareja de monólogo: ${keyName(s, mate)}${rp.o === k ? ". Si ganáis, ¡vuelves!" : ""}` : "🎙️ Haces el monólogo sola."); }
-  return out.length ? `<div class="mp-status">${out.map((t) => `<p>${esc(t)}</p>`).join("")}</div>` : "";
+  return out.length ? `<div class="mp-status">${out.map((t) => `<p>${/^Llevas \d+ Legendary/.test(t) ? LL + " " : ""}${esc(t)}</p>`).join("")}</div>` : "";
 }
 function render(s: RoomState) {
   header(s);
@@ -508,8 +508,9 @@ function render(s: RoomState) {
   if (s.phase === "veredicto") {
     const rows = s.rows || [];
     const of = (l: string) => rows.filter((x) => x.label === l).map((x) => x.key);
-    const grp = (labs: string[], t: string, cls: string) => { const r = rows.filter((x) => labs.includes(x.label)); return r.length ? `<div class="v-row ${cls}"><b>${t}</b><div class="call-faces">${r.map((x) => face(s, x.key)).join("")}</div></div>` : ""; };
     const AW = s.fmt === "winners";
+    // All Winners: las del top 2 (sin bloquear) ya salen con su insignia
+    const grp = (labs: string[], t: string, cls: string) => { const r = rows.filter((x) => labs.includes(x.label)); return r.length ? `<div class="v-row ${cls}"><b>${t}</b><div class="call-faces">${r.map((x) => (AW && x.label === "TOP2" ? faceLL(s, x.key) : face(s, x.key))).join("")}</div></div>` : ""; };
     const btm = [...of("BTM2"), ...of("BTM3")];
     const triple = btm.length === 3;
     const block = s.block && s.block.ep === s.ep ? s.block : null;
@@ -520,7 +521,7 @@ function render(s: RoomState) {
       : AS(s)
       ? [["host", "Reinas, he tomado algunas decisiones."], ["host", `${names(s, of("TOP2"))}: sois las dos mejores de la semana. ¡Os vais a jugar el poder en un lip sync!`], ["host", `${names(s, of("BTM2"))}: lo siento, estáis en el bottom. Una de vosotras se irá a casa.`]]
       : [["host", "Reinas, he tomado algunas decisiones."], ["host", of("WIN").length > 1 ? `${names(s, of("WIN"))}... ¡las dos habéis ganado el reto! Doble victoria esta semana.` : `${names(s, of("WIN"))}, ¡enhorabuena, has ganado el reto!`], ...(s.paseEp === s.ep && of("WIN").length ? [["host", `${keyName(s, of("WIN")[0])}, ¡tienes el pase directo a la gran final!`] as [string, string]] : []), ...(s.finalistaEp === s.ep && of("WIN").length ? [["host", `${keyName(s, of("WIN")[0])}, ¡eres la primera finalista de la temporada!`] as [string, string]] : []), ["host", triple ? (s.fmt === "moneda" ? `${names(s, btm)}: sois el bottom de tres... y esta es la temporada de la moneda.` : `${names(s, btm)}: vais al lip sync a tres bandas. Se salva una y se van dos.`) : `${names(s, btm)}: es la hora de que hagáis el lip sync for your life.`]],
-    () => `<p class="eyebrow">Las decisiones del jurado</p>${s.gcrit?.length ? `<p class="gold">🏆 Grupo ganador: <b>${esc(s.gcrit[0].name)}</b></p>` : ""}<div class="verdict">${AS(s) || AW ? grp(["TOP2", "BTOP"], AW ? "⭐ Top 2: lip sync por la estrella" : "💄 Top 2: lip sync por el poder", "win") : grp(["WIN"], "👑 Ganadora del reto", "win")}${grp(["HIGH"], "✨ Buen trabajo, estáis a salvo", "high")}${grp(["SAFE"], "🙂 A salvo", "high")}${grp(["LOW"], "😬 A salvo... por los pelos", "low")}${grp(["BTM2", "BTM3"], AS(s) ? "💔 Bottom: una se irá con el pintalabios" : triple ? (s.fmt === "moneda" ? "🪙 Bottom de tres: decide la moneda" : "💔 Lip sync a tres bandas") : "💔 Bottom: lip sync for your life", "btm")}</div>${block ? `<p class="muted">🚫 ${esc(keyName(s, block.id))} estaba bloqueada esta semana.</p>` : ""}${starsTable(s)}`);
+    () => `<p class="eyebrow">Las decisiones del jurado</p>${s.gcrit?.length ? `<p class="gold">🏆 Grupo ganador: <b>${esc(s.gcrit[0].name)}</b></p>` : ""}<div class="verdict">${AS(s) || AW ? grp(["TOP2", "BTOP"], AW ? `${LL} Top 2: lip sync por la estrella` : "💄 Top 2: lip sync por el poder", "win") : grp(["WIN"], "👑 Ganadora del reto", "win")}${grp(["HIGH"], "✨ Buen trabajo, estáis a salvo", "high")}${grp(["SAFE"], "🙂 A salvo", "high")}${grp(["LOW"], "😬 A salvo... por los pelos", "low")}${grp(["BTM2", "BTM3"], AS(s) ? "💔 Bottom: una se irá con el pintalabios" : triple ? (s.fmt === "moneda" ? "🪙 Bottom de tres: decide la moneda" : "💔 Lip sync a tres bandas") : "💔 Bottom: lip sync for your life", "btm")}</div>${block ? `<p class="muted">🚫 ${esc(keyName(s, block.id))} estaba bloqueada esta semana.</p>` : ""}${starsTable(s)}`);
   }
   if (s.phase === "reencuentro") return reencuentro(s);
   if (s.phase === "finalistas") return finalistas(s);
@@ -531,7 +532,7 @@ function render(s: RoomState) {
   if (s.phase === "comodin") { api().scene("panel"); return comodin(s); }
   if (s.phase === "sorpresa") return sorpresa(s);
   if (s.phase === "pintalabios") return lipstickReveal(s);
-  if (s.phase === "track") return watch(s, "werkroom", () => [], () => `${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${heartNote(s)}${heartChoice(s)}<h3>Track record</h3>${track(s)}${s.fmt === "corazon" ? heartsTable(s) : ""}${s.fmt === "winners" && s.ep >= (s.weeks || 0) ? `<p class="twist-note">⭐ Se acabaron las semanas: las 4 con más estrellas van a la gran final.</p>` : ""}`);
+  if (s.phase === "track") return watch(s, "werkroom", () => [], () => `${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${heartNote(s)}${heartChoice(s)}<h3>Track record</h3>${track(s)}${s.fmt === "corazon" ? heartsTable(s) : ""}${s.fmt === "winners" && s.ep >= (s.weeks || 0) ? `<p class="twist-note">${LL} Se acabaron las semanas: las 4 con más estrellas van a la gran final.</p>` : ""}`);
   if (s.phase === "corona") {
     savedPut(`${s.code}:${room.me}`, null);
     payout(s);
@@ -749,13 +750,13 @@ function comodin(s: RoomState) {
   const mineKey = pkey(room.me);
   const iDecide = t.by.includes(mineKey) && !(s.subs[room.me] || {}).pick;
   const done = t.by.filter((k) => !isP(k) || (s.subs[idOf(k)] || {}).pick != null);
-  const opts = (keep: string | null, verb: (k: string) => string) => `<div class="hub-grid ${t.options.length === 2 ? "two" : ""}">${t.options.map((k, i) => `<button class="hub-q" style="--i:${i}" data-pick="${esc(k)}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(verb(k))}</span>${keyPlayer(s, k) ? `<small>${esc(keyPlayer(s, k))}</small>` : ""}${t.kind === "bloqueo" ? `<small>⭐ ${s.stars?.[k] || 0}</small>` : ""}</button>`).join("")}</div>${keep ? `<button class="btn btn-primary" data-pick="keep">${esc(keep)}</button>` : ""}`;
+  const opts = (keep: string | null, verb: (k: string) => string) => `<div class="hub-grid ${t.options.length === 2 ? "two" : ""}">${t.options.map((k, i) => `<button class="hub-q" style="--i:${i}" data-pick="${esc(k)}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(verb(k))}</span>${keyPlayer(s, k) ? `<small>${esc(keyPlayer(s, k))}</small>` : ""}${t.kind === "bloqueo" ? `<small>${LL} ${s.stars?.[k] || 0}</small>` : ""}</button>`).join("")}</div>${keep ? `<button class="btn btn-primary" data-pick="keep">${esc(keep)}</button>` : ""}`;
   const bind = () => document.querySelectorAll<HTMLElement>("[data-pick]").forEach((b) => (b.onclick = () => { playing = null; room.submit({ pick: b.dataset.pick! }); info(`<p class="eyebrow">✔ Decidido</p><h3>Esperando a las demás...</h3>`); }));
   const wait = (h: string) => info(`${h}<div class="call-faces">${t.by.filter(isP).map((k) => face(s, k, done.includes(k) ? "ok" : "wait")).join("")}</div>${trackPeek()}${skipBtn(s)}`);
   // All Winners: empate en el corte del top 4 (decide la que más estrellas tiene)
   if (t.kind === "corte") {
     const need = t.need || 1;
-    const intro = `Empate a ${s.stars?.[t.options[0]] || 0} ⭐ entre ${esc(names(s, t.options))}.`;
+    const intro = `Empate a ${s.stars?.[t.options[0]] || 0} ${LL} entre ${esc(names(s, t.options))}.`;
     if (iDecide) {
       const chosen: string[] = [];
       return info(`<p class="eyebrow">👑 Gran final All Winners</p><h3>Empate en el corte: decides tú</h3><p>Tienes más estrellas que nadie. ${intro} Elige ${need === 1 ? "quién pasa" : `a las ${need} que pasan`} a la final por la corona.</p><div class="hub-grid">${t.options.map((k, i) => `<button class="hub-q" style="--i:${i}" data-cut="${esc(k)}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(keyName(s, k))}</span><small>PPE ${ppeOf(s, k).toFixed(2).replace(".", ",")}</small></button>`).join("")}</div>${starsTable(s)}`, () =>
@@ -787,8 +788,8 @@ function comodin(s: RoomState) {
     return wait(`<p class="eyebrow">🪙 La moneda</p>${coin}<h3>Las salvadas votan a quién ${t.cara ? "salvar" : "condenar"}</h3><p>En el bottom de tres: ${bottomTxt}.</p>`);
   }
   // All Winners: el bloqueo
-  if (iDecide) return info(`<p class="eyebrow">⭐ Has ganado el lip sync</p><h3>¿A quién bloqueas?</h3><p>La semana que viene no podrá ganar estrella, aunque llegue al top.</p>${opts(null, (k) => keyName(s, k))}${starsTable(s)}${trackPeek()}`, bind);
-  return wait(`<p class="eyebrow">⭐ El bloqueo</p><h3>${esc(keyName(s, t.by[0]))} elige a quién bloquear</h3><p class="muted">La bloqueada no podrá ganar estrella la semana que viene.</p>${starsTable(s)}`);
+  if (iDecide) return info(`<p class="eyebrow">${LL} Has ganado el lip sync</p><h3>¿A quién bloqueas?</h3><p>La semana que viene no podrá ganar estrella, aunque llegue al top.</p>${opts(null, (k) => keyName(s, k))}${starsTable(s)}${trackPeek()}`, bind);
+  return wait(`<p class="eyebrow">${LL} El bloqueo</p><h3>${esc(keyName(s, t.by[0]))} elige a quién bloquear</h3><p class="muted">La bloqueada no podrá ganar estrella la semana que viene.</p>${starsTable(s)}`);
 }
 // Ver el track record sin salir de la pantalla (como en la historia)
 const coinAt: Record<string, number> = {};
@@ -803,11 +804,15 @@ document.addEventListener("click", (e) => {
   m.querySelector("#tm-close")!.addEventListener("click", () => m.remove());
   m.addEventListener("click", (ev) => { if (ev.target === m) m.remove(); });
 }, true);
+// All Winners: la insignia de la Legendary Legend Star (la que hicimos), no una estrella de emoji
+const LL = `<img class="ll-ic" src="./images/legendary-star-sm.png?v=2" alt="Legendary Legend Star">`;
+/** Cara con su insignia encima (las que se la llevan esa semana). */
+const faceLL = (s: RoomState, k: string) => face(s, k).replace('<span class="mp-face', '<span class="mp-face ll-won').replace(/<\/span>$/, `<img class="ll-badge" src="./images/legendary-star-sm.png?v=2" alt="Legendary Legend Star"></span>`);
 // All Winners: tabla de estrellas
 const starsTable = (s: RoomState) => {
   if (s.fmt !== "winners") return "";
   const list = aliveKeys(s).sort((a, b) => (s.stars?.[b] || 0) - (s.stars?.[a] || 0));
-  return `<div class="lala-table mp-stars"><b>⭐ Estrellas</b>${list.map((k) => `<span class="${k === pkey(room.me) ? "me" : ""}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i>${esc(keyName(s, k))}<em>${s.stars?.[k] || 0} ⭐</em></span>`).join("")}</div>`;
+  return `<div class="lala-table mp-stars"><b>${LL} Legendary Legend Stars</b>${list.map((k) => `<span class="${k === pkey(room.me) ? "me" : ""}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i>${esc(keyName(s, k))}<em>${s.stars?.[k] || 0} ${LL}</em></span>`).join("")}</div>`;
 };
 // ------------------------------ Giros: lo que pasó (lo lleva la anfitriona) ------------------------------
 function sorpresa(s: RoomState) {
@@ -850,7 +855,7 @@ function sorpresa(s: RoomState) {
   }
   // All Winners: estrellas y bloqueo
   return watch(s, "panel", () => [["host", `${(r.stars || []).length ? `${names(s, r.stars || [])}: ${(r.stars || []).length > 1 ? "os lleváis" : "te llevas"} la Legendary Legend Star.` : "Esta semana no hay estrella para la bloqueada."}`], ...(r.target ? [["host", `${nm(r.by!)} bloquea a ${nm(r.target)}: la semana que viene no podrá ganar estrella.`] as [string, string]] : [])],
-    () => `<p class="eyebrow">⭐ All Winners</p><div class="ll-award"><img class="ll-star" src="./images/legendary-star.png?v=2" alt="Legendary Legend Star"><div><p class="ll-title">Legendary Legend Star</p><div class="call-faces">${(r.stars || []).map((k) => face(s, k)).join("")}</div></div></div>${r.target ? `<div class="mp-vs">${face(s, r.by!)}<span>🚫</span>${face(s, r.target, "gone")}</div><p>${esc(nm(r.target))} no podrá ganar estrella la semana que viene.</p>` : ""}${starsTable(s)}`);
+    () => `<p class="eyebrow">${LL} All Winners</p><div class="ll-award"><img class="ll-star" src="./images/legendary-star.png?v=2" alt="Legendary Legend Star"><div><p class="ll-title">Legendary Legend Star</p><div class="call-faces">${(r.stars || []).map((k) => face(s, k)).join("")}</div></div></div>${r.target ? `<div class="mp-vs">${face(s, r.by!)}<span>🚫</span>${face(s, r.target, "gone")}</div><p>${esc(nm(r.target))} no podrá ganar estrella la semana que viene.</p>` : ""}${starsTable(s)}`);
 }
 const heartsTable = (s: RoomState) => {
   const list = aliveKeys(s).filter((k) => s.hearts?.[k]);
@@ -1035,11 +1040,11 @@ function duel(s: RoomState, p: { a: string; b: string }, myKey: string, eyebrow:
     <div class="ls-crowd"><span>👏 Público</span><div class="ls-bar"><i class="me" style="width:${(tm / mx) * 100}%"></i></div><div class="ls-bar"><i class="rv" style="width:${(tt / mx) * 100}%"></i></div></div>`;
   const lastRow = shown ? `<div class="mp-duel-last"><p><b>Tú:</b> ${esc(mine[shown - 1].msg)}</p><p><b>${esc(keyName(s, other))}:</b> ${esc(theirs[shown - 1].msg)}</p></div>` : `<p class="muted">Las dos elegís cada movimiento a la vez. Alterna (repetir aburre al público) y guarda 45 de energía para un truco en el clímax.</p>`;
   const meter = `<p class="mp-duel-energy">⚡ Energía: <b>${energy}</b> · Paso ${Math.min(step + 1, 6)}/6</p>`;
-  if (step >= 6) return info(`<p class="eyebrow">${esc(eyebrow)}</p><h3>¡Terminado! Esperando el veredicto...</h3>${stage}${lastRow}`);
-  if (step > theirs.length) return info(`<p class="eyebrow">${esc(eyebrow)} · ${DUEL_PH.at(pi)} ${(step % 2) + 1}/2</p><h3>Esperando a que ${esc(keyName(s, other))} elija su movimiento...</h3>${stage}${lastRow}${meter}<p class="muted">Si no elige en ${Math.round(DUEL_STEP_MS / 1000)} segundos, se queda quieta.</p>`);
+  if (step >= 6) return info(`<p class="eyebrow">${eyebrow}</p><h3>¡Terminado! Esperando el veredicto...</h3>${stage}${lastRow}`);
+  if (step > theirs.length) return info(`<p class="eyebrow">${eyebrow} · ${DUEL_PH.at(pi)} ${(step % 2) + 1}/2</p><h3>Esperando a que ${esc(keyName(s, other))} elija su movimiento...</h3>${stage}${lastRow}${meter}<p class="muted">Si no elige en ${Math.round(DUEL_STEP_MS / 1000)} segundos, se queda quieta.</p>`);
   const emote = duelSeed(s, p, step);
   const opts: { k: string; t: string; d: string }[] = api().lsOptions(emote, clim, last);
-  info(`<p class="eyebrow">${esc(eyebrow)} · ${DUEL_PH.at(pi)} de la canción ${(step % 2) + 1}/2</p><h3>Tú vs ${esc(keyName(s, other))}</h3>${stage}${lastRow}${meter}<div class="choice-col mp-duel-opts">${opts.map((o) => `<button class="btn btn-ghost role" data-duel="${o.k}"><b>${esc(o.t)}</b><small>${esc(o.d)}</small></button>`).join("")}</div><p class="muted">⏱ Tienes ${Math.round(DUEL_STEP_MS / 1000)} segundos para elegir.</p>`, () =>
+  info(`<p class="eyebrow">${eyebrow} · ${DUEL_PH.at(pi)} de la canción ${(step % 2) + 1}/2</p><h3>Tú vs ${esc(keyName(s, other))}</h3>${stage}${lastRow}${meter}<div class="choice-col mp-duel-opts">${opts.map((o) => `<button class="btn btn-ghost role" data-duel="${o.k}"><b>${esc(o.t)}</b><small>${esc(o.d)}</small></button>`).join("")}</div><p class="muted">⏱ Tienes ${Math.round(DUEL_STEP_MS / 1000)} segundos para elegir.</p>`, () =>
     document.querySelectorAll<HTMLElement>("[data-duel]").forEach((b) => (b.onclick = () => {
       document.querySelectorAll<HTMLButtonElement>("[data-duel]").forEach((x) => (x.disabled = true));
       const r = api().lsMove(b.dataset.duel!, emote, clim, energy, last);
@@ -1073,7 +1078,7 @@ function lipsync(s: RoomState, myKey: string | null) {
   const pairs = s.pairs || [];
   const mine = myKey ? pairs.find((p) => (p.a === myKey || p.b === myKey) && !p.winner) : null;
   // Contra otra jugadora: duelo a la vez, paso a paso
-  if (mine && myKey && isP(mine.a) && isP(mine.b) && !(s.subs[room.me] || {}).ls) return duel(s, mine, myKey, s.phase === "final" ? (brLabel(s) || (s.finalStage === 2 ? "👑 Lip sync por la corona" : s.finalStage === 4 ? "🔥 La reina de la pista" : "Gran final · semifinal")) : AS(s) ? "💄 Lip sync por el poder" : s.fmt === "winners" ? "⭐ Lip sync por la estrella" : "💔 Lip sync for your life");
+  if (mine && myKey && isP(mine.a) && isP(mine.b) && !(s.subs[room.me] || {}).ls) return duel(s, mine, myKey, s.phase === "final" ? (brLabel(s) || (s.finalStage === 2 ? "👑 Lip sync por la corona" : s.finalStage === 4 ? "🔥 La reina de la pista" : "Gran final · semifinal")) : AS(s) ? "💄 Lip sync por el poder" : s.fmt === "winners" ? `${LL} Lip sync por la estrella` : "💔 Lip sync for your life");
   if (mine && !(s.subs[room.me] || {}).ls) {
     const rivalKey = mine.a === myKey ? mine.b : mine.a;
     const br = s.phase === "final" ? brLabel(s) : null;
@@ -1081,12 +1086,12 @@ function lipsync(s: RoomState, myKey: string | null) {
       : s.phase === "final"
       ? { eyebrow: s.finalStage === 2 ? "👑 Lip sync por la corona" : s.finalStage === 4 ? "🔥 La reina de la pista" : "Gran final · semifinal", curtain: s.finalStage === 2 ? "LIP SYNC POR LA CORONA" : s.finalStage === 4 ? "LA REINA DE LA PISTA" : "LIP SYNC", note: s.finalStage === 4 ? "La que gane se queda en la pista; la que pierda, fuera." : "" }
       : AS(s) ? { eyebrow: "💄 Lip sync por el poder", curtain: "LIP SYNC POR EL PODER", note: "La que gane se lleva el reto y saca su pintalabios." }
-      : s.fmt === "winners" ? { eyebrow: "⭐ Lip sync por la estrella", curtain: "LIP SYNC POR LA ESTRELLA", note: "La que gane bloquea a una rival." }
+      : s.fmt === "winners" ? { eyebrow: `${LL} Lip sync por la estrella`, curtain: "LIP SYNC POR LA ESTRELLA", note: "La que gane bloquea a una rival." }
       : { eyebrow: "💔 Lip sync for your life", curtain: "LIP SYNC FOR YOUR LIFE", note: "La que pierda se va a casa." };
     return play(s, s.phase, (el) => api().lipsyncShow(el, keyQueen(s, rivalKey), o, (won: boolean, score: number) => { playing = null; room.submit({ ls: { won, score } }); }));
   }
   if (myKey && pairs.some((p) => p.a === myKey || p.b === myKey) && (s.subs[room.me] || {}).ls) return info(`<p class="eyebrow">💄 Lip sync</p><h3>¡Hecho! Esperando el veredicto...</h3>`);
-  info(`${s.phase === "final" && s.finalStage === 1 ? revealHTML(s) : ""}<p class="eyebrow">${s.phase === "final" && brLabel(s) ? brLabel(s) : s.phase === "final" ? (s.finalStage === 2 ? "👑 Lip sync por la corona" : s.finalStage === 4 ? `🔥 La reina de la pista${s.chain?.length ? ` · esperan ${names(s, s.chain)}` : " · último duelo"}` : "Gran final · semifinales") : AS(s) ? "💄 Lip sync por el poder" : s.fmt === "winners" ? "⭐ Lip sync por la estrella" : "Lip sync for your life"}</p>${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${pairs.map((p) => `<div class="mp-vs">${face(s, p.a)}${s.fmt === "winners" && s.phase === "lipsync" ? `<img class="ll-vs" src="./images/legendary-star.png?v=2" alt="Legendary Legend Star">` : "<span>VS</span>"}${face(s, p.b)}</div>`).join("")}<p class="muted">${pairs.some((p) => isP(p.a) || isP(p.b)) ? "Las jugadoras del lip sync están bailando..." : "Las reinas lo dan todo en el escenario..."}</p>${pairs.some((p) => isP(p.a) || isP(p.b)) ? skipBtn(s) : ""}`);
+  info(`${s.phase === "final" && s.finalStage === 1 ? revealHTML(s) : ""}<p class="eyebrow">${s.phase === "final" && brLabel(s) ? brLabel(s) : s.phase === "final" ? (s.finalStage === 2 ? "👑 Lip sync por la corona" : s.finalStage === 4 ? `🔥 La reina de la pista${s.chain?.length ? ` · esperan ${names(s, s.chain)}` : " · último duelo"}` : "Gran final · semifinales") : AS(s) ? "💄 Lip sync por el poder" : s.fmt === "winners" ? `${LL} Lip sync por la estrella` : "Lip sync for your life"}</p>${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${pairs.map((p) => `<div class="mp-vs">${face(s, p.a)}${s.fmt === "winners" && s.phase === "lipsync" ? `<img class="ll-vs" src="./images/legendary-star.png?v=2" alt="Legendary Legend Star">` : "<span>VS</span>"}${face(s, p.b)}</div>`).join("")}<p class="muted">${pairs.some((p) => isP(p.a) || isP(p.b)) ? "Las jugadoras del lip sync están bailando..." : "Las reinas lo dan todo en el escenario..."}</p>${pairs.some((p) => isP(p.a) || isP(p.b)) ? skipBtn(s) : ""}`);
 }
 function track(s: RoomState) {
   const eps = Object.keys(s.epNames).map(Number).sort((a, b) => a - b);
@@ -1095,7 +1100,7 @@ function track(s: RoomState) {
   const lab = (l: string) => ({ WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", "3ª": "3ª/4ª", BWIN: "WIN", BTOP: "TOP2", ELIMF: "ELIMINADA", QOSD: "QoSDADHH", P3: "3ª", P4: "4ª" } as Record<string, string>)[l] || l;
   const AW = s.fmt === "winners";
   const lastEp = (k: string) => Math.max(0, ...eps.filter((e) => (s.track[k] || {})[e]));
-  return `<div class="track-wrap"><table class="track"><thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(s.epNames[e])}</small></th>`).join("")}${AW ? "<th>⭐</th>" : ""}<th>PPE</th></tr></thead><tbody>${rows
+  return `<div class="track-wrap"><table class="track"><thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(s.epNames[e])}</small></th>`).join("")}${AW ? `<th>${LL}</th>` : ""}<th>PPE</th></tr></thead><tbody>${rows
     .map((r, i) => { const k = r.key; return `<tr class="${k === pkey(room.me) ? "me" : ""} ${r.out ? "out" : ""}" style="--i:${i}"><td class="rk">${esc(r.place)}</td><td class="qn"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(keyName(s, k))}${keyPlayer(s, k) ? ` <b>(${esc(keyPlayer(s, k))})</b>` : ""}</span></td>${eps.map((e) => { const l = (s.track[k] || {})[e]; return `<td class="${l ? cls(l) : r.out && e > lastEp(k) ? "t-gone" : "t-none"}">${l ? lab(l) : ""}</td>`; }).join("")}${AW ? `<td class="ppe">${s.stars?.[k] || 0}</td>` : ""}<td class="ppe">${Object.keys(s.track[k] || {}).length ? ppeOf(s, k).toFixed(2) : "–"}</td></tr>`; })
     .join("")}</tbody></table></div>`;
 }
