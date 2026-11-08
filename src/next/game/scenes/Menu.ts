@@ -2,6 +2,7 @@
 import Phaser from "phaser";
 import { ARCADE_QUEENS } from "../data";
 import { get } from "../../store";
+import { onResizeRestart } from "./resize";
 
 export class Menu extends Phaser.Scene {
   private queens: Phaser.GameObjects.Image[] = [];
@@ -27,6 +28,6 @@ export class Menu extends Phaser.Scene {
       this.tweens.add({ targets: img, y: y - 12, angle: { from: -2, to: 2 }, duration: 520 + i * 110, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: i * 180 });
       this.queens.push(img);
     });
-    this.scale.on("resize", () => this.scene.restart());
+    onResizeRestart(this);
   }
 }

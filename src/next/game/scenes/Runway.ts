@@ -2,6 +2,7 @@
 import Phaser from "phaser";
 import { store, get } from "../../store";
 import { loadQueens } from "../queens";
+import { onResizeRestart } from "./resize";
 
 export class Runway extends Phaser.Scene {
   private q!: Phaser.GameObjects.Image;
@@ -32,7 +33,13 @@ export class Runway extends Phaser.Scene {
     let n = get().rw?.animN ?? 0;
     const unsub = store.subscribe((s) => { if (!s.rw || s.rw.animN === n) return; n = s.rw.animN; this.act(s.rw.anim, s.rw.pos); });
     this.events.once("shutdown", unsub);
-    this.scale.on("resize", () => this.scene.restart());
+    // Si se reinicia a mitad (cambio de tamaño), la reina vuelve a donde iba
+    const pos = get().rw?.pos ?? 0;
+    if (pos > 0) {
+      const st = Math.min(4, pos);
+      this.q.setAlpha(1).setY(H * [0.42, 0.54, 0.66, 0.7, 0.7][st]).setScale(this.baseScale * [1, 1.5, 2.1, 2.3, 2.3][st]);
+    }
+    onResizeRestart(this);
   }
   private act(anim: string, step: number) {
     if (!anim) return;

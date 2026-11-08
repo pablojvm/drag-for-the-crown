@@ -7,6 +7,7 @@ import { loadQueens } from "../queens";
 import { loadPlayback } from "../playback/assets";
 import { Performer } from "../playback/performer";
 import { Director } from "../playback/director";
+import { onResizeRestart } from "./resize";
 
 export class LipSync extends Phaser.Scene {
   private dir?: Director;
@@ -37,9 +38,7 @@ export class LipSync extends Phaser.Scene {
       this.dir?.movimiento();
     });
     this.events.once("shutdown", () => { unsub(); this.dir = undefined; });
-    const onResize = () => this.scene.restart();
-    this.scale.on("resize", onResize);
-    this.events.once("shutdown", () => this.scale.off("resize", onResize));
+    onResizeRestart(this);
   }
   update() { this.dir?.update(); }
 }
