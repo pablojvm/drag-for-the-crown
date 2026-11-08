@@ -89,6 +89,8 @@
     /** All Winners: las reinas con las que has ganado tú una temporada (y cuál), y las ganadoras de siempre. */
     myWinners: () => Object.entries(allWinnersOrigin()).filter(([, o]) => o.how === "win").map(([id, o]) => ({ id, season: o.season })),
     canonWinners: () => [...REGULAR_ES(), ...PLAYABLE_AS()].filter((t) => t.cast && t.cast.length > 1 && !t.enEmision).map((t) => t.cast[t.cast.length - 1]),
+    /** Las ganadoras de siempre con su temporada (para la sala del All Winners). */
+    canonWinnersOf: () => [...REGULAR_ES(), ...PLAYABLE_AS()].filter((t) => t.cast && t.cast.length > 1 && !t.enEmision).map((t) => ({ id: t.cast[t.cast.length - 1], season: t.name || t.id })),
     /** Todas las reinas de todas las temporadas (para la partida personalizada), con su temporada. */
     allQueens: () => {
       const seen = new Map();
