@@ -8,8 +8,14 @@ const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || "https:
 const ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || "sb_publishable_VadA8dMEtciBROMEjPGZwQ_MfB8Qtzn";
 
 // Claves de localStorage que viajan a la nube (todo el progreso salvo las claves de IA locales)
-const SKIP = new Set(["dftc-claves", "dftc-sync-at", "dftc-sync-local", "dftc-sync-user"]);
+const SKIP = new Set(["dftc-claves", "dftc-sync-at", "dftc-sync-local", "dftc-sync-user", "dftc-sync-guest"]);
 const syncKeys = () => Object.keys(localStorage).filter((k) => k.startsWith("dftc-") && !SKIP.has(k) && (localStorage.getItem(k) || "").length < 400_000);
+
+/** Borra de este navegador la partida (todo dftc-* salvo los ajustes de sonido y las claves de IA). */
+const KEEP = /^dftc-(claves|ia-|muted|next-muted|next-music)/;
+function clearProgress() {
+  Object.keys(localStorage).filter((k) => k.startsWith("dftc-") && !KEEP.test(k)).forEach((k) => localStorage.removeItem(k));
+}
 
 // Cuánto progreso hay en un conjunto de datos (para no pisar una partida grande con una vacía al cambiar de cuenta)
 const progressOf = (get: (k: string) => string | null) => {
@@ -97,8 +103,10 @@ class Cloud {
     clearTimeout(this.pushTimer);
     this.pushTimer = window.setTimeout(() => this.push(), 4000);
   }
+  /** Hasta que no se ha mirado la nube de esta cuenta, no se sube nada (podría ser la partida de otra persona). */
+  private pulled = false;
   async push() {
-    if (!this.sb || !this.session) return;
+    if (!this.sb || !this.session || !this.pulled) return;
     const data: Record<string, string> = {};
     syncKeys().forEach((k) => (data[k] = localStorage.getItem(k) as string));
     const at = new Date().toISOString();
@@ -113,7 +121,21 @@ class Cloud {
     const syncedAt = Date.parse(localStorage.getItem("dftc-sync-at") || "") || 0;
     const uid = this.session.user.id;
     const lastUser = localStorage.getItem("dftc-sync-user");
-    localStorage.setItem("dftc-sync-user", uid);
+    // ¿La partida de este navegador era de una invitada? (si no se sabe, se trata como de otra cuenta)
+    const lastGuest = localStorage.getItem("dftc-sync-guest") === "1";
+    const mark = () => { localStorage.setItem("dftc-sync-user", uid); localStorage.setItem("dftc-sync-guest", this.isGuest ? "1" : "0"); };
+    mark();
+    // Este navegador tenía la partida de OTRA cuenta (no de una invitada): no es de esta persona.
+    // Se borra y se trae lo de esta cuenta (o se empieza de cero si no tiene nada). Nunca se sube lo de la otra.
+    if (lastUser && lastUser !== uid && !lastGuest) {
+      clearProgress();
+      mark();
+      this.pulled = true;
+      if (data) return this.apply(data.data as Record<string, string>, data.updated_at);
+      if (!sessionStorage.getItem("dftc-pulled")) { sessionStorage.setItem("dftc-pulled", "1"); location.reload(); }
+      return;
+    }
+    this.pulled = true;
     if (!data) { if (syncKeys().length) this.push(); return; }
     const remoteAt = Date.parse(data.updated_at);
     // Cambio de cuenta (p. ej. entras con Google en un dispositivo que ya tenía partida): gana la que tenga más progreso
@@ -155,8 +177,8 @@ class Cloud {
     await this.push();
     await this.sb.auth.signOut();
     // Lo de esa cuenta queda en la nube; este navegador vuelve a empezar como invitada (se guardan solo los ajustes)
-    const KEEP = /^dftc-(claves|ia-|muted|next-muted|next-music)/;
-    Object.keys(localStorage).filter((k) => (k.startsWith("dftc-") && !KEEP.test(k)) || k.startsWith("sb-dftc-auth")).forEach((k) => localStorage.removeItem(k));
+    clearProgress();
+    Object.keys(localStorage).filter((k) => k.startsWith("sb-dftc-auth")).forEach((k) => localStorage.removeItem(k));
     sessionStorage.removeItem("dftc-pulled");
     location.reload();
   }
