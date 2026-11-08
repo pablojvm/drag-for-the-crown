@@ -406,6 +406,7 @@ function myStatus(s: RoomState) {
 }
 function render(s: RoomState) {
   header(s);
+  heartModal(s);
   const mine = s.players.find((p) => p.id === room.me);
   // Pausa: con el sí de todas se guarda y se sale
   if (s.paused) return pausedOut(s);
@@ -786,6 +787,20 @@ const heartChoice = (s: RoomState) => {
   return `<div class="mp-heart-pick"><p class="eyebrow">📼 Tu grabación</p><h4>¿A quién dejas tu medio corazón?</h4><p class="muted">Nadie lo sabrá hasta que pongan tu vídeo la semana que viene. Si no eliges, se elige al azar.</p><div class="hub-grid">${aliveKeys(s).map((k, i) => `<button class="hub-q" style="--i:${i}" data-heart="${esc(k)}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(keyName(s, k))}</span>${keyPlayer(s, k) ? `<small>${esc(keyPlayer(s, k))}</small>` : ""}${s.hearts?.[k] ? `<small>${s.hearts[k] % 2 ? "💔" : "❤️"} ya tiene</small>` : ""}</button>`).join("")}</div></div>`;
 };
 document.addEventListener("click", (e) => { const b = (e.target as HTMLElement).closest?.("[data-heart]") as HTMLElement | null; if (b) room.submit({ heart: b.dataset.heart! }); });
+// Al irte en la temporada del corazón, la elección sale en una ventana encima de todo, en cualquier pantalla,
+// hasta que elijas (antes solo salía en el track record y, si se pasaba rápido, ya no la veías)
+function heartModal(s: RoomState | null) {
+  const old = document.querySelector("#mp-heart-modal");
+  const g = s && s.fmt === "corazon" ? (s.pendingHearts || []).find((x) => x.from === pkey(room.me) && !x.chosen) : null;
+  if (!s || !g) { old?.remove(); return; }
+  const html = `<div class="mp-heart-modal-in" role="dialog" aria-modal="true" aria-label="Tu medio corazón">${heartChoice(s)}<p class="muted">La temporada sigue mientras eliges.</p></div>`;
+  if (old && old.getAttribute("data-k") === `${s.ep}:${aliveKeys(s).join(",")}`) return;
+  const el = old || document.createElement("div");
+  el.id = "mp-heart-modal";
+  el.setAttribute("data-k", `${s.ep}:${aliveKeys(s).join(",")}`);
+  el.innerHTML = html;
+  if (!old) ($("#screen-story") || document.body).appendChild(el);
+}
 // All Stars: pintalabios (tubo negro con el nombre de la elegida)
 const lipstick = (name: string, cls = "") => `<div class="lipstick ${cls}" role="img" aria-label="Pintalabios: ${esc(name)}"><span class="ls-cap"></span><span class="ls-band"></span><span class="ls-body"><b class="${name.length > 15 ? "xlong" : name.length > 10 ? "long" : ""}">${esc(name)}</b></span></div>`;
 // Antes del lip sync: las dos del top eligen en secreto (cada una ve su propia pantalla)
@@ -1123,6 +1138,7 @@ function exit() {
   clearInterval(timer);
   shell(false);
   $("#mp-pause")?.remove();
+  heartModal(null);
   $("#screen-story")!.classList.remove("mp");
   W.UI.show("menu");
 }
