@@ -3012,3 +3012,7 @@ body.portrait .story-top h2 { font-size: 30px !important; overflow-wrap: anywher
   .siren-light { filter: none; }
 }
 html.dftc-embed body.portrait .screen > .eyebrow:first-child { padding: 0 110px; }
+/* Probador, look listo: textos legibles sobre el escenario oscuro */
+.at-rack > p.gold, .at-rack > p.muted, .at-rack > p.twist-note { background: rgba(255,255,255,.92); color: var(--ink) !important; padding: 6px 16px; border-radius: 999px; font-weight: 700; text-shadow: none; margin: 0; }
+.at-rack > p.gold { background: #fff3c4; color: #7a4a00 !important; border-radius: 14px; }
+.at-rack > p.twist-note { border-radius: 14px; }
