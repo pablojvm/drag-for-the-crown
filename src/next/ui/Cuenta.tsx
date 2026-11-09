@@ -15,6 +15,7 @@ type Panel = "cuenta" | "fama" | "logros" | "ajustes" | null;
 export function MenuBar() {
   const acct = useGame((s) => s.acct);
   const [panel, setPanel] = useState<Panel>(null);
+  const [menu, setMenu] = useState(false);
   useEffect(() => { refreshAcct(); }, []);
   const toggle = (p: Panel) => setPanel(panel === p ? null : p);
   return (
@@ -27,10 +28,19 @@ export function MenuBar() {
         <div className="nx-topbar-r">
           <span className="nx-chip" title="Rudollars (modo normal)">💵 {rudollars().toLocaleString("es-ES")}</span>
           <span className="nx-chip" title="Lipsticks (multijugador)">💄 {sequins().toLocaleString("es-ES")}</span>
-          <button className="nx-round" aria-label="Hall of Fame" title="Hall of Fame" onClick={() => toggle("fama")}>🏆</button>
-          <button className="nx-round" aria-label="Logros" title="Logros" onClick={() => toggle("logros")}>🎖️</button>
-          <button className="nx-round" aria-label="Ajustes" title="Ajustes" onClick={() => toggle("ajustes")}>⚙️</button>
+          <button className="nx-round nx-wide-only" aria-label="Hall of Fame" title="Hall of Fame" onClick={() => toggle("fama")}>🏆</button>
+          <button className="nx-round nx-wide-only" aria-label="Logros" title="Logros" onClick={() => toggle("logros")}>🎖️</button>
+          <button className="nx-round nx-wide-only" aria-label="Ajustes" title="Ajustes" onClick={() => toggle("ajustes")}>⚙️</button>
+          <button className="nx-round nx-menu-btn" aria-label="Menú" aria-expanded={menu} onClick={() => setMenu(!menu)}>{menu ? "✕" : "☰"}</button>
         </div>
+        {menu && (
+          <div className="nx-dropdown" role="menu">
+            <button role="menuitem" onClick={() => { setMenu(false); setPanel("cuenta"); }}>👤 Tu cuenta</button>
+            <button role="menuitem" onClick={() => { setMenu(false); setPanel("fama"); }}>🏆 Hall of Fame</button>
+            <button role="menuitem" onClick={() => { setMenu(false); setPanel("logros"); }}>🎖️ Logros</button>
+            <button role="menuitem" onClick={() => { setMenu(false); setPanel("ajustes"); }}>⚙️ Ajustes</button>
+          </div>
+        )}
       </div>
       {panel && (
         <div className="nx-center nx-dim nx-overlay" onClick={(e) => { if (e.target === e.currentTarget) setPanel(null); }}>
