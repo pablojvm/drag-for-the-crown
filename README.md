@@ -2,7 +2,7 @@
 
 Juego de navegador inspirado en los realities de drag: compites en una temporada entera (retos, pasarela, críticas, untucked y lip syncs) hasta llevarte la corona, sola o con amigas en directo.
 
-**Jugar:** https://pablojvm.github.io/drag-for-the-crown/ (la versión clásica, con el multijugador en directo, sigue en `/clasico.html`)
+**Jugar:** https://juego.pablojvm.com/ (la versión clásica, con el multijugador en directo, sigue en `/clasico.html`)
 
 ## Modos
 
