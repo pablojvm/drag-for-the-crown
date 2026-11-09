@@ -43,7 +43,7 @@ Sin configurar, el juego funciona como antes (todo en el navegador). Para activa
 1. **Proyecto**: crea uno en supabase.com (región de la UE).
 2. **Login anónimo**: Authentication > Sign In / Providers > activa *Anonymous sign-ins*. En Authentication > Settings activa *Allow manual linking* (para pasar de anónima a Google sin perder el progreso).
 3. **Google**: en Google Cloud Console crea un ID de cliente OAuth (aplicación web) con la URL de redirección `https://TU-PROYECTO.supabase.co/auth/v1/callback`. Pega el ID y el secreto en Authentication > Providers > Google.
-4. **URLs**: Authentication > URL Configuration. Site URL `https://juego.pablojvm.com/` (y la antigua `https://pablojvm.github.io/drag-for-the-crown/` en Redirect URLs) y añade `http://localhost:8000/` y `http://localhost:4173/` a las redirecciones.
+4. **URLs**: Authentication > URL Configuration. Site URL `https://dragforthecrown.pablojvm.com/` (y la antigua `https://pablojvm.github.io/drag-for-the-crown/` en Redirect URLs) y añade `http://localhost:8000/` y `http://localhost:4173/` a las redirecciones.
 5. **Base de datos y función** (desde la carpeta del juego):
    ```
    npx supabase login
