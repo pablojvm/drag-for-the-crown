@@ -2995,7 +2995,8 @@ body.portrait .hud-btn, body.portrait .hud-money { height: 40px; padding: 0 12px
 body.portrait #screen-story .btn.dlg-skip, body.portrait .btn.dlg-skip { top: auto; bottom: 14px; left: 18px; right: auto; z-index: 3; padding: 8px 18px; font-size: 18px; }
 /* Elegir reina en vertical: el botón de empezar siempre a la vista, abajo */
 body.portrait #screen-select > .row { position: static; padding: 14px 0 24px; margin-top: 4px !important; width: 100%; justify-content: center; }
-body.portrait #queen-details { width: 100% !important; max-width: none !important; align-self: stretch; }
+body.portrait #queen-details, body.portrait #queen-details.open { width: 660px !important; max-width: 100% !important; max-height: none !important; margin-left: 0 !important; align-self: center; }
+body.portrait #queen-details .details-inner { width: 100%; box-sizing: border-box; }
 /* Botones de comprar: cifras cortas que caben */
 .shop-buy { white-space: nowrap; }
 /* móvil: el título del episodio no se mete debajo del botón de sonido */
