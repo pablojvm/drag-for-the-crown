@@ -304,6 +304,8 @@ const UI = (() => {
   function openDetails(q) {
     const locked = lockedQueen(q);
     $("#det-portrait").style.backgroundImage = portraitBg(q, currentSeason && currentSeason.id);
+    // La reina sin fondo (para la ficha en vertical)
+    $("#det-portrait").style.setProperty("--sprite", `url('${new URL(lookOf(q, currentSeason && currentSeason.id).sprite || q.sprite || "", location.href).href}')`);
     $("#det-portrait").classList.toggle("locked", locked);
     $("#det-name").textContent = q.name;
     const pos = currentSeason ? currentSeason.cast.indexOf(q.id) : -1;
