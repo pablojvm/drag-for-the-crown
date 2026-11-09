@@ -533,3 +533,16 @@ body:has(.nx-dlg) .nx-ts-panel { visibility: hidden; }
   .nx-menu-btn { display: block; font-weight: 700; color: var(--nx-ink); }
 }
 @media (min-width: 561px) { .nx-dropdown { display: none; } }
+/* Hall of Fame: reinas reinantes */
+.nx-reigns h4 { margin: 14px 0 8px; font: 400 16px Bungee, sans-serif; color: #3b0d4f; }
+.nx-reigns .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.nx-reign { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 10px 12px; border-radius: 18px; background: #fff; text-align: center; color: #3b0d4f; box-shadow: 0 14px 30px -20px rgba(120, 20, 90, .5); }
+.nx-reign .pic { width: 84px; height: 84px; border-radius: 50%; background: #f6e6f1 center 20% / cover; box-shadow: 0 0 0 3px var(--nx-gold); margin-bottom: 6px; }
+.nx-reign .crown { position: absolute; top: 6px; right: 10px; font-size: 18px; }
+.nx-reign strong { font: 400 14px Bungee, sans-serif; }
+.nx-reign small { font-size: 12px; line-height: 1.3; }
+.nx-reign .season { font-weight: 700; color: var(--nx-pink); }
+.nx-reign .sub, .nx-reign .muted { color: #8a6f94; }
+.nx-reign.mine { box-shadow: 0 0 0 3px var(--nx-gold), 0 14px 30px -20px rgba(120, 20, 90, .5); }
+.nx-reign.qoq { grid-column: 1 / -1; max-width: 260px; justify-self: center; width: 100%; }
+@media (max-width: 560px) { .nx-reigns .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .nx-reign .pic { width: 66px; height: 66px; } }
