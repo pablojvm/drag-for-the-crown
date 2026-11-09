@@ -127,7 +127,7 @@ function Modos({ onArcade }: { onArcade: () => void }) {
                 <span className="ms-desc">{m.desc}</span>
                 <span className="ms-ctas">
                   <button className="ms-cta" tabIndex={i === active ? 0 : -1} onClick={(e) => { e.stopPropagation(); if (i !== active) go(i); else open(i); }}>{m.id === "historia" && saved ? "Nueva" : "Jugar"}</button>
-                  {m.id === "historia" && saved && <button className="ms-cta alt" tabIndex={i === active ? 0 : -1} onClick={(e) => { e.stopPropagation(); openHistoria("seguir"); }}>Seguir mi temporada</button>}
+                  {m.id === "historia" && saved && <button className="ms-cta alt" tabIndex={i === active ? 0 : -1} onClick={(e) => { e.stopPropagation(); openHistoria("seguir"); }}>Seguir<span className="ms-long"> mi temporada</span></button>}
                 </span>
               </span>
               {m.art.length === 1 ? <img className="ms-art" src={`./${m.art[0]}`} alt="" /> : <span className="ms-art ms-trio" aria-hidden="true">{m.art.map((a) => <img key={a} src={`./${a}`} alt="" />)}</span>}
