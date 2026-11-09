@@ -362,6 +362,8 @@
       if (nx && !loan) tab = nx;
       renderLeft();
       renderTabs();
+      // En vertical la tienda va debajo: al elegir algo se vuelve a las pestañas para seguir con la siguiente prenda
+      if (document.body.classList.contains("portrait")) host.querySelector(".shop-tabs")?.scrollIntoView({ block: "start", behavior: "smooth" });
     }
     host.innerHTML = `
         <div class="ls">
