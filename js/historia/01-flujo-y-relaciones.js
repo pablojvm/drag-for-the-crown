@@ -611,7 +611,7 @@
   function header() {
     // Temporada en directo: la cabecera la pinta la sala (no la del modo historia)
     if (S && S.mp) return window.__mpHeader && window.__mpHeader();
-    $("#story-season").textContent = `Modo historia · ${S.season.name} · ${seasonInfo().lema || S.season.franchise.name}`;
+    $("#story-season").textContent = S.season.special === "winners" ? S.season.name : `Modo historia · ${S.season.name} · ${seasonInfo().lema || S.season.franchise.name}`;
     let chip = "";
     const tw = twistOf();
     if (tw === "moneda") chip = "🪙 Bottom de 3 y moneda al aire";
@@ -619,7 +619,7 @@
     if (tw === "suerte") chip = S.luck === undefined ? "🍀 Cajitas por abrir" : S.luck === "me" ? "🍀 ¡La tienes tú! (en secreto)" : S.luck ? "🍀 ¿Quién la tendrá?" : "🍀 Ya se ha usado";
     if (tw === "repesca") chip = S.flags.repesca ? "🔁 Segunda Oportunidrag: hecha" : "🔁 Segunda Oportunidrag: pendiente";
     if (tw === "allstars") chip = "💄 Decide la ganadora";
-    if (tw === "winners") chip = `⭐ Nadie se va · tus estrellas: ${(S.stars || {}).me || 0}${S.ep === winnersWeeks() ? " · 🌟 Esta semana el top 2 gana 3 estrellas" : ""}${S.block && S.block.ep === S.ep ? ` · 🚫 Bloqueada: ${S.block.id === "me" ? "tú" : nameOfKey(S.block.id)}` : ""}`;
+    if (tw === "winners") chip = `Tus estrellas: ${(S.stars || {}).me || 0}${S.ep === winnersWeeks() ? " · 🌟 Esta semana el top 2 gana 3 estrellas" : ""}${S.block && S.block.ep === S.ep ? ` · 🚫 Bloqueada: ${S.block.id === "me" ? "tú" : nameOfKey(S.block.id)}` : ""}`;
     $("#story-ep").textContent = S.meOut ? "Fuera de la competición" : isFinal() ? (S.flags.reunion ? "Gran final" : "El reencuentro") : `Episodio ${S.ep}`;
     if (chip) $("#story-season").innerHTML += ` <span class="twist-chip">${esc(chip)}</span>`;
     const fm = fame();
