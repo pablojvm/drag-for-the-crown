@@ -3024,3 +3024,23 @@ body.portrait #screen-select.picked #queen-grid, body.portrait #screen-select.pi
 body.portrait #screen-select.picked #btn-unpick { display: inline-flex; }
 body.portrait #screen-select.picked > .row { gap: 14px; flex-wrap: wrap; }
 body.portrait #screen-select.picked .select-layout { animation: rise .35s var(--ease-out) both; }
+/* Ficha de la reina en vertical: foto grande con el nombre encima, datos debajo y botones apilados */
+body.portrait #screen-select.picked { justify-content: flex-start; padding-top: 84px; }
+body.portrait #screen-select.picked #queen-details { width: 660px !important; }
+body.portrait #screen-select.picked .details-inner { position: relative; padding: 0 0 22px; gap: 14px; overflow: hidden; border-radius: 28px; }
+body.portrait #screen-select.picked .details-portrait { position: relative; height: 470px; border: 0; border-radius: 0; background-position: center 10%; }
+body.portrait #screen-select.picked .details-portrait::after { content: ""; position: absolute; inset: 55% 0 0; background: linear-gradient(to top, rgba(43,10,58,.85), transparent); } body.portrait #screen-select.picked .details-portrait { background-size: cover; }
+body.portrait #screen-select.picked .details-main h3 { position: absolute; top: 452px; transform: translateY(-100%); left: 28px; right: 28px; margin: 0; color: #fff !important; -webkit-text-fill-color: #fff; background: none !important; font-size: 40px; line-height: 1.05; text-shadow: 0 3px 12px rgba(0,0,0,.5); z-index: 1; }
+body.portrait #screen-select.picked .details-main, body.portrait #screen-select.picked .details-power { padding: 0 28px; }
+body.portrait #screen-select.picked > .row { flex-direction: column; align-items: center; gap: 12px; padding: 18px 0 28px; }
+body.portrait #screen-select.picked #btn-start { order: -1; width: 420px; font-size: 30px; padding: 18px 0; }
+body.portrait #screen-select.picked #btn-unpick { font-size: 18px; padding: 10px 26px; }
+/* Tableta en vertical (pantalla menos alargada): la misma ficha, más compacta para que quepan los botones */
+@media (min-aspect-ratio: 2/3) {
+  body.portrait #screen-select.picked { padding-top: 70px; }
+  body.portrait #screen-select.picked .details-portrait { height: 330px; background-position: center 26%; }
+  body.portrait #screen-select.picked .details-main h3 { top: 314px; font-size: 36px; }
+  body.portrait #screen-select.picked .details-inner { gap: 10px; padding-bottom: 16px; }
+  body.portrait #screen-select.picked > .row { padding: 12px 0 16px; gap: 8px; }
+  body.portrait #screen-select.picked #btn-start { font-size: 26px; padding: 14px 0; }
+}
