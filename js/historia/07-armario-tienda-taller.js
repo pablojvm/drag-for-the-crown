@@ -350,7 +350,26 @@
       host.querySelectorAll(".shop-f").forEach((b) => b.classList.toggle("on", b.dataset.f === filt));
       const slot = host.querySelector(".ls-gridslot");
       const g = gridFor(tab);
-      if (slot.firstChild !== g) { slot.replaceChildren(g); g.scrollTop = 0; }
+      if (slot.firstChild !== g) { slot.replaceChildren(g); g.scrollTop = 0; page = 0; }
+      paginate();
+    }
+    // En vertical (móvil y tableta) no hay que desplazarse: la tienda va por páginas de 6 prendas
+    let page = 0;
+    function paginate() {
+      // Tableta en vertical (pantalla menos alargada): una fila de 4; móvil: dos filas de 3
+      const PER = matchMedia("(min-aspect-ratio: 2/3)").matches ? 4 : 6;
+      const g = host.querySelector(".ls-gridslot > .ls-grid");
+      const pager = host.querySelector(".ls-pager");
+      if (!g || !pager) return;
+      const cards = [...g.querySelectorAll(":scope > .shop-card")];
+      const on = document.body.classList.contains("portrait") && cards.length > PER;
+      const pages = Math.max(1, Math.ceil(cards.length / PER));
+      page = Math.min(Math.max(0, page), pages - 1);
+      cards.forEach((c, i) => (c.hidden = on && Math.floor(i / PER) !== page));
+      pager.hidden = !on;
+      host.querySelector("#ls-page").textContent = `${page + 1} / ${pages}`;
+      host.querySelector("#ls-prev").disabled = page === 0;
+      host.querySelector("#ls-nextp").disabled = page >= pages - 1;
     }
     function setTab(k) { tab = k; renderTabs(); host.querySelectorAll(".ls-st").forEach((b) => b.classList.toggle("on", b.dataset.k === tab)); }
     function pick(k, it, loan) {
@@ -362,8 +381,6 @@
       if (nx && !loan) tab = nx;
       renderLeft();
       renderTabs();
-      // En vertical la tienda va debajo: al elegir algo se vuelve a las pestañas para seguir con la siguiente prenda
-      if (document.body.classList.contains("portrait")) host.querySelector(".shop-tabs")?.scrollIntoView({ block: "start", behavior: "smooth" });
     }
     host.innerHTML = `
         <div class="ls">
@@ -381,11 +398,26 @@
               <button class="shop-f" data-f="mine">Mi armario</button>
             </div>
             <div class="ls-gridslot"></div>
+            <div class="ls-pager"><button class="btn btn-ghost" id="ls-prev" aria-label="Anteriores">‹</button><span id="ls-page"></span><button class="btn btn-ghost" id="ls-nextp" aria-label="Siguientes">›</button></div>
             <p class="muted shop-legend">Lo que compres es tuyo para siempre. Los tacones, pelucas y toques puedes repetirlos; los looks no. 👣 ayuda a desfilar. Si encaja con la temática lo decide el jurado.</p>
           </div>
         </div>`;
     host.querySelectorAll(".shop-tab").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.t)));
     host.querySelectorAll(".shop-f").forEach((b) => b.addEventListener("click", () => { filt = b.dataset.f; renderTabs(); }));
+    host.querySelector("#ls-prev").addEventListener("click", () => { page--; paginate(); });
+    host.querySelector("#ls-nextp").addEventListener("click", () => { page++; paginate(); });
+    // Deslizar el dedo a los lados también pasa de página
+    {
+      const gs = host.querySelector(".ls-gridslot");
+      let x0 = null, y0 = 0;
+      gs.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+      gs.addEventListener("touchend", (e) => {
+        if (x0 === null || host.querySelector(".ls-pager").hidden) return;
+        const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+        x0 = null;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) { page += dx < 0 ? 1 : -1; paginate(); }
+      }, { passive: true });
+    }
     $("#ls-loan").addEventListener("click", () => {
       const rvT = tab === "look" && TH && TH.rv;
       const pool = rvT ? ARMARIO.look.filter((x) => x.rv && !Closet.has(x.id) && !tk.has(x.id)) : ARMARIO[tab].filter((x) => !isHecho(x) && !Closet.has(x.id) && !tk.has(x.id) && statOf(x)[0] <= 2 && (tab !== "look" || !x.rv));

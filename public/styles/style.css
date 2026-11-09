@@ -3038,8 +3038,46 @@ body.portrait #screen-select.picked > .row { flex-direction: column; align-items
 body.portrait #screen-select.picked #btn-start { order: -1; width: 420px; font-size: 30px; padding: 18px 0; }
 body.portrait #screen-select.picked #btn-unpick { font-size: 18px; padding: 10px 26px; }
 body.portrait #screen-select.picked .select-layout { margin-top: auto; }
-/* Maletas en vertical: la pantalla entera se desplaza (antes la tienda quedaba cortada abajo y no se podía bajar) */
-body.portrait #screen-story:has(.ls) #story-body { min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 6px 6px 40px; box-sizing: border-box; align-items: flex-start; }
-body.portrait #screen-story:has(.ls) .ls-right { max-height: none !important; }
-body.portrait #screen-story:has(.ls) .ls-gridslot, body.portrait #screen-story:has(.ls) .ls-grid { max-height: none !important; overflow: visible !important; flex: none; width: 100%; }
-body.portrait #screen-story:has(.ls) .ls { width: 100% !important; max-width: 100% !important; }
+/* Maletas en vertical: todo en una pantalla, sin desplazarse.
+   Arriba la pasarela y tus 4 prendas (tocar una cambia de pestaña); abajo la tienda por páginas de 6. */
+.ls-pager { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.ls-pager[hidden] { display: none; }
+.ls-pager .btn { width: 64px; height: 52px; padding: 0; font-size: 30px; line-height: 1; }
+.ls-pager span { font: 800 18px Poppins, sans-serif; color: var(--ink); min-width: 70px; text-align: center; }
+body.portrait .ls { gap: 12px; }
+body.portrait .ls-left { padding: 14px 18px; gap: 8px; }
+body.portrait .ls-left .eyebrow { margin: 0; }
+body.portrait .ls-left h3 { font-size: 24px; }
+body.portrait .ls-desc { font-size: 13px; padding: 6px 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+body.portrait .ls-room { height: auto; background: none !important; box-shadow: none !important; display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0; overflow: visible; }
+body.portrait .ls-room .ls-side { display: contents; }
+body.portrait .ls-room .ls-st { position: static !important; height: 100px; padding: 6px; border-radius: 16px; background: #f6eef8; align-items: center; transform: none !important; }
+body.portrait .ls-room .ls-st img { height: 86px !important; width: 100%; max-height: none; }
+body.portrait .ls-room .ls-st.on { background: #fff3c4; box-shadow: 0 0 0 3px var(--gold, #ffcf4d); }
+body.portrait .ls-sel { display: none; }
+body.portrait .ls-sel li { padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.portrait .ls-actions { margin-top: 2px; }
+body.portrait .ls-right { padding: 12px 14px; gap: 8px; max-height: none !important; }
+body.portrait .ls-right .shop-tabs .shop-tab { display: none; }
+body.portrait .ls-right .shop-tabs .shop-sep { flex: 1; }
+body.portrait .ls-top .small-btn { font-size: 13px; padding: 7px 12px; }
+body.portrait .ls-right .shop-tabs { display: flex; align-items: center; gap: 6px; }
+body.portrait .ls-right .ls-top { flex-wrap: nowrap; }
+body.portrait .ls-gridslot, body.portrait .ls-grid { max-height: none !important; overflow: visible !important; flex: none; width: 100%; }
+body.portrait .ls-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; min-width: 0; }
+.ls-grid > .shop-card[hidden] { display: none !important; }
+body.portrait .ls-right > *, body.portrait .ls-gridslot { min-width: 0; }
+body.portrait .ls-grid .shop-card { padding: 6px 6px 8px; }
+body.portrait .ls-grid .shop-img { height: 112px; }
+body.portrait .ls-grid .shop-img img { max-height: 112px; }
+body.portrait .ls-grid .shop-card b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+body.portrait .ls-grid .shop-card .shop-st { font-size: 12px; }
+body.portrait .ls-grid .shop-buy { font-size: 14px; padding: 6px 10px; }
+body.portrait .ls-top .shop-money { display: none; }
+body.portrait .ls-right { flex-direction: column; }
+body.portrait .ls-right .ls-top, body.portrait .ls-right .shop-tabs { display: contents; }
+body.portrait .ls-right { display: grid !important; grid-template-columns: auto auto minmax(0, 1fr) auto auto; align-items: center; }
+body.portrait .ls-right > :is(.ls-gridslot, .ls-pager, .shop-legend) { grid-column: 1 / -1; }
+body.portrait .ls-right .shop-f { font-size: 13px; padding: 7px 12px; }
+@media (min-aspect-ratio: 2/3) { body.portrait .ls-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } body.portrait .ls-left h3 { font-size: 22px; } }
+body.portrait .ls-right .shop-legend { display: none; }
