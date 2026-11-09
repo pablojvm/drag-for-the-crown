@@ -62,7 +62,7 @@ function CuentaPanel() {
   return (
     <>
       <p className="nx-eyebrow">Tu cuenta</p>
-      <h2>{acct.google ? acct.email : "Juegas como invitada"}</h2>
+      <h2 className={acct.google ? "nx-email" : ""}>{acct.google ? <>{acct.email.split("@")[0]}<wbr />@{acct.email.split("@")[1] || ""}</> : "Juegas como invitada"}</h2>
       <p className="nx-muted nx-center-txt">
         {acct.google
           ? "Tu progreso (temporadas, armario, logros, rudollars y lipsticks) te sigue en cualquier dispositivo donde entres con esta cuenta."

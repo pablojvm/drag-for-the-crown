@@ -546,3 +546,10 @@ body:has(.nx-dlg) .nx-ts-panel { visibility: hidden; }
 .nx-reign.mine { box-shadow: 0 0 0 3px var(--nx-gold), 0 14px 30px -20px rgba(120, 20, 90, .5); }
 .nx-reign.qoq { grid-column: 1 / -1; max-width: 260px; justify-self: center; width: 100%; }
 @media (max-width: 560px) { .nx-reigns .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .nx-reign .pic { width: 66px; height: 66px; } }
+/* Paneles: nada se sale por el lado (correos largos, textos) */
+.nx-panel { box-sizing: border-box; }
+.nx-ts-panel { grid-template-columns: minmax(0, 1fr); }
+.nx-ts-panel > * { min-width: 0; }
+.nx-panel h1, .nx-panel h2 { overflow-wrap: anywhere; }
+@media (max-width: 560px) { .nx-ts-panel > h2 { font-size: 20px; } }
+.nx-panel h2.nx-email { font-size: clamp(16px, 4.6vw, 26px); overflow-wrap: normal; }
