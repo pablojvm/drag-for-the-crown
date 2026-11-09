@@ -2994,7 +2994,7 @@ body.portrait .hud-btn, body.portrait .hud-money { height: 40px; padding: 0 12px
 /* «Saltar» del diálogo: dentro de la caja, abajo a la izquierda (antes tapaba «Guardar y salir») */
 body.portrait #screen-story .btn.dlg-skip, body.portrait .btn.dlg-skip { top: auto; bottom: 14px; left: 18px; right: auto; z-index: 3; padding: 8px 18px; font-size: 18px; }
 /* Elegir reina en vertical: el botón de empezar siempre a la vista, abajo */
-body.portrait #screen-select > .row { position: sticky; bottom: 0; z-index: 6; padding: 12px 0 calc(14px + env(safe-area-inset-bottom)); margin-top: 0 !important; background: rgba(255,236,247,.97); border-radius: 22px 22px 0 0; box-shadow: 0 -10px 24px -14px rgba(59,13,79,.45); width: 100%; justify-content: center; }
+body.portrait #screen-select > .row { position: static; padding: 14px 0 24px; margin-top: 4px !important; width: 100%; justify-content: center; }
 body.portrait #queen-details { width: 100% !important; max-width: none !important; align-self: stretch; }
 /* Botones de comprar: cifras cortas que caben */
 .shop-buy { white-space: nowrap; }

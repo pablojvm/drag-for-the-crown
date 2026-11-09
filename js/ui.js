@@ -379,6 +379,8 @@ const UI = (() => {
     btnStart.disabled = lockedQueen(q);
     Sound.stopAll();
     if (q.voice) Sound.voice(q.id);
+    // En vertical la ficha y el botón quedan debajo de la cuadrícula: se baja hasta ellos
+    if (document.body.classList.contains("portrait")) setTimeout(() => $("#queen-details").scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   }
 
   // ------------------------------ Partida ----------------------------------
