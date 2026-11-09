@@ -3017,3 +3017,10 @@ html.dftc-embed body.portrait .screen > .eyebrow:first-child { padding: 0 110px;
 .at-rack > p.gold, .at-rack > p.muted, .at-rack > p.twist-note { background: rgba(255,255,255,.92); color: var(--ink) !important; padding: 6px 16px; border-radius: 999px; font-weight: 700; text-shadow: none; margin: 0; }
 .at-rack > p.gold { background: #fff3c4; color: #7a4a00 !important; border-radius: 14px; }
 .at-rack > p.twist-note { border-radius: 14px; }
+/* Elige tu reina en vertical: primero todas las reinas; al tocar una, solo su ficha con ¡Runway! y volver */
+#btn-unpick { display: none; }
+body.portrait #screen-select:not(.picked) #queen-details, body.portrait #screen-select:not(.picked) > .row { display: none !important; }
+body.portrait #screen-select.picked #queen-grid, body.portrait #screen-select.picked #btn-back, body.portrait #screen-select.picked > .title, body.portrait #screen-select.picked > .eyebrow { display: none !important; }
+body.portrait #screen-select.picked #btn-unpick { display: inline-flex; }
+body.portrait #screen-select.picked > .row { gap: 14px; flex-wrap: wrap; }
+body.portrait #screen-select.picked .select-layout { animation: rise .35s var(--ease-out) both; }

@@ -105,7 +105,7 @@ const UI = (() => {
     }
     if (name === "franchise") renderFranchises();
     if (name === "season") renderSeasons();
-    if (name === "select") renderGrid();
+    if (name === "select") { screens.select.classList.remove("picked"); renderGrid(); }
     if (name === "scores") renderScores();
     stagger(screens[name]);
   }
@@ -379,8 +379,8 @@ const UI = (() => {
     btnStart.disabled = lockedQueen(q);
     Sound.stopAll();
     if (q.voice) Sound.voice(q.id);
-    // En vertical la ficha y el botón quedan debajo de la cuadrícula: se baja hasta ellos
-    if (document.body.classList.contains("portrait")) setTimeout(() => $("#queen-details").scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    // En vertical: desaparece la cuadrícula y se queda solo la ficha con ¡Runway! y Volver
+    if (document.body.classList.contains("portrait")) { screens.select.classList.add("picked"); screens.select.scrollTo(0, 0); }
   }
 
   // ------------------------------ Partida ----------------------------------
@@ -613,6 +613,8 @@ const UI = (() => {
   });
   $("#btn-scores-back").addEventListener("click", () => show("menu"));
   $("#btn-back").addEventListener("click", () => show("season"));
+  // Vertical: de la ficha se vuelve a todas las reinas
+  $("#btn-unpick").addEventListener("click", () => { screens.select.classList.remove("picked"); screens.select.scrollTo(0, 0); });
   btnStart.addEventListener("click", startGame);
   $("#btn-again").addEventListener("click", startGame);
   $("#btn-change").addEventListener("click", () => {
