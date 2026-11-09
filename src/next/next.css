@@ -45,6 +45,7 @@ html, body { margin: 0; height: 100%; background: var(--nx-bg); color: var(--nx-
 .nx-score { margin: 0 0 6px; font-weight: 800; font-size: 20px; }
 .nx-hud { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 12px; padding: max(12px, env(safe-area-inset-top)) 16px 12px; color: #fff; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); pointer-events: none; }
 .nx-hud-l { display: flex; align-items: baseline; gap: 10px; font-size: 18px; }
+.nx-lives { white-space: nowrap; flex-shrink: 0; }
 .nx-hud-l b { font: 400 24px/1 Bungee, sans-serif; }
 .nx-hud-l em { font-style: normal; font-weight: 800; color: var(--nx-gold); }
 .nx-hud-r { margin-left: auto; display: grid; justify-items: end; gap: 4px; font-size: 12px; }

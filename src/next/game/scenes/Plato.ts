@@ -19,7 +19,12 @@ export class Plato extends Phaser.Scene {
       if (!quieto) return;
       loop.wake();
       clearTimeout(idle);
-      idle = window.setTimeout(() => { if (this.scene.isActive() && !this.load.isLoading()) loop.sleep(); else poke(); }, 500);
+      idle = window.setTimeout(() => {
+        // Solo se duerme si el plató es lo único que hay y no hay nada pendiente (otra escena a punto de arrancar, cargas...)
+        const sm = this.game.scene as unknown as { getScenes(a: boolean): Phaser.Scene[]; _queue?: unknown[]; _start?: unknown[]; _pending?: unknown[] };
+        const quiet = sm.getScenes(true).length === 1 && !(sm._queue?.length || sm._start?.length || sm._pending?.length) && Date.now() >= (this.game.registry.get("noSleepUntil") || 0);
+        if (this.scene.isActive() && !this.load.isLoading() && quiet) loop.sleep(); else poke();
+      }, 500);
     };
     this.events.once("shutdown", () => { clearTimeout(idle); loop.wake(); });
     // Mientras hay una conversación, la reina que habla sale en grande: la del plató se aparta

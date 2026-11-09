@@ -141,9 +141,12 @@ const Toast = {
     // Si se repite el mismo aviso, se renueva en vez de apilarse; nunca más de 3 a la vez
     [...box.children].filter((x) => x.querySelector("b").textContent === title && x.querySelector("span").textContent === sub).forEach((x) => x.remove());
     box.append(t);
-    while (box.children.length > 3) box.firstElementChild.remove();
-    setTimeout(() => t.classList.add("out"), 3200);
-    setTimeout(() => t.remove(), 3700);
+    // En el móvil y la tableta en vertical, como mucho dos (y abajo, para no tapar la pantalla)
+    const max = document.body.classList.contains("portrait") ? 2 : 3;
+    while (box.children.length > max) box.firstElementChild.remove();
+    const dur = max === 2 ? 2600 : 3200;
+    setTimeout(() => t.classList.add("out"), dur);
+    setTimeout(() => t.remove(), dur + 500);
   },
 };
 
@@ -207,8 +210,8 @@ const Curtain = {
     c.classList.add("closed");
     Music.sfx("whoosh");
     setTimeout(() => {
-      fn();
-      setTimeout(() => c.classList.remove("closed"), label ? 900 : 350);
+      // Aunque lo de detrás falle, el telón se abre (si no, la pantalla se quedaba tapada)
+      try { fn(); } finally { setTimeout(() => c.classList.remove("closed"), label ? 900 : 350); }
     }, 650);
   },
 };

@@ -75,7 +75,8 @@ const UI = (() => {
     const later = (ms) => {
       // El texto que se va escribiendo en los diálogos no cambia nada: no se mira (en el iPhone eso costaba mucho)
       if (ms && ms.length && ms.every((m) => m.target && m.target.closest && m.target.closest(".dlg-text, .caret"))) return;
-      if (!raf) raf = requestAnimationFrame(check);
+      // Como mucho unas pocas veces por segundo: mirar posiciones fuerza a recalcular la página (en el iPad se notaba)
+      if (!raf) raf = setTimeout(() => requestAnimationFrame(check), 150);
     };
     new MutationObserver(later).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
     addEventListener("resize", () => later());

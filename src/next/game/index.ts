@@ -20,6 +20,7 @@ export function startGame(parent: HTMLElement) {
     physics: { default: "arcade", arcade: { debug: false } },
     scene: [Boot, Menu, Arcade, LipSync, Runway, Plato],
   });
+  (window as unknown as { __dftcGame?: Phaser.Game }).__dftcGame = game;
   // La misma imagen de una reina puede llegar a la vez por dos escenas (Boot y el plató, o el plató y el lip sync):
   // se queda la primera y no se avisa de la repetida
   const tx = game.textures as unknown as { addImage: (key: string, ...a: unknown[]) => unknown; exists: (k: string) => boolean; get: (k: string) => unknown };
@@ -28,6 +29,7 @@ export function startGame(parent: HTMLElement) {
   // Cambia de escena; si ya es la que está en marcha (otra pasarela, revancha), la reinicia
   const go = (key: string) => {
     game.loop.wake(); // el plató puede tenerlo dormido (móviles)
+    game.registry.set("noSleepUntil", Date.now() + 2000);
     game.scene.getScenes(true).forEach((s) => { if (s.scene.key !== key) s.scene.stop(); });
     if (game.scene.isActive(key)) game.scene.getScene(key).scene.restart();
     else game.scene.start(key);
@@ -40,9 +42,12 @@ export function startGame(parent: HTMLElement) {
     if (c.type === "scene") go(c.key);
     if (c.type === "mute") game.sound.mute = c.on;
   });
+  // Seguro para móviles: si el plató ha dormido el bucle y hay algo que dibujar, cualquier toque lo despierta
+  const nudge = () => { if (!game.loop.running) { game.loop.wake(); game.registry.set("noSleepUntil", Date.now() + 800); } };
+  addEventListener("pointerdown", nudge, true);
   // Al perder el foco, pausa (como el juego de siempre)
   const vis = () => { if (document.hidden) send({ type: "pause", on: true }); };
   document.addEventListener("visibilitychange", vis);
   (window as any).__phaser = game; // para depurar y para las pruebas
-  return () => { off(); document.removeEventListener("visibilitychange", vis); game.destroy(true); };
+  return () => { off(); removeEventListener("pointerdown", nudge, true); document.removeEventListener("visibilitychange", vis); game.destroy(true); };
 }

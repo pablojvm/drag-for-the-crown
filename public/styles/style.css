@@ -2712,7 +2712,6 @@ body.portrait .vs .ll-vs { width: 120px !important; }
 /* Multijugador: sin el reparto ni las otras herramientas, la barra del HUD queda solo con «Salir» (sin barra vacía en móvil) */
 #screen-story.mp .story-hud { background: none !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; width: auto !important; backdrop-filter: none !important; }
 #screen-story.mp .story-right { justify-content: flex-end; }
-body.portrait #screen-story.mp .dlg-skip { top: 6px; right: 6px; }
 body.portrait #screen-story.mp .story-hud .hud-exit { padding: 6px 12px; }
 body.portrait #screen-story.mp #story-exit span { display: inline !important; font-size: 13px; }
 
@@ -2977,3 +2976,39 @@ body.portrait .dlg-char { height: min(520px, calc(100% - 330px)); }
 .ll-badge { position: absolute; top: -10px; right: -6px; width: 34px; height: auto; filter: drop-shadow(0 4px 8px rgba(160,90,0,.45)); animation: ll-pop .7s var(--ease-spring, ease) both; pointer-events: none; }
 .mp-stars em .ll-ic, .track th .ll-ic { width: 18px; vertical-align: -4px; }
 @media (prefers-reduced-motion: reduce) { .ll-badge { animation: none; } }
+
+/* ------------------------------ Móvil y tableta (revisión) ------------------------------ */
+/* Avisos en vertical: arriba, en una sola línea y estrechos (antes eran tarjetas grandes que tapaban la cabecera) */
+body.portrait #toasts { top: 4px !important; left: 50% !important; right: auto !important; transform: translateX(-50%) !important; width: max-content; max-width: 70vw; }
+body.portrait #toasts .toast { flex-direction: row !important; align-items: baseline !important; gap: 6px; max-width: 70vw !important; padding: 5px 12px !important; border-radius: 999px !important; white-space: nowrap; overflow: hidden; }
+body.portrait #toasts .toast b { flex: none; }
+body.portrait #toasts .toast span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+body.portrait #toasts .toast:nth-last-child(n+2) { display: none; }
+/* Cabecera de la historia en vertical: una sola fila compacta (reparto que se desliza + botones) */
+body.portrait .story-hud { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; }
+body.portrait .story-hud .hud-cast { flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+body.portrait .story-hud .hud-cast::-webkit-scrollbar { display: none; }
+body.portrait .story-hud .hud-bar { flex: none; display: flex; gap: 6px; }
+body.portrait .hud-btn span { display: none; }
+body.portrait .hud-btn, body.portrait .hud-money { height: 40px; padding: 0 12px; }
+/* «Saltar» del diálogo: dentro de la caja, abajo a la izquierda (antes tapaba «Guardar y salir») */
+body.portrait #screen-story .btn.dlg-skip, body.portrait .btn.dlg-skip { top: auto; bottom: 14px; left: 18px; right: auto; z-index: 3; padding: 8px 18px; font-size: 18px; }
+/* Elegir reina en vertical: el botón de empezar siempre a la vista, abajo */
+body.portrait #screen-select > .row { position: sticky; bottom: 0; z-index: 6; padding: 12px 0 calc(14px + env(safe-area-inset-bottom)); margin-top: 0 !important; background: rgba(255,236,247,.97); border-radius: 22px 22px 0 0; box-shadow: 0 -10px 24px -14px rgba(59,13,79,.45); width: 100%; justify-content: center; }
+body.portrait #queen-details { width: 100% !important; max-width: none !important; align-self: stretch; }
+/* Botones de comprar: cifras cortas que caben */
+.shop-buy { white-space: nowrap; }
+/* móvil: el título del episodio no se mete debajo del botón de sonido */
+body.portrait .story-top > div:first-child { padding-right: 130px; }
+body.portrait .story-top h2 { font-size: 30px !important; overflow-wrap: anywhere; }
+/* Táctiles (iPad/móvil): fuera las animaciones infinitas que repintan cada fotograma (brillo del título, sombra
+   que late en los botones, filtros que laten). Sobre el plató del motor nuevo eran lo que dejaba el iPad a tirones. */
+@media (hover: none) and (pointer: coarse) {
+  .title, .story-top h2, .btn-primary:not(:disabled), .at-look.on img, .at-peluca.on img, .at-acc.on img, .at-zapatos.on img,
+  #bg .grain, #bg::before, #bg::after, #bg .b1, #bg .b2, #bg .b3, .dr-doll svg { animation: none !important; }
+  .ranking li.me { animation: rise .45s var(--ease-out) both !important; animation-delay: calc(0.2s + var(--i, 0) * 45ms) !important; }
+  .dr-doll.ready svg { animation: doll-pop .7s var(--ease-spring) both !important; }
+  .rw-lights i { filter: none !important; }
+  .siren-light { filter: none; }
+}
+html.dftc-embed body.portrait .screen > .eyebrow:first-child { padding: 0 110px; }

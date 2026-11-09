@@ -177,7 +177,7 @@ function ArcadeMenu({ onBack }: { onBack: () => void }) {
           <button className="nx-btn ghost" onClick={() => send({ type: "lipsync", queenId: pick })}>💋 Lip sync</button>
           <button className="nx-btn ghost" onClick={() => send({ type: "runway", queenId: pick })}>👠 Pasarela</button>
         </div>
-        <p className="nx-muted">Flechas o WASD para moverte, Espacio para lanzar tacones, E para el poder, P para pausar. En el móvil, arrastra el dedo.{best ? ` · Récord: ${best}` : ""}</p>
+        <p className="nx-muted">{matchMedia("(pointer: coarse)").matches ? "Mantén el dedo en la pantalla: te mueves y lanzas tacones. Toca ✨ para el poder." : "Flechas o WASD para moverte, Espacio para lanzar tacones, E para el poder, P para pausar."}{best ? ` · Récord: ${best}` : ""}</p>
       </div>
     </div>
   );
@@ -188,7 +188,7 @@ function Hud() {
   return (
     <>
       <div className="nx-hud">
-        <div className="nx-hud-l"><span aria-label={`${s.lives} vidas`}>{"❤️".repeat(Math.max(0, s.lives))}</span><b>{s.score.toLocaleString("es-ES")}</b>{s.combo > 1 && <em>x{Math.min(8, s.combo)}</em>}</div>
+        <div className="nx-hud-l"><span className="nx-lives" aria-label={`${s.lives} vidas`}>{s.lives > 3 ? `❤️×${s.lives}` : "❤️".repeat(Math.max(0, s.lives))}</span><b>{s.score.toLocaleString("es-ES")}</b>{s.combo > 1 && <em>x{Math.min(8, s.combo)}</em>}</div>
         <div className="nx-hud-r"><small>Ronda {s.round}/5 · {s.rivalName}</small><div className="nx-bar rival"><i style={{ width: `${(s.rivalHp / s.rivalMax) * 100}%` }} /></div></div>
         <MuteBtn />
         <button className="nx-round" aria-label="Pausa" onClick={() => send({ type: "pause", on: true })}>⏸</button>

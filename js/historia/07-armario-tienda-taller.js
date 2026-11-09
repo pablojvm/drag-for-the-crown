@@ -253,7 +253,7 @@
       if (chosen[k] && chosen[k].id === it.id) return `<span class="shop-own">✔ Puesto</span>`;
       if (k === "look" && tk.get(it.id)) return `<span class="shop-busy">En «${esc(tk.get(it.id))}»</span>`;
       if (own) return `<button class="btn btn-primary shop-buy ls-put" data-id="${it.id}">Ponérmelo</button>`;
-      return `<button class="btn ${Closet.money >= p ? "btn-primary" : "btn-ghost"} shop-buy ls-buy" data-id="${it.id}" ${Closet.money >= p ? "" : "disabled"}>Comprar · ${euros(p)}</button>`;
+      return `<button class="btn ${Closet.money >= p ? "btn-primary" : "btn-ghost"} shop-buy ls-buy" data-id="${it.id}" ${Closet.money >= p ? "" : "disabled"}>${MONEY_IC()} ${Math.round(p).toLocaleString("es-ES")}</button>`;
     };
     const cardHTML = (k, it) => {
       const own = Closet.has(it.id), sel = chosen[k] && chosen[k].id === it.id, busy = k === "look" && tk.get(it.id);
@@ -451,7 +451,7 @@
               <div class="shop-img"><img loading="lazy" src="${IMG(it.id)}" alt="">${it.rv ? `<img loading="lazy" class="at-rv" src="${IMG(it.rv)}" alt="">` : ""}</div>
               <b>${esc(it.n)}</b>
               <small class="shop-st"><span title="Movimiento">👣 ${mov}/5</span></small>
-              ${own ? `<span class="shop-own">✔ En tu armario</span>` : `<button class="btn ${Closet.money >= p ? "btn-primary" : "btn-ghost"} shop-buy" data-id="${it.id}" ${Closet.money >= p ? "" : "disabled"}>${euros(p)}</button>`}
+              ${own ? `<span class="shop-own">✔ En tu armario</span>` : `<button class="btn ${Closet.money >= p ? "btn-primary" : "btn-ghost"} shop-buy" data-id="${it.id}" ${Closet.money >= p ? "" : "disabled"}>${MONEY_IC()} ${Math.round(p).toLocaleString("es-ES")}</button>`}
             </div>`;
           }).join("") : `<p class="muted">No hay nada aquí todavía.</p>`}</div>
           <p class="muted shop-legend">👣 Movimiento: ayuda a desfilar y a que el reveal salga bien. Qué encaja con cada pasarela lo decide el jurado.</p>
