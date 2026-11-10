@@ -3094,3 +3094,6 @@ body.portrait .ls-right .shop-legend { display: none; }
 
 /* Minirreto ¿quién es esa reina? */
 .quien .qe-pic { width: min(240px, 60vw); aspect-ratio: 1; margin: 6px auto 10px; border-radius: 18px; background-color: #fff; background-repeat: no-repeat; box-shadow: 0 10px 24px -12px rgba(120, 20, 90, .5); transition: background-size .5s ease, background-position .5s ease; }
+/* Taller: los rumores (📻) se leen sobre el decorado */
+.story-card.werkroom .radio { background: rgba(255,255,255,.93); color: var(--ink); border-radius: 18px; padding: 8px 16px; box-shadow: 0 10px 24px -14px rgba(59,13,79,.5); }
+.story-card.werkroom .radio p { color: var(--ink); font-weight: 600; }
