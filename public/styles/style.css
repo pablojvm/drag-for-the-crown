@@ -3097,3 +3097,8 @@ body.portrait .ls-right .shop-legend { display: none; }
 /* Taller: los rumores (📻) se leen sobre el decorado */
 .story-card.werkroom .radio { background: rgba(255,255,255,.93); color: var(--ink); border-radius: 18px; padding: 8px 16px; box-shadow: 0 10px 24px -14px rgba(59,13,79,.5); }
 .story-card.werkroom .radio p { color: var(--ink); font-weight: 600; }
+/* Taller: cada reina centrada en su silla y del mismo tamaño (las de vestido ancho ya no se salen ni se cortan) */
+.wr-body { position: relative; overflow: visible !important; clip-path: inset(-200px -80px 0 -80px); }
+.wr-body img { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 150%; height: 200% !important; max-width: none; object-fit: contain; object-position: center top; }
+.wr-seat:not([disabled]):hover .wr-body img { transform: translateX(-50%); }
+.wr-seats { gap: 6px; }
