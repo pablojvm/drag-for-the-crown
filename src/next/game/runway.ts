@@ -50,9 +50,13 @@ const shuffle = <T,>(a: T[], rnd: () => number = Math.random) => a.map((v) => [r
 let seq = 0;
 
 /** `preset`: el look ya viene del probador (su estilo y las piezas que lleva); se salta el paso de elegir look. */
-export function startRunway(queenId: string, rnd: () => number = Math.random, mode: RunwayState["mode"] = juradoListo() ? "concepto" : "clasica", temaName?: string, preset?: { look: Tag; pieces: string[]; attrs?: LsAttrs }) {
+export function startRunway(queenId: string, rnd: () => number = Math.random, mode: RunwayState["mode"] = juradoListo() ? "concepto" : "clasica", temaName?: string, preset?: { look: Tag; pieces: string[]; attrs?: LsAttrs; catDesc?: string; catTag?: string }) {
   const temas = TEMAS_PASARELA.filter((t) => !t.rv);
-  const tema = temas.find((t) => t.n === temaName) || temas[Math.floor(rnd() * temas.length)];
+  // La categoría que pide la historia se respeta siempre (también las del Ball o las que no son temáticas);
+  // solo la pasarela suelta, sin categoría, sortea una temática
+  const known = temaName ? TEMAS_PASARELA.find((t) => t.n === temaName) : undefined;
+  const asTag = (x?: string): Tag | undefined => (TAGS as readonly string[]).includes(x || "") ? (x as Tag) : undefined;
+  const tema = known || (temaName ? { n: temaName, d: preset?.catDesc || "", tag: asTag(preset?.catTag) || preset?.look || "Glamour" } : temas[Math.floor(rnd() * temas.length)]);
   const catTag = tema.tag;
   const others = shuffle(TAGS.filter((t) => t !== catTag), rnd).slice(0, 2);
   const otherTag = shuffle(TAGS.filter((t) => t !== catTag), rnd)[0];

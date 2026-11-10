@@ -210,7 +210,12 @@
       const pieces = S.curPieces && S.curPieces.length ? S.curPieces : [];
       S.curPieces = null;
       el.innerHTML = `<div class="story-card"><p class="eyebrow">👠 Pasarela</p><h3>«${esc(cat)}»</h3><p class="muted">Sales a desfilar...</p></div>`;
-      return window.__dftcAwait("runway", { cat, tag: lookTag, pieces, queen: S.queen.id, concept: IA.ready() && !S.meOut, attrs: { performance: a.performance, carisma: a.carisma, estilo: a.estilo } }, (r) => {
+      // La categoría tal cual (también las del Ball, que no son temáticas): su descripción y su estilo
+      const TH = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []).find((t) => t.n === cat);
+      const bc = BALLS.flatMap((b) => b.c).find((x) => x[0] === cat);
+      const catDesc = TH ? TH.d : bc ? bc[2] : "";
+      const catTag = TH ? TH.tag : bc ? bc[1] : CAT_TAG[cat] || lookTag;
+      return window.__dftcAwait("runway", { cat, catDesc, catTag, tag: lookTag, pieces, queen: S.queen.id, concept: IA.ready() && !S.meOut, attrs: { performance: a.performance, carisma: a.carisma, estilo: a.estilo } }, (r) => {
         const flags = {};
         if (r.concept) flags.concepto = r.concept;
         if (r.reveal) flags.reveal = true;

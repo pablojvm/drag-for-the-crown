@@ -37,7 +37,7 @@ export function closeHistoria() {
 export const historiaOn = () => get().screen === "historia" || !!get().hist.scene;
 
 interface Msg {
-  snap?: TrackSnap; note?: string; label?: string; title?: string;
+  snap?: TrackSnap; note?: string; label?: string; title?: string; catDesc?: string; catTag?: string;
   ev?: string; name?: string; queen?: string; season?: string; on?: boolean;
   rival?: string; strength?: number; attrs?: LsAttrs; cat?: string; tag?: string; pieces?: string[]; concept?: boolean;
 }
@@ -65,7 +65,7 @@ export function onHistoria(d: Msg) {
   }
   if (d.ev === "runway" && d.cat) {
     set({ hist: { ...get().hist, scene: "runway" } });
-    startRunway(get().queenId, Math.random, d.concept && juradoListo() ? "concepto" : "clasica", d.cat, { look: (d.tag || "Glamour") as Tag, pieces: d.pieces || [], attrs: d.attrs });
+    startRunway(get().queenId, Math.random, d.concept && juradoListo() ? "concepto" : "clasica", d.cat, { look: (d.tag || "Glamour") as Tag, pieces: d.pieces || [], attrs: d.attrs, catDesc: d.catDesc, catTag: d.catTag });
     set({ back: "Volver a la historia" });
     send({ type: "scene", key: "Runway" });
   }

@@ -113,3 +113,20 @@ describe("pasarela con concepto", () => {
     expect(rw().step).toBe(0);
   });
 });
+
+describe("la categoría que pide el modo historia", () => {
+  it("se respeta aunque no sea una temática (las del Ball)", () => {
+    startRunway("jimbo", () => 0.4, "clasica", "Dulces sueños", { look: "Camp", pieces: [], catDesc: "La fantasía más dulce y exagerada", catTag: "Camp" });
+    expect(rw().cat).toBe("Dulces sueños");
+    expect(rw().theme).toBe("La fantasía más dulce y exagerada");
+    expect(rw().catTag).toBe("Camp");
+  });
+  it("también las temáticas con reveal", () => {
+    startRunway("jimbo", () => 0.4, "clasica", "Pesadilla", { look: "Edgy", pieces: [] });
+    expect(rw().cat).toBe("Pesadilla");
+  });
+  it("sin categoría (pasarela suelta), sortea una temática", () => {
+    startRunway("jimbo", () => 0.4, "clasica");
+    expect(rw().cat).toBeTruthy();
+  });
+});
