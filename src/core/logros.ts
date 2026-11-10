@@ -11,7 +11,7 @@ export const LOGROS: Logro[] = [
   { id: "perfecta", icon: "💎", name: "Perfección", desc: "Saca 95 o más en un reto", reward: 150 },
   { id: "combo", icon: "⚡", name: "Combo loco", desc: "Consigue un combo x20 en arcade", reward: 150 },
   { id: "aliadas", icon: "💞", name: "Hermandad", desc: "Ten 3 aliadas a la vez", reward: 150 },
-  { id: "enemiga", icon: "🗡️", name: "Villana de la temporada", desc: "Gánate una enemiga declarada", reward: 100 },
+  { id: "enemiga", icon: "🗡️", name: "Enemiga declarada", desc: "Acaba a malas del todo con una compañera", reward: 100 },
   { id: "armario", icon: "🧵", name: "De compras", desc: "Mejora una estadística en el armario", reward: 50 },
   { id: "stat5", icon: "🌟", name: "Al máximo", desc: "Sube una estadística a 5", reward: 150 },
   { id: "doble-shantay", icon: "🍀", name: "Salvada por la campana", desc: "Vive un doble shantay", reward: 100 },

@@ -2981,8 +2981,9 @@ body.portrait .dlg-char { height: min(520px, calc(100% - 330px)); }
 /* Avisos en vertical: arriba, en una sola línea y estrechos (antes eran tarjetas grandes que tapaban la cabecera) */
 body.portrait #toasts { top: 4px !important; left: 50% !important; right: auto !important; transform: translateX(-50%) !important; width: max-content; max-width: 70vw; }
 body.portrait #toasts .toast { flex-direction: row !important; align-items: baseline !important; gap: 6px; max-width: 70vw !important; padding: 5px 12px !important; border-radius: 999px !important; white-space: nowrap; overflow: hidden; }
-body.portrait #toasts .toast b { flex: none; }
-body.portrait #toasts .toast span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* El título se encoge con «…» si no cabe; el subtítulo cede antes */
+body.portrait #toasts .toast b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+body.portrait #toasts .toast span { flex: 0 1000 auto; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 body.portrait #toasts .toast:nth-last-child(n+2) { display: none; }
 /* Cabecera de la historia en vertical: una sola fila compacta (reparto que se desliza + botones) */
 body.portrait .story-hud { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; }

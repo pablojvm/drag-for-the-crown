@@ -9,7 +9,7 @@ const cast = ["pupi", "carmenfarala", "killerqueen", "sagaz", "hugaceo", "dovima
 
 describe("peticiones a la sala (ops)", () => {
   it("entra una jugadora nueva una sola vez y con nombre limpio", () => {
-    let s = applyOp(base(), "bea", { t: "join", name: "Beatriz de la Sala", joined: 2 }, 10, e);
+    const s = applyOp(base(), "bea", { t: "join", name: "Beatriz de la Sala", joined: 2 }, 10, e);
     expect(s.players.map((p) => p.id)).toEqual(["ana", "bea"]);
     expect(s.players[1].name.length).toBeLessThanOrEqual(12);
     expect(applyOp(s, "bea", { t: "join", name: "Otra" }, 10, e)).toBe(s);

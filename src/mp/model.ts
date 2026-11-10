@@ -1351,8 +1351,26 @@ export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase,
   if (!p || (!p.alive && !(rpPlayers(s).includes(pid) && (phase === "reto" || phase === "pasarela")))) return s;
   if (pkey(pid) === mcOf(s) && (phase === "reto" || phase === "pasarela")) return s;
   // Cajitas: cada caja es de una sola (gana la primera que la coge) y no se cambia
-  if (phase === "cajas" && data.box != null && (s.subs[pid]?.box != null || Object.values(s.subs).some((x) => x.box === data.box))) return s;
-  return { ...s, subs: { ...s.subs, [pid]: { ...(s.subs[pid] || {}), ...data } }, v: s.v + 1 };
+  const clean = cleanSub(data);
+  // En un duelo entre jugadoras el resultado sale de los pasos de las dos, no de lo que diga una
+  if (clean.ls && duelOf(s, pkey(pid))) delete clean.ls;
+  if (!Object.keys(clean).length) return s;
+  if (phase === "cajas" && clean.box != null && (s.subs[pid]?.box != null || Object.values(s.subs).some((x) => x.box === clean.box))) return s;
+  return { ...s, subs: { ...s.subs, [pid]: { ...(s.subs[pid] || {}), ...clean } }, v: s.v + 1 };
+}
+const numIn = (v: unknown, lo: number, hi: number) => { const n = Number(v); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : undefined; };
+/** Lo que manda una jugadora, limpio: solo los campos que puede rellenar, notas dentro de rango y textos cortos. */
+export function cleanSub(d: Sub): Sub {
+  const o: Sub = {};
+  if (!d || typeof d !== "object") return o;
+  (["mini", "walk", "reto", "final"] as const).forEach((k) => { const n = d[k] != null ? numIn(d[k], 0, 100) : undefined; if (n != null) o[k] = n; });
+  if (d.ls && typeof d.ls === "object") { const sc = numIn(d.ls.score, 0, 1000); if (sc != null) o.ls = { won: !!d.ls.won, score: sc }; }
+  if (typeof d.elim === "string") o.elim = d.elim.slice(0, 60);
+  if (typeof d.jury === "string") o.jury = d.jury.slice(0, 600);
+  if (typeof d.pick === "string") o.pick = d.pick.slice(0, 300);
+  if (d.ready != null) o.ready = !!d.ready;
+  if (d.box != null) { const b = numIn(d.box, 0, 99); if (b != null) o.box = Math.round(b); }
+  return o;
 }
 
 // ------------------------------ Pantallas que lleva la anfitriona ------------------------------

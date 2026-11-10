@@ -917,7 +917,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           ),
         );
       const ut = (then, pre) => untucked({ winner, bottomRows, savedBy: S.savedBy, pre, labOf }, then);
-      // T5: veredicto → grabación del corazón → Untucked (para dar las gracias). Resto: Untucked → veredicto
+      // Siempre Untucked → veredicto (en la temporada del corazón, después la grabación del corazón)
       $("#story-next").addEventListener("click", () =>
         critStep(() => confesionario(() =>
           tw === "corazon" ? ut(() => verdict(() => heartReveal(toLipSync)), true) : ut(() => verdict(toLipSync), true),
@@ -1393,8 +1393,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     if (repescaNow()) return tripleLipSync(bottomRows, winner, rows);
     if (meBottom) return lipSync(others[0], false);
     const [a, b] = others;
-    // Doble sashay (muy raro)
-    if (!S.flags.dsashay && twistOf() !== "repesca" && S.rivals.length >= 7 && Math.random() < 0.08) {
+    // Doble sashay (muy raro, y nunca en el estreno)
+    if (!S.flags.dsashay && S.ep >= 2 && twistOf() !== "repesca" && S.rivals.length >= 7 && Math.random() < 0.08) {
       S.flags.dsashay = true;
       eliminate(a);
       eliminate(b);

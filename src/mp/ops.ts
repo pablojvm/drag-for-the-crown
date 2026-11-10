@@ -59,10 +59,21 @@ export function applyOp(s: RoomState, from: string, op: Op, now: number, e: Engi
       const cast = [...new Set(op.cast.map((x) => str(x, 40)).filter(Boolean))].slice(0, 20);
       return cast.length >= 3 ? startSeason(s, cast, now, e) : s;
     }
-    case "custom":
-      return s.phase === "lobby" && op.c && typeof op.c === "object" ? { ...s, custom: op.c, v: s.v + 1 } : s;
+    case "custom": {
+      const c = cleanCustom(op.c);
+      return s.phase === "lobby" && c ? { ...s, custom: c, v: s.v + 1 } : s;
+    }
   }
   return s;
+}
+
+/** Partida personalizada: cómo se eligen las rivales, cuántas y cuáles (limpio, por si llega cualquier cosa). */
+export function cleanCustom(c: unknown): RoomState["custom"] | undefined {
+  if (!c || typeof c !== "object") return undefined;
+  const o = c as Record<string, unknown>;
+  const size = Math.max(3, Math.min(16, Math.round(Number(o.size)) || 8));
+  const rivals = Array.isArray(o.rivals) ? [...new Set(o.rivals.map((x) => str(x, 40)).filter(Boolean))].slice(0, 20) : [];
+  return { pick: o.pick === "elegidas" ? "elegidas" : "azar", size, rivals };
 }
 
 /** Relevo: si la anfitriona se ha ido, lleva la sala la siguiente que entró y sigue conectada. */

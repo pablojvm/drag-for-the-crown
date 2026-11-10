@@ -24,9 +24,10 @@ await page.locator("#queen-grid > *").nth(0).click();
 await page.click("#btn-start");
 
 let looks = 0, review = false;
-for (let i = 0; i < 5000 && !review; i++) {
+for (let i = 0; i < 9000 && !review; i++) {
   await page.waitForTimeout(40);
-  review = !!(await page.$(".at-edit"));
+  // El probador antes de la pasarela (con o sin la vista de las piezas)
+  review = !!(await page.$(".at-edit, #dr-go"));
   const r = await page.evaluate(() => {
     const q = (s) => document.querySelector(s);
     const nx = q("#ls-next");

@@ -2,7 +2,7 @@
 // La «anfitriona» sigue existiendo: es quien pasa las pantallas que se miran y empieza la temporada.
 import { Room, matchMaker, type Client } from "@colyseus/core";
 import { newRoom, tick, resumeRoom, type RoomState, type Ritmo, type Formato } from "../../src/mp/model";
-import { applyOp, handOver, type Op } from "../../src/mp/ops";
+import { applyOp, handOver, cleanCustom, type Op } from "../../src/mp/ops";
 import { coreEngine, cleanContent, type Content } from "../../src/mp/engine-core";
 
 const ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -34,8 +34,11 @@ export class Sala extends Room {
     this.onMessage("op", (c, op: Op) => this.apply(c, op));
     this.onMessage("chat", (c, m: { name?: string; text?: string }) => {
       const from = this.who.get(c.sessionId);
-      if (!from || !m) return;
-      this.broadcast("chat", { from, name: str(m.name, 12), text: str(m.text, 200) });
+      const text = str(m?.text, 200).trim();
+      if (!from || !text) return;
+      // El nombre es el de la sala (no el que diga el mensaje), para que nadie hable por otra
+      const name = this.s?.players.find((p) => p.id === from)?.name || str(m.name, 12);
+      this.broadcast("chat", { from, name, text });
     });
     this.onMessage("hello", (c) => this.sendState(c));
     this.clock.setInterval(() => this.beat(), 500);
@@ -59,7 +62,8 @@ export class Sala extends Room {
         const ritmo = RITMOS.includes(cr?.ritmo) ? cr.ritmo : "normal";
         const fmt = FMTS.includes(cr?.fmt as Formato) ? cr.fmt : "normal";
         this.s = newRoom(this.roomId, { id: o.id, name: str(o.name, 12) || "Reina", queen: null, joined: Number(o.joined) || now, alive: false }, str(cr?.season, 30), ritmo, { fmt, ia: !!cr?.ia });
-        if (cr?.custom) this.s = { ...this.s, custom: cr.custom };
+        const custom = cleanCustom(cr?.custom);
+        if (custom) this.s = { ...this.s, custom };
       }
     } else this.set(applyOp(this.s, o.id, { t: "join", name: o.name, joined: o.joined }, now, this.engine));
     this.sendState(c);
