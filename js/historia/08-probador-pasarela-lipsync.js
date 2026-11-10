@@ -422,7 +422,7 @@
       Music.stop();
       return window.__dftcAwait("lipsync", { rival: rival.id, queen: S.queen.id, strength, attrs: { performance: a.performance, carisma: a.carisma, estilo: a.estilo } }, (r) => {
         const mine = (r.mine || 0) + bonus;
-        done(mine >= strength, Math.round(Math.min(100, (mine / Math.max(1, strength)) * 60)));
+        done(mine >= strength, Math.round(Math.min(100, (mine / Math.max(1, strength)) * 60)), mine / Math.max(1, strength));
       });
     }
     const ra = attrsOf(rival);
@@ -487,7 +487,7 @@
         st.won = st.mine >= rival_;
         return base;
       },
-    }, (score, st) => done(st.won, score));
+    }, (score, st) => done(st.won, score, st.mine / Math.max(1, rival_)));
   }
   const RIVAL_MOVES = [
     ["{r} arranca muy segura, mirando a cámara.", "{r} empieza con calma, guardándose algo."],
@@ -504,11 +504,12 @@
     Music.play("reto");
     const lsb = S.lsBonus || 0;
     S.lsBonus = 0;
-    runLipsync($("#story-play"), rival, (won, score) => {
+    // ratio: lo que has conectado con el público frente a tu rival (1 = empate)
+    runLipsync($("#story-play"), rival, (won, score, ratio) => {
       cleanup = null;
       Music.stop();
       if (typeof window.__forceScore === "number") won = window.__forceScore >= 50;
-      cb({ won, score: Math.round(score * 10) });
+      cb({ won, score: Math.round(score * 10), ratio: ratio || 0 });
     }, undefined, lsb);
   }
 

@@ -326,6 +326,87 @@
     ["Lee a la que se cree la favorita", ["Ya ha ensayado el discurso de la corona... de la de Burger", "Te crees favorita", "Tienes confianza"]],
   ];
 
+  // Minirreto de marionetas: cada una hace hablar a la marioneta de una compañera
+  const MARIONETAS = [
+    ["Tu marioneta es la de la que siempre llega tarde", ["Perdón, perdón, es que el taxi venía de otra temporada", "Llego tarde, como siempre", "Hola, soy yo"]],
+    ["Tu marioneta es la de la que cose fatal", ["Esto no es un vestido, es un tutorial de lo que no hay que hacer", "No sé coser, lo siento", "Mira mi vestido"]],
+    ["Tu marioneta es la de la más dramática del taller", ["Si no gano hoy, me retiro... hasta la semana que viene", "Estoy muy agobiada", "Qué drama todo"]],
+    ["Tu marioneta es la de la que se cree la favorita", ["Ya he reservado sitio en la vitrina para la corona", "Yo voy a ganar, claro", "Soy la mejor"]],
+    ["Tu marioneta es la de la que siempre está comiendo", ["Esta peluca es de algodón de azúcar, por si me entra hambre", "Tengo hambre", "Me gusta comer"]],
+    ["Tu marioneta es la de la más seria del grupo", ["He sonreído una vez. Fue en 2019 y me arrepiento", "No me río mucho", "Hola"]],
+    ["Tu marioneta es la de la que nunca suelta el espejo", ["El espejo y yo tenemos una relación estable. Las demás, no", "Me miro mucho al espejo", "Qué guapa estoy"]],
+    ["Tu marioneta es la de la que lo ha ganado todo en su ciudad", ["En mi pueblo me hacen la ola hasta los semáforos", "Soy muy famosa en mi ciudad", "Vengo de lejos"]],
+    ["Tu marioneta es la de la que no para de dar consejos", ["Te lo digo con cariño: todo lo que haces está mal", "Te doy un consejo", "Yo lo haría distinto"]],
+  ];
+
+  // Minirreto: ¿quién es esa reina? Un trocito de la foto de una compañera y tres nombres
+  function runQuienEs(el, done, N = 5) {
+    const TIME = 8;
+    const pool = shuffle([...((S && S.rivals) || []), ...((S && S.out) || [])].filter((q) => q && photo(q)));
+    if (pool.length < 3) return done(50);
+    const rounds = pool.slice(0, Math.min(N, pool.length));
+    let i = 0, total = 0, t0 = 0, raf = 0, answered = false, opts = [];
+    el.innerHTML = `
+      <div class="mg snatch quien">
+        <p class="mg-info">Foto <b id="qe-n">1</b>/${rounds.length} · ¿quién es?</p>
+        <div class="qe-pic" id="qe-pic"></div>
+        <div class="sg-bar"><div id="sg-time"></div></div>
+        <div class="sg-opts" id="sg-opts"></div>
+        <p class="mg-info" id="sg-msg"></p>
+      </div>`;
+    function ask() {
+      answered = false;
+      const q = rounds[i];
+      opts = shuffle([q, ...shuffle(pool.filter((x) => x !== q)).slice(0, 2)]);
+      $("#qe-n").textContent = i + 1;
+      const pic = $("#qe-pic");
+      // Cuanto más avanzas, más cerca: al principio se ve algo más de la cara
+      const zoom = 260 + i * 60;
+      pic.style.backgroundImage = `url('${photo(q)}')`;
+      pic.style.backgroundSize = `${zoom}%`;
+      pic.style.backgroundPosition = `${rnd(25, 75)}% ${rnd(15, 55)}%`;
+      $("#sg-msg").textContent = "";
+      $("#sg-opts").innerHTML = opts.map((o, k) => `<button class="btn btn-ghost sg-opt" data-k="${k}"><b>${k + 1}</b> ${esc(o.name)}</button>`).join("");
+      el.querySelectorAll(".sg-opt").forEach((b) => b.addEventListener("click", () => choose(+b.dataset.k)));
+      t0 = performance.now();
+    }
+    function choose(k) {
+      if (answered) return;
+      answered = true;
+      const q = rounds[i], ok = opts[k] === q;
+      // Acertar rápido vale más
+      const pts = ok ? Math.round(60 + 40 * Math.max(0, 1 - (performance.now() - t0) / 1000 / TIME)) : 0;
+      total += pts;
+      const pic = $("#qe-pic");
+      pic.style.backgroundSize = "cover";
+      pic.style.backgroundPosition = "center 20%";
+      $("#sg-msg").textContent = ok ? `¡Sí! Es ${q.name} ✨` : `Era ${q.name} 😅`;
+      el.querySelectorAll(".sg-opt").forEach((b, j) => b.classList.add(opts[j] === q ? "best" : "dim"));
+      ok ? Sound.powerup && Sound.powerup() : Sound.impact();
+      setTimeout(() => {
+        i++;
+        if (i >= rounds.length) { stop(); return done(total / rounds.length); }
+        ask();
+      }, 1400);
+    }
+    function tick(t) {
+      const left = Math.max(0, 1 - (t - t0) / 1000 / TIME);
+      const bar = $("#sg-time");
+      if (bar && !answered) bar.style.width = left * 100 + "%";
+      if (left <= 0 && !answered) choose(-1);
+      raf = requestAnimationFrame(tick);
+    }
+    const onKey = (e) => {
+      const k = { Digit1: 0, Digit2: 1, Digit3: 2, Numpad1: 0, Numpad2: 1, Numpad3: 2 }[e.code];
+      if (k !== undefined) choose(k);
+    };
+    function stop() { cancelAnimationFrame(raf); docOff("keydown", onKey); }
+    docOn("keydown", onKey);
+    cleanup = stop;
+    ask();
+    raf = requestAnimationFrame(tick);
+  }
+
   // ------------------------- Minijuego: diseño -----------------------------
   function runDiseno(el, done, theme = null, DUR = 25) {
     const W = 1000, H = 560;

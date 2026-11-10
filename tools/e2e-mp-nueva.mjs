@@ -4,6 +4,7 @@
 //   npm run build && npm run preview   (en otra terminal)
 //   node tools/e2e-mp-nueva.mjs [http://localhost:4173/]
 import { chromium } from "playwright";
+import { seeded, SEED } from "./e2e-util.mjs";
 
 const URL = process.argv[2] || "http://localhost:4173/";
 const SHOT = process.env.SHOT || "";
@@ -15,8 +16,11 @@ await ctx.addInitScript(() => {
 await ctx.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
 const errors = [];
 const fail = async (m, p) => { console.error("FALLA EN:", m, errors); if (SHOT && p) await p.screenshot({ path: `${SHOT}/mpn-fallo.png` }); await browser.close(); process.exit(1); };
+let nOpen = 0;
 const open = async () => {
   const p = await ctx.newPage();
+  // Cada pestaña con su semilla (si no, las dos serían la misma jugadora)
+  await seeded(p, SEED + nOpen++);
   p.on("pageerror", (e) => errors.push(e.message));
   await p.goto(new globalThis.URL("?mpserver=", URL).href);
   await p.waitForSelector(".nx-mode.s-mp", { timeout: 30000 });

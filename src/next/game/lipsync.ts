@@ -3,6 +3,7 @@ import { lsMove, rivalStrength, LS_STEPS, EMOTES, type LsKind, type LsAttrs } fr
 import { ARCADE_QUEENS, type ArcadeQueen } from "./data";
 import { queenOf } from "./queens";
 import { verdictSound } from "./music";
+import "./beat"; // la música del lip sync sigue a la partida sola
 import { get, set } from "../store";
 
 /** Atributos de lip sync (1 a 10) a partir de las estadísticas del arcade (1 a 5). */

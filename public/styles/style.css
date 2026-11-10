@@ -3082,3 +3082,15 @@ body.portrait .ls-right > :is(.ls-gridslot, .ls-pager, .shop-legend) { grid-colu
 body.portrait .ls-right .shop-f { font-size: 13px; padding: 7px 12px; }
 @media (min-aspect-ratio: 2/3) { body.portrait .ls-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } body.portrait .ls-left h3 { font-size: 22px; } }
 body.portrait .ls-right .shop-legend { display: none; }
+
+/* Historial de avisos (el móvil solo enseña uno a la vez) */
+.hud-news { position: relative; }
+.hud-news.has-new::after { content: ""; position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--pink); box-shadow: 0 0 0 2px #fff; }
+.news-card { max-width: 460px; width: calc(100vw - 32px); max-height: 80vh; display: flex; flex-direction: column; }
+.news-list { list-style: none; margin: 8px 0 14px; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.news-list li { padding: 8px 12px; border-radius: 12px; background: rgba(255, 255, 255, .7); display: flex; flex-direction: column; gap: 2px; }
+.news-list b { color: var(--pink); font-size: 14px; }
+.news-list span { font-size: 12.5px; color: var(--ink-soft); }
+
+/* Minirreto ¿quién es esa reina? */
+.quien .qe-pic { width: min(240px, 60vw); aspect-ratio: 1; margin: 6px auto 10px; border-radius: 18px; background-color: #fff; background-repeat: no-repeat; box-shadow: 0 10px 24px -12px rgba(120, 20, 90, .5); transition: background-size .5s ease, background-position .5s ease; }

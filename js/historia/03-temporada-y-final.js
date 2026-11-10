@@ -622,9 +622,25 @@
         ${by ? `<div class="vs"><img class="gone" src="${photo(S.queen)}"><span>💔</span><img src="${photo(by)}"></div>` : ""}
         <p>${reason || (by ? `${esc(by.name)} se queda en la competición.` : "")}</p>
         <p class="muted">Pero la temporada sigue: verás cómo va cayendo cada reina hasta el reencuentro, donde aún puedes ganar Miss Simpatía, y la gran final.</p>
-        <button class="btn btn-primary" id="story-next">Ver cómo sigue la temporada</button>
+        <div class="row">
+          ${S.rivals.length > 4 ? `<button class="btn btn-ghost" id="story-skip">⏩ Saltar al reencuentro</button>` : ""}
+          <button class="btn btn-primary" id="story-next">Ver cómo sigue la temporada</button>
+        </div>
       </div>`;
     $("#story-next").addEventListener("click", afterStep);
+    const sk = $("#story-skip");
+    if (sk) sk.addEventListener("click", skipToReunion);
+  }
+  /** Sin ver semana a semana: se juegan las que faltan y se enseña el track record con lo que ha pasado. */
+  function skipToReunion() {
+    const notes = [];
+    while (S.rivals.length > 4) {
+      const r = simWeek();
+      notes.push(r.gone ? `Ep. ${S.ep}: gana <b>${esc(r.win.name)}</b>; doble eliminación de ${r.gone.map((q) => `<b>${esc(q.name)}</b>`).join(" y ")}${r.back ? `; vuelve <b>${esc(r.back.name)}</b>` : ""}.` : `Ep. ${S.ep}: gana <b>${esc(r.win.name)}</b>; se va <b>${esc(r.go.name)}</b>.`);
+    }
+    S.phase = null;
+    save();
+    showTrack(afterReunion, "Al reencuentro", notes.join("<br>"));
   }
   function simWeek() {
     S.ep++;
@@ -713,6 +729,64 @@
     }, "GRAN FINAL");
   }
 
+  // ------------------- Tarjeta para compartir la temporada -------------------
+  const SHARE_COL = { WIN: "#2f6fe0", BWIN: "#2f6fe0", WINNER: "#d4a017", TOP2: "#2f9fe0", BTOP: "#2f9fe0", HIGH: "#8fc7ff", SAFE: "#f2f2f2", LOW: "#ffc4dd", BTM2: "#ff7a7a", BTM3: "#ff7a7a", ELIM: "#c0143c", "RUNNER-UP": "#b9b9b9", RTRN: "#ffb347", MISSC: "#f6a8ff", FINAL: "#ffe28a" };
+  async function shareCard() {
+    const d = S.share;
+    if (!d) return;
+    const W = 1080, H = 1350, cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const c = cv.getContext("2d");
+    try { await Promise.all(['40px "Bungee"', '700 40px "Poppins"', '400 40px "Poppins"'].map((f) => document.fonts.load(f))); } catch { /* sin fuentes, se usa la del sistema */ }
+    const g = c.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, "#ff4fb0"); g.addColorStop(0.55, "#a12bd6"); g.addColorStop(1, "#3b0d4f");
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    c.fillStyle = "#fff"; c.textAlign = "center";
+    c.font = '64px "Bungee", sans-serif'; c.fillText("DRAG FOR THE CROWN", W / 2, 110);
+    c.font = '600 34px "Poppins", sans-serif'; c.fillText(d.season, W / 2, 165);
+    // La reina
+    const img = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = d.img; });
+    if (img) { const h = 620, w = (img.width / img.height) * h; c.drawImage(img, 70 + Math.max(0, (420 - w) / 2), 200, Math.min(w, 420), h); }
+    // El resultado
+    c.textAlign = "left";
+    const x = 520;
+    c.font = '800 30px "Poppins", sans-serif'; c.fillStyle = "#ffe28a"; c.fillText(d.won ? "👑 GANADORA" : `PUESTO ${d.place}`, x, 300);
+    c.fillStyle = "#fff"; c.font = '56px "Bungee", sans-serif';
+    const words = d.queen.split(" "); let line = "", y = 380;
+    for (const w of words) { if (c.measureText(line + w).width > 500 && line) { c.fillText(line.trim(), x, y); y += 66; line = ""; } line += w + " "; }
+    c.fillText(line.trim(), x, y);
+    c.font = '700 40px "Poppins", sans-serif'; c.fillText(`${d.ppe.toFixed(2).replace(".", ",")} PPE`, x, y + 100);
+    c.font = '400 32px "Poppins", sans-serif'; c.fillText(`${d.wins} ${d.wins === 1 ? "reto ganado" : "retos ganados"}`, x, y + 150);
+    // El track record
+    c.textAlign = "center"; c.font = '800 30px "Poppins", sans-serif'; c.fillStyle = "#fff"; c.fillText("TRACK RECORD", W / 2, 900);
+    const cols = Math.min(7, Math.max(1, d.track.length)), cw = 136, chH = 92, gap = 10;
+    const rowsN = Math.ceil(d.track.length / cols), x0 = (W - (cols * cw + (cols - 1) * gap)) / 2;
+    d.track.forEach((t, i) => {
+      const cx = x0 + (i % cols) * (cw + gap), cy = 930 + Math.floor(i / cols) * (chH + gap);
+      c.fillStyle = SHARE_COL[t.l] || "#e8e8e8";
+      c.beginPath(); c.roundRect ? c.roundRect(cx, cy, cw, chH, 14) : c.rect(cx, cy, cw, chH); c.fill();
+      const dark = /WIN|TOP2|BTOP|ELIM/.test(t.l) && t.l !== "WINNER";
+      c.fillStyle = dark ? "#fff" : "#14031f";
+      c.font = '800 26px "Poppins", sans-serif'; c.fillText(({ MISSC: "MISS C.", "FINAL-MISSC": "MISS C.", "RUNNER-UP": "RUNNER" })[t.l] || LAB_ES[t.l] || t.l, cx + cw / 2, cy + 44, cw - 12);
+      c.font = '400 17px "Poppins", sans-serif'; c.fillText(`Ep. ${t.ep}`, cx + cw / 2, cy + 74, cw - 12);
+    });
+    c.font = '600 26px "Poppins", sans-serif'; c.fillStyle = "rgba(255,255,255,.85)";
+    c.fillText("dragforthecrown.pablojvm.com", W / 2, Math.min(H - 40, 930 + rowsN * (chH + gap) + 60));
+    const blob = await new Promise((ok) => cv.toBlob(ok, "image/png"));
+    if (!blob) return;
+    const file = new File([blob], "mi-temporada.png", { type: "image/png" });
+    const text = `${d.won ? "👑 He ganado" : `He quedado ${d.place} en`} ${d.season} con ${d.queen} en Drag for the Crown`;
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ files: [file], text });
+    } catch (e) { if (e && e.name === "AbortError") return; }
+    // Sin menú de compartir (ordenador): se descarga la imagen
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "mi-temporada.png"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    Toast.show("📸 Tarjeta descargada", "Ya puedes subirla donde quieras");
+  }
+  document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#story-share")) shareCard(); });
+
   function theEndRebind(q, s) {
     $("#story-menu").addEventListener("click", () => { abandon(); UI.show("menu"); });
     $("#story-again").addEventListener("click", () => start(q, s));
@@ -740,6 +814,7 @@
       score: Math.round(S.points),
       date: new Date().toISOString(),
       track: trackHTML(),
+      trackData: trackSnap(),
       ppe: myPPE(),
       winsT: Object.values(S.track.me || {}).filter((l) => l === "WIN").length,
     };
@@ -803,11 +878,15 @@
             <button class="btn btn-ghost" id="story-menu">Menú</button>
             <button class="btn btn-ghost" id="story-track">📊</button>
             <button class="btn btn-ghost" id="story-scores">🏆</button>
+            <button class="btn btn-ghost" id="story-share" title="Compartir tu temporada">📸 Compartir</button>
             <button class="btn btn-primary" id="story-again">Otra vez</button>
           </div>
         </div>
       </div>`;
     const q = S.queen, s = S.season;
+    // Lo que sale en la tarjeta para compartir
+    const eps = Object.keys(S.track.me || {}).map(Number).sort((a, b) => a - b);
+    S.share = { queen: q.name, img: sprite(q), season: s.name, won, place: placeTxt(place), ppe: entry.ppe || 0, wins: entry.winsT || 0, track: eps.map((ep) => ({ ep, l: S.track.me[ep], n: S.epNames[ep] || "" })) };
     const nameInput = $("#story-name");
     if (nameInput) {
       if (!entry.name) StoryBoard.rename(entry.id, "Anónima");
@@ -823,7 +902,7 @@
       if (sent || !window.DFTC_NET) return;
       sent = true;
       const nm = (nameInput && nameInput.value.trim()) || store.get("dftc-name", "") || "Anónima";
-      window.DFTC_NET.submitScore({ ...entry, queen: q.id, season: s.id, name: nm });
+      window.DFTC_NET.submitScore({ ...entry, queen: q.id, season: s.id, name: nm, labels: Object.keys(S.track.me || {}).map(Number).sort((a, b) => a - b).map((ep) => S.track.me[ep]) });
     };
     if (window.DFTC_NET) {
       const sum = (S.log || []).slice(-24).map((x) => x.replace(/^Ep\.(\d+):\s*/, "Ep.$1 ")).join(" · ");

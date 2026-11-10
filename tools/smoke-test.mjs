@@ -4,10 +4,12 @@
 //   npm run build && npm run preview   (en otra terminal)
 //   node tools/smoke-test.mjs [http://localhost:8000]
 import { chromium } from "playwright";
+import { seeded, deadline } from "./e2e-util.mjs";
 
 const URL = process.argv[2] || "http://localhost:4173/";
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await seeded(page);
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 // Sin servidor ni IA: la prueba juega siempre igual (en CI hay claves de Supabase y la IA cambiaría los retos)
@@ -24,12 +26,14 @@ await page.locator("#queen-grid > *").nth(0).click();
 await page.click("#btn-start");
 
 let looks = 0, review = false;
-for (let i = 0; i < 9000 && !review; i++) {
+const time = deadline(8);
+for (let i = 0; time() && !review; i++) {
   await page.waitForTimeout(40);
   // El probador antes de la pasarela (con o sin la vista de las piezas)
   review = !!(await page.$(".at-edit, #dr-go"));
   const r = await page.evaluate(() => {
     const q = (s) => document.querySelector(s);
+    const gg = q("#gg-n"); if (gg && !gg.value) { const n = q("[data-n]"); if (n) { n.click(); return ""; } }
     const nx = q("#ls-next");
     if (nx && !nx.disabled) { nx.click(); return "look"; }
     const falta = q(".ls-sel li:not(.ok)");

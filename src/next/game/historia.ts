@@ -11,6 +11,7 @@ import { startRunway } from "./runway";
 import { juradoListo } from "./jurado";
 import type { LsAttrs } from "../../core/lipsync";
 import type { Tag } from "../../core/runway";
+import type { TrackSnap } from "./track";
 
 export type HistoriaModo = "" | "nueva" | "seguir" | "mp";
 let modo: HistoriaModo = "";
@@ -36,6 +37,7 @@ export function closeHistoria() {
 export const historiaOn = () => get().screen === "historia" || !!get().hist.scene;
 
 interface Msg {
+  snap?: TrackSnap; note?: string; label?: string; title?: string;
   ev?: string; name?: string; queen?: string; season?: string; on?: boolean;
   rival?: string; strength?: number; attrs?: LsAttrs; cat?: string; tag?: string; pieces?: string[]; concept?: boolean;
 }
@@ -58,6 +60,9 @@ export function onHistoria(d: Msg) {
     set({ back: "Volver a la historia" });
     send({ type: "scene", key: "LipSync" });
   }
+  if (d.ev === "track" && d.snap && Array.isArray(d.snap.rows)) {
+    set({ hist: { ...get().hist, scene: "track" }, htrack: { snap: d.snap, note: String(d.note || ""), label: String(d.label || "Seguir"), title: String(d.title || "") } });
+  }
   if (d.ev === "runway" && d.cat) {
     set({ hist: { ...get().hist, scene: "runway" } });
     startRunway(get().queenId, Math.random, d.concept && juradoListo() ? "concepto" : "clasica", d.cat, { look: (d.tag || "Glamour") as Tag, pieces: d.pieces || [], attrs: d.attrs });
@@ -67,6 +72,12 @@ export function onHistoria(d: Msg) {
 }
 const reply = (data: Record<string, unknown>) => { try { frame?.postMessage({ type: "dftc-historia-res", ...data }, location.origin); } catch { /* marco cerrado */ } };
 
+/** Cierra el track record y la historia sigue. */
+export function closeTrack() {
+  if (get().hist.scene !== "track") return;
+  set({ htrack: null, hist: { ...get().hist, scene: null } });
+  reply({ kind: "track" });
+}
 /** El botón de volver de la pasarela o del lip sync (cuando los ha pedido la historia o el multijugador). */
 export function backFromScene() { historiaBack(); }
 /** El botón de volver de la pasarela o del lip sync, si los pidió la historia. true si era suyo. */

@@ -102,9 +102,11 @@ export class Room {
     }
     if (!r) throw last;
     this.srv = r;
-    r.onMessage("state", (d: { s: RoomState; now: number }) => {
+    r.onMessage("state", (d: { s: RoomState; now: number; sig?: string }) => {
       if (!d || !d.s || (this.state && this.state.code === d.s.code && d.s.v <= this.state.v)) return;
       this.offset = d.now - Date.now();
+      // Firma del servidor de la partida pausada (hace falta para reanudarla)
+      this.sig = d.sig || "";
       this.state = d.s;
       this.onChange(d.s);
     });
@@ -234,11 +236,13 @@ export class Room {
     });
   }
   /** Reabre una partida guardada con su código; quien la abre lleva la sala. */
-  resume(saved: RoomState, myOldId: string): Promise<void> {
+  /** Firma de la partida pausada que da el servidor. */
+  sig = "";
+  resume(saved: RoomState, myOldId: string, sig = ""): Promise<void> {
     this.me = myOldId;
     sessionStorage.setItem("dftc-mp-id", myOldId);
     return serverUp(this.onWait).then((up) => {
-      if (up) return void this.serverJoin({ name: saved.players.find((p) => p.id === myOldId)?.name || "Reina", resume: saved, create: { season: saved.season, ritmo: saved.ritmo, content: this.content() } }).catch((e) => this.fail(e));
+      if (up) return void this.serverJoin({ name: saved.players.find((p) => p.id === myOldId)?.name || "Reina", resume: saved, sig, create: { season: saved.season, ritmo: saved.ritmo, content: this.content() } }).catch((e) => this.fail(e));
       this.connect(saved.code);
       this.state = resumeRoom(saved, this.me, Date.now());
       this.onChange(this.state);

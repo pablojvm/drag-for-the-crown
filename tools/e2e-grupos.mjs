@@ -3,10 +3,12 @@
 //   npm run build && npm run preview   (en otra terminal)
 //   node tools/e2e-grupos.mjs [http://localhost:4173/]
 import { chromium } from "playwright";
+import { seeded, deadline } from "./e2e-util.mjs";
 
 const URL = process.argv[2] || "http://localhost:4173/";
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await seeded(page);
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
@@ -36,7 +38,8 @@ await page.click("#btn-story");
 await page.click("#story-continue");
 const said = new Set();
 let verdict = "", leaks = [];
-for (let i = 0; i < 9000 && !verdict; i++) {
+const time = deadline(12);
+for (let i = 0; time() && !verdict; i++) {
   await page.waitForTimeout(40);
   const seen = await page.evaluate(() => ({
     t: [...document.querySelectorAll(".dlg-text, .story-card h3, .story-card p")].map((e) => e.textContent).join(" | "),
@@ -49,6 +52,8 @@ for (let i = 0; i < 9000 && !verdict; i++) {
     const q = (s) => document.querySelector(s);
     const cp = q("#rw-cp");
     if (cp && !cp.value) { cp.value = "Una sirena en una red de pesca de lujo"; cp.form.requestSubmit(); return ""; }
+    // Girl Groups: la banda necesita nombre antes del estilo (se elige una sugerencia)
+    const gg = q("#gg-n"); if (gg && !gg.value) { const n = q("[data-n]"); if (n) { n.click(); return ""; } }
     const nx = q("#ls-next");
     if (nx && !nx.disabled) { nx.click(); return "look"; }
     const falta = q(".ls-sel li:not(.ok)");

@@ -124,7 +124,13 @@ const Achievements = {
 
 // -------------------------------- Avisos -----------------------------------
 const Toast = {
+  /** Lo último que se ha avisado (en el móvil solo se ve un aviso a la vez y se pierden). */
+  log: [],
   show(title, sub = "") {
+    const last = this.log[this.log.length - 1];
+    if (!last || last.title !== title || last.sub !== sub) this.log = [...this.log, { title, sub, at: Date.now() }].slice(-30);
+    const nb = document.querySelector("#story-news");
+    if (nb) { nb.hidden = false; nb.classList.add("has-new"); }
     let box = document.querySelector("#toasts");
     if (!box) {
       box = document.createElement("div");
@@ -148,7 +154,27 @@ const Toast = {
     setTimeout(() => t.classList.add("out"), dur);
     setTimeout(() => t.remove(), dur + 500);
   },
+  /** Ventana con los avisos de la partida, del más nuevo al más antiguo. */
+  history() {
+    const nb = document.querySelector("#story-news");
+    if (nb) nb.classList.remove("has-new");
+    const m = document.createElement("div");
+    m.className = "track-modal";
+    const e = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    const rows = this.log.slice().reverse().map((x) => `<li><b>${e(x.title)}</b>${x.sub ? `<span>${e(x.sub)}</span>` : ""}</li>`).join("");
+    m.innerHTML = `<div class="story-card news-card"><h3>🔔 Lo que ha pasado</h3>${rows ? `<ul class="news-list">${rows}</ul>` : `<p class="muted">Todavía no hay avisos.</p>`}<button class="btn btn-primary" id="news-close">Cerrar</button></div>`;
+    document.body.append(m);
+    m.querySelector("#news-close").addEventListener("click", () => m.remove());
+    m.addEventListener("click", (ev) => { if (ev.target === m) m.remove(); });
+  },
+  /** Partida nueva: se vacía el historial. */
+  reset() {
+    this.log = [];
+    const nb = document.querySelector("#story-news");
+    if (nb) { nb.hidden = true; nb.classList.remove("has-new"); }
+  },
 };
+document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#story-news")) Toast.history(); });
 
 // ------------------------------- Confeti -----------------------------------
 const Confetti = {

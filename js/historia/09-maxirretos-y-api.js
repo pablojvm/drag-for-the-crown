@@ -384,6 +384,106 @@
   // Lalaparuza: torneo de lip syncs (sin taller)
   // Lalaparuza: cuadro de eliminatorias con todo el reparto. Cada duelo es un lip sync;
   // tú bailas los tuyos y el resto se resuelve en el escenario. La clasificación sale del cuadro.
+  // ------------------------- Talk show: tu propio programa -------------------------
+  function mxTalkshow(el, done) {
+    const F = {
+      noche: { t: "🌙 Late night con banda en directo", d: "Comedia: chistes y ritmo", attr: "comedia" },
+      tarde: { t: "☕ Magacín de tarde con sofá", d: "Carisma: cercanía con la invitada", attr: "carisma" },
+      salseo: { t: "🔥 Programa de salseo", d: "Comedia y carisma: tirar de la lengua sin pasarse", attr: "comedia" },
+    };
+    const guests = shuffle(S.rivals).slice(0, 3);
+    const steps = [
+      () => ({ q: "📺 ¿Qué programa presentas?", opts: Object.entries(F).map(([k, v]) => ({ t: v.t, d: v.d, go: (s) => { s.fmt = k; return {}; } })) }),
+      () => ({
+        q: "🛋️ ¿A quién sientas en el sofá?",
+        sub: "Con una amiga la charla fluye; con una rival puede salir chispa... o un silencio incómodo.",
+        opts: guests.map((q) => ({ t: q.name, d: relOf(q) >= 2 ? "Os lleváis bien" : relOf(q) <= -2 ? "Hay tensión" : "Ni fu ni fa", go: (s) => { s.guest = q; return {}; } })),
+      }),
+      (st) => {
+        const g = st.guest ? st.guest.name : "tu invitada";
+        const a = F[st.fmt || "noche"].attr;
+        return {
+          q: `🎤 Arranca el programa: presentas a ${esc(g)}`,
+          opts: [
+            { t: "😂 Monólogo de entrada", d: "Comedia", go: () => res(check(["comedia"], a === "comedia" ? 50 : 58), 90, 35, "¡El público ya está de tu parte!", "El chiste de entrada no arranca.") },
+            { t: "🤗 Entrada cálida, directa al sofá", d: "Carisma", go: () => res(check(["carisma"], a === "carisma" ? 48 : 56), 86, 40, "Se nota que la invitada está a gusto.", "Demasiado formal: parece un telediario.") },
+          ],
+        };
+      },
+      (st) => {
+        const g = st.guest;
+        const friend = g && relOf(g) >= 2, enemy = g && relOf(g) <= -2;
+        return {
+          q: "❓ Llega la pregunta incómoda",
+          sub: `${g ? esc(g.name) : "La invitada"} se te queda mirando. ${enemy ? "Y no con buena cara." : friend ? "Confía en ti." : ""}`,
+          opts: [
+            { t: "🌶️ Ir a por el titular", d: "Comedia · arriesgado", go: () => { const c = check(["comedia"], enemy ? 64 : 56); if (g && c.ok && enemy) changeRel(g, -1); return res(c, 96, 25, "¡Titular de la semana! El plató se viene abajo.", "Se ha pasado de rosca. Silencio."); } },
+            { t: "🎀 Darle la vuelta con cariño", d: "Carisma", go: () => { const c = check(["carisma"], friend ? 46 : 54); if (g && c.ok) changeRel(g, 1); return res(c, 84, 45, "Elegante: la invitada se luce gracias a ti.", "Se queda en nada."); } },
+            { t: "🙂 Pasar a otro tema", d: "Seguro", go: () => ({ pts: 55, msg: "Sin riesgo... y sin momento." }) },
+          ],
+        };
+      },
+      () => ({
+        q: "🚨 Imprevisto en directo",
+        sub: pick1(["Se cae el decorado del fondo.", "La invitada se queda en blanco a mitad de anécdota.", "El regidor te hace señas: quedan diez segundos."]),
+        opts: [
+          { t: "😂 Convertirlo en el chiste del programa", d: "Comedia", go: () => res(check(["comedia"], 54), 92, 35, "¡Lo mejor del programa ha sido el desastre!", "La broma no llega y se nota el apuro.") },
+          { t: "💎 Seguir como si nada", d: "Carisma", go: () => res(check(["carisma"], 52), 84, 42, "Tablas de presentadora de toda la vida.", "Se te ve nerviosa.") },
+        ],
+      }),
+      () => ({
+        q: "👋 La despedida",
+        opts: [
+          { t: "🎶 Cierre con la banda y baile", d: "Performance", go: () => res(check(["performance"], 52), 90, 40, "¡Final por todo lo alto!", "El baile no estaba ensayado.") },
+          { t: "💬 Frase final para la historia", d: "Carisma", go: () => res(check(["carisma"], 55), 92, 40, "Esa frase va a salir en todos los resúmenes.", "La frase se queda a medias.") },
+          { t: "🙂 «Hasta la semana que viene»", d: "Seguro", go: () => ({ pts: 55, msg: "Correcto." }) },
+        ],
+      }),
+    ];
+    runSteps(el, { title: "Talk show: tu propio programa", icon: "🛋️", steps }, (sc) => { if (sc >= 85) growAttr("carisma"); done(sc); });
+  }
+
+  // ------------------------- Branding: tu propia marca -------------------------
+  function mxBranding(el, done) {
+    const P = {
+      pintalabios: { t: "💄 Línea de pintalabios", names: ["«Boca de Escándalo»", "«Labios Bonitos»", "«Barra Roja Nº 3»"] },
+      perfume: { t: "🌸 Perfume", names: ["«Eau de Taller a las 4 de la mañana»", "«Esencia de Reina»", "«Perfume Fresco»"] },
+      pelucas: { t: "💇 Pelucas", names: ["«Cardado de Emergencia»", "«Pelo Divino»", "«Pelucas Modelo B»"] },
+    };
+    const steps = [
+      () => ({ q: "🛍️ ¿Qué lanzas al mercado?", opts: Object.entries(P).map(([k, v]) => ({ t: v.t, go: (s) => { s.prod = k; return {}; } })) }),
+      (st) => {
+        const p = P[st.prod || "pintalabios"];
+        return { q: "🏷️ El nombre de la marca", sub: "Tiene que sonar a ti y quedarse en la cabeza.", opts: shuffle([{ t: p.names[0], go: () => ({ pts: 95, msg: "¡Ese nombre se vende solo!" }) }, { t: p.names[1], go: () => ({ pts: 55, msg: "Bonito, pero lo tiene media competencia." }) }, { t: p.names[2], go: () => ({ pts: 25, msg: "Suena a referencia de almacén." }) }]) };
+      },
+      () => ({
+        q: "📸 La foto de campaña",
+        opts: [
+          { t: "✨ Look de alta costura con el producto", d: "Estilo", go: () => res(check(["estilo"], 54), 92, 40, "Parece una campaña de revista.", "El look se come al producto.") },
+          { t: "💋 Primerísimo plano y maquillaje perfecto", d: "Maquillaje", go: () => res(check(["maquillaje"], 54), 90, 40, "Ese primer plano vende cualquier cosa.", "En el primer plano se ve todo... lo malo también.") },
+          { t: "🤪 Foto camp y exagerada", d: "Comedia", go: () => res(check(["comedia"], 56), 94, 30, "¡Camp total! Nadie la va a olvidar.", "No se entiende si es un anuncio o una broma.") },
+        ],
+      }),
+      () => ({
+        q: "🎤 Presentas la marca al jurado",
+        opts: [
+          { t: "🌟 Discurso con mucha actitud", d: "Carisma", go: () => res(check(["carisma"], 55), 92, 38, "Supremme ya está sacando la cartera.", "Mucha actitud y poco producto.") },
+          { t: "😂 Presentación en clave de humor", d: "Comedia", go: () => res(check(["comedia"], 55), 90, 35, "Se ríen y encima se lo comprarían.", "El chiste tapa el producto.") },
+          { t: "📊 Explicar el producto, sin más", d: "Seguro", go: () => ({ pts: 58, msg: "Claro, pero sin chispa." }) },
+        ],
+      }),
+      () => ({
+        q: "👓 Ana te pregunta: «¿Y por qué alguien compraría esto?»",
+        opts: [
+          { t: "💎 «Porque es lo que yo soy, en un frasco»", d: "Carisma", go: () => res(check(["carisma"], 52), 90, 42, "Ana asiente. Eso es una marca.", "Suena a frase hecha.") },
+          { t: "🤑 «Porque es barato... más o menos»", d: "Comedia", go: () => res(check(["comedia"], 58), 86, 30, "Se ríe hasta Ana.", "Ana no se ríe.") },
+          { t: "😶 Quedarte en blanco", d: "", go: () => ({ pts: 15, msg: "Silencio. Muy largo." }) },
+        ],
+      }),
+    ];
+    runSteps(el, { title: "Branding: tu propia marca", icon: "🛍️", steps }, (sc) => { if (sc >= 85) growAttr("carisma"); done(sc); });
+  }
+
   function mxLalaparuza(el, done) {
     const SONGS = [["balada", "🎹 Balada emocional", "carisma"], ["pop", "🎵 Pop up-tempo", "performance"], ["dance", "🔊 Dance / urbano", "performance"]];
     const profile = (q) => { const a = attrsOf(q); return a.carisma > a.performance ? "balada" : a.performance > a.carisma + 1 ? "dance" : "pop"; };

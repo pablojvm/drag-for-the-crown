@@ -62,10 +62,14 @@
     tags.forEach((t) => (cnt[t] = (cnt[t] || 0) + 1));
     const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0] || ["Glamour", 0];
     const mult = top[1] >= 3 ? 1.5 : top[1] === 2 ? 1.2 : 1;
+    // La historia de color: piezas que comparten color suben nota (src/core/armario.ts)
+    const hc = DFTC.historiaColor((st.pieces || []).filter((it) => !it.loan).map((it) => it.n));
+    const bono = DFTC.bonoColor(hc.n);
     st.lookTag = top[0];
-    st.prep = clamp((st.prepRaw || 0) * mult, 0, 100);
+    st.prep = clamp((st.prepRaw || 0) * mult + bono, 0, 100);
     st.cohesion = mult;
-    return `${mult === 1.5 ? "✨ ¡Cohesión perfecta! x1,5" : mult === 1.2 ? "👍 Dos piezas comparten estilo: x1,2" : "😬 Ninguna pieza combina: x1,0"} · Estilo dominante: <b>${top[0]}</b>`;
+    st.combo = { estilo: top[0], nEstilo: top[1], color: hc.n >= 2 ? hc.color : null, nColor: hc.n, piezas: (st.pieces || []).length };
+    return `${mult === 1.5 ? "✨ ¡Cohesión perfecta! x1,5" : mult === 1.2 ? "👍 Dos piezas comparten estilo: x1,2" : "😬 Ninguna pieza combina: x1,0"} · Estilo dominante: <b>${top[0]}</b>${bono ? ` · 🎨 El ${hc.color} une ${hc.n} piezas: +${bono}` : ""}`;
   }
   // Fase 1 (taller): 10 PA entre materiales, patronaje y acabados
   function prepSew(el, title, diffExtra, then) {
@@ -170,7 +174,7 @@
         S.lastOutfit = finalSpec;
         S.lookTags = [...(S.lookTags || []), st.lookTag || "Glamour"].slice(-6);
         S.revealImg = null;
-        S.lastLook = { cat, best: st.pieces[0] ? st.pieces[0].n : "look", worst: st.pieces.slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: flags.atascado, voiceGood: flags.voiceGood, concepto: flags.concepto || null, critica: flags.critica || null };
+        S.lastLook = { cat, combo: st.combo || null, best: st.pieces[0] ? st.pieces[0].n : "look", worst: st.pieces.slice(-1)[0] ? st.pieces.slice(-1)[0].n : "look", atascado: flags.atascado, voiceGood: flags.voiceGood, concepto: flags.concepto || null, critica: flags.critica || null };
         // Con concepto, la temática es abierta: manda la interpretación (jurado) y la espectacularidad de las piezas
         if (flags.concepto) return done(walk * 0.75 + (st.impact || 50) * 0.25);
         const prep = st.aiFit != null ? st.prep * 0.5 + st.aiFit * 0.5 : st.prep;

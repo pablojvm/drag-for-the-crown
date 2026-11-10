@@ -21,6 +21,7 @@
     "e2e:grupos": "node tools/e2e-grupos.mjs http://localhost:4173/",
     "e2e:historia-nueva": "node tools/e2e-historia-nueva.mjs http://localhost:4173/",
     "e2e:jurado": "JURADO=1 node tools/e2e-historia.mjs http://localhost:4173/",
+    "e2e:temporada": "node tools/e2e-temporada.mjs http://localhost:4173/",
     "server": "npm run build --prefix server && node server/dist/index.js",
     "e2e:mp-server": "node tools/e2e-mp-server.mjs ws://localhost:2599 && node tools/e2e-mp-online.mjs http://localhost:4173/ ws://localhost:2599",
     "start": "node server/dist/index.js",

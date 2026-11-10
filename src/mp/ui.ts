@@ -146,7 +146,7 @@ function entry() {
     const sv = savedAll()[b.dataset.resume!];
     if (!sv) return;
     pendingLocal = sv.local;
-    room.resume(sv.state, sv.me);
+    room.resume(sv.state, sv.me, sv.sig);
   }));
   document.querySelectorAll<HTMLElement>("[data-rejoin]").forEach((b) => (b.onclick = () => {
     const sv = savedAll()[b.dataset.rejoin!];
@@ -306,7 +306,7 @@ const fillTxt = (s: RoomState, t: string) => t.replace(/\{reto\}/g, s.reto?.titu
 
 // ------------------------------ Guardar y reanudar ------------------------------
 const SAVED_KEY = "dftc-mp-saved";
-type Saved = { state: RoomState; me: string; name: string; local: any; date: number };
+type Saved = { state: RoomState; me: string; name: string; local: any; date: number; sig?: string };
 // Una clave por partida y jugadora (así dos pestañas o dos guardados a la vez no se pisan)
 const savedAll = (): Record<string, Saved> => {
   const out: Record<string, Saved> = {};
@@ -731,7 +731,7 @@ function askPause(s: RoomState) {
 }
 function pausedOut(s: RoomState) {
   const mine = s.players.find((p) => p.id === room.me);
-  savedPut(`${s.code}:${room.me}`, { state: s, me: room.me, name: mine?.name || myName(), local: api().local(), date: Date.now() });
+  savedPut(`${s.code}:${room.me}`, { state: s, me: room.me, name: mine?.name || myName(), local: api().local(), date: Date.now(), sig: room.sig });
   saveLocal(s.code);
   const code = s.code;
   info(`<p class="eyebrow">⏸️ Partida pausada</p><h3>Temporada guardada</h3><p>Para seguir, una de vosotras la reabre desde Multijugador y las demás entran con el código <b class="mp-code">${esc(code)}</b>.</p><button class="btn btn-primary" id="mp-exit3">Volver al menú</button>`, () => { $("#mp-exit3")!.onclick = exit; });

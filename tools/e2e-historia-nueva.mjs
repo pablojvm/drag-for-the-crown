@@ -4,11 +4,13 @@
 //   npm run build && npm run preview   (en otra terminal)
 //   node tools/e2e-historia-nueva.mjs [http://localhost:4173/]
 import { chromium } from "playwright";
+import { seeded, deadline } from "./e2e-util.mjs";
 
 const URL = process.argv[2] || "http://localhost:4173/";
 const SHOT = process.env.SHOT || "";
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 820 } });
+await seeded(ctx);
 await ctx.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
 const errors = [];
 const page = await ctx.newPage();
@@ -29,10 +31,13 @@ await fr.locator("#queen-grid > *").first().click();
 await fr.locator("#btn-start").click();
 const state = () => page.evaluate(() => { const s = window.__dftcNext.getState(); return { screen: s.screen, scene: s.hist.scene, back: s.back }; });
 const VALID = /^(WIN|TOP2|BTOP|HIGH|SAFE|LOW|BTM2|BTM3|ELIM|BWIN)$/;
-let looks = 0, done = null, javis = false, phaser = { runway: 0, lipsync: 0 }, shotRw = false, shotLs = false;
-for (let i = 0; i < 20000 && !done; i++) {
+let tracks = 0, looks = 0, done = null, javis = false, phaser = { runway: 0, lipsync: 0 }, shotRw = false, shotLs = false;
+const time = deadline(15);
+for (let i = 0; time() && !done; i++) {
   await page.waitForTimeout(40);
   const st = await state();
+  // El track record de cada episodio lo enseña el motor nuevo
+  if (st.scene === "track") { tracks++; await page.click(".nx-htrack-next").catch(() => {}); continue; }
   if (st.scene) {
     // La pasarela o el lip sync, en la escena del motor nuevo
     if (st.scene === "runway" && !shotRw && SHOT) { shotRw = true; await page.waitForTimeout(600); await page.screenshot({ path: `${SHOT}/hn-runway.png` }); }
@@ -58,6 +63,8 @@ for (let i = 0; i < 20000 && !done; i++) {
     const q = (s) => document.querySelector(s);
     const cp = q("#rw-cp");
     if (cp && !cp.value) { cp.value = "Una sirena en una red de pesca de lujo"; cp.form.requestSubmit(); return ""; }
+    // Girl Groups: la banda necesita nombre antes del estilo (se elige una sugerencia)
+    const gg = q("#gg-n"); if (gg && !gg.value) { const n = q("[data-n]"); if (n) { n.click(); return ""; } }
     const nx = q("#ls-next");
     if (nx && !nx.disabled) { nx.click(); return "look"; }
     const falta = q(".ls-sel li:not(.ok)");
@@ -91,6 +98,6 @@ const seguir = !!(await page.$(".nx-mode.s-story .ms-cta.alt"));
 await browser.close();
 const labs = done || [];
 const bad = labs.filter((l) => !VALID.test(l));
-console.log(`Javis: ${javis ? "sí" : "no"} · looks: ${looks} · pasarelas en el motor nuevo: ${phaser.runway} · lip syncs: ${phaser.lipsync} · capítulo 1: ${labs.join(" ") || "no"} · «Seguir mi temporada»: ${seguir ? "sí" : "no"} · errores: ${errors.length}`);
+console.log(`Javis: ${javis ? "sí" : "no"} · looks: ${looks} · track records en el motor nuevo: ${tracks} · pasarelas en el motor nuevo: ${phaser.runway} · lip syncs: ${phaser.lipsync} · capítulo 1: ${labs.join(" ") || "no"} · «Seguir mi temporada»: ${seguir ? "sí" : "no"} · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
-process.exit(javis && looks > 0 && labs.length > 3 && !bad.length && phaser.runway + phaser.lipsync > 0 && seguir && !errors.length ? 0 : 1);
+process.exit(javis && looks > 0 && tracks > 0 && labs.length > 3 && !bad.length && phaser.runway + phaser.lipsync > 0 && seguir && !errors.length ? 0 : 1);

@@ -20,6 +20,7 @@
   }
   function start(queen, season) {
     runId++;
+    Toast.reset();
     S = { rng: newSeed() };
     const rivals = shuffle(season.cast.filter((id) => id !== queen.id).map(qById).filter(Boolean));
     S = { ...blankState(queen, season, rivals), rng: S.rng };
@@ -660,6 +661,12 @@
     const lk = S.lastLook;
     const b = ["judge", lk && Math.random() < 0.7 ? pickFresh(ESTILO_CRITICA[lookN]).replace("{pieza}", (lookN === "top" ? lk.best : lk.worst).toLowerCase()).replace("{cat}", lk.cat) : pickFresh(JURADO.pasarela[lookN])];
     lines.push(a, [b[0], `${pickFresh(JURADO.aperturaAna)} ${b[1]}`]);
+    // Ana se fija en cómo combinan las piezas: estilo y color
+    const cm = lk && lk.combo;
+    if (cm && cm.piezas >= 3 && Math.random() < 0.6) {
+      const t = cm.color && cm.nColor >= 3 ? pickFresh(COMBINA_CRITICA.color).replace("{color}", cm.color) : cm.nEstilo >= 3 ? pickFresh(COMBINA_CRITICA.estilo).replace("{estilo}", cm.estilo.toLowerCase()) : cm.nEstilo <= 1 && !cm.color && twistOf() !== "winners" ? pickFresh(COMBINA_CRITICA.choque) : "";
+      if (t) lines.push(["judge", t]);
+    }
     // Cuando un look le encanta, Ana suelta su «ovaaahhh» con los deditos
     if (lookN === "top" && Math.random() < 0.45) lines.push(["judge", pickFresh(JURADO.ovah)]);
     if (Math.random() < 0.55) lines.push(...pickFresh(JAVIS.critica[nivel]));
@@ -691,7 +698,7 @@
   }
 
   // ----------------------------- Track record -----------------------------
-  const EP_SHORT = { pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups", comedia: "Stand-up", roast: "Roast", actuacion: "Interpretación", ball: "Ball", makeover: "Makeover", fotos: "Fotos", impro: "Improvisación" };
+  const EP_SHORT = { pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups", comedia: "Stand-up", roast: "Roast", actuacion: "Interpretación", ball: "Ball", makeover: "Makeover", fotos: "Fotos", impro: "Improvisación", talkshow: "Talk show", branding: "Branding" };
   EP_SHORT.diseno = "Materiales";
   EP_SHORT.publicidad = "Publicidad";
   EP_SHORT.lalaparuza = "Lalaparuza";
@@ -708,7 +715,8 @@
   function myPPE() {
     return DFTC.ppe(Object.values(S.track.me || {}));
   }
-  function trackHTML() {
+  // Lo que sale en el track record (orden, puestos y PPE); lo pintan la tabla clásica y la del motor nuevo
+  function trackRows() {
     const eps = Object.keys(S.epNames).map(Number).sort((a, b) => a - b);
     const everyone = [S.queen, ...S.rivals, ...S.out];
     const count = (k, test) => eps.filter((e) => test((S.track[k] || {})[e] || "")).length;
@@ -749,6 +757,10 @@
       while (b < rows.length - 1 && elimAt(rows[b + 1]) === e) b++;
       return a === b ? `${i + 1}º` : `${a + 1}º/${b + 1}º`;
     });
+    return { eps, rows, rk, ppe };
+  }
+  function trackHTML() {
+    const { eps, rows, rk, ppe } = trackRows();
     return `
       <div class="track-wrap"><table class="track">
         <thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(S.epNames[e])}</small></th>`).join("")}${twistOf() === "corazon" ? "<th>❤️</th>" : ""}<th>PPE</th></tr></thead>
@@ -760,7 +772,29 @@
           .join("")}</tbody>
       </table></div>`;
   }
+  /** El track record en datos, como lo pinta el motor nuevo (src/next/game/track.ts: TrackSnap). */
+  function trackSnap() {
+    const { eps, rows, rk, ppe } = trackRows();
+    const heart = twistOf() === "corazon";
+    return {
+      eps: eps.length,
+      epNames: eps.map((e) => S.epNames[e] || ""),
+      ...(heart ? { extra: "❤️" } : {}),
+      rows: rows.map((r, i) => ({
+        key: r.k, img: photo(r.q), name: r.q.name, me: r.q === S.queen, out: !!r.out, place: rk[i], ppe: ppe(r.k),
+        cells: eps.map((e) => { const l = (S.track[r.k] || {})[e]; return { t: l ? LAB_ES[l] || l : "", c: l ? TRACK_CLASS(l) : r.last && e > r.last && S.epNames[e] !== "Reencuentro" ? "t-gone" : "t-none" }; }),
+        ...(heart ? { extra: r.out ? "–" : heartsTxt(r.k) } : {}),
+      })),
+    };
+  }
   function showTrack(then, label = "Siguiente episodio", note = "") {
+    // Dentro de la versión nueva, el track record lo enseña el motor nuevo (con su tabla); al cerrarlo, se sigue aquí
+    if (window.__dftcAwait && !S.mp) {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = note;
+      body().innerHTML = "";
+      return window.__dftcAwait("track", { snap: trackSnap(), note: tmp.textContent || "", label, title: `Fin del episodio ${S.ep}${S.epNames[S.ep] ? ` · ${S.epNames[S.ep]}` : ""}` }, () => then());
+    }
     header();
     body().innerHTML = `
       <div class="story-card track-card">

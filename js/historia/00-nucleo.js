@@ -249,6 +249,16 @@ const Story = (() => {
     desc: "Por parejas: os dan un producto absurdo, escribís el eslogan y el guion y grabáis el anuncio. Se juzga por parejas: una arriba, una abajo y el resto a salvo.",
     ctrl: DC, attrs: ["carisma", "comedia"], run: (el, d) => mxPublicidad(el, d),
   };
+  RETOS.talkshow = {
+    titulo: () => "Talk show: tu propio programa",
+    desc: "Presentas tu programa de entrevistas con una compañera en el sofá. Elige el formato, la invitada y cómo resuelves cada momento en directo.",
+    ctrl: DC, attrs: ["carisma", "comedia"], run: (el, d) => mxTalkshow(el, d),
+  };
+  RETOS.branding = {
+    titulo: () => "Branding: lanza tu propia marca",
+    desc: "Creas tu marca de belleza: el producto, el nombre, la foto de campaña y la presentación al jurado.",
+    ctrl: DC, attrs: ["carisma", "estilo"], run: (el, d) => mxBranding(el, d),
+  };
   RETOS.lalaparuza = {
     titulo: () => "Lalaparuza: el torneo de lip syncs",
     desc: "Sin taller: eliminatorias directas de lip sync. Elige canción según tu perfil y el de tu rival, y gestiona la energía en cada duelo.",
@@ -282,7 +292,7 @@ const Story = (() => {
   RETOS.diseno.noRunway = true;
   RETOS.makeover.noRunway = true;
   RETOS.lalaparuza.noRunway = true;
-  const ORDEN_RETOS = ["snatch", "roast", "ball", "diseno", "rusical", "actuacion", "equipos", "makeover", "impro", "publicidad", "lalaparuza"];
+  const ORDEN_RETOS = ["snatch", "roast", "ball", "diseno", "rusical", "actuacion", "equipos", "makeover", "impro", "publicidad", "talkshow", "branding", "lalaparuza"];
 
   // Minirretos: dan ventaja para el reto de la semana
   const MINIRETOS = {
@@ -314,6 +324,9 @@ const Story = (() => {
     guion: { titulo: () => "Minirreto: memoriza el guion", desc: "Recuerda la palabra que falta en cada frase.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => { const t = S.team; runGuion(el, (sc) => { S.team = t; d(sc); }); } },
     flash: { titulo: () => "Minirreto: ¡flash!", desc: "Pulsa en cuanto salte el flash (ni antes ni tarde).", ctrl: "Espacio o clic", run: (el, d) => runMiniFlash(el, "¡Flash!", d) },
     preguntas: { titulo: () => "Minirreto: preguntas rápidas", desc: "La respuesta más graciosa, y rápido.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => runSnatch(el, d, PREGUNTAS, "🎤 Supremme", "Pregunta", 4) },
+    marionetas: { titulo: () => "Minirreto: el show de marionetas", desc: "Cada una hace hablar a la marioneta de una compañera. Gana la que consiga la carcajada (sin pasarse).", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => runSnatch(el, d, MARIONETAS, "🧸 Tu marioneta", "Marioneta", 4) },
+    quienes: { titulo: () => "Minirreto: ¿quién es esa reina?", desc: "Un trocito de foto de una compañera y tres nombres. Acierta, y rápido.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => runQuienEs(el, d) },
+    tacones: { titulo: () => "Minirreto: tacones imposibles", desc: "Plataformas de veinte centímetros: clava cada pose sin caerte.", ctrl: "Espacio, clic o ¡POSE!", run: (el, d) => runPasarela(el, d, 7, "Tacones imposibles") },
     estilismo: { titulo: () => "Minirreto: estilismo exprés", desc: "Monta un look con peluca, look, zapatos y accesorio en 30 segundos... y desfílalo.", ctrl: "Clic o teclas 1, 2 y 3", run: (el, d) => runEstilismo(el, pick1(CATEGORIAS), d, 2) },
   });
   const ORDEN_MINI = Object.keys(MINIRETOS);

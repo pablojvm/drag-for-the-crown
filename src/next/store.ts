@@ -3,6 +3,7 @@ import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 
 import type { RunwayState } from "./game/runway";
+import type { TrackSnap } from "./game/track";
 export type Screen = "boot" | "menu" | "arcade" | "result" | "lipsync" | "runway" | "historia";
 export interface LipSyncState {
   rivalId: string;
@@ -46,7 +47,9 @@ export interface GameState {
   rw: RunwayState | null;
   best: number;
   /** Modo historia (el de siempre, en un marco): el decorado del plató y si hay alguien hablando delante. */
-  hist: { bg: "werkroom" | "stage"; busy: boolean; scene: null | "lipsync" | "runway" };
+  hist: { bg: "werkroom" | "stage"; busy: boolean; scene: null | "lipsync" | "runway" | "track" };
+  /** El track record que ha pedido el modo historia (se enseña con la tabla del motor nuevo). */
+  htrack: { snap: TrackSnap; note: string; label: string; title: string } | null;
   /** Si el lip sync o la pasarela son parte de la temporada: texto del botón para volver. */
   back: string | null;
   /** Avisos (logros) que se ven un momento. */
@@ -59,7 +62,7 @@ const readBest = () => { try { return Number(localStorage.getItem("dftc-next-bes
 
 export const store = createStore<GameState>(() => ({
   screen: "boot", loading: 0, queenId: "jimbo", lives: 3, score: 0, combo: 0, round: 1,
-  rivalName: "", rivalHp: 1, rivalMax: 1, paused: false, special: 0, powerName: "", activePower: null, doubleOn: false, muted: false, result: null, ls: null, rw: null, best: readBest(), hist: { bg: "werkroom", busy: true, scene: null }, back: null, toasts: [], acct: { ready: false, google: false, name: "Invitada", email: "", googleOn: false },
+  rivalName: "", rivalHp: 1, rivalMax: 1, paused: false, special: 0, powerName: "", activePower: null, doubleOn: false, muted: false, result: null, ls: null, rw: null, best: readBest(), hist: { bg: "werkroom", busy: true, scene: null }, htrack: null, back: null, toasts: [], acct: { ready: false, google: false, name: "Invitada", email: "", googleOn: false },
 }));
 
 export const set = (p: Partial<GameState>) => store.setState(p);

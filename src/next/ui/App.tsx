@@ -1,6 +1,7 @@
 // Interfaz del juego nuevo (React encima del canvas de Phaser): carga, menú, marcador, pausa y resultado.
+import { currentSong } from "../game/beat";
+import { HistTrack } from "./Track";
 import { useEffect, useRef, useState } from "react";
-import { startGame } from "../game";
 import { send } from "../bridge";
 import { useGame, setMuted } from "../store";
 import { unlockAudio } from "../game/sfx";
@@ -20,7 +21,12 @@ import { rudollars, toast } from "../game/logros";
 
 export function App() {
   const host = useRef<HTMLDivElement>(null);
-  useEffect(() => (host.current ? startGame(host.current) : undefined), []);
+  // Phaser (lo que más pesa) llega en su propio archivo: la pantalla de carga sale sin esperarlo
+  useEffect(() => {
+    let stop: (() => void) | undefined, alive = true;
+    void import("../game").then((m) => { if (alive && host.current) stop = m.startGame(host.current); });
+    return () => { alive = false; stop?.(); };
+  }, []);
   // El audio arranca con el primer gesto (los navegadores no dejan antes)
   useEffect(() => {
     const go = () => { unlockAudio(); unlockMusic(); };
@@ -45,6 +51,7 @@ export function App() {
         {screen === "lipsync" && <LipSyncUI />}
         {screen === "runway" && <RunwayUI />}
         {(screen === "historia" || histScene) && <HistoriaUI />}
+        {histScene === "track" && <HistTrack />}
         <Toasts />
       </div>
     </div>
@@ -249,7 +256,8 @@ function LipSyncUI() {
           <div className="nx-panel small">
             <p className="nx-eyebrow">Lip sync for your life</p>
             <h2>{won ? "¡Shantay, you stay! 💃" : "Sashay away..."}</h2>
-            <p className="nx-muted">Tú: {Math.round(ls.mine)} · {rv.name}: {Math.round(ls.rival)}</p>
+            {/* Sin números: lo que ha pasado con el público */}
+            <p className="nx-muted">{won ? (ls.mine >= ls.rival * 1.2 ? "El público era tuyo de principio a fin." : "Por poco, pero el público se ha quedado contigo.") : ls.rival >= ls.mine * 1.2 ? `${rv.name} se ha llevado al público de calle.` : `Muy igualado, pero el público se ha ido con ${rv.name}.`}</p>
             {back ? <button className="nx-btn" onClick={backFromScene}>{back}</button> : (
               <>
                 <button className="nx-btn" onClick={() => send({ type: "lipsync", queenId })}>Otro lip sync</button>
@@ -259,7 +267,7 @@ function LipSyncUI() {
           </div>
         ) : (
           <div className="nx-panel">
-            <p className="nx-eyebrow">🎵 {LS_PHASES[pi]} de la canción · {(ls.step % 2) + 1}/2 · ⚡ Energía {ls.energy}</p>
+            <p className="nx-eyebrow">🎵 {currentSong() ? `«${currentSong()}» · ` : ""}{LS_PHASES[pi]} de la canción · {(ls.step % 2) + 1}/2 · ⚡ Energía {ls.energy}</p>
             {ls.last ? <p className="nx-ls-last"><b>Tú:</b> {ls.last.me} <b>{rv.name}:</b> {ls.last.them}</p> : <p className="nx-ls-last">Alterna movimientos (repetir aburre) y guarda 45 de energía para un truco en el clímax.</p>}
             <div className="nx-ls-opts">
               {opts.map((o) => <button key={o.k} className="nx-opt" onClick={() => lipSyncMove(o.k)}><b>{o.t}</b><small>{o.d}</small></button>)}
@@ -307,8 +315,8 @@ function RunwayUI() {
               </>
             ) : (
               <>
-                <h2>{verdict(rw.score || 0)}</h2>
-                <p className="nx-score">{rw.score} / 100</p>
+                {/* Sin notas a la vista: solo la valoración hablada */}
+                <h2 className="nx-verdict">{verdict(rw.score || 0)}</h2>
                 {rw.lines?.supreme && <p className="nx-jury"><b>Supremme</b> {rw.lines.supreme}</p>}
                 {rw.lines?.ana && <p className="nx-jury"><b>Ana</b> {rw.lines.ana}</p>}
                 <p className="nx-muted">{rw.msg}</p>

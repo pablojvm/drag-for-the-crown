@@ -70,3 +70,30 @@ export function outfitScore(o: Outfit, cat: string): number {
 export function bestFor(k: Slot, cat: string, n = 6): Prenda[] {
   return (ARMARIO[k] || []).filter((x) => k !== "look" || !x.rv).map((x) => [fitScore(k, x, cat), x] as const).sort((a, b) => b[0] - a[0] || priceOf(a[1]) - priceOf(b[1])).slice(0, n).map((x) => x[1]);
 }
+
+// ---------- Combinaciones: la historia de color del look ----------
+/** Colores que se reconocen en el nombre de una prenda (con sus variantes). */
+const COLORES: [string, RegExp][] = [
+  ["rojo", /(?<!\p{L})(?:roj[oa]s?|carmes[ií]|granate|escarlata)(?!\p{L})/u],
+  ["negro", /(?<!\p{L})(?:negr[oa]s?)(?!\p{L})/u],
+  ["dorado", /(?<!\p{L})(?:dorad[oa]s?|oro|oros)(?!\p{L})/u],
+  ["plateado", /(?<!\p{L})(?:platead[oa]s?|plata)(?!\p{L})/u],
+  ["rosa", /(?<!\p{L})(?:rosa|rosas|fucsia|chicle)(?!\p{L})/u],
+  ["azul", /(?<!\p{L})(?:azul|azules|celeste|turquesa|marino)(?!\p{L})/u],
+  ["verde", /(?<!\p{L})(?:verde|verdes|menta|esmeralda)(?!\p{L})/u],
+  ["blanco", /(?<!\p{L})(?:blanc[oa]s?|nieve|perla|perlas)(?!\p{L})/u],
+  ["lila", /(?<!\p{L})(?:lila|lilas|morad[oa]s?|violeta|malva)(?!\p{L})/u],
+  ["amarillo", /(?<!\p{L})(?:amarill[oa]s?|limón)(?!\p{L})/u],
+  ["naranja", /(?<!\p{L})(?:naranja|naranjas|coral)(?!\p{L})/u],
+];
+/** Los colores de una prenda según su nombre. */
+export const coloresDe = (nombre: string): string[] => { const t = String(nombre || "").toLowerCase(); return COLORES.filter(([, re]) => re.test(t)).map(([c]) => c); };
+/** El color que más se repite entre las piezas y en cuántas sale. */
+export function historiaColor(nombres: string[]): { color: string | null; n: number } {
+  const cnt: Record<string, number> = {};
+  nombres.forEach((n) => new Set(coloresDe(n)).forEach((c) => (cnt[c] = (cnt[c] || 0) + 1)));
+  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+  return top ? { color: top[0], n: top[1] } : { color: null, n: 0 };
+}
+/** Lo que suma la historia de color a la preparación del look (puntos sobre 100). */
+export const bonoColor = (n: number) => (n >= 3 ? 8 : n === 2 ? 4 : 0);

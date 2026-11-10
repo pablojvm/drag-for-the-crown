@@ -23,3 +23,13 @@ describe("lo que manda cada jugadora se limpia", () => {
     expect(cleanCustom("nada")).toBeUndefined();
   });
 });
+
+describe("firma de las partidas pausadas", () => {
+  it("el texto firmado no cambia por el orden de las claves ni por los vacíos que mete la red", async () => {
+    const { canon } = await import("../src/mp/ops");
+    const a = { b: 1, a: { y: [1, undefined, "x"], x: undefined }, c: null };
+    const b = { a: { x: null, y: [1, null, "x"] }, b: 1 };
+    expect(canon(a)).toBe(canon(b));
+    expect(canon({ a: 1 })).not.toBe(canon({ a: 2 }));
+  });
+});

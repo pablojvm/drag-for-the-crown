@@ -76,6 +76,13 @@ export function cleanCustom(c: unknown): RoomState["custom"] | undefined {
   return { pick: o.pick === "elegidas" ? "elegidas" : "azar", size, rivals };
 }
 
+/** El mismo texto aunque el estado haya ido y vuelto por la red (claves ordenadas, sin vacíos). */
+export function canon(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map((x) => (x === undefined ? "null" : canon(x))).join(",")}]`;
+  if (v && typeof v === "object") return `{${Object.keys(v).sort().filter((k) => (v as Record<string, unknown>)[k] != null).map((k) => `${JSON.stringify(k)}:${canon((v as Record<string, unknown>)[k])}`).join(",")}}`;
+  return JSON.stringify(v ?? null);
+}
+
 /** Relevo: si la anfitriona se ha ido, lleva la sala la siguiente que entró y sigue conectada. */
 export function handOver(s: RoomState, present: Set<string>, now: number): RoomState {
   if (present.has(s.host)) return s;

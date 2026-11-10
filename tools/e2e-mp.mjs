@@ -4,6 +4,7 @@
 //   npm run build && npm run preview   (en otra terminal)
 //   node tools/e2e-mp.mjs [http://localhost:4173/]
 import { chromium } from "playwright";
+import { seeded, SEED } from "./e2e-util.mjs";
 
 const URL = process.argv[2] || "http://localhost:4173/";
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
@@ -14,8 +15,11 @@ await ctx.addInitScript(() => {
 });
 const errors = [];
 await ctx.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
+let nOpen = 0;
 const open = async () => {
   const p = await ctx.newPage();
+  // Cada pestaña con su semilla (si no, las dos serían la misma jugadora)
+  await seeded(p, SEED + nOpen++);
   p.on("pageerror", (e) => errors.push(e.message));
   await p.goto(new globalThis.URL("clasico.html?mpserver=", URL).href); // la versión clásica, sin servidor de salas
   await p.waitForTimeout(1500);

@@ -26,8 +26,10 @@ npm run e2e:moneda # lo mismo en la temporada de la moneda (bottom de tres y vot
 npm run e2e:mp     # dos jugadoras y un duelo de lip sync
 npm run e2e:next   # el motor nuevo (Phaser 4 + React): arcade con poderes, un lip sync y las dos pasarelas
 npm run e2e:jurado # un capítulo con la pasarela con concepto (jurado de prueba)
-npm run e2e:temporada # el modo historia del motor nuevo: temporadas enteras (normal, Segunda Oportunidrag, corazones viéndola desde casa, moneda, All Stars y All Winners)
+npm run e2e:temporada # una temporada entera ganando (retos y minirretos nuevos, tarjeta para compartir) y otra perdiendo (saltar al reencuentro)
 ```
+
+Las pruebas en navegador juegan siempre la misma partida (azar con semilla). Para probar otra: `SEED=123 npm run e2e`. Si una falla, dice con qué semilla repetirla.
 
 Las pruebas en navegador usan Playwright (`npx playwright install chromium` la primera vez). El despliegue a GitHub Pages lo hace el workflow en cada push a `main`, y antes pasa tipos, lint, tests y pruebas en navegador.
 
@@ -45,6 +47,7 @@ Si el servidor no responde, el juego sigue funcionando como antes: la anfitriona
 - Fly.io, una sola vez, desde la raíz del repo: `fly auth signup` (o `login`), `fly launch --no-deploy --copy-config`, `fly deploy`.
   El juego busca el servidor en `wss://dftc-salas.fly.dev`; si usas otro nombre de app, cámbialo en `fly.toml` y en la
   variable `VITE_MP_URL` del repo (Settings > Variables).
+- Partidas pausadas: el servidor las firma para que nadie se corone editando su partida guardada. Pon la misma clave larga y secreta en la variable `MP_SECRET` del servidor (Render: Environment; Fly.io: `fly secrets set MP_SECRET=...`). Sin ella se reanudan como antes, sin comprobar.
 - Despliegue automático: añade el secreto `FLY_API_TOKEN` (`fly tokens create deploy -a dftc-salas`) y cada cambio en
   `server/`, `src/mp/` o `src/core/` se despliega solo.
 

@@ -70,20 +70,6 @@ const DIALOGOS = {
     ["host", "Hemos llegado a la gran final. Tres reinas, una corona."],
     ["judge", "Ha sido un camino largo. Ahora demostrad por qué estáis aquí."],
   ],
-  critica: {
-    win: [
-      ["judge", "{yo}, esta semana lo has bordado. Concepto, acabado y actitud."],
-      ["host", "¡Enhorabuena, eres la ganadora del reto!"],
-    ],
-    safe: [
-      ["judge", "{yo}, correcto, pero me falta ese punto que te haga destacar."],
-      ["host", "Estás a salvo. Puedes volver al taller."],
-    ],
-    bottom: [
-      ["judge", "{yo}, esta semana no te he visto. Me ha faltado todo."],
-      ["host", "Lo siento, estás en el bottom. Es hora de... ¡lip sync for your life!"],
-    ],
-  },
 };
 
 // ===========================================================================
@@ -431,6 +417,7 @@ const ESTILO_PIEZAS = {
 };
 // Comentarios del jurado sobre el look ({pieza} y {cat} se rellenan)
 const ESTILO_CRITICA = DFTC.ESTILO_CRITICA;
+const COMBINA_CRITICA = DFTC.COMBINA_CRITICA;
 
 // Armario con fotos reales (images/armario/<id>.webp)
 const ARMARIO = DFTC.ARMARIO;

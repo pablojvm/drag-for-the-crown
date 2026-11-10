@@ -1,5 +1,7 @@
 // Tabla del track record (como la de la versión clásica): foto, colores por resultado, puesto y PPE.
 import type { TrackSnap } from "../game/track";
+import { useGame } from "../store";
+import { closeTrack } from "../game/historia";
 
 export function TrackTabla({ snap }: { snap: TrackSnap }) {
   return (
@@ -25,6 +27,23 @@ export function TrackTabla({ snap }: { snap: TrackSnap }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** El track record de cada episodio del modo historia, con la tabla del motor nuevo. */
+export function HistTrack() {
+  const t = useGame((s) => s.htrack);
+  if (!t) return null;
+  return (
+    <div className="nx-htrack" role="dialog" aria-label="Track record">
+      <div className="nx-panel nx-htrack-card">
+        {t.title && <p className="nx-eyebrow">{t.title}</p>}
+        {t.note && <p className="nx-htrack-note">{t.note}</p>}
+        <h2>Track record</h2>
+        <TrackTabla snap={t.snap} />
+        <button className="nx-btn nx-htrack-next" autoFocus onClick={closeTrack}>{t.label}</button>
+      </div>
     </div>
   );
 }

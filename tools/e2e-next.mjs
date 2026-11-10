@@ -2,11 +2,13 @@
 // (moviéndote, lanzando tacones y usando el poder) y juega un lip sync y una pasarela enteros. Falla si hay errores.
 //   node tools/e2e-next.mjs [http://localhost:4173/] [carpeta-capturas]
 import { chromium } from "playwright";
+import { seeded } from "./e2e-util.mjs";
 
 const BASE = process.argv[2] || "http://localhost:4173/";
 const SHOTS = process.argv[3] || "";
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+await seeded(page);
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
@@ -76,7 +78,7 @@ for (let k = 0; k < 4; k++) {
   await page.waitForTimeout(1100);
   if (k === 2 && SHOTS) await page.screenshot({ path: `${SHOTS}/next-runway.png` });
 }
-const rwScore = (await page.locator(".nx-score").textContent({ timeout: 5000 }).catch(() => "")) || "";
+const rwScore = (await page.locator(".nx-verdict").textContent({ timeout: 5000 }).catch(() => "")) || "";
 // Y la pasarela con concepto, con un jurado de prueba en lugar del servidor
 await page.evaluate(() => {
   window.__dftcNextAsk = async (system) => {
@@ -97,11 +99,11 @@ for (let k = 0; k < 4; k++) {
   await page.waitForTimeout(700);
   if (k === 3 && SHOTS) await page.screenshot({ path: `${SHOTS}/next-ana.png` });
 }
-const ccScore = (await page.locator(".nx-score").textContent({ timeout: 8000 }).catch(() => "")) || "";
+const ccScore = (await page.locator(".nx-verdict").textContent({ timeout: 8000 }).catch(() => "")) || "";
 const ccJury = await page.locator(".nx-jury").count();
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/next-concept-end.png` });
 await browser.close();
-const ok = score > 0 && onScreen && paused && powered === "triple" && /Shantay|Sashay/.test(lsEnd) && /\/ 100/.test(rwScore) && /\/ 100/.test(ccScore) && ccJury === 2 && !errors.length;
+const ok = score > 0 && onScreen && paused && powered === "triple" && /Shantay|Sashay/.test(lsEnd) && !!rwScore.trim() && !!ccScore.trim() && !/\d/.test(rwScore + ccScore) && ccJury === 2 && !errors.length;
 console.log(`Motor nuevo · puntos tras jugar: ${score} · poder: ${powered || "no"} · pausa o resultado: ${paused ? "sí" : "no"} · lip sync: «${lsEnd.trim()}» · pasarela: ${rwScore.trim() || "no"} · con concepto: ${ccScore.trim() || "no"} (${ccJury} frases del jurado) · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
 process.exit(ok ? 0 : 1);

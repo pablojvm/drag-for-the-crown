@@ -4,10 +4,12 @@
 //   npm run build && npm run preview   (en otra terminal)
 //   node tools/e2e-historia.mjs [http://localhost:4173/]
 import { chromium } from "playwright";
+import { seeded, deadline } from "./e2e-util.mjs";
 
 const URL = process.argv[2] || "http://localhost:4173/";
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await seeded(page);
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 // Sin servidor ni IA: la prueba juega siempre igual (en CI hay claves de Supabase y la IA cambiaría los retos)
@@ -40,7 +42,8 @@ await page.click("#btn-start");
 
 const VALID = /^(WIN|TOP2|BTOP|HIGH|SAFE|LOW|BTM2|BTM3|ELIM|BWIN)$/;
 let looks = 0, done = null;
-for (let i = 0; i < 9000 && !done; i++) {
+const time = deadline(12);
+for (let i = 0; time() && !done; i++) {
   await page.waitForTimeout(40);
   done = await page.evaluate(() => {
     try {
@@ -56,6 +59,8 @@ for (let i = 0; i < 9000 && !done; i++) {
     const q = (s) => document.querySelector(s);
     const cp = q("#rw-cp");
     if (cp && !cp.value) { cp.value = "Una sirena en una red de pesca de lujo"; cp.form.requestSubmit(); return ""; }
+    // Girl Groups: la banda necesita nombre antes del estilo (se elige una sugerencia)
+    const gg = q("#gg-n"); if (gg && !gg.value) { const n = q("[data-n]"); if (n) { n.click(); return ""; } }
     const nx = q("#ls-next");
     if (nx && !nx.disabled) { nx.click(); return "look"; }
     const falta = q(".ls-sel li:not(.ok)");

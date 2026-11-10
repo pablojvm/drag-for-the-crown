@@ -184,13 +184,16 @@ class Cloud {
   }
 
   // ---------- Hall of Fame mundial ----------
-  async submitScore(e: { name?: string; queen: string; season: string; ppe?: number; winsT?: number; won?: boolean; place?: unknown }) {
+  async submitScore(e: { name?: string; queen: string; season: string; ppe?: number; winsT?: number; won?: boolean; place?: unknown; labels?: unknown }) {
     if (!this.sb || !this.session) return;
+    // El servidor calcula el PPE, los retos ganados y la corona con el track record (sin él no lo apunta)
+    const track = Array.isArray(e.labels) ? e.labels.filter((l): l is string => typeof l === "string").map((l) => l.slice(0, 12)).slice(0, 20) : [];
+    if (!track.length) return;
     const name = String(e.name || "Anónima").slice(0, 16) || "Anónima";
     await this.sb.from("board").insert({
       user_id: this.session.user.id, name, queen: String(e.queen).slice(0, 60), season: String(e.season).slice(0, 40),
       ppe: Math.max(0, Math.min(5, Number(e.ppe) || 0)), wins: Math.max(0, Math.min(20, Number(e.winsT) || 0)), won: !!e.won,
-      place: e.place == null ? null : String(e.place).slice(0, 12),
+      place: e.place == null ? null : String(e.place).slice(0, 12), track,
     });
     this.topAt = 0;
   }

@@ -63,6 +63,7 @@ jobs:
           - { name: grupos, run: npm run e2e:grupos }
           - { name: multijugador-nueva, run: npm run e2e:mp-nueva }
           - { name: jurado, run: npm run e2e:jurado }
+          - { name: temporada, run: npm run e2e:temporada }
     name: "Prueba: ${{ matrix.name }}"
     steps:
       - uses: actions/checkout@v4

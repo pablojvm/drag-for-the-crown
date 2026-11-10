@@ -205,32 +205,9 @@ export const HISTORIA: Record<string, any> = {
     [["host", "¡Chicas! Esta semana os enfrentáis a... ¡{reto}!"], ["host", "Nada de ir a lo seguro. Quiero riesgo."]],
     [["host", "Os traigo un reto que va a separar a las reinas de las princesas: ¡{reto}!"], ["host", "Cuidado con los acabados, que desde el jurado se ve todo."]],
   ],
-  // Críticas según tu resultado
-  critica: {
-    win: [
-      [["judge", "{yo}, esta semana lo has bordado. Concepto, acabado y actitud."], ["host", "¡Enhorabuena, eres la ganadora del reto!"]],
-      [["judge", "{yo}, por fin te veo de verdad. Esto es lo que quiero."], ["host", "¡{yo}, eres la ganadora de esta semana!"]],
-    ],
-    safe: [
-      [["judge", "{yo}, correcto, pero me falta ese punto que te haga destacar."], ["host", "Estás a salvo. Puedes volver al taller."]],
-      [["judge", "Bien, {yo}. Solo bien. Y aquí hace falta más."], ["host", "{yo}, estás a salvo."]],
-    ],
-    bottom: [
-      [["judge", "{yo}, esta semana no te he visto. Me ha faltado todo."], ["host", "Lo siento, estás en el bottom."]],
-      [["judge", "{yo}, me decepciona. Sé que puedes dar mucho más."], ["host", "{yo}... estás entre las dos peores."]],
-    ],
-  },
-  // Untucked: eliges a quién te acercas tras la crítica
+  // Untucked (siempre antes del veredicto): eliges a quién te acercas
   untucked: {
     intro: [["host", "Reinas, podéis ir al Untucked mientras deliberamos."]],
-    ganadora: [
-      [["me", "¡Enhorabuena, {r1}! Te lo has currado."], ["r1", "Gracias, reina. Viniendo de ti vale doble."]],
-      [["me", "{r1}, ¿cómo lo haces? Estás en otra liga."], ["r1", "Mucho café y cero dormir. No lo recomiendo."]],
-    ],
-    bottom: [
-      [["me", "{r1}, ¿cómo estás? Ánimo con el lip sync."], ["r1", "Muerta de miedo... pero gracias por venir a verme."]],
-      [["me", "Tú sales de esta, {r1}, seguro."], ["r1", "Ojalá. Si me voy, ganad por mí."]],
-    ],
     aliada: [
       [["me", "{r1}, ¿seguimos juntas hasta el final?"], ["r1", "Hasta la corona, reina. Y luego ya nos peleamos."]],
     ],
@@ -383,29 +360,6 @@ HISTORIA.anuncio.push(
   [["host", "Reinas, preparaos para {reto}."], ["host", "Os estaré mirando. A todas."]],
   [["host", "¡Sorpresa! El reto de hoy es {reto}."], ["r1", "Ay, no, justo lo que peor se me da."], ["host", "Pues a trabajar."]],
   [["host", "Esta semana subo el listón: {reto}. Y sí, lo digo en serio."]],
-);
-HISTORIA.critica.win.push(
-  [["judge", "{yo}, has entendido el reto mejor que nadie."], ["host", "{yo}, felicidrages: ganas esta semana."]],
-  [["host", "{yo}, has venido a por todas y se nota."], ["judge", "Me has emocionado. Y eso no es fácil."], ["host", "¡Eres la ganadora!"]],
-  [["judge", "Esto es drag de verdad, {yo}. Enhorabuena."]],
-);
-HISTORIA.critica.safe.push(
-  [["host", "{yo}, has cumplido. Pero cumplir no gana coronas."], ["judge", "Arriesga más la semana que viene."]],
-  [["judge", "{yo}, tenías una buena idea que se quedó a medias."], ["host", "Estás a salvo, reina."]],
-  [["host", "{yo}, estás a salvo... por esta vez."]],
-);
-HISTORIA.critica.bottom.push(
-  [["judge", "{yo}, no sé qué ha pasado, pero no eras tú."], ["host", "Lo siento, reina. Estás en peligro."]],
-  [["host", "{yo}... esta semana no ha sido tu semana."], ["judge", "El acabado, el concepto... todo flojo."]],
-  [["judge", "{yo}, parecía que tenías prisa por irte."], ["host", "Estás entre las peores. Toca demostrar que te quieres quedar."]],
-);
-HISTORIA.untucked.ganadora.push(
-  [["me", "Te lo mereces, {r1}. De verdad."], ["r1", "Gracias... la semana que viene te toca a ti, ya verás."]],
-  [["me", "Menudo look, {r1}. Me muero de envidia."], ["r1", "Envidia sana, espero."]],
-);
-HISTORIA.untucked.bottom.push(
-  [["me", "{r1}, ¿necesitas algo? ¿Agua, un abrazo?"], ["r1", "Un abrazo. Y que sea largo."]],
-  [["me", "Cuando salgas al escenario, olvídate de todo y disfruta."], ["r1", "Lo intentaré, {yo}. Gracias de corazón."]],
 );
 HISTORIA.untucked.aliada.push(
   [["me", "Estamos más cerca de la final, {r1}."], ["r1", "Lo sé. Y te quiero ahí conmigo."]],
@@ -781,3 +735,22 @@ export function traitsOf(id: string): { fort: string; deb: string; car: string }
   if (RASGOS.deb[deb].cat === fort) deb = "provocable";
   return { fort, deb, car: pick(RASGOS.car, 11) };
 }
+
+/** Lo que dice Ana de cómo combinan las piezas del look (estilo y color). */
+export const COMBINA_CRITICA: Record<"color" | "estilo" | "choque", string[]> = {
+  color: [
+    "El {color} de la cabeza a los pies. Eso es tener una idea y no soltarla.",
+    "Me encanta que el {color} vaya de la peluca a los tacones. Se ve pensado.",
+    "Todo el look cuenta la historia del {color}. Eso es estilismo, no ropa.",
+  ],
+  estilo: [
+    "Todas las piezas hablan el mismo idioma: {estilo}. Se nota que hay un concepto.",
+    "Cada pieza suma a la misma idea. Coherencia total.",
+    "Peluca, look y tacones van a una. Así se construye un personaje.",
+  ],
+  choque: [
+    "Cada pieza va por su lado. La peluca no conoce al vestido.",
+    "Hay cosas bonitas, pero parecen de tres armarios distintos.",
+    "Me falta un hilo que una todo. Ahora mismo es una suma de prendas.",
+  ],
+};

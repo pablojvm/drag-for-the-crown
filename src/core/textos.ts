@@ -87,6 +87,16 @@ R.comedia = {
   mid: ["Algunos chistes buenos, otros que se quedaron colgando.", "Has empezado fuerte y te has ido desinflando.", "Graciosa, pero te faltó personalidad en el texto."],
   low: ["Eso no era un monólogo, era una lista de la compra.", "El público se reía por pena. Y eso duele verlo.", "Te has quedado en blanco más de lo que has hablado."],
 };
+R.talkshow = {
+  top: ["Has llevado el programa como si llevaras veinte temporadas en antena.", "Sabías cuándo apretar a tu invitada y cuándo dejarla brillar.", "Ese sofá era tuyo. Quiero ver el programa entero."],
+  mid: ["Buen arranque, pero en mitad de la entrevista se te fue el ritmo.", "Simpática, pero te faltó tirar de la lengua.", "Algún momento muy bueno y mucho relleno."],
+  low: ["Parecía que la invitada te entrevistaba a ti.", "Silencios muy largos. En la tele eso es una eternidad.", "No has sabido qué hacer cuando se torció el directo."],
+};
+R.branding = {
+  top: ["Esa marca la compraría mañana. Concepto, nombre e imagen.", "Se nota quién eres en cada detalle del producto.", "Has vendido el producto y te has vendido a ti."],
+  mid: ["El producto tiene sentido, pero el nombre no se queda.", "Buena foto de campaña, presentación floja.", "Hay marca, pero le falta personalidad."],
+  low: ["No sé qué vendes, ni a quién, ni por qué.", "La presentación se te ha atragantado.", "Eso no es una marca, es una referencia de almacén."],
+};
 R.roast = {
   top: ["Afilada sin ser cruel. Eso es un roast de verdad.", "Me has asado a mí y encima me ha gustado.", "Cada remate llegaba justo a tiempo. Bravo."],
   mid: ["Tenías buenas ideas, pero no rematabas.", "Algunos golpes muy buenos, otros muy blanditos.", "Te faltó maldad. Un poquito solo."],

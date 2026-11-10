@@ -1,8 +1,9 @@
 // Sala de Colyseus: el servidor lleva el reloj y aplica las reglas (src/mp/model.ts); las jugadoras solo piden.
 // La «anfitriona» sigue existiendo: es quien pasa las pantallas que se miran y empieza la temporada.
 import { Room, matchMaker, type Client } from "@colyseus/core";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { newRoom, tick, resumeRoom, type RoomState, type Ritmo, type Formato } from "../../src/mp/model";
-import { applyOp, handOver, cleanCustom, type Op } from "../../src/mp/ops";
+import { applyOp, handOver, cleanCustom, canon, type Op } from "../../src/mp/ops";
 import { coreEngine, cleanContent, type Content } from "../../src/mp/engine-core";
 
 const ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -12,7 +13,18 @@ const FMTS: Formato[] = ["normal", "allstars", "winners", "repesca", "suerte", "
 const str = (v: unknown, n: number) => String(v ?? "").slice(0, n);
 const okId = (v: unknown) => typeof v === "string" && /^[a-z0-9]{4,20}$/i.test(v);
 
-export interface JoinOpts { id: string; secret: string; name: string; joined?: number; create?: { season: string; ritmo: Ritmo; fmt?: Formato; ia?: boolean; custom?: RoomState["custom"]; content?: Content }; resume?: RoomState; code?: string }
+// Partidas pausadas: el servidor firma el estado guardado y al reanudar solo acepta lo que firmó él
+// (así nadie se corona editando su partida guardada). Clave: MP_SECRET; sin ella se aceptan como antes.
+const SECRET = process.env.MP_SECRET || "";
+if (!SECRET) console.warn("[salas] sin MP_SECRET: las partidas pausadas se reanudan sin comprobar la firma");
+export const signState = (s: RoomState) => (SECRET ? createHmac("sha256", SECRET).update(canon(s)).digest("hex") : "");
+export function validResume(s: RoomState, sig: unknown): boolean {
+  if (!SECRET) return true;
+  if (typeof sig !== "string" || !/^[0-9a-f]{64}$/.test(sig) || !s || !s.paused) return false;
+  return timingSafeEqual(Buffer.from(signState(s), "hex"), Buffer.from(sig, "hex"));
+}
+
+export interface JoinOpts { id: string; secret: string; name: string; joined?: number; create?: { season: string; ritmo: Ritmo; fmt?: Formato; ia?: boolean; custom?: RoomState["custom"]; content?: Content }; resume?: RoomState; sig?: string; code?: string }
 
 export class Sala extends Room {
   maxClients = 16;
@@ -27,6 +39,7 @@ export class Sala extends Room {
   fast = Number(process.env.MP_FAST || 1);
 
   async onCreate(o: JoinOpts) {
+    if (o.resume && !validResume(o.resume, o.sig)) throw new Error("partida guardada no válida");
     let code = o.resume?.code && /^[A-Z]{5}$/.test(o.resume.code) ? o.resume.code : newCode();
     for (let i = 0; i < 20 && (await matchMaker.query({ roomId: code })).length; i++) code = newCode();
     this.roomId = code;
@@ -90,9 +103,11 @@ export class Sala extends Room {
   private set(n: RoomState) {
     if (!this.s || n === this.s) return;
     this.s = n;
-    this.broadcast("state", { s: n, now: Date.now() });
+    this.broadcast("state", this.payload(n));
   }
-  private sendState(c: Client) { if (this.s) c.send("state", { s: this.s, now: Date.now() }); }
+  private sendState(c: Client) { if (this.s) c.send("state", this.payload(this.s)); }
+  /** Al quedar pausada, va con la firma para guardarla y poder reanudarla. */
+  private payload(s: RoomState) { return { s, now: Date.now(), ...(s.paused ? { sig: signState(s) } : {}) }; }
 
   private beat() {
     if (!this.s) return;

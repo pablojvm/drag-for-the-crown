@@ -235,8 +235,10 @@
   function pickReto() {
     if (twistOf() === "repesca" && !S.flags.repesca && !S.meOut && S.rivals.length + 1 <= REPESCA_AT && S.out.length) return "repescaStand";
     if (S.retoEp && S.retoEp.ep === S.ep) return S.retoEp.tipo;
+    // Partidas guardadas antes de que hubiera retos nuevos: se añaden al final de su orden (el resto no cambia)
+    if (S.order) { const miss = ORDEN_RETOS.filter((t) => t !== "pasarela" && !S.order.includes(t)); if (miss.length) S.order = [...S.order.filter((t) => ORDEN_RETOS.includes(t)), ...shuffle(miss)]; }
     let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
-    if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS; // partidas guardadas con el formato antiguo
+    if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS; // partidas muy antiguas, sin orden
     // La Lalaparuza solo cae con 8 o 16 reinas (cuadro sin ronda previa): si toca antes, se aplaza; si toca ya, se adelanta
     const n = S.rivals.length + 1, p2 = n >= 8 && (n & (n - 1)) === 0;
     if (S.order && ord.length === S.order.length && twistOf() !== "winners") {
@@ -916,11 +918,11 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
             elimination({ winner, bottomRows: pair, top2: rows.slice(0, 2), rows }),
           ),
         );
-      const ut = (then, pre) => untucked({ winner, bottomRows, savedBy: S.savedBy, pre, labOf }, then);
+      const ut = (then) => untucked({ winner, bottomRows, savedBy: S.savedBy, labOf }, then);
       // Siempre Untucked → veredicto (en la temporada del corazón, después la grabación del corazón)
       $("#story-next").addEventListener("click", () =>
         critStep(() => confesionario(() =>
-          tw === "corazon" ? ut(() => verdict(() => heartReveal(toLipSync)), true) : ut(() => verdict(toLipSync), true),
+          tw === "corazon" ? ut(() => verdict(() => heartReveal(toLipSync))) : ut(() => verdict(toLipSync)),
         )),
       );
     };
@@ -1311,15 +1313,10 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     const opts = [];
     const add = (q, kind, label) => q && q !== S.queen && S.rivals.includes(q) && !opts.some((o) => o.q === q) && opts.push({ q, kind, label });
     if (res.savedBy) add(res.savedBy, "gracias", "🙏 Darle las gracias por salvarte");
-    if (res.pre) {
-      // Antes del veredicto nadie sabe nada: te acercas a quien quieras a comentar las críticas
-      // Lo que se habla depende de las críticas que ha escuchado cada una (eso sí lo saben todas)
-      const tone = (q) => { const r = res.labOf && [...res.labOf.keys()].find((x) => x.q === q); const l = r ? res.labOf.get(r) : ""; return /WIN|TOP2|HIGH/.test(l) ? "ganadoraPre" : /BTM|LOW/.test(l) ? "bottomPre" : "charlaPre"; };
-      shuffle(S.rivals).slice(0, 2).forEach((q) => add(q, tone(q), "💬 Comentar las críticas"));
-    } else {
-      if (!res.winner.me) add(res.winner.q, "ganadora", "👑 Felicitar a la ganadora");
-      res.bottomRows.filter((r) => !r.me).forEach((r) => add(r.q, "bottom", "🫂 Animar a una del bottom"));
-    }
+    // Antes del veredicto nadie sabe nada: te acercas a quien quieras a comentar las críticas
+    // Lo que se habla depende de las críticas que ha escuchado cada una (eso sí lo saben todas)
+    const tone = (q) => { const r = res.labOf && [...res.labOf.keys()].find((x) => x.q === q); const l = r ? res.labOf.get(r) : ""; return /WIN|TOP2|HIGH/.test(l) ? "ganadoraPre" : /BTM|LOW/.test(l) ? "bottomPre" : "charlaPre"; };
+    shuffle(S.rivals).slice(0, 2).forEach((q) => add(q, tone(q), "💬 Comentar las críticas"));
     const ally = allies()[0];
     if (ally) add(ally, "aliada", "💞 Hablar con tu aliada");
     const nq = nemActive();
@@ -1342,7 +1339,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         if (o.kind === "nemesis") {
           const meB = res.bottomRows.some((r) => r.me), herB = res.bottomRows.some((r) => r.q === o.q);
           const kb = meB && !herB ? "gloat" : res.winner.me ? "envidia" : "tension";
-          const k = res.pre && kb !== "tension" ? kb + "Pre" : kb;
+          const k = kb !== "tension" ? kb + "Pre" : kb;
           return scene("untucked", NEMESIS.untucked[k] || NEMESIS.untucked.tension, { ...ctx, q: { r1: o.q }, r1: o.q.name, tension: true }, then, nemChoices());
         }
         if (o.kind === "gracias") {
@@ -1354,7 +1351,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         const rr = roleOf(o.q);
         if (rr && Math.random() < 0.5) {
           reveal(o.q);
-          const base = o.kind === "enemiga" ? HISTORIA.untucked.enemiga[0] : pickFresh(HISTORIA.untucked[res.pre && HISTORIA.untucked[o.kind + "Pre"] ? o.kind + "Pre" : o.kind]);
+          const base = o.kind === "enemiga" ? HISTORIA.untucked.enemiga[0] : pickFresh(HISTORIA.untucked[HISTORIA.untucked[o.kind + "Pre"] ? o.kind + "Pre" : o.kind]);
           const lines = [["r1", pick1(rr.untucked)], ...base];
           if (o.kind === "enemiga") return scene("untucked", lines, ctx, then, HISTORIA.untucked.enemigaChoices);
           return scene("untucked", lines, ctx, () => {
@@ -1363,7 +1360,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           });
         }
         if (o.kind === "enemiga") return scene("untucked", HISTORIA.untucked.enemiga[0], ctx, then, HISTORIA.untucked.enemigaChoices);
-        scene("untucked", pickFresh(HISTORIA.untucked[res.pre && HISTORIA.untucked[o.kind + "Pre"] ? o.kind + "Pre" : o.kind]), ctx, () => {
+        scene("untucked", pickFresh(HISTORIA.untucked[HISTORIA.untucked[o.kind + "Pre"] ? o.kind + "Pre" : o.kind]), ctx, () => {
           changeRel(o.q, o.kind === "bottom" ? 2 : 1);
           then();
         });
@@ -1393,8 +1390,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     if (repescaNow()) return tripleLipSync(bottomRows, winner, rows);
     if (meBottom) return lipSync(others[0], false);
     const [a, b] = others;
-    // Doble sashay (muy raro, y nunca en el estreno)
-    if (!S.flags.dsashay && S.ep >= 2 && twistOf() !== "repesca" && S.rivals.length >= 7 && Math.random() < 0.08) {
+    // Doble sashay: solo si las dos del bottom lo han hecho fatal (nunca en el estreno, como mucho una vez)
+    if (!S.flags.dsashay && S.ep >= 2 && twistOf() !== "repesca" && S.rivals.length >= 7 && bottomRows.every((r) => (r.s ?? 50) <= 35) && Math.random() < 0.5) {
       S.flags.dsashay = true;
       eliminate(a);
       eliminate(b);
@@ -1785,7 +1782,8 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
           if (S.out.includes(rival) && !S.rivals.includes(rival)) { S.out = S.out.filter((q) => q !== rival); S.rivals.push(rival); logEv(`${rival.name} vuelve a la competición con la Segunda Oportunidrag`); }
           return aftermath(rival, "La Segunda Oportunidrag no ha salido bien.");
         }
-        if (!res.won && !forCrown && !S.flags.dshantay && Math.random() < 0.15) {
+        // Doble shantay: solo si has perdido por muy poco (y como mucho una vez por temporada)
+        if (!res.won && !forCrown && !S.flags.dshantay && (res.ratio || 0) >= 0.9 && Math.random() < 0.5) {
           S.flags.dshantay = true;
           Achievements.unlock("doble-shantay");
           body().innerHTML = `

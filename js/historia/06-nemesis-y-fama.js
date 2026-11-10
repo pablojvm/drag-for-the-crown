@@ -53,7 +53,7 @@
     if (RASGOS.deb[deb].cat === fort) deb = "provocable";
     return { fort, deb, car: pick(RASGOS.car, 11) };
   }
-  const RETO_CAT = { repescaStand: "comedia", snatch: "comedia", roast: "comedia", impro: "comedia", publicidad: "comedia", rusical: "baile", equipos: "baile", lalaparuza: "baile", diseno: "costura", ball: "costura", makeover: "costura", actuacion: "comedia" };
+  const RETO_CAT = { repescaStand: "comedia", snatch: "comedia", roast: "comedia", impro: "comedia", publicidad: "comedia", rusical: "baile", equipos: "baile", lalaparuza: "baile", diseno: "costura", ball: "costura", makeover: "costura", actuacion: "comedia", talkshow: "comedia", branding: "comedia" };
   // Efecto de los rasgos y del poder en la nota de una reina
   function traitMod(q) {
     const t = traitsOf(q), cat = RETO_CAT[S.curTipo];

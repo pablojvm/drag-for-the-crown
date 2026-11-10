@@ -553,3 +553,15 @@ body:has(.nx-dlg) .nx-ts-panel { visibility: hidden; }
 .nx-panel h1, .nx-panel h2 { overflow-wrap: anywhere; }
 @media (max-width: 560px) { .nx-ts-panel > h2 { font-size: 20px; } }
 .nx-panel h2.nx-email { font-size: clamp(16px, 4.6vw, 26px); overflow-wrap: normal; }
+
+/* Track record del modo historia en el motor nuevo */
+.nx-htrack { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; z-index: 5; pointer-events: auto; }
+.nx-htrack-card { width: min(1100px, 100%); max-height: calc(100% - 8px); overflow: auto; text-align: center; }
+.nx-htrack-note { margin: 0 0 6px; color: var(--nx-muted); font-size: 14px; }
+.nx-htrack-next { margin-top: 8px; }
+@media (max-width: 600px) {
+  .nx-htrack { padding: 8px; }
+  .nx-htrack .nx-track td.qn { min-width: 128px; padding: 0 6px; white-space: normal; line-height: 1.15; }
+  .nx-htrack .nx-track td.qn i { width: 26px; height: 26px; margin-right: 5px; }
+  .nx-htrack .nx-track td { min-width: 52px; }
+}

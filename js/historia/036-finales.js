@@ -153,6 +153,8 @@
         };
         return step();
       }
+      // Solo dos finalistas: no hay semifinales, se vota directamente
+      if (sd.length <= 2) return voteFinal(sd[0], sd[1] || sd[0], losers, four);
       const pairs = sd.length >= 4 ? [[sd[0], sd[3]], [sd[1], sd[2]]] : [[sd[1], sd[2]]];
       const winners = sd.length === 3 ? [sd[0]] : [];
       let k = 0;
