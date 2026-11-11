@@ -3102,3 +3102,20 @@ body.portrait .ls-right .shop-legend { display: none; }
 .wr-body img { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 150%; height: 200% !important; max-width: none; object-fit: contain; object-position: center top; }
 .wr-seat:not([disabled]):hover .wr-body img { transform: translateX(-50%); }
 .wr-seats { gap: 6px; }
+/* Ventanas que van fuera del escenario escalado (eligen reparto, track record, tienda, avisos):
+   en el móvil nunca más anchas que la pantalla */
+:is(.cc-modal, .track-modal, .shop-modal) { grid-template-columns: minmax(0, 1fr); box-sizing: border-box; }
+:is(.cc-modal, .track-modal, .shop-modal) > * { width: min(var(--mw, 1100px), 100%) !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box; justify-self: center; }
+@media (max-width: 600px) {
+  :is(.cc-modal, .track-modal, .shop-modal) { padding: 10px; }
+  .cc-box { padding: 14px; border-radius: 20px; max-height: 88vh; }
+  .cc-box h3 { font-size: 22px; }
+  .cc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .cc-q { padding: 6px; font-size: 11px; }
+  .cc-q i { width: 100%; height: auto; aspect-ratio: 1; }
+}
+@media (max-width: 600px) { .cc-bar { flex-wrap: wrap; gap: 8px; } .cc-bar > span { flex: 1 0 100%; } .cc-bar .btn { flex: 1; } }
+@media (max-width: 600px) { .cc-bar .btn { font-size: 14px; padding: 10px 12px; } }
+/* (más fuerte que la regla de vertical que fija las tarjetas a 690px del escenario) */
+body.portrait > :is(.cc-modal, .track-modal, .shop-modal) > * { width: min(var(--mw, 1100px), 100%) !important; max-width: 100% !important; }
+body.portrait > .track-modal .story-card { padding: 16px 14px; }
