@@ -5,7 +5,7 @@ import { MINIS, miniRival } from "../core/taller";
 import { MAXI } from "../core/maxi";
 import { criticaJurado, NOMBRE_JURADO } from "../core/criticas";
 import { TEMAS_PASARELA } from "../core/temas";
-import { REINAS_ES, queenStats, baseAttrs, type QAttr } from "../core/reinas";
+import { REINAS_ES, queenStats, baseAttrs, pasarelaAttr, QATTRS, type QAttr } from "../core/reinas";
 import { tirarDado, notaDe, clamp } from "../core/dado";
 import { BALANCE } from "../core/balance";
 
@@ -14,8 +14,8 @@ export interface Content { retos?: (Reto & { attrs?: QAttr[] })[]; categorias?: 
 const MP_RETOS = ["snatch", "roast", "rusical", "actuacion", "diseno", "makeover", "impro"];
 /** Retos por grupos (de cuántas): los mismos que en el modo historia. */
 const GRUPOS: Record<string, number> = { equipos: 3, impro: 3, publicidad: 2 };
-const ATTRS: Record<string, QAttr[]> = { diseno: ["estilo"], repescaStand: ["comedia", "carisma"] };
-const QA: QAttr[] = ["comedia", "carisma", "estilo", "performance", "maquillaje"];
+const ATTRS: Record<string, QAttr[]> = { diseno: ["costura", "moda"], repescaStand: ["comedia", "improvisacion"] };
+const QA: QAttr[] = QATTRS;
 const s = (v: unknown, n: number) => String(v ?? "").slice(0, n);
 
 /** Limpia lo que manda el cliente (tamaños y tipos), para no guardar cualquier cosa en la sala. */
@@ -34,7 +34,10 @@ const defaultRetos = (): Reto[] =>
   MP_RETOS.map((k) => ({ tipo: k, titulo: MAXI[k]?.titulo || (k === "diseno" ? "Reto de diseño" : k), desc: "", noRunway: !!MAXI[k]?.noRunway, ...(GRUPOS[k] ? { groups: GRUPOS[k] } : {}) }));
 
 export function coreEngine(content: () => Content, rnd: () => number = Math.random): Engine {
-  const attrsOfTipo = (tipo: string): QAttr[] => content().retos?.find((r) => r.tipo === tipo)?.attrs || MAXI[tipo]?.attrs || ATTRS[tipo] || ["carisma"];
+  const attrsOfTipo = (tipo: string): QAttr[] => {
+    const own = (content().retos?.find((r) => r.tipo === tipo)?.attrs || []).filter((k) => QA.includes(k));
+    return own.length ? own : MAXI[tipo]?.attrs || ATTRS[tipo] || ["carisma"];
+  };
   const name = (id: string) => content().names?.[id] || REINAS_ES[id]?.name || id;
   const power = (id: string) => { const st = queenStats(id); return 40 + (st.speed + st.rate + st.power + st.lives) * 2; };
   return {
@@ -45,7 +48,7 @@ export function coreEngine(content: () => Content, rnd: () => number = Math.rand
       const keys = attrsOfTipo(tipo);
       const v = keys.reduce((t, k) => t + a[k], 0) / keys.length;
       const noRunway = !!(MAXI[tipo]?.noRunway || content().retos?.find((r) => r.tipo === tipo)?.noRunway);
-      return clamp(notaDe(tirarDado(noRunway ? v : v * 0.7 + a.estilo * 0.3, rnd), rnd()), 5, 99);
+      return clamp(notaDe(tirarDado(noRunway ? v : v * 0.7 + pasarelaAttr(a) * 0.3, rnd), rnd()), 5, 99);
     },
     simLS: (a, b) => {
       const L = BALANCE.lipSync;
@@ -60,7 +63,7 @@ export function coreEngine(content: () => Content, rnd: () => number = Math.rand
     miniScore: (q, id) => {
       const a = baseAttrs(q, queenStats(q));
       const m = MINIS.find((x) => x.id === id);
-      return miniRival(m ? a[m.attr] : (a.carisma + a.performance + a.estilo) / 3, rnd);
+      return miniRival(m ? a[m.attr] : (a.carisma + a.baile + a.moda) / 3, rnd);
     },
     rnd,
     repesca: () => content().repesca || { tipo: "repescaStand", titulo: "Segunda Oportunidrag: stand-up en parejas", desc: "Las eliminadas vuelven al taller y hacen un monólogo a dúo con una reina en competición.", noRunway: true },

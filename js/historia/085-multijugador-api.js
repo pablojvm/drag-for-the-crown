@@ -177,8 +177,8 @@
       const [, t, at] = EMOTES[emoteIdx % EMOTES.length];
       return [
         { k: "Emote", t, d: `Energía −45 · ${ATTR_NAMES[at]}${clim ? " · ¡Momento perfecto!" : " · Mejor en el clímax"}` },
-        { k: "Cara", t: "💗 Conexión emocional", d: `Energía −10 · Carisma ${A("carisma")}${lastTag === "Cara" ? " · ⚠️ ya lo has hecho" : ""}` },
-        { k: "Escenario", t: "🌀 Uso del espacio", d: `Energía −15 · Performance ${A("performance")}${lastTag === "Escenario" ? " · ⚠️ ya lo has hecho" : ""}` },
+        { k: "Cara", t: "💗 Conexión emocional", d: `Energía −10 · Carisma y Lipsync ${Math.round((A("carisma") + A("lipsync")) / 2)}${lastTag === "Cara" ? " · ⚠️ ya lo has hecho" : ""}` },
+        { k: "Escenario", t: "🌀 Uso del espacio", d: `Energía −15 · Baile y Lipsync ${Math.round((A("baile") + A("lipsync")) / 2)}${lastTag === "Escenario" ? " · ⚠️ ya lo has hecho" : ""}` },
       ];
     },
     /** Resultado de un movimiento del duelo con los atributos de tu reina (las mismas reglas que el lip sync de siempre). */

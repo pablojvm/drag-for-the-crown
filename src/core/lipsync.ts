@@ -1,14 +1,17 @@
 // Lip sync por energía (las reglas del modo historia): seis movimientos en tres partes de la canción.
 // Lo usan el modo historia, el duelo del multijugador y la escena del motor nuevo.
 
-export type Attr = "performance" | "carisma" | "estilo";
-export type LsAttrs = Record<Attr, number>; // de 1 a 10
+/** Habilidades que cuentan en el escenario (lip sync y pasarela), de 1 a 10. */
+export type Attr = "lipsync" | "baile" | "carisma" | "costura" | "moda";
+export type LsAttrs = Record<Attr, number>;
+/** Se queda solo con lo que cuenta en el escenario. */
+export const stageAttrs = (a: Record<Attr, number>): LsAttrs => ({ lipsync: a.lipsync, baile: a.baile, carisma: a.carisma, costura: a.costura, moda: a.moda });
 
 /** Trucos: [clave, nombre, atributo, dificultad, impacto en el clímax]. */
 export const EMOTES: [string, string, Attr, number, number][] = [
-  ["revelacion", "🎁 Revelación", "estilo", 52, 66],
-  ["caida", "💥 La caída (death drop)", "performance", 56, 76],
-  ["split", "🤸 Split", "performance", 46, 60],
+  ["revelacion", "🎁 Revelación", "costura", 52, 66],
+  ["caida", "💥 La caída (death drop)", "lipsync", 56, 76],
+  ["split", "🤸 Split", "baile", 46, 60],
 ];
 /** Repetir el mismo movimiento aburre al público. */
 export const REPITE = 0.65;
@@ -35,10 +38,10 @@ export function lsMove(o: { kind: LsKind; emote: number; clim: boolean; energy: 
   const cara = o.kind === "Cara";
   const cost = cara ? 10 : 15, rep = o.lastTag === o.kind;
   if (o.energy < cost) return { tag: o.kind, imp: 2, energy: o.energy, ok: false, msg: "Sin energía: ni se mueve." };
-  const imp = (cara ? 8 + o.attrs.carisma * 1.6 : 12 + o.attrs.performance * 2) * (rep ? REPITE : 1);
+  const imp = (cara ? 8 + ((o.attrs.carisma + o.attrs.lipsync) / 2) * 1.6 : 12 + ((o.attrs.baile + o.attrs.lipsync) / 2) * 2) * (rep ? REPITE : 1);
   return { tag: o.kind, imp: Math.round(imp * 10) / 10, energy: o.energy - cost, ok: true, msg: rep ? "Repite movimiento... el público ya lo ha visto." : cara ? "Cada palabra la siente. Se le ve en los ojos." : "Se come el escenario de punta a punta." };
 }
 
 /** Fuerza de la rival en el lip sync (lo que hay que superar). `form` y `boost` vienen de la temporada. */
 export const rivalStrength = (a: LsAttrs, o: { form?: number; boost?: number; noise: number }) =>
-  Math.min(175, Math.max(45, 35 + (a.performance + a.carisma) * 6.5 + Math.max(-6, Math.min(6, o.form || 0)) + (o.boost || 0) * 0.5 + o.noise));
+  Math.min(175, Math.max(45, 35 + (a.lipsync + (a.baile + a.carisma) / 2) * 6.5 + Math.max(-6, Math.min(6, o.form || 0)) + (o.boost || 0) * 0.5 + o.noise));

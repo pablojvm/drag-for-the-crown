@@ -318,7 +318,7 @@ const UI = (() => {
       // Modo historia: sus atributos de historia (1-10), no las estadísticas del arcade
       const P = Story.preview(q);
       const up = Mejoras.of(q.id);
-      // Mejoras de reina: +1 a un atributo con rudollars (hasta 2 por atributo)
+      // Mejoras de reina: +1 a una habilidad con rudollars (hasta 2 por habilidad)
       $("#det-stats").innerHTML =
         Object.entries(P.attrs)
           .map(([k, v]) => `
@@ -329,7 +329,7 @@ const UI = (() => {
           ${locked ? "" : Mejoras.can(q.id, k, v) ? `<button class="up-btn" data-k="${k}" data-v="${v}" title="Mejorar ${esc(P.names[k])}">+1 · ${Mejoras.cost(q.id, k, v).toLocaleString("es-ES")} 💵</button>` : `<span class="up-max">${(up[k] || 0) ? "MAX" : ""}</span>`}
         </div>`)
           .join("") +
-        `<p class="wallet-line">💵 Tienes <b class="rudollars">${Rudollars.balance.toLocaleString("es-ES")}</b> rudollars · cada atributo se puede mejorar dos veces</p>` +
+        `<p class="wallet-line">💵 Tienes <b class="rudollars">${Rudollars.balance.toLocaleString("es-ES")}</b> rudollars · cada habilidad se puede mejorar dos veces</p>` +
         `<p class="wallet-line">${P.fort ? `${P.fort.icon} Fortaleza: <b>${esc(P.fort.n)}</b> · ${esc(P.fort.d)}` : ""}</p>` +
         (P.titles.length ? `<p class="wallet-line">👑 Coronas en historia: <b>${P.titles.map(esc).join(", ")}</b></p>` : "");
       $("#det-stats").querySelectorAll(".up-btn").forEach((b) =>

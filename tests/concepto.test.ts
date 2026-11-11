@@ -25,8 +25,8 @@ describe("pasarela con concepto (núcleo)", () => {
   });
   it("la nota sigue la fórmula del modo historia", () => {
     const v = { concepto: 80, coherencia: 70, desfile: 60 };
-    expect(conceptScore({ v, estilo: 5, performance: 5, cat: "x" })).toBe(71);
-    expect(conceptScore({ v, estilo: 5, performance: 5, cat: "Érase una vez… mi reveal", reveal: true, ana: anaBonus("buena") })).toBe(83);
+    expect(conceptScore({ v, moda: 5, carisma: 5, cat: "x" })).toBe(71);
+    expect(conceptScore({ v, moda: 5, carisma: 5, cat: "Érase una vez… mi reveal", reveal: true, ana: anaBonus("buena") })).toBe(83);
     expect(anaBonus("mala")).toBe(-6);
     expect(anaBonus("regular")).toBe(0);
   });

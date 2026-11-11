@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { lsMove, checkChance, rivalStrength, REPITE } from "../src/core/lipsync";
 
-const attrs = { performance: 7, carisma: 6, estilo: 5 };
+const attrs = { lipsync: 7, baile: 7, carisma: 6, costura: 5, moda: 5 };
 
 describe("lip sync", () => {
   it("el truco en el clímax con éxito es lo que más conecta", () => {
@@ -21,6 +21,6 @@ describe("lip sync", () => {
   it("probabilidad acotada y rival más fuerte con mejores atributos", () => {
     expect(checkChance(1, 90)).toBe(0.08);
     expect(checkChance(10, 10)).toBe(0.95);
-    expect(rivalStrength({ performance: 9, carisma: 9, estilo: 5 }, { noise: 0 })).toBeGreaterThan(rivalStrength({ performance: 3, carisma: 3, estilo: 5 }, { noise: 0 }));
+    expect(rivalStrength({ lipsync: 9, baile: 9, carisma: 9, costura: 5, moda: 5 }, { noise: 0 })).toBeGreaterThan(rivalStrength({ lipsync: 3, baile: 3, carisma: 3, costura: 5, moda: 5 }, { noise: 0 }));
   });
 });

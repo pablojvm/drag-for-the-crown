@@ -75,9 +75,9 @@ export const parseVerdict = (r: any): Verdict => ({
   ok: !!r,
 });
 
-/** Nota de la pasarela con concepto. `estilo` y `performance` van de 1 a 10. */
-export function conceptScore(o: { v: Pick<Verdict, "concepto" | "coherencia" | "desfile">; estilo: number; performance: number; reveal?: boolean; cat: string; ana?: number }) {
-  let s = o.v.concepto * 0.35 + o.v.coherencia * 0.4 + o.v.desfile * 0.25 + (o.estilo - 5) + (o.performance - 5) * 0.5;
+/** Nota de la pasarela con concepto. `moda` y `carisma` van de 1 a 10. */
+export function conceptScore(o: { v: Pick<Verdict, "concepto" | "coherencia" | "desfile">; moda: number; carisma: number; reveal?: boolean; cat: string; ana?: number }) {
+  let s = o.v.concepto * 0.35 + o.v.coherencia * 0.4 + o.v.desfile * 0.25 + (o.moda - 5) + (o.carisma - 5) * 0.5;
   if (o.reveal && /reveal/i.test(o.cat)) s += 6;
   s += o.ana || 0;
   return clamp(Math.round(s), 0, 100);

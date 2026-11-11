@@ -6,9 +6,9 @@ import { BALANCE } from "./balance";
 import { tirarDado, notaDe, notaTuJuego, nivelNota, clamp } from "./dado";
 import { bottomSize, weekLabels, previousRank, asLike } from "./week";
 import { ppe } from "./track";
-import { TEMPORADAS_ES, REINAS_ES, queenStats, baseAttrs, lookRival, type Attrs, type QAttr, type Temporada } from "./reinas";
+import { TEMPORADAS_ES, REINAS_ES, queenStats, baseAttrs, lookRival, pasarelaAttr, type Attrs, type QAttr, type Temporada } from "./reinas";
 import { TEMAS_PASARELA } from "./temas";
-import { MAXI } from "./maxi";
+import { MAXI, talentoDe } from "./maxi";
 import { criticaJurado, type Habla } from "./criticas";
 import { HISTORIA, TEMPORADAS_HISTORIA } from "./historia";
 import { rescueFromBottom, coinResult, lipstickKind } from "./dinamicas";
@@ -194,10 +194,8 @@ export function newSeason(seasonId: string, queen: string, seed: number, rnd: ()
   const t = seasonById(seasonId)!;
   const rivals = (castIds || t.cast).filter((id) => id !== queen);
   const twist = twistOf(seasonId);
-  // Retos: el de la primera semana, individual y con pasarela
-  const plan = shuffle(Object.keys(MAXI).filter((k) => !MAXI[k].special), rnd);
-  const first = plan.findIndex((k) => !MAXI[k].team && !MAXI[k].noRunway);
-  plan.unshift(...plan.splice(first, 1));
+  // Retos: la temporada abre con el talent show (como en el programa) y después, el resto al azar
+  const plan = ["talento", ...shuffle(Object.keys(MAXI).filter((k) => !MAXI[k].special), rnd)];
   const temas = shuffle(TEMAS_PASARELA.filter((x) => !x.rv).map((x) => x.n), rnd);
   const s: Season = {
     v: 2, seasonId, twist, queen, cast: [ME, ...rivals], seed, ep: 0, phase: "anuncio", alive: [ME, ...rivals], out: [], meOut: false,
@@ -241,7 +239,9 @@ function nextWeekRaw(s: Season, rnd: () => number): Season {
     const week: Week = { tipo: "lalaparuza", titulo: MAXI.lalaparuza.titulo, tema: "", adv: 0, mini: { id: MINIS[(ep - 1) % MINIS.length].id }, lala: lalaStart(ranked, asLike(s.twist)) };
     return { ...base, lzDone: true, phase: inGame(s) ? "anuncio" : "fuera", week };
   }
-  const tipo = s.plan[(ep - 1) % s.plan.length];
+  // Si la temporada da la vuelta al plan, el talent show no se repite
+  const vuelta = ep > s.plan.length ? s.plan.filter((k) => k !== "talento") : s.plan;
+  const tipo = vuelta[(ep - 1) % vuelta.length];
   const week: Week = { tipo, titulo: MAXI[tipo].titulo, tema: s.temas[(ep - 1) % s.temas.length], adv: 0, mini: { id: MINIS[(ep - 1) % MINIS.length].id } };
   if (MAXI[tipo].team) {
     // Capitanas: las mejores del capítulo anterior. Eligen por turnos (cada una tira de sus aliadas y de las fuertes)
@@ -266,14 +266,16 @@ function nextWeekRaw(s: Season, rnd: () => number): Season {
   return { ...base, phase: inGame(s) ? "anuncio" : "fuera", week };
 }
 
-/** Lo que cuenta en el reto: los atributos que pide, con el estilo por la pasarela. */
-export function retoAttr(a: Attrs, keys: QAttr[], noRunway = false) {
+/** Lo que cuenta en el reto: las habilidades que pide, con moda y carisma por la pasarela. */
+export function retoAttr(a: Attrs, keys: QAttr[], noRunway = false, tipo = "") {
+  // En el talent show cuenta el talento que elige cada una (el que mejor se le da)
+  if (tipo === "talento") keys = talentoDe(a).attrs;
   const v = keys.reduce((t, k) => t + a[k], 0) / keys.length;
-  return noRunway ? v : v * 0.7 + a.estilo * 0.3;
+  return noRunway ? v : v * 0.7 + pasarelaAttr(a) * 0.3;
 }
 export function rivalScore(s: Season, key: string, rnd: () => number, tipo = s.week!.tipo) {
   const extra = seasonBoost(s) / 5 + clamp(s.form[key] || 0, -8, 8) / 6;
-  return clamp(notaDe(tirarDado(retoAttr(attrsOf(s, key), MAXI[tipo].attrs, MAXI[tipo].noRunway) + extra, rnd), rnd()), 5, 99);
+  return clamp(notaDe(tirarDado(retoAttr(attrsOf(s, key), MAXI[tipo].attrs, MAXI[tipo].noRunway, tipo) + extra, rnd), rnd()), 5, 99);
 }
 /** Aliadas suman y enemigas restan (como en el modo historia). */
 export const relBonus = (s: Season) => {
@@ -287,7 +289,7 @@ export function myScore(s: Season, rnd: () => number) {
   const reto = Math.min(100, (w.reto ?? 50) + (w.adv || 0));
   const raw = w.runway == null || def.noRunway ? reto : reto * 0.65 + w.runway * 0.35;
   const played = clamp(raw + relBonus(s), 0, 100);
-  return notaTuJuego(played, retoAttr(attrsOf(s, ME), def.attrs, def.noRunway) + seasonBoost(s) / 10, rnd);
+  return notaTuJuego(played, retoAttr(attrsOf(s, ME), def.attrs, def.noRunway, w.tipo) + seasonBoost(s) / 10, rnd);
 }
 
 /** Resultados de la semana: clasificación, etiquetas y bottom (o top 2 en All Stars y All Winners). */

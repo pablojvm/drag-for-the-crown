@@ -27,9 +27,17 @@ const Rudollars = {
     document.querySelectorAll(".rudollars").forEach((el) => (el.textContent = this.balance.toLocaleString("es-ES")));
   },
 };
-// Mejoras de reina en la historia: +1 a un atributo (hasta 2 por atributo), con rudollars
+// Mejoras de reina en la historia: +1 a una habilidad (hasta 2 por habilidad), con rudollars
 const Mejoras = {
-  all() { return store.get("dftc-mejoras", {}); },
+  all() {
+    const all = store.get("dftc-mejoras", {});
+    // Las mejoras de antes (performance y estilo) pasan a las habilidades nuevas
+    if (Object.values(all).some((m) => m && ("performance" in m || "estilo" in m))) {
+      for (const id of Object.keys(all)) all[id] = DFTC.migraAttrs(all[id]);
+      store.set("dftc-mejoras", all);
+    }
+    return all;
+  },
   of(id) { return this.all()[id] || {}; },
   cost(id, k, valor) { return DFTC.costeMejora(this.of(id)[k] || 0, valor); },
   can(id, k, valor) { return DFTC.puedeMejorar(this.of(id)[k] || 0, valor); },

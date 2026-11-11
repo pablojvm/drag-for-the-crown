@@ -953,7 +953,7 @@
   // ===========================================================================
   //  ATRIBUTOS, MOTOR DE DECISIONES, MAXI RETOS, PASARELA Y LIP SYNC
   // ===========================================================================
-  // Atributos (1-10): salen de las estadísticas de la reina, con su toque propio (src/core/reinas.ts)
+  // Habilidades (2-10): salen de las estadísticas de la reina, con su toque propio (src/core/reinas.ts)
   const ATTR_NAMES = DFTC.ATTR_NAMES;
   const baseAttrs = (q, st) => DFTC.baseAttrs(q.id, st);
   const hashN = (str, k) => {
@@ -971,10 +971,12 @@
     const st = q === S.queen ? Object.fromEntries(Object.keys(q.stats).map((k) => [k, Math.min(up[k], q.stats[k] + 1)])) : q.stats;
     // Tu reina, con las mejoras que le has comprado con rudollars (en el multijugador no cuentan: es otra economía)
     const a = q === S.queen && !S.mp ? Mejoras.apply(q.id, baseAttrs(q, st)) : baseAttrs(q, st);
-    if (q === S.queen) Object.entries(S.attrGrowth || {}).forEach(([k, v]) => (a[k] = clamp(a[k] + v, 1, 10)));
+    if (q === S.queen) Object.entries(DFTC.migraAttrs(S.attrGrowth)).forEach(([k, v]) => (a[k] = clamp(a[k] + v, 1, 10)));
     return a;
   }
   const A = (k) => attrsOf(S.queen)[k];
+  // Talent show: tu talento es el que elegiste; el de las demás, el que mejor se les da
+  const talentoDe = (q) => (q === S.queen && S.talento && S.talento.ep === S.ep ? DFTC.talentoPorClave(S.talento.k) : DFTC.talentoDe(attrsOf(q)));
   function check(keys, diff) {
     const v = (keys.reduce((a, k) => a + A(k), 0) / keys.length) * 10;
     const p = clamp(0.5 + (v - diff) / 70, 0.08, 0.95);
@@ -984,7 +986,7 @@
   const attrChips = (keys) => keys.map((k) => `<span class="attr-chip">${ATTR_NAMES[k]} <b>${A(k)}</b></span>`).join("");
   function growAttr(k) {
     if (!k) return;
-    S.attrGrowth = S.attrGrowth || {};
+    S.attrGrowth = DFTC.migraAttrs(S.attrGrowth);
     if (A(k) >= 10) return;
     S.attrGrowth[k] = (S.attrGrowth[k] || 0) + 1;
     Toast.show(`📈 +1 en ${ATTR_NAMES[k]}`, `Ahora tienes ${A(k)}`);

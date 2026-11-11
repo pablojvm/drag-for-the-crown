@@ -43,24 +43,20 @@
       return true;
     },
   };
-  // Rasgos fijos de cada reina (salen de su nombre: siempre los mismos)
-  function traitsOf(q) {
-    let h = 0;
-    for (const c of String(q.id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-    const pick = (o, salt) => { const k = Object.keys(o); return k[(h >>> salt) % k.length]; };
-    const fort = pick(RASGOS.fort, 0);
-    let deb = pick(RASGOS.deb, 5);
-    if (RASGOS.deb[deb].cat === fort) deb = "provocable";
-    return { fort, deb, car: pick(RASGOS.car, 11) };
-  }
-  const RETO_CAT = { repescaStand: "comedia", snatch: "comedia", roast: "comedia", impro: "comedia", publicidad: "comedia", rusical: "baile", equipos: "baile", lalaparuza: "baile", diseno: "costura", ball: "costura", makeover: "costura", actuacion: "comedia", talkshow: "comedia", branding: "comedia" };
+  // Rasgos fijos de cada reina (salen de su nombre: siempre los mismos; src/core/reinas.ts)
+  const traitsOf = (q) => DFTC.traitsOf(String(q.id));
+  const RETO_CAT = { repescaStand: "comedia", snatch: "comedia", roast: "comedia", impro: "comedia", publicidad: "comedia", rusical: "baile", equipos: "baile", lalaparuza: "baile", diseno: "costura", ball: "costura", makeover: "costura", actuacion: "comedia", talkshow: "comedia", branding: "comedia", talento: "talento" };
+  // Lo que cuenta en el reto de la semana para una reina (en el talent show, el talento que ha elegido)
+  const retoKeysOf = (q, tipo = S.curTipo) => (tipo === "talento" && typeof talentoDe === "function" ? talentoDe(q).attrs : (RETOS[tipo] || {}).attrs || []);
+  const fortToca = (q, tipo) => DFTC.rasgoToca(traitsOf(q).fort, retoKeysOf(q, tipo));
+  const debToca = (q, tipo) => DFTC.rasgoToca(RASGOS.deb[traitsOf(q).deb].cat, retoKeysOf(q, tipo));
   // Efecto de los rasgos y del poder en la nota de una reina
   function traitMod(q) {
-    const t = traitsOf(q), cat = RETO_CAT[S.curTipo];
+    const t = traitsOf(q);
     const B = BALANCE.rasgos;
     let m = Math.min(B.poderMax, Nem.power(q.id) * B.poderFactor);
-    if (cat && t.fort === cat) m += B.fortaleza;
-    if (cat && RASGOS.deb[t.deb].cat === cat) m += B.debilidad;
+    if (fortToca(q)) m += B.fortaleza;
+    if (debToca(q)) m += B.debilidad;
     if (t.fort === "pasarela" && !(RETOS[S.curTipo] || {}).noRunway) m += B.pasarela;
     return m;
   }

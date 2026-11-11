@@ -87,6 +87,11 @@ R.comedia = {
   mid: ["Algunos chistes buenos, otros que se quedaron colgando.", "Has empezado fuerte y te has ido desinflando.", "Graciosa, pero te faltó personalidad en el texto."],
   low: ["Eso no era un monólogo, era una lista de la compra.", "El público se reía por pena. Y eso duele verlo.", "Te has quedado en blanco más de lo que has hablado."],
 };
+R.talento = {
+  top: ["Eso es un talento de verdad. Ya sé quién eres y me encanta.", "Has abierto la temporada por todo lo alto. Así se presenta una.", "Ni un segundo de relleno. Ese número podría estar en cualquier gala."],
+  mid: ["Hay talento, pero el número se queda corto.", "Bonito, aunque esperaba más de ti.", "Empiezas fuerte y luego se va apagando."],
+  low: ["No sé muy bien qué talento nos has enseñado.", "Se notaba que no estaba ensayado.", "Te ha podido el directo. Y en este programa el directo lo es todo."],
+};
 R.talkshow = {
   top: ["Has llevado el programa como si llevaras veinte temporadas en antena.", "Sabías cuándo apretar a tu invitada y cuándo dejarla brillar.", "Ese sofá era tuyo. Quiero ver el programa entero."],
   mid: ["Buen arranque, pero en mitad de la entrevista se te fue el ritmo.", "Simpática, pero te faltó tirar de la lengua.", "Algún momento muy bueno y mucho relleno."],

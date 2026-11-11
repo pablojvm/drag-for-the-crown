@@ -7,7 +7,7 @@ import "./beat"; // la música del lip sync sigue a la partida sola
 import { get, set } from "../store";
 
 /** Atributos de lip sync (1 a 10) a partir de las estadísticas del arcade (1 a 5). */
-export const lsAttrs = (q: ArcadeQueen): LsAttrs => ({ performance: q.stats.speed * 2, carisma: Math.min(10, q.stats.lives * 2), estilo: q.stats.power * 2 });
+export const lsAttrs = (q: ArcadeQueen): LsAttrs => ({ lipsync: q.stats.speed * 2, baile: q.stats.speed * 2, carisma: Math.min(10, q.stats.lives * 2), costura: q.stats.power * 2, moda: q.stats.power * 2 });
 
 const RIVAL_LINES = [
   ["{r} arranca muy segura, mirando a cámara.", "{r} empieza con calma, guardándose algo."],

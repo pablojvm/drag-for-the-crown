@@ -31,7 +31,7 @@ describe("retos por decisiones", () => {
     }
   });
   it("el chequeo sigue la fórmula del modo historia", () => {
-    const a = { comedia: 10, carisma: 5, estilo: 5, performance: 5, maquillaje: 5 };
+    const a = { maquillaje: 5, baile: 5, canto: 5, costura: 5, comedia: 10, interpretacion: 5, improvisacion: 5, lipsync: 5, carisma: 5, moda: 5 };
     expect(check(a, ["comedia"], 50, 0.94).ok).toBe(true); // p = 0,5 + 50/70, con tope 0,95
     expect(check(a, ["comedia"], 50, 0.96).ok).toBe(false);
   });

@@ -215,7 +215,7 @@
       const bc = BALLS.flatMap((b) => b.c).find((x) => x[0] === cat);
       const catDesc = TH ? TH.d : bc ? bc[2] : "";
       const catTag = TH ? TH.tag : bc ? bc[1] : CAT_TAG[cat] || lookTag;
-      return window.__dftcAwait("runway", { cat, catDesc, catTag, tag: lookTag, pieces, queen: S.queen.id, concept: IA.ready() && !S.meOut, attrs: { performance: a.performance, carisma: a.carisma, estilo: a.estilo } }, (r) => {
+      return window.__dftcAwait("runway", { cat, catDesc, catTag, tag: lookTag, pieces, queen: S.queen.id, concept: IA.ready() && !S.meOut, attrs: DFTC.stageAttrs(a) }, (r) => {
         const flags = {};
         if (r.concept) flags.concepto = r.concept;
         if (r.reveal) flags.reveal = true;
@@ -309,7 +309,7 @@
       const P = DFTC.judgePrompt({ cat, theme: TH ? TH.d : "", ballCtx: S.ballCtx || "", pieces, concept, picks, reveal: !!flags.reveal, anaAnswer });
       const r = await IA.chat(P.system, P.user, P.opts);
       const v = DFTC.parseVerdict(r);
-      const score = DFTC.conceptScore({ v, estilo: A("estilo"), performance: A("performance"), reveal: !!flags.reveal, cat, ana: anaBonus });
+      const score = DFTC.conceptScore({ v, moda: A("moda"), carisma: A("carisma"), reveal: !!flags.reveal, cat, ana: anaBonus });
       flags.critica = r ? `${v.supreme} ${v.ana}` : null;
       // El jurado no dice nada todavía: su opinión llega en las valoraciones
       el.querySelector(".rw-panel").innerHTML = `
@@ -361,7 +361,7 @@
         { ico: "🖼️", t: "Pose", go: () => { flash(); doll.classList.add("pose"); add(DFTC.momentPoints({ moment: "pose", cat, look: lookTag })); if (/reveal/i.test(cat)) { say("📸 Pose bonita... pero esta pasarela era de REVEAL", "meh"); } else { say("📸 Pose limpia. El fotógrafo, contento.", "good"); } later(step2, 2200); } },
         { ico: "🤡", t: "Comedia", go: () => { doll.classList.add("funny"); const ok = lookTag === "Camp" && !/reveal/i.test(cat); add(DFTC.momentPoints({ moment: "comedia", cat, look: lookTag })); say(ok ? "😂 ¡Carcajada en el jurado!" : "El gesto no casaba con el look...", ok ? "good" : "meh"); later(step2, 2200); } },
         { ico: "🎁", t: "Reveal", go: () => {
-          const c = check(["performance", "carisma"], 60);
+          const c = check(["costura", "carisma"], 60);
           const rvTheme = /reveal/i.test(cat);
           if (c.ok || (rvTheme && S.revealImg && Math.random() < 0.85)) {
             doll.classList.add("spin");
@@ -425,7 +425,7 @@
       const strength = DFTC.rivalStrength(attrsOf(rival), { form: S.form[rival.id] || 0, boost: seasonBoost(), noise: rnd(-12, 12) });
       el.innerHTML = `<div class="story-card"><p class="eyebrow">💋 Lip sync</p><h3>${esc(S.queen.name)} vs ${esc(rival.name)}</h3><p class="muted">En el escenario...</p></div>`;
       Music.stop();
-      return window.__dftcAwait("lipsync", { rival: rival.id, queen: S.queen.id, strength, attrs: { performance: a.performance, carisma: a.carisma, estilo: a.estilo } }, (r) => {
+      return window.__dftcAwait("lipsync", { rival: rival.id, queen: S.queen.id, strength, attrs: DFTC.stageAttrs(a) }, (r) => {
         const mine = (r.mine || 0) + bonus;
         done(mine >= strength, Math.round(Math.min(100, (mine / Math.max(1, strength)) * 60)), mine / Math.max(1, strength));
       });
@@ -455,8 +455,8 @@
               return { pts: m.ok ? (clim ? 100 : 70) : 20, msg: `${txt}<br>${m.ok ? (clim ? "¡El público se levanta!" : "Impresiona... aunque era pronto.") : "¡Uf! Se te va el truco."}` };
             },
           })),
-          { t: "💗 Conexión emocional", d: `Energía −10 · Carisma ${A("carisma")}${st.lastTag === "Cara" ? " · ⚠️ ya lo has hecho" : ""}`, tag: "Cara", go: (s) => { const rep = s.lastTag === "Cara"; const m = DFTC.lsMove({ kind: "Cara", emote: 0, clim, energy: s.energy, lastTag: s.lastTag, attrs: attrsOf(S.queen), roll: 0 }); s.lastTag = "Cara"; s.energy = m.energy; s.mine += m.imp; if (!m.ok) return { pts: 20, msg: "Estás agotada: ni la cara te responde." }; return { pts: rep ? 35 : 55 + A("carisma") * 4, msg: rep ? "Otra vez la misma cara... el público ya lo ha visto." : "Cada palabra la sientes. Se te ve en los ojos." }; } },
-          { t: "🌀 Uso del espacio", d: `Energía −15 · Performance ${A("performance")}${st.lastTag === "Escenario" ? " · ⚠️ ya lo has hecho" : ""}`, tag: "Escenario", go: (s) => { const rep = s.lastTag === "Escenario"; const m = DFTC.lsMove({ kind: "Escenario", emote: 0, clim, energy: s.energy, lastTag: s.lastTag, attrs: attrsOf(S.queen), roll: 0 }); s.lastTag = "Escenario"; s.energy = m.energy; s.mine += m.imp; if (!m.ok) return { pts: 20, msg: "Sin energía para moverte." }; return { pts: rep ? 35 : 55 + A("performance") * 4, msg: rep ? "Otra vuelta por el escenario... el público se empieza a aburrir." : "Te comes el escenario de punta a punta." }; } },
+          { t: "💗 Conexión emocional", d: `Energía −10 · Carisma y Lipsync ${Math.round((A("carisma") + A("lipsync")) / 2)}${st.lastTag === "Cara" ? " · ⚠️ ya lo has hecho" : ""}`, tag: "Cara", go: (s) => { const rep = s.lastTag === "Cara"; const m = DFTC.lsMove({ kind: "Cara", emote: 0, clim, energy: s.energy, lastTag: s.lastTag, attrs: attrsOf(S.queen), roll: 0 }); s.lastTag = "Cara"; s.energy = m.energy; s.mine += m.imp; if (!m.ok) return { pts: 20, msg: "Estás agotada: ni la cara te responde." }; return { pts: rep ? 35 : 55 + (A("carisma") + A("lipsync")) * 2, msg: rep ? "Otra vez la misma cara... el público ya lo ha visto." : "Cada palabra la sientes. Se te ve en los ojos." }; } },
+          { t: "🌀 Uso del espacio", d: `Energía −15 · Baile y Lipsync ${Math.round((A("baile") + A("lipsync")) / 2)}${st.lastTag === "Escenario" ? " · ⚠️ ya lo has hecho" : ""}`, tag: "Escenario", go: (s) => { const rep = s.lastTag === "Escenario"; const m = DFTC.lsMove({ kind: "Escenario", emote: 0, clim, energy: s.energy, lastTag: s.lastTag, attrs: attrsOf(S.queen), roll: 0 }); s.lastTag = "Escenario"; s.energy = m.energy; s.mine += m.imp; if (!m.ok) return { pts: 20, msg: "Sin energía para moverte." }; return { pts: rep ? 35 : 55 + (A("baile") + A("lipsync")) * 2, msg: rep ? "Otra vuelta por el escenario... el público se empieza a aburrir." : "Te comes el escenario de punta a punta." }; } },
         ];
         // Solo un emote al azar por turno para que haya que pensar
         const em = pick1(opts.slice(0, 3));

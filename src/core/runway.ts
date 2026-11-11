@@ -29,14 +29,14 @@ const isReveal = (cat: string) => /reveal/i.test(cat);
 export const walkPoints = (walk: Walk, look: Tag, walkMov = 3) => (walk === WALK_OF_TAG[look] ? 92 : 52) + Math.round((walkMov - 3) * 4);
 
 export type Moment = "pose" | "comedia" | "reveal";
-/** Final de pasarela. Un reveal sale según performance y carisma (o casi seguro si la categoría es de reveal y hay look de reveal). */
+/** Final de pasarela. Un reveal sale según la costura y el carisma (o casi seguro si la categoría es de reveal y hay look de reveal). */
 export function momentPoints(o: { moment: Moment; cat: string; look: Tag; revealOk?: boolean }): number {
   const rv = isReveal(o.cat);
   if (o.moment === "pose") return rv ? 35 : o.look === "Glamour" || o.look === "Edgy" ? 82 : 68;
   if (o.moment === "comedia") return o.look === "Camp" && !rv ? 94 : rv ? 35 : 48;
   return o.revealOk ? 100 : 15;
 }
-export const revealSucceeds = (o: { performance: number; carisma: number; roll: number }) => o.roll < checkChance((o.performance + o.carisma) / 2, 60);
+export const revealSucceeds = (o: { costura: number; carisma: number; roll: number }) => o.roll < checkChance((o.costura + o.carisma) / 2, 60);
 
 export type Voice = "buena" | "otra" | "mala";
 export const voicePoints = (v: Voice) => (v === "buena" ? 96 : v === "otra" ? 55 : 25);

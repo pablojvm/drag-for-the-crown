@@ -60,7 +60,7 @@ describe("pasarela con concepto", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(rw().done).toBe(true);
     expect(rw().picks).toEqual(["entrada: A1", "detalle: D2", "final: F3"]);
-    // 90·0,35 + 85·0,4 + 80·0,25 + (estilo 10 − 5) + (performance 6 − 5)·0,5 + 6 de Ana = 97
+    // 90·0,35 + 85·0,4 + 80·0,25 + (moda 10 − 5) + (carisma 6 − 5)·0,5 + 6 de Ana = 97
     expect(rw().score).toBe(97);
     expect(rw().lines!.supreme).toBe("Me has dejado sin palabras");
     expect(calls.length).toBe(2);
@@ -73,8 +73,8 @@ describe("pasarela con concepto", () => {
     [0, 0, 0].forEach((j) => chooseConceptMoment(j));
     answerAna(rw().qa!.a.findIndex((x) => x.k === "mala"));
     await new Promise((r) => setTimeout(r, 0));
-    // 60 + (6 − 5) + (4 − 5)·0,5 − 6 = 54,5 → 55
-    expect(rw().score).toBe(55);
+    // 60 + (moda 6 − 5) + (carisma 10 − 5)·0,5 − 6 = 57,5 → 58
+    expect(rw().score).toBe(58);
   });
   it("si no llegan los momentos, sale con la pasarela clásica", async () => {
     g.__dftcNextAsk = async () => null;
@@ -99,7 +99,7 @@ describe("pasarela con concepto", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(rw().done).toBe(true);
     expect(rw().lines).toBeNull();
-    expect(rw().score).toBe(56);
+    expect(rw().score).toBe(59);
   });
   it("si se sale de la pasarela, la respuesta que llega tarde no la toca", async () => {
     let release: (v: any) => void = () => {};

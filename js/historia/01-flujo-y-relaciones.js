@@ -27,8 +27,9 @@
     // Roles detrás de cámaras: uno por reina (se descubren jugando)
     const roles = shuffle(ROLES_ORDEN);
     shuffle(rivals).forEach((q, i) => (S.roles[q.id] = i < roles.length ? roles[i] : pick1(["graciosa", "madre", "diva", "sensible", "novata", "estratega"])));
-    // Orden de retos de esta temporada: empieza en pasarela y el Snatch Game llega pronto
-    const rest = shuffle(ORDEN_RETOS.filter((t) => t !== "pasarela" && t !== "snatch"));
+    // Orden de retos de esta temporada: abre el talent show y el Snatch Game llega pronto
+    const rest = shuffle(ORDEN_RETOS.filter((t) => t !== "pasarela" && t !== "snatch" && t !== "talento"));
+    rest.unshift("talento");
     rest.splice(1 + Math.floor(Math.random() * 3), 0, "snatch");
     // La Lalaparuza cae cuando quedan 8 (cuadro limpio, sin ronda previa). Si nunca quedan 8, se va al final del orden
     {
@@ -588,9 +589,9 @@
   // Lo que cuenta en el reto de la semana: los atributos que pide (y el estilo si hay pasarela)
   const retoAttrOf = (q) => {
     const a = attrsOf(q), r = RETOS[S.curTipo] || {};
-    const keys = r.attrs && r.attrs.length ? r.attrs : Object.keys(ATTR_NAMES);
+    const keys = S.curTipo === "talento" ? talentoDe(q).attrs : r.attrs && r.attrs.length ? r.attrs : Object.keys(ATTR_NAMES);
     const v = keys.reduce((t, k) => t + (a[k] || 5), 0) / keys.length;
-    return r.noRunway || !r.attrs ? v : v * 0.7 + (a.estilo || 5) * 0.3;
+    return r.noRunway || !r.attrs ? v : v * 0.7 + DFTC.pasarelaAttr(a) * 0.3;
   };
   // Detrás de cámaras: cada semana cada reina "tira el dado". Sus atributos del reto marcan las probabilidades
   // de que le salga brillante, buena, normal, floja o un desastre; la nota sale de ese resultado.
@@ -698,7 +699,7 @@
   }
 
   // ----------------------------- Track record -----------------------------
-  const EP_SHORT = { pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups", comedia: "Stand-up", roast: "Roast", actuacion: "Interpretación", ball: "Ball", makeover: "Makeover", fotos: "Fotos", impro: "Improvisación", talkshow: "Talk show", branding: "Branding" };
+  const EP_SHORT = { talento: "Talent show", pasarela: "Pasarela", snatch: "Snatch Game", baile: "Coreografía", diseno: "Diseño", lectura: "Biblioteca", rusical: "Rusical", maquillaje: "Maquillaje", equipos: "Girl Groups", comedia: "Stand-up", roast: "Roast", actuacion: "Interpretación", ball: "Ball", makeover: "Makeover", fotos: "Fotos", impro: "Improvisación", talkshow: "Talk show", branding: "Branding" };
   EP_SHORT.diseno = "Materiales";
   EP_SHORT.publicidad = "Publicidad";
   EP_SHORT.lalaparuza = "Lalaparuza";

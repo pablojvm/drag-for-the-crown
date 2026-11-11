@@ -9,6 +9,7 @@ import { ARCADE_QUEENS, LOOK_PIECES } from "../game/data";
 import { startLives } from "../game/rules";
 import { lipSyncMove, rivalSoFar } from "../game/lipsync";
 import { EMOTES, LS_PHASES, LS_STEPS, REPITE, type LsKind } from "../../core/lipsync";
+import { ATTR_NAMES } from "../../core/reinas";
 import { chooseLook, chooseWalk, chooseMoment, chooseVoice, submitConcept, chooseConceptMoment, answerAna, WALK_OPTS } from "../game/runway";
 import { MOMENT_NAMES } from "../../core/concepto";
 import { queenOf } from "../game/queens";
@@ -230,9 +231,9 @@ function LipSyncUI() {
   const pi = Math.min(2, Math.floor(ls.step / 2)), clim = pi === 2;
   const [, emoteName, emoteAttr] = EMOTES[ls.emote];
   const opts: { k: LsKind; t: string; d: string }[] = [
-    { k: "Emote", t: emoteName, d: `Energía −45 · ${emoteAttr}${clim ? " · ¡momento perfecto!" : " · mejor en el clímax"}` },
-    { k: "Cara", t: "💗 Conexión emocional", d: `Energía −10${ls.lastTag === "Cara" ? ` · ⚠️ repetir resta (×${REPITE})` : ""}` },
-    { k: "Escenario", t: "🌀 Uso del espacio", d: `Energía −15${ls.lastTag === "Escenario" ? ` · ⚠️ repetir resta (×${REPITE})` : ""}` },
+    { k: "Emote", t: emoteName, d: `Energía −45 · ${ATTR_NAMES[emoteAttr]}${clim ? " · ¡momento perfecto!" : " · mejor en el clímax"}` },
+    { k: "Cara", t: "💗 Conexión emocional", d: `Energía −10 · Carisma y Lipsync${ls.lastTag === "Cara" ? ` · ⚠️ repetir resta (×${REPITE})` : ""}` },
+    { k: "Escenario", t: "🌀 Uso del espacio", d: `Energía −15 · Baile y Lipsync${ls.lastTag === "Escenario" ? ` · ⚠️ repetir resta (×${REPITE})` : ""}` },
   ];
   const won = ls.mine >= ls.rival;
   return (
@@ -352,7 +353,7 @@ function RunwayUI() {
               <div className="nx-ls-opts">
                 {rw.step === 0 && rw.lookOpts.map((t) => <button key={t} className="nx-opt" onClick={() => chooseLook(t)}><b>{TAG_ICON[t]} {t}</b><small>{cc ? LOOK_PIECES[t].join(" · ") : `Look de estilo ${t.toLowerCase()}`}</small></button>)}
                 {!cc && rw.step === 1 && WALK_OPTS.map(([k, ico, t]) => <button key={k} className="nx-opt" onClick={() => chooseWalk(k)}><b>{ico} {t}</b></button>)}
-                {!cc && rw.step === 2 && ([["pose", "🖼️ Pose", "Segura"], ["comedia", "🤡 Comedia", "Si el look es camp, triunfa"], ["reveal", "🎁 Reveal", "Arriesgado: performance y carisma"]] as const).map(([k, t, d]) => <button key={k} className="nx-opt" onClick={() => chooseMoment(k)}><b>{t}</b><small>{d}</small></button>)}
+                {!cc && rw.step === 2 && ([["pose", "🖼️ Pose", "Segura"], ["comedia", "🤡 Comedia", "Si el look es camp, triunfa"], ["reveal", "🎁 Reveal", "Arriesgado: costura y carisma"]] as const).map(([k, t, d]) => <button key={k} className="nx-opt" onClick={() => chooseMoment(k)}><b>{t}</b><small>{d}</small></button>)}
                 {!cc && rw.step === 3 && rw.voices.map((v) => <button key={v.k} className="nx-opt" onClick={() => chooseVoice(v.k)}><b>{v.t}</b></button>)}
                 {cc && rw.step >= 2 && rw.step <= 4 && rw.moments[rw.step - 2]?.opts.map((o, j) => <button key={o} className="nx-opt" onClick={() => chooseConceptMoment(j)}><b>{o}</b></button>)}
                 {cc && rw.step === 5 && rw.qa?.a.map((x, j) => <button key={x.t} className="nx-opt" onClick={() => answerAna(j)}><b>{x.t}</b></button>)}

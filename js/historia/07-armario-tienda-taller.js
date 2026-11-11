@@ -82,7 +82,7 @@
   }
   function buildSchedule() {
     let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
-    if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS;
+    if (ord.length < ORDEN_RETOS.length - (ord.includes("talento") ? 0 : 1)) ord = ORDEN_RETOS;
     const temas = (typeof TEMAS_PASARELA !== "undefined" ? TEMAS_PASARELA : []);
     // Las pasarelas cambian de una temporada a otra: primero las que menos has visto
     const seen = seenRunways();
@@ -91,7 +91,7 @@
     const take = () => pool.shift() || pick1(CATEGORIAS);
     const sched = [];
     for (let ep = 1; ep <= seasonEpisodes(); ep++) {
-      const tipo = ord[(ep - 1) % ord.length];
+      const tipo = tipoDeEp(ord, ep);
       const looks = [];
       if (tipo === "ball") {
         const used = sched.filter((x) => x.ball).map((x) => x.ball);
@@ -761,7 +761,7 @@
   // Lo bien que sigas las líneas decide la pulidez del acabado.
   function sewingGame(host, r, done) {
     const W = 760, H = 440;
-    const tol = 9 + A("estilo") * 1.3;
+    const tol = 9 + A("costura") * 1.3;
     host.innerHTML = `
       <div class="shop taller"><div class="sg">
         <div class="sg-head"><h3 id="sg-t">📐 1/2 · Corta el patrón</h3><p id="sg-sub">Mantén pulsado y repasa la línea discontinua con las tijeras. Sin prisa: lo que cuenta es la precisión.</p></div>

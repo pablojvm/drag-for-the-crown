@@ -100,7 +100,7 @@ export function chooseMoment(m: Moment, rnd: () => number = Math.random) {
   const rw = get().rw;
   if (!rw || rw.mode !== "clasica" || rw.step !== 2 || !rw.look) return;
   const a = attrs();
-  const revealOk = m === "reveal" ? revealSucceeds({ performance: a.performance, carisma: a.carisma, roll: rnd() }) : undefined;
+  const revealOk = m === "reveal" ? revealSucceeds({ costura: a.costura, carisma: a.carisma, roll: rnd() }) : undefined;
   const pts = momentPoints({ moment: m, cat: rw.cat, look: rw.look, revealOk });
   const msg = m === "reveal" ? (revealOk ? "🎁 ¡REVEAL! El público se viene arriba" : "😱 ¡Traje atascado! El reveal no se abre...") : m === "pose" ? "📸 Pose limpia. El fotógrafo, contento." : pts >= 90 ? "😂 ¡Carcajada en el jurado!" : "El gesto no casaba con el look...";
   next({ step: 3, pos: 3, points: [...rw.points, pts], msg, good: pts >= 80, anim: m === "reveal" && !revealOk ? "stuck" : m });
@@ -146,7 +146,7 @@ export function chooseConceptMoment(j: number, rnd: () => number = Math.random) 
   let reveal = rw.reveal;
   if (isReveal) {
     const a = attrs();
-    reveal = revealSucceeds({ performance: a.performance, carisma: a.carisma, roll: rnd() });
+    reveal = revealSucceeds({ costura: a.costura, carisma: a.carisma, roll: rnd() });
     anim = reveal ? "reveal" : "stuck";
     msg = reveal ? "🎁 ¡REVEAL! El público se viene arriba" : "😱 ¡Traje atascado! El reveal no se abre...";
   }
@@ -174,7 +174,7 @@ async function judge() {
   if (!still(rw.id)) return;
   const v = parseVerdict(r);
   const a = attrs();
-  const score = conceptScore({ v, estilo: a.estilo, performance: a.performance, reveal: rw.reveal, cat: rw.cat, ana: get().rw!.ana });
+  const score = conceptScore({ v, moda: a.moda, carisma: a.carisma, reveal: rw.reveal, cat: rw.cat, ana: get().rw!.ana });
   const lines = v.ok ? { supreme: cleanLine(v.supreme), ana: cleanLine(v.ana) } : null;
   next({ waiting: false, done: true, step: 6, pos: 4, score, lines, msg: `Tu concepto: «${rw.concept}»`, good: score >= 70, anim: "voice" });
 }

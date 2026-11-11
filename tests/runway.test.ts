@@ -16,6 +16,6 @@ describe("pasarela", () => {
   it("voz en off y nota final", () => {
     expect(voicePoints("buena")).toBe(96);
     expect(runwayScore([92, 82, 96])).toBeCloseTo(90, 0);
-    expect(revealSucceeds({ performance: 10, carisma: 10, roll: 0.5 })).toBe(true);
+    expect(revealSucceeds({ costura: 10, carisma: 10, roll: 0.5 })).toBe(true);
   });
 });

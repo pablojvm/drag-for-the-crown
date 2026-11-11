@@ -36,7 +36,11 @@
   }
   const btnFor = (list, mine, other) => (list.includes(S.queen) ? mine : other);
 
+  // La final arranca una sola vez por partida (un doble clic en el botón no la vuelve a empezar)
+  let finalRun = -1;
+  const finalOnce = () => { if (finalRun === runId) return false; finalRun = runId; return true; };
   function finale() {
+    if (!finalOnce()) return;
     const fmt = finalFmtOf();
     if (fmt === "torneo") return finaleLala();
     setSet("stage");
@@ -46,6 +50,7 @@
   }
   // Desde el público (te eliminaron antes)
   function afterFinal() {
+    if (!finalOnce()) return;
     const fmt = finalFmtOf();
     if (fmt === "torneo") return afterFinalLala();
     Curtain.run(() => {

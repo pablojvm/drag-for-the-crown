@@ -79,7 +79,7 @@
       el.innerHTML = `
         <div class="mg dc">
           <p class="mg-info">🧵 ${esc(title)}</p>
-          <div class="dc-scene"><h4>Reparte 10 puntos de acción</h4><p>Quedan <b>${left}</b> PA · Tu Estilo: <b>${A("estilo")}</b>${diffExtra ? " · Material difícil de coser" : ""}</p></div>
+          <div class="dc-scene"><h4>Reparte 10 puntos de acción</h4><p>Quedan <b>${left}</b> PA · Tu Costura: <b>${A("costura")}</b>${diffExtra ? " · Material difícil de coser" : ""}</p></div>
           <div class="pa-grid">${[
             ["mat", "🔎 Búsqueda de materiales", "Sube la Originalidad"],
             ["pat", "✂️ Patronaje y costura", "Más patronaje, menos riesgo de que se descosa en la pasarela"],
@@ -100,7 +100,7 @@
       $("#pa-go").addEventListener("click", sew);
     };
     function sew() {
-      const c = check(["estilo"], 70 - pa.pat * 4 + diffExtra);
+      const c = check(["costura"], 70 - pa.pat * 4 + diffExtra);
       const gain = (x) => 26 * (1 - Math.exp(-x / 3));
       let score = 20 + gain(pa.mat) + (c.ok ? gain(pa.pat) : 0) + gain(pa.fin);
       if (!c.ok) score *= 0.8;
@@ -135,9 +135,9 @@
           { t: "🤡 Gesto de comedia", d: "Arriesgado si el look no es Camp", go: () => (getLookTag(st) === "Camp" ? { pts: 94, msg: "¡Carcajada en el jurado!" } : { pts: 48, msg: "El gesto no casaba con el look." }) },
           {
             t: "🎁 Revelación (reveal)",
-            d: "Performance + Carisma. Si sale, puntuación máxima",
+            d: "Costura + Carisma. Si sale, puntuación máxima",
             go: () => {
-              const c = check(["performance", "carisma"], 60 - Math.round(((S.walkMov || 3) - 3) * 5));
+              const c = check(["costura", "carisma"], 60 - Math.round(((S.walkMov || 3) - 3) * 5));
               if (!c.ok) st.atascado = true;
               return res(c, 100, 15, "¡REVEAL! El público se viene arriba.", "¡Traje atascado! El reveal no se abre...");
             },
@@ -636,7 +636,7 @@ Devuelve JSON {"supremme":"lo que dice Supremme como presentadora siguiendo el j
         },
       }));
       el.innerHTML = "";
-      liveRounds(el, { title: "Snatch Game", icon: "🎭", kind: "Snatch Game (imitación cómica en personaje)", attr: "comedia", rounds, ph: `Lo que dice ${name}...`, inCharacter: true }, done);
+      liveRounds(el, { title: "Snatch Game", icon: "🎭", kind: "Snatch Game (imitación cómica en personaje)", attr: "improvisacion", rounds, ph: `Lo que dice ${name}...`, inCharacter: true }, done);
     }
   }
   // Recorta un texto por palabras (sin dejar palabras a medias)
@@ -737,7 +737,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre de una rival","t":"lo que dice o hace 
           (r && Array.isArray(r.notas) ? r.notas : []).forEach((x) => x && (notas[str(x.reina)] = clamp(Math.round(+x.nota || 50), 0, 100)));
           const myN = notas[S.queen.name] != null ? notas[S.queen.name] : 50;
           mates.forEach((q) => { if (notas[q.name] != null) S.form[q.id] = clamp((S.form[q.id] || 0) + Math.round((notas[q.name] - 55) / 8), -10, 10); });
-          const final = clamp(myN + (A("comedia") - 5) * 1.5 + (A("carisma") - 5) * 1.5, 0, 100);
+          const final = clamp(myN + (A("improvisacion") - 5) * 1.5 + (A("comedia") - 5) * 1.5, 0, 100);
           logEv(`Improvisación en grupo: ${S.queen.name} como ${mine}; destacó ${str(r && r.mejor) || "nadie en especial"}`);
           el.innerHTML = `
             <div class="story-card live">
@@ -747,7 +747,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre de una rival","t":"lo que dice o hace 
               <div class="impro-cast">${[{ q: S.queen, n: myN }, ...mates.map((q) => ({ q, n: notas[q.name] }))].map((x) => `<span><i style="background-image:url('${photo(x.q)}')"></i><b>${esc(x.q === S.queen ? "Tú" : x.q.name)}</b><small></small></span>`).join("")}</div>
               <button class="btn btn-primary" id="lv-done">Continuar</button>
             </div>`;
-          markLive(); el.querySelector("#lv-done").addEventListener("click", () => { if (final >= 80) growAttr(final > 90 ? "comedia" : "carisma"); done(final); });
+          markLive(); el.querySelector("#lv-done").addEventListener("click", () => { if (final >= 80) growAttr(final > 90 ? "improvisacion" : "comedia"); done(final); });
         }
         others();
       }
@@ -886,7 +886,7 @@ Devuelve JSON {"titulo":"...","genero":"...","sinopsis":"...","papeles":[{"papel
         const n = Math.max(1, myLines.length);
         const memP = mem / n, toneP = tone / n;
         const peso = str(mine.peso);
-        let score = 18 + memP * 40 + toneP * 34 + (A("performance") - 5) * 1.5 + (A("carisma") - 5);
+        let score = 18 + memP * 40 + toneP * 34 + (A("interpretacion") - 5) * 1.5 + (A("carisma") - 5);
         if (peso === "grande") score = 50 + (score - 50) * 1.25;
         if (peso === "pequeño") score = Math.min(score, 82);
         score = clamp(Math.round(score), 0, 100);
@@ -908,7 +908,7 @@ Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","
             ${c && c.calvo ? `<p class="lv host"><b>Javier Calvo</b>${esc(IA.clean(str(c.calvo)))}</p>` : ""}
             <button class="btn btn-primary" id="lv-done">Continuar</button>
           </div>`;
-        markLive(); el.querySelector("#lv-done").addEventListener("click", () => { if (score >= 85) growAttr("performance"); done(score); });
+        markLive(); el.querySelector("#lv-done").addEventListener("click", () => { if (score >= 85) growAttr("interpretacion"); done(score); });
       }
       advance();
     }
@@ -953,7 +953,7 @@ Devuelve JSON {"ambrossi":"comentario a ${S.queen.name} (máximo 30 palabras)","
         after: sec === "entrevista" ? async (v) => { const rep = await IA.chat(`Hablas SOLO como ${gn}, el personaje que interpreta ${guest.name}, invitada a una entrevista en directo. ${aiProfile(guest)} Nunca digas nombres drag de las reinas.`, `La presentadora te dice: «${v}». Contesta en una frase corta y graciosa (máximo 15 palabras).`, { max: 50 }); return rep ? { who: `${gn} (${guest.name})`, t: gIn(rep), cls: "rival" } : null; } : null,
       }));
       el.innerHTML = "";
-      liveRounds(el, { title: "Improvisación", icon: "📺", kind: "improvisación televisiva", attr: "carisma", rounds, ph: "Lo que dices en directo..." }, (sc) => { if (sc >= 80) growAttr(sc > 90 ? "comedia" : "carisma"); done(sc); });
+      liveRounds(el, { title: "Improvisación", icon: "📺", kind: "improvisación televisiva", attr: "improvisacion", rounds, ph: "Lo que dices en directo..." }, (sc) => { if (sc >= 80) growAttr(sc > 90 ? "improvisacion" : "comedia"); done(sc); });
     }));
   }
 
@@ -1166,7 +1166,7 @@ Puntúa de 0 a 100. Devuelve JSON {"rima":0,"gracia":0,"personaje":0,"supreme":"
             { json: true, max: 350, temp: 0.6 },
           );
           const [c1, c2, c3] = nums(r, ["rima", "gracia", "personaje"]);
-          let sc = c1 * 0.35 + c2 * 0.4 + c3 * 0.25 + (A("performance") - 5) * 1.5 + (A("comedia") - 5);
+          let sc = c1 * 0.35 + c2 * 0.4 + c3 * 0.25 + (A("canto") - 5) * 1.5 + (A("baile") - 5);
           const peso = str(mine.peso);
           if (peso === "grande") sc = 50 + (sc - 50) * 1.2;
           if (peso === "pequeño") sc = Math.min(sc, 82);
@@ -1174,7 +1174,7 @@ Puntúa de 0 a 100. Devuelve JSON {"rima":0,"gracia":0,"personaje":0,"supreme":"
           logEv(`Rusical «${str(g.titulo)}»: ${S.queen.name} hizo de ${str(mine.papel)} (nota ${sc})`);
           liveResult(el, `🎭 «${esc(IA.clean(str(g.titulo)))}» · el jurado`, `
             <div class="live-log">${log.filter((m) => m.me).map((m) => `<p class="lv me"><b>${esc(m.who)}</b>${m.t.map(esc).join("<br>")}</p>`).join("")}</div>
-            ${judgeLines(r)}`, sc, () => { if (sc >= 85) growAttr("performance"); done(sc); });
+            ${judgeLines(r)}`, sc, () => { if (sc >= 85) growAttr("canto"); done(sc); });
         }
         next();
       }
@@ -1276,8 +1276,8 @@ Notas de 0 a 100. Devuelve JSON {"notas":[{"reina":"nombre","nota":0}],"supreme"
       (r && Array.isArray(r.notas) ? r.notas : []).forEach((x) => x && (notas[str(x.reina)] = clamp(Math.round(+x.nota || 50), 0, 100)));
       const myN = notas[S.queen.name] != null ? notas[S.queen.name] : 50;
       mates.forEach((q) => { if (notas[q.name] != null) S.form[q.id] = clamp((S.form[q.id] || 0) + Math.round((notas[q.name] - 55) / 8), -10, 10); });
-      const ok = !center || check(["performance"], 60).ok;
-      const sc = clamp(Math.round(myN + (A("performance") - 5) * 1.5 + (A("carisma") - 5) + (center ? (ok ? 8 : -10) : 0)), 0, 100);
+      const ok = !center || check(["baile"], 60).ok;
+      const sc = clamp(Math.round(myN + (A("canto") - 5) * 1.5 + (A("baile") - 5) + (center ? (ok ? 8 : -10) : 0)), 0, 100);
       logEv(`Girl Groups: ${S.queen.name} canta en ${band} el tema «${title}» (nota ${sc})`);
       liveResult(el, `🎤 «${esc(title)}» · el jurado`, `
         <div class="impro-cast">${[{ q: S.queen, n: myN }, ...mates.map((q) => ({ q, n: notas[q.name] }))].map((x) => `<span><i style="background-image:url('${photo(x.q)}')"></i><b>${esc(x.q === S.queen ? "Tú" : x.q.name)}</b><small></small></span>`).join("")}</div>
@@ -1322,7 +1322,7 @@ Devuelve JSON {"credible":0,"moda":0,"uso":0,"ana":"comentario (máximo 25 palab
       );
       const pic = await IA.image(`${str(r && r.imagen) || `Full-body runway photo of a drag queen wearing a couture look made of ${mats.join(", ")}`}. Fashion photography, Drag Race main stage, dramatic lighting, high detail.`);
       const [c1, c2, c3] = nums(r, ["credible", "moda", "uso"]);
-      const sc = clamp(Math.round((c1 * 0.35 + c2 * 0.4 + c3 * 0.25) * 0.7 + sew * 0.3 + (A("estilo") - 5)), 0, 100);
+      const sc = clamp(Math.round((c1 * 0.35 + c2 * 0.4 + c3 * 0.25) * 0.7 + sew * 0.3 + (A("costura") - 5)), 0, 100);
       S.lastLook = { cat: "materiales imposibles", best: name, worst: info.descosido ? "traje descosido" : name, concepto: desc.slice(0, 140), critica: r ? `${str(r.ana)} ${str(r.supreme)}` : null };
       logEv(`Materiales imposibles: ${S.queen.name} presenta «${name}» (nota ${sc})`);
       liveResult(el, `🧰 «${esc(name)}» · el jurado`, `${pic ? `<div class="look-photo"><div class="ia-dots"><i></i><i></i><i></i></div><img alt="${esc(name)}" src="${pic}" onload="this.parentNode.classList.add('ok')" onerror="this.parentNode.classList.add('ko')"><div class="look-sketch">${Doll.svg(sewnSpec("Camp absoluto", { color: pick1(["#ffb800", "#6ad06a", "#ff5fa2", "#6ee7ff"]), pat: info.descosido ? "solid" : "flowers" }))}</div><small>Revelando la foto de la pasarela...</small></div>` : ""}${info.descosido ? `<p class="twist-note">💥 Una costura no aguanta en la pasarela.</p>` : ""}${judgeLines(r, "ana", "supreme", "Ana Locking", "Supremme")}`, sc, () => { if (sc >= 85) growAttr("estilo"); done(sc); });
@@ -1476,9 +1476,9 @@ Puntúa de 0 a 100. Devuelve JSON {"eslogan":0,"guion":0,"camp":0,"supreme":"com
           { json: true, max: 350, temp: 0.6 },
         );
         const [c1, c2, c3] = nums(r, ["eslogan", "guion", "camp"]);
-        const sc = clamp(Math.round(c1 * 0.3 + c2 * 0.4 + c3 * 0.3 + (A("carisma") - 5) * 1.5 + (A("comedia") - 5)), 0, 100);
+        const sc = clamp(Math.round(c1 * 0.3 + c2 * 0.4 + c3 * 0.3 + (A("interpretacion") - 5) * 1.5 + (A("carisma") - 5)), 0, 100);
         logEv(`Publicidad: ${S.queen.name} anuncia ${prod} de ${marca} con el eslogan «${slogan}» y este guion: «${g.slice(0, 160)}» (nota ${sc})`);
-        liveResult(el, `📺 ${esc(marca)} · el anuncio`, `<p class="rw-quote">«${esc(slogan)}»</p>${judgeLines(r, "supreme", "javis", "Supremme", "Los Javis")}`, sc, () => { if (sc >= 85) growAttr("carisma"); done(sc); });
+        liveResult(el, `📺 ${esc(marca)} · el anuncio`, `<p class="rw-quote">«${esc(slogan)}»</p>${judgeLines(r, "supreme", "javis", "Supremme", "Los Javis")}`, sc, () => { if (sc >= 85) growAttr("interpretacion"); done(sc); });
       });
     });
   }

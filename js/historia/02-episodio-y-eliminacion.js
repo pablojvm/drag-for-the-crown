@@ -112,7 +112,7 @@
         <div class="wr-room">${werkroomTables()
           .map((t, i) => `<div class="wr-table ${t.mine ? "mine" : ""}" style="--i:${i}"><div class="wr-seats">${t.qs.map(seatHTML).join("")}</div><div class="wr-desk"><span>${esc(t.name)}</span>${IA.ready() && t.qs.filter((q) => q !== S.queen).length >= 2 ? `<button class="wr-join" data-t="${i}">💬 Sentarte con ellas</button>` : ""}</div></div>`)
           .join("")}</div>
-        <p class="attr-row">Tus atributos: ${attrChips(Object.keys(ATTR_NAMES))}</p>
+        <p class="attr-row">Tus habilidades: ${attrChips(Object.keys(ATTR_NAMES))}</p>
         <div class="row"><button class="btn btn-ghost" id="hub-skip">🎯 Concentrarme en mi reto</button>${trackBtn()}</div>
       </div>`;
     bindTrack();
@@ -236,9 +236,9 @@
     if (twistOf() === "repesca" && !S.flags.repesca && !S.meOut && S.rivals.length + 1 <= REPESCA_AT && S.out.length) return "repescaStand";
     if (S.retoEp && S.retoEp.ep === S.ep) return S.retoEp.tipo;
     // Partidas guardadas antes de que hubiera retos nuevos: se añaden al final de su orden (el resto no cambia)
-    if (S.order) { const miss = ORDEN_RETOS.filter((t) => t !== "pasarela" && !S.order.includes(t)); if (miss.length) S.order = [...S.order.filter((t) => ORDEN_RETOS.includes(t)), ...shuffle(miss)]; }
+    if (S.order) { const miss = ORDEN_RETOS.filter((t) => t !== "pasarela" && t !== "talento" && !S.order.includes(t)); if (miss.length) S.order = [...S.order.filter((t) => ORDEN_RETOS.includes(t)), ...shuffle(miss)]; }
     let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
-    if (ord.length < ORDEN_RETOS.length) ord = ORDEN_RETOS; // partidas muy antiguas, sin orden
+    if (ord.length < ORDEN_RETOS.length - (ord.includes("talento") ? 0 : 1)) ord = ORDEN_RETOS; // partidas muy antiguas, sin orden
     // La Lalaparuza solo cae con 8 o 16 reinas (cuadro sin ronda previa): si toca antes, se aplaza; si toca ya, se adelanta
     const n = S.rivals.length + 1, p2 = n >= 8 && (n & (n - 1)) === 0;
     if (S.order && ord.length === S.order.length && twistOf() !== "winners") {
@@ -247,10 +247,10 @@
         const tgt = n > 8 ? i + (n - 8) : O.length - 1;
         const j = tgt > i && tgt < O.length ? tgt : Math.min(O.length - 1, i + 1);
         if (j !== i) [O[i], O[j]] = [O[j], O[i]];
-      } else if (p2 && li > i) [O[i], O[li]] = [O[li], O[i]];
+      } else if (p2 && li > i && O[i] !== "talento") [O[i], O[li]] = [O[li], O[i]];
       ord = O;
     }
-    const tipo = ord[(S.ep - 1) % ord.length];
+    const tipo = tipoDeEp(ord, S.ep);
     S.retoEp = { ep: S.ep, tipo };
     return tipo;
   }
@@ -517,7 +517,7 @@
           <p>${reto.desc}</p>
           ${S.rivals.length + 1 === 5 && !asLike(twistOf()) ? `<p class="twist-note">🎟️ Último reto antes de la final: la ganadora se lleva un pase directo a la gran final y no tendrá que pasar por la Súper Lalaparuza.</p>` : ""}
           <p class="muted">🎮 ${reto.ctrl}</p>
-          ${reto.attrs ? `<p class="attr-row">Cuentan: ${attrChips(reto.attrs)}</p>` : ""}
+          ${reto.attrs ? `<p class="attr-row">Cuentan: ${attrChips(reto.attrs)}${reto.attrsNote ? ` ${reto.attrsNote}` : ""}</p>` : ""}
           <button class="btn btn-primary" id="story-go">¡Empezar!</button>
         </div>
       </div>`;
@@ -585,7 +585,7 @@
           <h3>${tema ? "Temática" : "Categoría"}: «${esc(cat)}»</h3>
           ${tema ? `<p><i>${esc(tema.d)}</i></p>` : ""}
           <p>${(S.prepLooks || {})[cat] ? "Tu look ya está preparado desde casa. Antes de salir podrás revisarlo y cambiar lo que quieras: el jurado decidirá si encaja." : "Prepara el look con lo que tienes en tu armario: look, peluca, tacones y toque final. Elige lo que creas que mejor cuenta la temática: el jurado decidirá si encaja."} El movimiento (👣) ayuda en el desfile.</p>
-          <p class="muted">🎮 Clic o teclas 1, 2, 3 y 4 · ${attrChips(["estilo", "performance", "carisma"])}</p>
+          <p class="muted">🎮 Clic o teclas 1, 2, 3 y 4 · ${attrChips(["moda", "costura", "carisma"])}</p>
           <button class="btn btn-primary" id="story-go">¡A la pasarela!</button>
         </div>
       </div>`;
@@ -748,7 +748,7 @@
         logEv(`Gana el reto ${won ? S.queen.name : winner.q.name}; en el bottom: ${bottomRows.map((r) => r.q.name).join(" y ")}`);
         if (n === 5 && !asLike(tw) && S.flags.paseEp === S.ep) { S.flags.pase = keyOf(winner.q); logEv(`${winner.me ? S.queen.name : winner.q.name} gana el pase directo a la gran final`); Toast.show("🎟️ Pase directo a la final", winner.me ? "¡Es tuyo!" : `Para ${winner.q.name}`); }
         if (n === 6 && !asLike(tw) && S.flags.finalistaEp === S.ep) { S.flags.immF = { key: keyOf(winner.q), ep: S.ep + 1 }; Toast.show("👑 Primera finalista", winner.me ? "¡Eres tú! La semana que viene no puedes caer al bottom" : `${winner.q.name} ya está en la final`); }
-        if (won && !asLike(tw)) { growAttr(((RETOS[S.curTipo] || {}).attrs || [])[0]); earn(300, "Ganas el reto de la semana"); }
+        if (won && !asLike(tw)) { growAttr(S.curTipo === "talento" ? talentoDe(S.queen).attrs[0] : ((RETOS[S.curTipo] || {}).attrs || [])[0]); earn(300, "Ganas el reto de la semana"); }
         else if (myPos <= 2 && !bottom) earn(80, "Entre las mejores de la semana");
         if (won && !asLike(tw)) meWonReto();
         if (bottom) meInBottom();
@@ -757,13 +757,11 @@
         if (S.phase && S.phase.ep === S.ep) save();
       };
       const top2 = rows.slice(0, 2);
-      const cat = RETO_CAT[S.curTipo];
       const traitPeek = [];
-      if (cat) rows.forEach((r, k) => {
+      rows.forEach((r, k) => {
         if (r.me) return;
-        const t = traitsOf(r.q);
-        if (k <= 1 && t.fort === cat && Math.random() < 0.6) traitPeek.push(() => learnTrait(r.q, "fort", "Lo has visto en el reto"));
-        if (k >= n - 3 && RASGOS.deb[t.deb].cat === cat && Math.random() < 0.6) traitPeek.push(() => learnTrait(r.q, "deb", "Lo has visto en el reto"));
+        if (k <= 1 && fortToca(r.q) && Math.random() < 0.6) traitPeek.push(() => learnTrait(r.q, "fort", "Lo has visto en el reto"));
+        if (k >= n - 3 && debToca(r.q) && Math.random() < 0.6) traitPeek.push(() => learnTrait(r.q, "deb", "Lo has visto en el reto"));
       });
       // Las posiciones se deciden ya, pero no se apuntan en el track record hasta el veredicto (después del Untucked)
       const labs = new Map();

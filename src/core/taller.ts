@@ -82,11 +82,11 @@ export function nemesisUntucked(meBottomish: boolean, meTopish: boolean): Line[]
 export type MiniKind = "posado" | "flash" | "ritmo";
 export interface Mini { id: string; titulo: string; desc: string; kind: MiniKind; attr: QAttr }
 export const MINIS: Mini[] = [
-  { id: "posado", titulo: "Minirreto: posado exprés", desc: "Clava cada pose cuando el foco pase por la zona dorada.", kind: "posado", attr: "estilo" },
+  { id: "posado", titulo: "Minirreto: posado exprés", desc: "Clava cada pose cuando el foco pase por la zona dorada.", kind: "posado", attr: "moda" },
   { id: "flash", titulo: "Minirreto: ¡flash!", desc: "Pulsa en cuanto salte el flash: ni antes ni tarde.", kind: "flash", attr: "carisma" },
-  { id: "karaoke", titulo: "Minirreto: karaoke a ritmo", desc: "Pulsa cada nota justo cuando llegue a la línea.", kind: "ritmo", attr: "performance" },
+  { id: "karaoke", titulo: "Minirreto: karaoke a ritmo", desc: "Pulsa cada nota justo cuando llegue a la línea.", kind: "ritmo", attr: "canto" },
   { id: "fotocall", titulo: "Minirreto: fotocall extremo (con viento)", desc: "Ventiladores a tope: posa justo cuando el fotógrafo dispare.", kind: "posado", attr: "carisma" },
-  { id: "pelucas", titulo: "Minirreto: ¡pelucas al aire!", desc: "Atrapa el momento exacto antes de que la peluca salga volando.", kind: "flash", attr: "performance" },
+  { id: "pelucas", titulo: "Minirreto: ¡pelucas al aire!", desc: "Atrapa el momento exacto antes de que la peluca salga volando.", kind: "flash", attr: "lipsync" },
 ];
 /** Nota de una rival en el minirreto. */
 export const miniRival = (attr: number, rnd: () => number) => Math.round(Math.max(5, Math.min(99, 30 + attr * 5 + (rnd() - 0.5) * 50)));

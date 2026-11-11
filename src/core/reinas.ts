@@ -291,19 +291,150 @@ export function queenStats(id: string): Stats {
 export const isWinnerQueen = (id: string) => TEMPORADAS_ES.some((t) => !t.enEmision && t.cast[t.cast.length - 1] === id);
 
 // ------------------------------ Atributos del modo historia ----------------------------------
-export type QAttr = "comedia" | "carisma" | "estilo" | "performance" | "maquillaje";
+export type QAttr = "maquillaje" | "baile" | "canto" | "costura" | "comedia" | "interpretacion" | "improvisacion" | "lipsync" | "carisma" | "moda";
 export type Attrs = Record<QAttr, number>;
-export const ATTR_NAMES: Record<QAttr, string> = { comedia: "Comedia", carisma: "Carisma", estilo: "Estilo", performance: "Performance", maquillaje: "Maquillaje" };
+export const ATTR_NAMES: Record<QAttr, string> = {
+  maquillaje: "Maquillaje", baile: "Baile", canto: "Canto", costura: "Costura", comedia: "Comedia",
+  interpretacion: "Interpretación", improvisacion: "Improvisación", lipsync: "Lipsync", carisma: "Carisma", moda: "Moda",
+};
+export const QATTRS = Object.keys(ATTR_NAMES) as QAttr[];
+
+/** Rasgos de cada reina: fortaleza, debilidad y carácter (salen de su id, siempre los mismos).
+ * La fortaleza y la debilidad son su especialidad y su flojera: suben o bajan sus habilidades. */
+export const RASGOS: Record<"fort" | "deb" | "car", Record<string, { n: string; icon: string; d: string; cat?: string }>> = {
+  fort: {
+    lipsync: { n: "Bestia del lip sync", icon: "🔥", d: "Muy peligrosa en un lip sync" },
+    comedia: { n: "Lengua afilada", icon: "🎤", d: "Brilla en Snatch, Roast, impro y talk show" },
+    baile: { n: "Pies de fuego", icon: "💃", d: "Brilla en rusicales, Girl Groups y coreografías" },
+    costura: { n: "Manos de oro", icon: "🧵", d: "Brilla en materiales, el Ball y los reveals" },
+    pasarela: { n: "Imparable en pasarela", icon: "👠", d: "Siempre puntúa alto en la pasarela" },
+    canto: { n: "Voz de oro", icon: "🎙️", d: "Brilla en rusicales, Girl Groups y el talent show" },
+    actriz: { n: "Actriz de raza", icon: "🎬", d: "Brilla en interpretación y publicidad" },
+    pincel: { n: "Pincel de oro", icon: "💄", d: "Brilla en el makeover y con la brocha" },
+  },
+  deb: {
+    pComedia: { n: "Pánico a la comedia", icon: "😰", d: "Se hunde en Snatch, Roast e impro", cat: "comedia" },
+    pBaile: { n: "Dos pies izquierdos", icon: "🦶", d: "Se hunde en rusicales y coreografías", cat: "baile" },
+    pCostura: { n: "No sabe enhebrar", icon: "🪡", d: "Se hunde en costura, Ball y makeover", cat: "costura" },
+    lsFlojo: { n: "Lip sync flojo", icon: "🫥", d: "En un lip sync se le puede ganar", cat: "lipsync" },
+    provocable: { n: "Se viene abajo si la provocas", icon: "💥", d: "Si la pinchas, se desconcentra muchísimo" },
+    pCanto: { n: "Desafina", icon: "🙉", d: "Sufre en cuanto tiene que cantar", cat: "canto" },
+    pActuar: { n: "Actúa de madera", icon: "🪵", d: "Se le ve el guion en cada frase", cat: "actriz" },
+    pBrocha: { n: "Maquillaje de andar por casa", icon: "🖌️", d: "Con la brocha no es lo suyo", cat: "pincel" },
+  },
+  car: {
+    rencorosa: { n: "Rencorosa", icon: "🧊", d: "No olvida nada: los golpes le duelen el doble" },
+    ambiciosa: { n: "Ambiciosa", icon: "📈", d: "Cada victoria la hace crecer más" },
+    leal: { n: "Leal", icon: "🤞", d: "Si pacta contigo, jamás te traiciona" },
+    traicionera: { n: "Traicionera", icon: "🐍", d: "Puede romper un pacto en el peor momento" },
+    orgullosa: { n: "Orgullosa", icon: "👑", d: "Le cuesta muchísimo hacer las paces" },
+  },
+};
+/** Las habilidades que mueve cada especialidad (fortaleza o, en negativo, debilidad). */
+export const RASGO_ATTRS: Record<string, QAttr[]> = {
+  lipsync: ["lipsync"], comedia: ["comedia", "improvisacion"], baile: ["baile"], costura: ["costura"],
+  pasarela: ["moda", "carisma"], canto: ["canto"], actriz: ["interpretacion"], pincel: ["maquillaje"],
+};
+/** Lo que cada reina ha demostrado en el programa (retos ganados, talent show y premios), de más a menos.
+ * Sale de los resultados publicados de cada temporada; si no hay datos, se queda vacío y manda el azar. */
+export const HABILIDADES_REALES: Record<string, QAttr[]> = {
+  // Temporada 1
+  "the-macarena": ["canto"], "hugaceo-crujiente": ["costura", "moda"], "pupi-poisson": ["comedia", "canto", "interpretacion"],
+  "sagittaria": ["interpretacion", "baile"], "killer-queen": ["improvisacion", "comedia"], "carmen-farala": ["canto", "comedia", "maquillaje"],
+  // Temporada 2
+  "ariel-rec": ["lipsync"], "samantha-ballentines": ["comedia", "lipsync"], "jota-carajota": ["canto"], "onyx": ["moda", "lipsync"],
+  "diamante-merybrown": ["lipsync"], "drag-sethlas": ["costura", "lipsync", "baile"], "juriji-der-klee": ["canto", "moda"], "marina": ["comedia"],
+  "estrella-xtravaganza": ["improvisacion", "interpretacion", "lipsync"], "venedita-von-dash": ["improvisacion", "maquillaje", "baile"],
+  "sharonne": ["canto", "improvisacion", "interpretacion"],
+  // Temporada 3
+  "maria-edilia": ["improvisacion"], "drag-chuchi": ["lipsync"], "chanel-anorex": ["lipsync"], "visa": ["baile"], "bestiah": ["canto", "lipsync"],
+  "pakita": ["baile", "canto"], "pink-chadora": ["baile", "improvisacion", "comedia"], "clover-bish": ["lipsync"], "kelly-roller": ["baile"],
+  "hornella-gongora": ["canto"], "vania-vainilla": ["comedia", "maquillaje"], "pitita": ["costura", "interpretacion", "improvisacion"],
+  // Temporada 4
+  "porca-theclubkid": ["moda"], "dita-dubois": ["comedia"], "kelly-passa": ["canto"], "miss-khristo": ["costura", "baile"],
+  "angelita-la-perversa": ["interpretacion"], "megui-yeillow": ["lipsync"], "mariana-stars": ["improvisacion", "baile"],
+  "la-nina-delantro": ["canto", "maquillaje", "baile"], "chloe-vittu": ["maquillaje", "comedia"], "la-bella-vampi": ["canto", "interpretacion"],
+  "le-coco": ["comedia", "interpretacion", "lipsync"],
+  // Temporada 5
+  "denebola-murnau": ["costura"], "ferrxn": ["comedia"], "alexandra-del-raval": ["maquillaje"], "dafne-mugler": ["maquillaje"],
+  "nix": ["canto", "baile"], "laca-udilla": ["canto", "maquillaje"], "margarita-kalifata": ["interpretacion"], "satin-greco": ["improvisacion", "comedia"],
+  // Temporada 6 (en emisión: solo lo que ya se ha visto)
+  "alma-desoul": ["interpretacion", "improvisacion"], "buba-anorex": ["improvisacion", "canto"], "joan-chevalier": ["costura", "moda"], "sorny": ["canto", "baile"],
+};
+/** La fortaleza que corresponde a cada habilidad. */
+const FORT_DE: Record<QAttr, string> = {
+  canto: "canto", baile: "baile", costura: "costura", moda: "pasarela", comedia: "comedia", improvisacion: "comedia",
+  interpretacion: "actriz", maquillaje: "pincel", lipsync: "lipsync", carisma: "pasarela",
+};
+/** Rasgos de una reina (los mismos en la versión clásica y en el motor nuevo). */
+export function traitsOf(id: string): { fort: string; deb: string; car: string } {
+  let h = 0;
+  for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const pick = (o: Record<string, unknown>, salt: number) => { const k = Object.keys(o); return k[(h >>> salt) % k.length]; };
+  const real = HABILIDADES_REALES[id] || [];
+  // Su fortaleza es lo que mejor ha demostrado en el programa (si no hay datos, sale de su nombre)
+  const fort = real.length ? FORT_DE[real[0]] : pick(RASGOS.fort, 0);
+  let deb = pick(RASGOS.deb, 5);
+  // Nunca flojea en algo que ha demostrado que domina
+  if (RASGOS.deb[deb].cat === fort || rasgoToca(RASGOS.deb[deb].cat, real)) deb = "provocable";
+  return { fort, deb, car: pick(RASGOS.car, 11) };
+}
+/** ¿La especialidad (o la flojera) de la reina toca alguna de estas habilidades? */
+export const rasgoToca = (cat: string | undefined, keys: readonly string[]) => !!cat && (RASGO_ATTRS[cat] || []).some((k) => keys.includes(k));
+
 const hashN = (str: string, k: string) => {
   let h = 7;
   for (const c of str + k) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return h % 4;
 };
-/** Atributos (2 a 10): salen de las estadísticas de la reina, con su toque propio. */
-export function baseAttrs(id: string, st: Stats): Attrs {
-  const f = (v: number, k: string) => Math.max(2, Math.min(10, Math.round(v * 1.5 + hashN(id, k) - 0.5)));
-  return { comedia: f(st.rate, "c"), carisma: f(st.lives, "k"), estilo: f(st.power, "e"), performance: f(st.speed, "p"), maquillaje: f((st.power + st.rate) / 2, "m") };
+/** De qué estadísticas de la reina sale cada habilidad. */
+const BASE: Record<QAttr, (s: Stats) => number> = {
+  maquillaje: (s) => (s.power + s.rate) / 2,
+  baile: (s) => s.speed,
+  canto: (s) => (s.speed + s.lives) / 2,
+  costura: (s) => s.power,
+  comedia: (s) => s.rate,
+  interpretacion: (s) => (s.lives + s.rate) / 2,
+  improvisacion: (s) => (s.rate + s.speed) / 2,
+  lipsync: (s) => (s.speed * 2 + s.lives) / 3,
+  carisma: (s) => s.lives,
+  moda: (s) => (s.power + s.lives) / 2,
+};
+/** Su segunda especialidad: una habilidad más en la que destaca (siempre la misma). */
+export function segundaEspecialidad(id: string): QAttr {
+  const t = traitsOf(id), no = [...(RASGO_ATTRS[t.fort] || []), ...(RASGO_ATTRS[RASGOS.deb[t.deb].cat || ""] || [])];
+  const ok = QATTRS.filter((k) => !no.includes(k));
+  let h = 11;
+  for (const c of id + ":esp") h = (h * 33 + c.charCodeAt(0)) >>> 0;
+  return ok[h % ok.length];
 }
+/** Habilidades (2 a 10): salen de las estadísticas de la reina, con su especialidad, su flojera y su toque propio. */
+export function baseAttrs(id: string, st: Stats): Attrs {
+  const t = traitsOf(id), up = RASGO_ATTRS[t.fort] || [], down = RASGO_ATTRS[RASGOS.deb[t.deb].cat || ""] || [], dos = segundaEspecialidad(id), real = HABILIDADES_REALES[id] || [];
+  const a = {} as Attrs;
+  for (const k of QATTRS) {
+    const v = BASE[k](st) * 1.5 + hashN(id, k) - 0.5 + (up.includes(k) ? 3 : 0) - (down.includes(k) ? 3 : 0) + (real.length ? (real.includes(k) ? 2 : 0) : k === dos ? 2 : 0);
+    // Lo que ha demostrado en el programa nunca baja de notable (y su punto fuerte, de un 8)
+    const suelo = real[0] === k ? 8 : real.includes(k) ? 7 : 2;
+    a[k] = Math.max(suelo, Math.min(10, Math.round(v)));
+  }
+  return a;
+}
+/** Pasa a las habilidades nuevas lo que se guardó con las de antes (performance y estilo). */
+export function migraAttrs(o: Record<string, number> | null | undefined): Partial<Attrs> {
+  const r: Partial<Attrs> = {};
+  if (!o || typeof o !== "object") return r;
+  const add = (k: QAttr, v: number) => (r[k] = Math.max(r[k] || 0, v));
+  for (const [k, v] of Object.entries(o)) {
+    if (typeof v !== "number" || !v) continue;
+    if (k === "performance") { add("baile", v); add("canto", v); }
+    else if (k === "estilo") add("moda", v);
+    else if ((QATTRS as string[]).includes(k)) add(k as QAttr, v);
+  }
+  return r;
+}
+/** Nota de pasarela que aportan las habilidades (moda y carisma). */
+export const pasarelaAttr = (a: Attrs) => (a.moda * 2 + a.carisma) / 3;
 /** Imagen de una reina (con su look de temporada si lo tiene). */
 export function queenImg(id: string, seasonId?: string, portrait = false) {
   const r = REINAS_ES[id];
@@ -315,7 +446,7 @@ export function queenImg(id: string, seasonId?: string, portrait = false) {
 /** Nota de la pasarela de una rival (0-100): su estilo y cómo le ha salido esa semana. Va aparte de la nota del reto,
  * para que la crítica del look no dependa de cómo hizo el reto. Siempre la misma para la misma reina y semana. */
 export function lookRival(id: string, ep: number): number {
-  const est = baseAttrs(id, queenStats(id)).estilo;
+  const est = baseAttrs(id, queenStats(id)).moda;
   let h = 7;
   for (const c of `${id}:${ep}:look`) h = (h * 33 + c.charCodeAt(0)) >>> 0;
   return Math.max(15, Math.min(98, Math.round(est * 7 + 12 + ((h % 41) - 20))));
