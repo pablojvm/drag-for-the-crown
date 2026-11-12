@@ -603,7 +603,10 @@
   const notaDe = (cat, pos) => DFTC.notaDe(cat, pos, DADO_NOTA);
   // Rachas, rasgos, némesis y temporadas más duras mueven un poco el dado (en puntos de atributo)
   const dadoExtra = (q) => (seasonBoost() / 5) + clamp(S.form[q.id] || 0, -8, 8) / 6 + traitMod(q) / 6 + (isNem(q) && !S.meOut ? Math.min(5, S.nemesis.heat * 0.6) / 6 : 0);
-  const rivalScore = (q) => clamp(notaDe(tirarDado(retoAttrOf(q) + dadoExtra(q)), Math.random()), 5, 99);
+  const rivalScore = (q) => clamp(notaDe(tirarDado(retoAttrOf(q) + dadoExtra(q) + (BALANCE.rivalExtra || 0)), Math.random()), 5, 99);
+  // El jurado exige más a la que ya ha ganado: a partir de la segunda victoria, resta un poco por cada win de más
+  const myWins = () => Object.values((S.track && S.track.me) || {}).filter((l) => l === "WIN" || l === "BWIN").length;
+  const exigencia = () => { const E = BALANCE.exigencia; return E ? Math.min(E.max, Math.max(0, myWins() - (E.desde - 1)) * E.porWin) : 0; };
   // Tu nota: tu juego mueve tu dado (bordarlo sube escalones, hacerlo mal los baja), pero no lo asegura
   // Tu nota: lo que juegas manda y el dado de tus atributos la matiza (regla compartida: src/core/dado.ts)
   function myDado(played) {

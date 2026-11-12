@@ -80,6 +80,8 @@
     if (twistOf() === "winners") return winnersWeeks();
     return S.season.cast.length - 4;
   }
+  // Familias de pasarelas que se parecen demasiado (src/core/temas.ts): de cada familia, una por temporada
+  const famOf = (n) => (DFTC.familiaPasarela ? DFTC.familiaPasarela(n) : n);
   function buildSchedule() {
     let ord = (S.order || []).filter((t) => ORDEN_RETOS.includes(t));
     if (ord.length < ORDEN_RETOS.length - (ord.includes("talento") ? 0 : 1)) ord = ORDEN_RETOS;
@@ -88,7 +90,14 @@
     const seen = seenRunways();
     const fresh = (arr) => shuffle(arr).map((n) => [n, (seen[n] || 0) + Math.random() * 0.9]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
     const pool = [...fresh(temas.map((t) => t.n)), ...fresh(CATEGORIAS.filter((c) => !temas.some((t) => t.n === c)))];
-    const take = () => pool.shift() || pick1(CATEGORIAS);
+    // Nada de dos pasarelas parecidas en la misma temporada (ni una pasarela que repita una categoría del Ball)
+    const fams = new Set();
+    const take = () => {
+      const i = pool.findIndex((n) => !fams.has(famOf(n)));
+      const n = i >= 0 ? pool.splice(i, 1)[0] : pool.shift() || pick1(CATEGORIAS);
+      fams.add(famOf(n));
+      return n;
+    };
     const sched = [];
     for (let ep = 1; ep <= seasonEpisodes(); ep++) {
       const tipo = tipoDeEp(ord, ep);
@@ -97,6 +106,7 @@
         const used = sched.filter((x) => x.ball).map((x) => x.ball);
         const B = fresh(BALLS.filter((b) => !used.includes(b.id)).map((b) => "ball:" + b.id)).map((k) => BALLS.find((b) => "ball:" + b.id === k))[0] || pick1(BALLS);
         looks.push({ cat: B.c[0][0], kind: "ball" }, { cat: B.c[1][0], kind: "ball" });
+        B.c.forEach((c) => fams.add(famOf(c[0])));
         sched.push({ ep, tipo, looks, ball: B.id });
         continue;
       }

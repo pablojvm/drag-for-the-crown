@@ -61,3 +61,21 @@ export const TEMAS_PASARELA: readonly Tema[] = [
 ];
 
 export const temaDe = (cat: string) => TEMAS_PASARELA.find((t) => t.n === cat) || null;
+
+/** Pasarelas que se parecen demasiado: en una temporada, solo una de cada familia. */
+export const FAMILIAS_PASARELA: Record<string, readonly string[]> = {
+  rojo: ["Rojo pasión", "Pasión en Rojo", "Rojo", "Fuego"],
+  realeza: ["Realeza", "Sangre Azul"],
+  ochentas: ["Años 80", "Neón Ochentero"],
+  bicolor: ["Blanco y negro", "Ajedrez Humano"],
+  flores: ["Flores y más flores", "Jardín Prohibido"],
+  animal: ["Animal print", "Muuuy Fashion"],
+  futuro: ["Futurista", "Error 404: Diva no Encontrada", "Polvo de Estrellas", "Eleganza del Futuro"],
+  brillo: ["Brilla, brilla", "Bola de Discoteca", "Discoteca"],
+  gala: ["Look de gala", "Alfombra Roja de los Goya"],
+  flamenco: ["Lunares a la Luz de las Velas", "Verbena hasta el Amanecer", "Folclore reinventado", "Tablao"],
+  mar: ["De las Profundidades", "Agua", "Sirena", "Marinera"],
+  estrellas: ["Eleganza de las Estrellas", "Luna", "Sol"],
+};
+/** Familia de una pasarela (si no tiene, ella misma). */
+export const familiaPasarela = (n: string) => Object.keys(FAMILIAS_PASARELA).find((k) => FAMILIAS_PASARELA[k].includes(n)) || n;

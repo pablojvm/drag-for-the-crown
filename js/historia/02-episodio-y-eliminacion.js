@@ -250,7 +250,16 @@
       } else if (p2 && li > i && O[i] !== "talento") [O[i], O[li]] = [O[li], O[i]];
       ord = O;
     }
-    const tipo = tipoDeEp(ord, S.ep);
+    let tipo = tipoDeEp(ord, S.ep);
+    // Ningún maxirreto se repite en la temporada mientras quede alguno sin hacer
+    S.retoHist = S.retoHist || {};
+    const hechos = new Set(Object.entries(S.retoHist).filter(([e]) => +e !== S.ep).map(([, t]) => t));
+    Object.entries(S.epNames || {}).forEach(([e, nm]) => { if (+e !== S.ep) { const t = Object.keys(EP_SHORT).find((k) => EP_SHORT[k] === nm); if (t) hechos.add(t); } });
+    if (hechos.has(tipo)) {
+      const alt = ord.find((t) => !hechos.has(t) && t !== "talento" && (t !== "lalaparuza" || p2 || twistOf() === "winners"));
+      if (alt) tipo = alt;
+    }
+    S.retoHist[S.ep] = tipo;
     S.retoEp = { ep: S.ep, tipo };
     return tipo;
   }
@@ -532,7 +541,7 @@
         Music.stop();
         if (raw >= 95) Achievements.unlock("perfecta");
         const pactB = S.team ? S.team.filter((q) => S.pacts && S.pacts[q.id]).length * 3 : 0;
-        const bonus = clamp(relBonus() + S.advice - (S.helped ? 4 : 0) + pactB, -12, 12);
+        const bonus = clamp(relBonus() + S.advice - (S.helped ? 4 : 0) + pactB, -BALANCE.bonusMax, BALANCE.bonusMax);
         S.lastBonus = bonus;
         const close = closeReto(raw, bonus, titulo, onScore);
         if (reto.noRunway || onScore) return close(null);
@@ -609,6 +618,9 @@
     if (S.phase && S.phase.ep === S.ep && S.phase.sc) sc = { ...S.phase.sc };
     S.rivals.forEach((q) => { if (sc[q.id] == null) sc[q.id] = rivalScore(q); });
     if (sc.__dado == null && typeof window.__forceScore !== "number") {
+      // El jurado te mira con lupa si ya has ganado (no en la Lalaparuza, que sale del cuadro)
+      const pen = S.curTipo === "lalaparuza" ? 0 : exigencia();
+      if (pen) { myScore = clamp(myScore - pen, 0, 100); if (!S.meOut && myWins() >= 2 && Math.random() < 0.5) Toast.show("🔍 El jurado te mira con lupa", "Ya has ganado: de ti esperan más"); }
       let d = myDado(myScore);
       // Si el jurado ya te valoró en directo, el dado solo matiza: no puede convertir unas críticas buenísimas en un desastre
       if (S.liveEp === S.ep) d = clamp(d, myScore - 8, myScore + 6);

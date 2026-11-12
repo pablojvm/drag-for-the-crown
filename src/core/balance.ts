@@ -7,7 +7,14 @@ export const BALANCE = {
   notas: [[90, 99], [78, 89], [62, 77], [45, 61], [20, 44]] as [number, number][],
   // Tu juego mueve tu dado: a partir de qué nota subes o bajas escalones.
   // Y manda: tu nota final no se aleja de lo que has jugado más que estos márgenes (lo que ves es lo que sacas)
-  tuJuego: { borda: 90, probDosEscalones: 0.35, bien: 75, normal: 55, mal: 35, margenAbajo: 8, margenArriba: 6 },
+  tuJuego: { borda: 90, probDosEscalones: 0.35, bien: 75, normal: 55, mal: 35, margenAbajo: 14, margenArriba: 6 },
+  // Como en el programa: las buenas ganan 2-4 retos por temporada. Ganar no te lo pone fácil la semana siguiente:
+  // a partir de tu segunda victoria, el jurado te exige más (puntos que te resta por cada win de más, con tope)
+  exigencia: { desde: 2, porWin: 5, max: 15 },
+  // Lo que pueden sumar (o restar) ventajas, alianzas y pactos a tu nota del reto
+  bonusMax: 8,
+  // Las rivales también vienen a por todas: un empujón a su dado (en puntos de atributo)
+  rivalExtra: 0.6,
   // Rasgos en el reto (puntos sobre 100)
   rasgos: { fortaleza: 9, debilidad: -10, pasarela: 5, poderMax: 5, poderFactor: 0.6 },
   // Lip sync simulado entre rivales

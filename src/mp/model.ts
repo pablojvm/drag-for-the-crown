@@ -4,6 +4,7 @@
 import { ppe } from "../core/track";
 import { nivelNota } from "../core/dado";
 import { lookRival } from "../core/reinas";
+import { familiaPasarela } from "../core/temas";
 import { buildBracket } from "../core/bracket";
 import { bottomSize, weekLabels, allCritiqued } from "../core/week";
 import { BANDAS, COLORES_GRUPO, grupoCritica, NOMBRE_JURADO } from "../core/criticas";
@@ -276,14 +277,20 @@ export function makePlan(n: number, e: Pick<Engine, "retos" | "categorias" | "rn
   const all = e.retos();
   const cats = e.categorias().slice();
   const out: PlanEp[] = [];
+  const fams = new Set<string>();
   let pool: typeof all = [];
   for (let i = 0; i < n; i++) {
     if (!pool.length) pool = all.slice();
     const r = pool.splice(Math.floor(e.rnd() * pool.length), 1)[0];
     const ep: PlanEp = { tipo: r.tipo };
     if (!r.noRunway) {
-      const k = cats.length ? Math.floor(e.rnd() * cats.length) : -1;
-      ep.cat = k >= 0 ? cats.splice(k, 1)[0] : e.categorias()[Math.floor(e.rnd() * e.categorias().length)];
+      // Ni repetida ni parecida a otra de la temporada (mientras queden)
+      const ok = cats.filter((c) => !fams.has(familiaPasarela(c.n)));
+      const from = ok.length ? ok : cats;
+      const c = from.length ? from[Math.floor(e.rnd() * from.length)] : e.categorias()[Math.floor(e.rnd() * e.categorias().length)];
+      if (cats.includes(c)) cats.splice(cats.indexOf(c), 1);
+      fams.add(familiaPasarela(c.n));
+      ep.cat = c;
     }
     out.push(ep);
   }
