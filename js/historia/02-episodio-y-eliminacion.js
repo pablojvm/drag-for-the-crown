@@ -605,9 +605,73 @@
         cleanup = null;
         if (typeof window.__forceScore === "number") walk = window.__forceScore;
         Music.stop();
-        then(clamp(walk + (S.runwayBonus || 0), 0, 100));
+        const score = clamp(walk + (S.runwayBonus || 0), 0, 100);
+        rivalsGallery(cat, () => then(score));
       });
     });
+  }
+
+  // ---------------- Así han desfilado las demás ----------------
+  // Cada rival lleva un look del armario: las que van a ir bien, piezas que encajan con la categoría;
+  // las flojas, piezas que no. No se enseña ninguna nota: eso lo dice el jurado.
+  const SLOTS_LOOK = [["look", "👗", "Look"], ["peluca", "💇", "Peluca"], ["zapatos", "👠", "Tacones"], ["acc", "💄", "Toque final"]];
+  function rivalOutfit(q, cat, used) {
+    const nota = DFTC.lookRival(q.id, S.ep) / 100;
+    let h = 11;
+    for (const c of `${q.id}:${S.ep}:${cat}`) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    const out = {};
+    SLOTS_LOOK.forEach(([k], i) => {
+      const rvCat = !!(TEMAS_PASARELA.find((t) => t.n === cat) || {}).rv;
+      const pool = (ARMARIO[k] || []).filter((it) => !String(it.id).startsWith("hecho-") && !used.has(it.id) && (k !== "look" || !!it.rv === rvCat));
+      if (!pool.length) return;
+      const ranked = pool.map((it) => [fitScore(k, it, cat), it]).sort((a, b) => b[0] - a[0]);
+      // Bien: entre las que mejor encajan; regular: por el medio; floja: de las que no pegan
+      const n = ranked.length;
+      const [a, b] = nota >= 0.75 ? [0, Math.min(n, 6)] : nota >= 0.55 ? [Math.floor(n * 0.15), Math.floor(n * 0.5)] : [Math.floor(n * 0.6), n];
+      const span = Math.max(1, b - a);
+      const it = ranked[Math.min(n - 1, a + ((h >>> (i * 3)) % span))][1];
+      out[k] = it;
+      if (k === "look") used.add(it.id);
+    });
+    return out;
+  }
+  function rivalsGallery(cat, done) {
+    const rivals = S.rivals.filter((q) => q && !(S.out || []).includes(q));
+    if (!rivals.length) return done();
+    const used = new Set(Object.values((S.prepLooks || {})[cat] || {}).map((x) => x && x.id).filter(Boolean));
+    const looks = rivals.map((q) => ({ q, o: rivalOutfit(q, cat, used) }));
+    const per = () => (document.body.classList.contains("portrait") ? 1 : 3);
+    let page = 0;
+    const card = ({ q, o }) => `
+      <div class="rg-card">
+        <div class="rg-who"><i style="background-image:url('${photo(q)}')"></i><b>${esc(q.name)}</b></div>
+        <div class="rg-look">${o.look ? `<img src="${pieceImg(o.look.id)}" alt="${esc(o.look.n)}">` : ""}</div>
+        <p class="rg-name">${o.look ? esc(o.look.n) : ""}</p>
+        <ul class="rg-pieces">${SLOTS_LOOK.slice(1).map(([k, ic, nm]) => (o[k] ? `<li title="${esc(nm)}: ${esc(o[k].n)}"><img src="${pieceImg(o[k].id)}" alt=""><span>${ic} ${esc(o[k].n)}</span></li>` : "")).join("")}</ul>
+      </div>`;
+    const draw = () => {
+      const P = per(), pages = Math.ceil(looks.length / P);
+      page = clamp(page, 0, pages - 1);
+      body().innerHTML = `
+        <div class="story-card rg">
+          <p class="eyebrow">👠 «${esc(cat)}» · así han desfilado las demás</p>
+          <div class="rg-row">${looks.slice(page * P, page * P + P).map(card).join("")}</div>
+          <div class="rg-nav">
+            <button class="btn btn-ghost" id="rg-prev" ${page ? "" : "disabled"} aria-label="Anteriores">‹</button>
+            <span>${page + 1} / ${pages}</span>
+            <button class="btn btn-ghost" id="rg-next" ${page < pages - 1 ? "" : "disabled"} aria-label="Siguientes">›</button>
+          </div>
+          <button class="btn btn-primary" id="rg-done">Al veredicto</button>
+        </div>`;
+      $("#rg-prev").addEventListener("click", () => { page--; draw(); });
+      $("#rg-next").addEventListener("click", () => { page++; draw(); });
+      $("#rg-done").addEventListener("click", done);
+      const row = body().querySelector(".rg-row");
+      let x0 = null;
+      row.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+      row.addEventListener("touchend", (e) => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 40) { page += dx < 0 ? 1 : -1; draw(); } }, { passive: true });
+    };
+    draw();
   }
 
   // Resultado de la semana: todo sale de las notas del día (nada predefinido)

@@ -3119,3 +3119,31 @@ body.portrait .ls-right .shop-legend { display: none; }
 /* (más fuerte que la regla de vertical que fija las tarjetas a 690px del escenario) */
 body.portrait > :is(.cc-modal, .track-modal, .shop-modal) > * { width: min(var(--mw, 1100px), 100%) !important; max-width: 100% !important; }
 body.portrait > .track-modal .story-card { padding: 16px 14px; }
+/* Así han desfilado las demás */
+.story-card.rg { width: 1000px; display: flex; flex-direction: column; align-items: center; gap: 10px; max-height: none !important; overflow: visible !important; }
+.rg-name { font-size: 15px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rg-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; width: 100%; }
+.rg-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 12px; border-radius: 22px; background: #fff; box-shadow: 0 14px 30px -18px rgba(59,13,79,.5); animation: rise .35s var(--ease-out) both; min-width: 0; }
+.rg-who { display: flex; align-items: center; gap: 8px; align-self: stretch; }
+.rg-who i { width: 44px; height: 44px; border-radius: 50%; background: #f6e6f1 center 20% / cover; box-shadow: 0 0 0 2px var(--pink); flex-shrink: 0; }
+.rg-who b { font: 400 16px Bungee, sans-serif; color: var(--ink); line-height: 1.1; }
+.rg-look { height: 190px; display: flex; align-items: flex-end; justify-content: center; }
+.rg-look img { max-height: 100%; max-width: 100%; object-fit: contain; filter: drop-shadow(0 10px 14px rgba(59,13,79,.3)); }
+.rg-name { margin: 0; font-weight: 800; color: var(--ink); text-align: center; }
+.rg-pieces { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; align-self: stretch; }
+.rg-pieces li { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 12px; background: #f8f1fa; font-size: 13px; color: var(--ink); min-width: 0; }
+.rg-pieces li img { width: 34px; height: 34px; object-fit: contain; flex-shrink: 0; }
+.rg-pieces li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rg-nav { display: flex; align-items: center; gap: 16px; }
+.rg-nav .btn { width: 60px; height: 50px; padding: 0; font-size: 28px; }
+.rg-nav span { font: 800 18px Poppins, sans-serif; color: var(--ink); min-width: 64px; text-align: center; }
+body.portrait .story-card.rg { width: 690px !important; }
+body.portrait .rg-row { grid-template-columns: minmax(0, 1fr); }
+body.portrait .rg-look { height: 360px; }
+body.portrait .rg-who i { width: 64px; height: 64px; }
+body.portrait .rg-who b { font-size: 26px; }
+body.portrait .rg-name { font-size: 22px; }
+body.portrait .rg-pieces { flex-direction: row; gap: 8px; }
+body.portrait .rg-pieces li { flex: 1; flex-direction: column; font-size: 15px; padding: 8px 6px; text-align: center; }
+body.portrait .rg-pieces li img { width: 72px; height: 72px; }
+body.portrait .rg-pieces li span { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
