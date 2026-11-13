@@ -64,13 +64,8 @@ export const JURADO = {
     low: ["Y el look de pasarela... mejor no hablemos de la peluca.", "Ese look parecía sacado del fondo del armario.", "En pasarela me has dejado fría."],
   },
   aperturaAna: ["Voy a ser directa, {yo}.", "{yo}, vamos con el look.", "A ver, {yo}...", "{yo}, te he estado observando toda la semana.", "Mira, {yo}, te lo digo con cariño.", "{yo}, hablemos de moda.", "Lo primero que he pensado al verte salir, {yo}:", "{yo}, el look.", "Yo me fijo en todo, {yo}, ya lo sabes."],
-  aperturaSupreme: [
-    "{yo}, te toca.", "Vamos contigo, {yo}.", "{yo}, cariño, da un paso al frente.", "Turno de {yo}. Nervios, ¿eh?",
-    "{yo}, ven aquí, que tengo cosas que decirte.", "A ver, {yo}... ¿qué ha pasado esta semana?", "{yo}, mírame a los ojos.",
-    "{yo}, esta semana me has hecho pensar mucho.", "Siguiente: {yo}.", "{yo}, respira, que esto va rápido.",
-    "{yo}, no pongas esa cara, que todavía no he dicho nada.", "Mi niña {yo}, adelante.", "{yo}... ay, {yo}.",
-    "Vamos con una que ha dado que hablar: {yo}.", "{yo}, ¿cómo te has sentido con el reto?", "Cuéntame, {yo}: ¿estás contenta con lo de hoy?",
-  ],
+  // Como en el programa: Supremme solo da paso a cada reina. «Hablamos con» a la primera y «Ahora hablamos con» a las siguientes
+  aperturaSupreme: ["Hablamos con {yo}.", "Ahora hablamos con {yo}."],
   /** Lo que dice Ana Locking cuando un look le encanta (y hace los deditos). */
   ovah: ["¡Un ovaaahhh! ¡Deditos!", "Esto es un ovaaahhh. Y lo sabes. ¡Deditos!", "¡Ovaaahhh! Mira, mira: ¡deditos, deditos!", "Me levanto y todo: ¡un ovaaahhh! ¡Deditos!"],
   veredicto: {

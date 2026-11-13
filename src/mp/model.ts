@@ -507,7 +507,9 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
       if (jury && lines[1]) lines[1] = [lines[1][0], `${nm}, ${jury.length > 240 ? jury.slice(0, 240).replace(/\s+\S*$/, "") + "..." : jury}`];
       return { key: r.key, lines };
     })
-    .sort(() => e.rnd() - 0.5); // desordenadas: que el orden no delate posiciones
+    .sort(() => e.rnd() - 0.5) // desordenadas: que el orden no delate posiciones
+    // Supremme: «Hablamos con» a la primera y «Ahora hablamos con» a las demás
+    .map((c, i) => (c.lines[0] && /^(Ahora h|H)ablamos con /.test(c.lines[0][1]) ? { ...c, lines: [[c.lines[0][0], c.lines[0][1].replace(/^(Ahora h|H)ablamos con /, i ? "Ahora hablamos con " : "Hablamos con ")] as [string, string], ...c.lines.slice(1)] } : c));
   // Por grupos: antes de las críticas una a una, el jurado valora cada grupo por su nombre
   const gcrit = G ? (isAW(s) ? order.slice(0, 1) : order).map((gi, pos) => ({ name: G.names[gi], keys: G.members[gi], lines: grupoCritica(G.names[gi], pos === 0 ? "top" : pos === order.length - 1 ? "low" : "mid", e.rnd).map(([k, t]) => [NOMBRE_JURADO[k], t] as [string, string]) })) : undefined;
   return { ...s, rows, crit, gcrit };

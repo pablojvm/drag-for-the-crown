@@ -909,11 +909,12 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         const list = (ai && Array.isArray(ai.criticas) ? ai.criticas : []);
         return others.map((r) => {
           const c = list.find((x) => x && str(x.reina) === r.q.name);
-          const named = (t) => (t.includes(r.q.name) ? t : `${r.q.name}, ${t.replace(/^./, (x) => x.toLowerCase())}`);
-          if (c && str(c.reto) && str(c.pasarela)) return [["host", named(IA.clean(str(c.reto)))], ["judge", IA.clean(str(c.pasarela))], ...(str(c.javis) ? [[pick1(["ambrossi", "calvo"]), IA.clean(str(c.javis))]] : [])];
+          const named = (t) => t;
+          const intro = ["host", `Hablamos con ${r.q.name}.`];
+          if (c && str(c.reto) && str(c.pasarela)) return [intro, ["host", named(IA.clean(str(c.reto)))], ["judge", IA.clean(str(c.pasarela))], ...(str(c.javis) ? [[pick1(["ambrossi", "calvo"]), IA.clean(str(c.javis))]] : [])];
           const bank = DFTC.bancoReto(S.curTipo)[nivel(r)];
-          const low1 = (t) => t.replace(/\{yo\}/g, r.q.name).replace(/^./, (c) => c.toLowerCase());
-          return [["host", `${r.q.name}, ${low1(pickFresh(bank))}`], ["judge", `${r.q.name}, ${low1(pickFresh(JURADO.pasarela[twistOf() === "winners" ? "top" : DFTC.nivelNota(DFTC.lookRival(r.q.id, S.ep))]).replace(/^(y |por cierto, )/i, ""))}`], ...(Math.random() < 0.35 ? pickFresh(JAVIS.critica[nivel(r)]).map(([k, t]) => [k, t.replace(/\{yo\}/g, r.q.name)]) : [])];
+          const cap = (t) => t.replace(/\{yo\}/g, r.q.name).replace(/^./, (c) => c.toUpperCase());
+          return [intro, ["host", cap(pickFresh(bank))], ["judge", cap(pickFresh(JURADO.pasarela[twistOf() === "winners" ? "top" : DFTC.nivelNota(DFTC.lookRival(r.q.id, S.ep))]).replace(/^(y |por cierto, )/i, ""))], ...(Math.random() < 0.35 ? pickFresh(JAVIS.critica[nivel(r)]).map(([k, t]) => [k, t.replace(/\{yo\}/g, r.q.name)]) : [])];
         });
       };
       // Reto en grupo: el jurado valora primero cada grupo en bloque
@@ -931,12 +932,14 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         if (!list.length) return [];
         return [["host", "Vamos a empezar por los grupos."], ...list.flatMap((b) => pickFresh(GRUPO_CRIT[blockTone(b)]).map(([k, t]) => [k, t.replace("{g}", blockName(b))])), ["host", "Y ahora, una a una."]];
       };
+      // Como en el programa: «Hablamos con» a la primera reina y «Ahora hablamos con» a las siguientes
+      const turnos = (ls) => { let n = 0; return ls.map(([k, t]) => (k === "host" && /^(Ahora h|H)ablamos con /.test(t) ? [k, t.replace(/^(Ahora h|H)ablamos con /, n++ ? "Ahora hablamos con " : "Hablamos con ")] : [k, t])); };
       const critStep = (then) => {
         flowGo("criticas");
         const ctx = { ...ctxWith(pick1(S.rivals)), tension: false };
         rivalCrit().then((rc) => {
           const bc = blockCrit();
-          if (meSafe) return dialog([["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."], ...bc, ...rc.flat()], ctx, then);
+          if (meSafe) return dialog(turnos([["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."], ...bc, ...rc.flat()]), ctx, then);
           const lab = labOf.get(meRow) || "";
           // En grupo, tu crítica habla de lo que has hecho tú; el resultado lo pesa también el grupo
           let tier = /WIN|TOP2|HIGH/.test(lab) ? "top" : /BTM|LOW/.test(lab) ? "low" : "mid";
@@ -953,7 +956,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           }
           const base = buildCritique(myScore, "none", tier);
           const k = Math.floor(rc.length / 2);
-          aiCritique(base, myScore, label).then((lines) => dialog([...bc, ...rc.slice(0, k).flat(), ...lines, ...extra, ...rc.slice(k).flat()], ctx, then));
+          aiCritique(base, myScore, label).then((lines) => dialog(turnos([...bc, ...rc.slice(0, k).flat(), ...lines, ...extra, ...rc.slice(k).flat()]), ctx, then));
         });
       };
       // Resultados en orden: ganadora, altas, bajas y bottom
