@@ -655,7 +655,7 @@
     function fitTxt(r) {
       if (!d.target) return `<span class="tl-fit">Estilo: <b>${esc(r.tag)}</b></span>`;
       const TH = themeOf(d.target);
-      if (TH && TH.id === "P05") return `<span class="tl-fit ko">🎁 «${esc(d.target)}» pide un look con reveal: ese búscalo en la tienda</span>`;
+      if (TH && TH.rv) return `<span class="tl-fit ko">🎁 «${esc(d.target)}» pide un look con reveal: ese búscalo en la tienda</span>`;
       const need = CAT_TAG[d.target] || (TH && TH.tag) || "Glamour";
       return r.tag === need
         ? `<span class="tl-fit ok">🎯 Encaja con «${esc(d.target)}» (${esc(need)})</span>`

@@ -44,7 +44,7 @@ describe("pasarela con concepto (núcleo)", () => {
   });
   it("temáticas con estilo válido y una de reveal", () => {
     expect(TEMAS_PASARELA.every((t) => (TAGS as readonly string[]).includes(t.tag))).toBe(true);
-    expect(TEMAS_PASARELA.filter((t) => t.rv).length).toBe(1);
+    expect(TEMAS_PASARELA.filter((t) => t.rv).map((t) => t.id).sort()).toEqual(["P05", "R08"]);
     expect(temaDe("Sangre Azul")?.tag).toBe("Glamour");
   });
 });

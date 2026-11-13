@@ -16,3 +16,18 @@ describe("plan del multijugador", () => {
     }
   });
 });
+
+describe("familias de pasarelas", () => {
+  it("cada pasarela está como mucho en una familia y todas existen", async () => {
+    const { FAMILIAS_PASARELA } = await import("../src/core/temas");
+    const all = Object.values(FAMILIAS_PASARELA).flat();
+    expect(all.filter((x, i) => all.indexOf(x) !== i)).toEqual([]);
+  });
+  it("las pasarelas del programa tienen prendas que encajan", async () => {
+    const { ARMARIO, fitScore } = await import("../src/core/armario");
+    for (const t of TEMAS_PASARELA.filter((x) => x.id.startsWith("R"))) {
+      const looks = ARMARIO.look.filter((it: any) => !!it.rv === !!t.rv && fitScore("look", it, t.n) >= 0.6).length;
+      expect(looks, t.n).toBeGreaterThanOrEqual(8);
+    }
+  });
+});
