@@ -16,6 +16,8 @@ export function allWinnersCut(ranked: string[], stars: (k: string) => number, to
 
 /** Puestos por tramos de la final All Winners: las de la final por su resultado y el resto empatadas en un tramo. */
 export const allWinnersTier = (top: number, bottom: number) => (bottom > 1 ? `${top + 1}º/${top + bottom}º` : `${top + 1}º`);
+/** Puestos de las que no llegan a la final de All Winners: la QoSDADHH queda justo detrás (5ª con top 4) y el resto empatadas (6ª/9ª). */
+export const allWinnersBottom = (top: number, bottom: number) => ({ qosd: `${top + 1}º`, rest: allWinnersTier(top + 1, bottom - 1) });
 
 /**
  * Lalaparuza: nota según hasta dónde llega cada una en el cuadro (la campeona arriba, las que caen pronto abajo).

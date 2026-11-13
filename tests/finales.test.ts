@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { allWinnersCut, allWinnersTier, lalaScore } from "../src/core/finales";
+import { allWinnersCut, allWinnersTier, allWinnersBottom, lalaScore } from "../src/core/finales";
 
 describe("finales", () => {
   it("All Winners: corte limpio por estrellas", () => {
@@ -20,6 +20,8 @@ describe("finales", () => {
   it("tramos de puestos", () => {
     expect(allWinnersTier(4, 5)).toBe("5º/9º");
     expect(allWinnersTier(4, 1)).toBe("5º");
+    expect(allWinnersBottom(4, 5)).toEqual({ qosd: "5º", rest: "6º/9º" });
+    expect(allWinnersBottom(4, 2)).toEqual({ qosd: "5º", rest: "6º" });
   });
   it("Lalaparuza: la campeona 95, la que cae en la primera ronda abajo", () => {
     expect(lalaScore({ reached: 4, R: 3, champ: true, top2: false })).toBe(95);

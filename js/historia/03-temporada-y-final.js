@@ -434,7 +434,7 @@
       const bottomSeeded = bottom.slice().sort(byMerit);
       const finishAll = (qd, crown) => {
         const fp = {};
-        const tierB = DFTC.allWinnersTier(TOP, bottom.length);
+        const tierB = DFTC.allWinnersBottom(TOP, bottom.length);
         top.forEach((q) => {
           const k = keyOf(q);
           if (q === crown.champ) { fp[k] = { o: 1, r: "1º" }; mark(q, "WINNER"); }
@@ -444,7 +444,7 @@
         bottom.forEach((q) => {
           const k = keyOf(q);
           const isQ = qd && q === qd.champ;
-          fp[k] = { o: isQ ? 5 : 6, r: tierB };
+          fp[k] = { o: isQ ? TOP + 1 : TOP + 2, r: isQ ? tierB.qosd : tierB.rest };
           mark(q, isQ ? "QOSD" : "ELIMF");
         });
         S.finalPlace = fp;

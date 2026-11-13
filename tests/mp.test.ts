@@ -261,8 +261,9 @@ describe("temporada en directo", () => {
       const labs = Object.values(s.track).map((t) => Object.values(t).join(" "));
       expect(labs.filter((l) => /QOSD/.test(l))).toHaveLength(1);
       expect(labs.filter((l) => /ELIMF/.test(l))).toHaveLength(c.length - 5);
-      const tier = `5º/${c.length}º`;
-      expect(s.out.filter((o) => o.place === tier)).toHaveLength(c.length - 4);
+      // La QoSDADHH queda 5ª; el resto, empatadas detrás (6ª/Nª)
+      expect(s.out.filter((o) => o.place === "5º")).toHaveLength(1);
+      expect(s.out.filter((o) => o.place === `6º/${c.length}º`)).toHaveLength(c.length - 5);
       // En la clasificación, la QoSDADHH va justo detrás de las cuatro de la final
       expect(s.track[standings(s)[4].key][s.ep]).toBe("QOSD");
     }

@@ -8,7 +8,7 @@ import { familiaPasarela } from "../core/temas";
 import { buildBracket } from "../core/bracket";
 import { bottomSize, weekLabels, allCritiqued } from "../core/week";
 import { BANDAS, COLORES_GRUPO, grupoCritica, NOMBRE_JURADO } from "../core/criticas";
-import { allWinnersCut, allWinnersTier, lalaScore } from "../core/finales";
+import { allWinnersCut, allWinnersBottom, lalaScore } from "../core/finales";
 import { rescueFromBottom, coinResult, lipstickKind, addHalfHearts } from "../core/dinamicas";
 
 export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "reencuentro" | "finalistas" | "votacion" | "final" | "corona";
@@ -205,7 +205,7 @@ export interface RoomState {
   vote?: { a: string; b: string; tally?: Record<string, number> };
   /** All Winners: eliminatoria de lip syncs (primero la QoSDADHH y luego la corona). */
   bracket?: { kind: "qosd" | "corona"; seeds: string[]; alive: string[]; round: number; bye?: string };
-  awFinal?: { top: string[]; bottom: string[]; tierB: string; qosd?: string };
+  awFinal?: { top: string[]; bottom: string[]; tierB: string; tierQ?: string; qosd?: string };
   track: Record<string, Record<number, string>>;
   epNames: Record<number, string>;
   champion?: string;
@@ -806,7 +806,7 @@ function awCut(s: RoomState, now: number, e: Engine): RoomState {
 function awStart(s: RoomState, top: string[], now: number, e: Engine, cut?: { chooser: string; picked: string[]; tied: string[] }): RoomState {
   const ranked = seeds(s);
   const topS = ranked.filter((k) => top.includes(k)), bottom = ranked.filter((k) => !top.includes(k));
-  const tierB = allWinnersTier(topS.length, bottom.length);
+  const { qosd: tierQ, rest: tierB } = allWinnersBottom(topS.length, bottom.length);
   const nm = (k: string) => nameOfKey(s, k, e);
   const list = (ks: string[]) => ks.map(nm).join(", ").replace(/, ([^,]*)$/, " y $1");
   const stars4 = cut ? s.stars?.[cut.tied[0]] || 0 : 0;
@@ -816,8 +816,8 @@ function awStart(s: RoomState, top: string[], now: number, e: Engine, cut?: { ch
     `${list(topS)}: sois las ${topS.length} con más estrellas. Os jugáis la corona de Reina de reinas.`,
     bottom.length ? `${list(bottom)}: os jugáis el título de Queen of She Done Already Done Had Herses. Porque ya lo habíais hecho todo.` : "",
   ].filter(Boolean).join(" ");
-  let t: RoomState = { ...s, awFinal: { top: topS, bottom, tierB } };
-  if (bottom.length === 1) t = { ...eliminate(t, bottom[0], tierB, "QOSD"), awFinal: { top: topS, bottom, tierB, qosd: bottom[0] } };
+  let t: RoomState = { ...s, awFinal: { top: topS, bottom, tierB, tierQ } };
+  if (bottom.length === 1) t = { ...eliminate(t, bottom[0], tierQ, "QOSD"), awFinal: { top: topS, bottom, tierB, tierQ, qosd: bottom[0] } };
   const br = bottom.length >= 2 ? { kind: "qosd" as const, seeds: bottom, alive: bottom, round: 1 } : { kind: "corona" as const, seeds: topS, alive: topS, round: 1 };
   return bracketRound({ ...t, bracket: br }, now, e, note);
 }
@@ -845,7 +845,7 @@ function bracketNext(s: RoomState, now: number, e: Engine): RoomState {
   if (b.kind === "qosd") {
     losers.forEach((l) => (t = eliminate(t, l, af.tierB, "ELIMF")));
     if (alive.length > 1) return bracketRound({ ...t, bracket: { ...b, alive, round: b.round + 1 } }, now, e, duels);
-    t = { ...eliminate(t, alive[0], af.tierB, "QOSD"), awFinal: { ...af, qosd: alive[0] } };
+    t = { ...eliminate(t, alive[0], af.tierQ || af.tierB, "QOSD"), awFinal: { ...af, qosd: alive[0] } };
     return bracketRound({ ...t, bracket: { kind: "corona", seeds: af.top, alive: af.top, round: 1 } }, now, e, `${duels} 💅 ${nm(alive[0])} se lleva el título de QoSDADHH. Ahora, la final por la corona: ${list(af.top)}.`);
   }
   if (alive.length > 1) {
