@@ -565,3 +565,10 @@ body:has(.nx-dlg) .nx-ts-panel { visibility: hidden; }
   .nx-htrack .nx-track td.qn i { width: 26px; height: 26px; margin-right: 5px; }
   .nx-htrack .nx-track td { min-width: 52px; }
 }
+/* Tableta: «Nueva» y «Seguir» en la misma fila, siempre dentro de la tarjeta */
+.nx-mode .ms-ctas { flex-wrap: nowrap; }
+.nx-mode .ms-cta { white-space: nowrap; }
+@media (max-width: 1100px) {
+  .nx-mode .ms-long { display: none; }
+  .nx-mode .ms-cta.alt { font-size: 14px; background: rgba(59, 13, 79, .55); }
+}
