@@ -191,12 +191,22 @@ function allWinnersCast() {
   return Object.values(o).some((x) => x.how === "win") ? Object.keys(o) : [];
 }
 const ALL_QUEEN_IDS = () => [...new Set(TEMPORADAS_ES.flatMap((t) => t.cast || []))];
+// All Stars por brackets: tu reina (de cualquier temporada) y 17 rivales al azar, primero las que no tienen corona
+function bracketsCastFor(mine) {
+  const corona = new Set(TEMPORADAS_ES.filter((t) => !t.enEmision && t.cast.length > 1).map((t) => t.cast[t.cast.length - 1]));
+  const rest = ALL_QUEEN_IDS().filter((id) => id !== mine).map((id) => [Math.random() + (corona.has(id) ? 1 : 0), id]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+  return [mine, ...rest.slice(0, 17)];
+}
+function bracketsCastSaved() {
+  const c = (store.get("dftc-brackets-cast", []) || []).filter((id) => ALL_QUEEN_IDS().includes(id));
+  return c.length === 18 ? c : [];
+}
 function specialSeasons() {
   const custom = (store.get("dftc-custom-cast", []) || []).filter((id) => ALL_QUEEN_IDS().includes(id)).slice(0, 14);
   return [
     { franchise: "esas", id: "escustom", name: "All Stars a tu gusto", year: "Tú eliges", cast: custom, special: "custom", index: 2 },
     { franchise: "esas", id: "esaw", name: "All Winners", year: "Solo ganadoras", cast: allWinnersCast(), special: "winners", index: 5 },
-    { franchise: "esas", id: "esbr", name: "All Stars por brackets", year: "Tres grupos", cast: DFTC.temporada.bracketsCast(), special: "brackets", index: 4 },
+    { franchise: "esas", id: "esbr", name: "All Stars por brackets", year: "Tres grupos", cast: bracketsCastSaved(), special: "brackets", index: 4 },
   ];
 }
 // Qué temporadas tienes abiertas en el modo historia y qué te falta para abrir las demás

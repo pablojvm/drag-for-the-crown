@@ -160,6 +160,29 @@ const UI = (() => {
   }
 
   // All Stars a tu gusto: eliges hasta 14 reinas de cualquier temporada
+  // All Stars por brackets: eliges tu reina entre todas las de todas las temporadas; las otras 17 salen al azar
+  function bracketsQueenPicker() {
+    const ids = ALL_QUEEN_IDS();
+    const cur = (store.get("dftc-brackets-cast", []) || [])[0];
+    const m = document.createElement("div");
+    m.className = "cc-modal";
+    document.body.append(m);
+    m.innerHTML = `<div class="cc-box">
+        <h3>🏆 All Stars por brackets</h3>
+        <p class="muted">Elige tu reina, de cualquier temporada. Tus 17 rivales salen al azar.</p>
+        <div class="cc-grid">${ids.map((id) => { const q = queenById2(id); if (!q) return ""; return `<button class="cc-q ${id === cur ? "on" : ""}" data-id="${id}"><i style="background-image:${portraitBg(q)}"></i><span>${esc(q.name)}</span></button>`; }).join("")}</div>
+        <div class="cc-bar"><span>Pulsa una reina</span><button class="btn btn-ghost" id="cc-x">Cancelar</button></div>
+      </div>`;
+    m.querySelectorAll(".cc-q").forEach((b) => b.addEventListener("click", () => {
+      const cast = bracketsCastFor(b.dataset.id);
+      store.set("dftc-brackets-cast", cast);
+      m.remove();
+      currentSeason = seasonById("esbr");
+      selected = queenById2(b.dataset.id) || null;
+      show("select");
+    }));
+    m.querySelector("#cc-x").addEventListener("click", () => m.remove());
+  }
   function customCastPicker() {
     const ids = ALL_QUEEN_IDS();
     let sel = (store.get("dftc-custom-cast", []) || []).filter((id) => ids.includes(id));
@@ -217,7 +240,7 @@ const UI = (() => {
         card.innerHTML = `
           <span class="s-top"><span class="s-name">${esc(s.name)}</span></span>
           ${cover ? "" : `<span class="faces">${s.cast.slice(0, 7).map((id) => `<i style="background-image:${portraitBg(queenById2(id), s.id)}"></i>`).join("")}${s.cast.length > 7 ? `<b>+${s.cast.length - 7}</b>` : ""}</span>`}
-          <span class="s-cast">${s.special === "custom" ? (s.cast.length ? `${s.cast.length} reinas elegidas por ti` : "Elige hasta 14 reinas de cualquier temporada") : s.special === "winners" ? `${s.cast.length} reinas con las que has ganado` : s.special === "brackets" ? `${s.cast.length} reinas · 🏆 tres brackets, alianzas y Lalaparuza final` : `${s.cast.length} reinas · ${s.enEmision ? "📺 En emisión" : won ? `Ganadora: ${esc(queenById2(s.winner).name)}` : "¿Quién se llevará la corona?"}`}</span>
+          <span class="s-cast">${s.special === "custom" ? (s.cast.length ? `${s.cast.length} reinas elegidas por ti` : "Elige hasta 14 reinas de cualquier temporada") : s.special === "winners" ? `${s.cast.length} reinas con las que has ganado` : s.special === "brackets" ? (s.cast.length ? `Juegas con ${esc(queenById2(s.cast[0]).name)} · 18 reinas` : "Elige tu reina de cualquier temporada") : `${s.cast.length} reinas · ${s.enEmision ? "📺 En emisión" : won ? `Ganadora: ${esc(queenById2(s.winner).name)}` : "¿Quién se llevará la corona?"}`}</span>
           <span class="s-state">${won ? "👑 Ganada" : unlocked ? (s.special ? (s.special === "custom" ? "✨ Monta tu reparto" : s.special === "brackets" ? "🏆 Por brackets" : "🏆 Solo ganadoras") : `Dificultad ${"★".repeat(Math.min(5, s.index + 1))}`) : `🔒 ${esc(lock.why)}`}</span>`;
         card.addEventListener("click", () => {
           if (!unlocked) {
@@ -226,6 +249,7 @@ const UI = (() => {
             return;
           }
           if (s.special === "custom") return customCastPicker();
+          if (s.special === "brackets") return bracketsQueenPicker();
           if (s.special === "winners" && s.cast.length < 4) return Toast.show("Faltan ganadoras", "Necesitas al menos 4 reinas coronadas");
           currentSeason = s;
           if (selected && !s.cast.includes(selected.id)) selected = null;
