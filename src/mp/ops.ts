@@ -71,7 +71,7 @@ export function applyOp(s: RoomState, from: string, op: Op, now: number, e: Engi
 export function cleanCustom(c: unknown): RoomState["custom"] | undefined {
   if (!c || typeof c !== "object") return undefined;
   const o = c as Record<string, unknown>;
-  const size = Math.max(3, Math.min(16, Math.round(Number(o.size)) || 8));
+  const size = Math.max(3, Math.min(18, Math.round(Number(o.size)) || 8));
   const rivals = Array.isArray(o.rivals) ? [...new Set(o.rivals.map((x) => str(x, 40)).filter(Boolean))].slice(0, 20) : [];
   return { pick: o.pick === "elegidas" ? "elegidas" : "azar", size, rivals };
 }

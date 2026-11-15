@@ -18,7 +18,7 @@ describe("lo que manda cada jugadora se limpia", () => {
     expect(s).toEqual({});
   });
   it("la partida personalizada se queda en valores razonables", () => {
-    expect(cleanCustom({ pick: "trampa", size: 999, rivals: Array(100).fill(0).map((_, i) => "q" + i) })).toEqual({ pick: "azar", size: 16, rivals: expect.any(Array) });
+    expect(cleanCustom({ pick: "trampa", size: 999, rivals: Array(100).fill(0).map((_, i) => "q" + i) })).toEqual({ pick: "azar", size: 18, rivals: expect.any(Array) });
     expect(cleanCustom({ pick: "elegidas", size: 8, rivals: Array(100).fill("a") })!.rivals).toEqual(["a"]);
     expect(cleanCustom("nada")).toBeUndefined();
   });

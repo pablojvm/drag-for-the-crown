@@ -174,9 +174,11 @@ const BR_COLOR = ["#e0458f", "#e98a1e", "#7b3fc4"];
 function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
   let fmt: Formato = (W.store?.get("dftc-mp-cfmt", "allstars") as Formato) || "allstars";
   let pick: "elegidas" | "azar" = W.store?.get("dftc-mp-cpick", "azar") === "elegidas" ? "elegidas" : "azar";
-  let size = Math.max(6, Math.min(14, +(W.store?.get("dftc-mp-csize", 10) || 10)));
+  // Hasta 18 reinas (el All Stars por brackets, como en el programa: tres brackets de seis)
+  const MAXQ = 18;
+  let size = Math.max(6, Math.min(MAXQ, +(W.store?.get("dftc-mp-csize", 10) || 10)));
   // Unas caras de muestra para el reparto (cambian al abrir la pantalla)
-  const muestra = (api().allQueens() as { id: string; season?: string }[]).map((x) => [Math.random(), x] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]).slice(0, 14);
+  const muestra = (api().allQueens() as { id: string; season?: string }[]).map((x) => [Math.random(), x] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]).slice(0, 18);
   const facesHTML = (nuevas = -1) => Array.from({ length: size }, (_, i) => {
     const cls = i >= nuevas && nuevas >= 0 ? " nueva" : "";
     return i === 0
@@ -227,6 +229,20 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
         <div class="row"><button class="btn btn-ghost" id="mp-cback">Volver</button><button class="btn btn-primary mp-cs-go" id="mp-ccreate"><span class="mp-cs-goic">${F0.icon}</span> Crear sala</button></div>
       </div>`;
   const card = $(".mp-customset") as HTMLElement;
+  // Que la tarjeta quepa en la pantalla: si no cabe, se hace scroll dentro (en portátiles con poca altura se salía)
+  const fit = () => {
+    if (!card.isConnected) return removeEventListener("resize", fit);
+    card.style.removeProperty("max-height");
+    card.style.removeProperty("overflow-y");
+    const r = card.getBoundingClientRect(), k = r.height / (card.offsetHeight || r.height) || 1;
+    const room = (innerHeight - Math.max(0, r.top) - 12) / k;
+    if (card.offsetHeight > room) {
+      card.style.setProperty("max-height", `${Math.max(320, room)}px`, "important");
+      card.style.setProperty("overflow-y", "auto", "important");
+    }
+  };
+  addEventListener("resize", fit);
+  requestAnimationFrame(fit);
   const hero = $(".mp-cs-hero") as HTMLElement;
   const calma = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   let swap = 0;
@@ -235,7 +251,7 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
     document.querySelectorAll<HTMLElement>("[data-p]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.p === pick)));
     ($(".mp-cs-n") as HTMLElement).textContent = String(size);
     (document.querySelector('[data-s="-1"]') as HTMLButtonElement).disabled = size <= 6;
-    (document.querySelector('[data-s="1"]') as HTMLButtonElement).disabled = size >= 14;
+    (document.querySelector('[data-s="1"]') as HTMLButtonElement).disabled = size >= MAXQ;
   };
   cast();
   // Cambiar de dinámica: los colores se funden de una a otra y el texto se cruza, sin repintar la pantalla
@@ -248,6 +264,8 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
     card.style.setProperty("--fc2", L.c2);
     document.querySelectorAll<HTMLElement>("[data-f]").forEach((b) => { const on = b.dataset.f === fmt; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
     ($(".mp-cs-goic") as HTMLElement).textContent = FORMATOS[fmt].icon;
+    // El All Stars por brackets se juega con 18 (tres brackets de seis): se propone al elegirlo
+    if (fmt === "brackets" && size < MAXQ) { const f = $(".mp-cs-faces") as HTMLElement; const antes = size; size = MAXQ; W.store?.set("dftc-mp-csize", size); f.insertAdjacentHTML("beforeend", facesHTML(antes).split("</i>").slice(antes, size).map((x) => x + "</i>").join("")); cast(); }
     const id = ++swap;
     const viejo = hero.querySelector(".mp-cs-in:not(.out)") as HTMLElement | null;
     const nuevo = document.createElement("div");
@@ -271,7 +289,7 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
   }));
   document.querySelectorAll<HTMLElement>("[data-s]").forEach((b) => (b.onclick = () => {
     const antes = size;
-    size = Math.max(6, Math.min(14, size + +b.dataset.s!));
+    size = Math.max(6, Math.min(MAXQ, size + +b.dataset.s!));
     if (size === antes) return;
     W.store?.set("dftc-mp-csize", size);
     const f = $(".mp-cs-faces") as HTMLElement;
