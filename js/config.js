@@ -176,7 +176,7 @@ function storyCrown(sid) {
 function allWinnersOrigin() {
   const used = new Set(), out = {};
   const add = (id, o) => { if (id && !used.has(id)) { used.add(id); out[id] = o; return true; } return false; };
-  [...REGULAR_ES(), ...PLAYABLE_AS(), { id: "escustom", name: "All Stars a tu gusto", cast: [] }, { id: "espar", name: "All Stars por parejas", cast: [] }, { id: "esbr", name: "All Stars por brackets", cast: [] }].forEach((t) => {
+  [...REGULAR_ES(), ...PLAYABLE_AS(), { id: "escustom", name: "All Stars a tu gusto", cast: [] }, { id: "esbr", name: "All Stars por brackets", cast: [] }].forEach((t) => {
     const name = t.name || t.id;
     const c = storyCrown(t.id);
     if (c) { if (!add(c.queen, { season: name, how: "win" })) add(c.runner, { season: name, how: "runner" }); return; }
@@ -197,13 +197,12 @@ function specialSeasons() {
     { franchise: "esas", id: "escustom", name: "All Stars a tu gusto", year: "Tú eliges", cast: custom, special: "custom", index: 2 },
     { franchise: "esas", id: "esaw", name: "All Winners", year: "Solo ganadoras", cast: allWinnersCast(), special: "winners", index: 5 },
     { franchise: "esas", id: "esbr", name: "All Stars por brackets", year: "Tres grupos", cast: DFTC.temporada.bracketsCast(), special: "brackets", index: 4 },
-    { franchise: "esas", id: "espar", name: "All Stars por parejas", year: "Parejas fijas", cast: DFTC.temporada.parejasCast(), special: "parejas", index: 3 },
   ];
 }
 // Qué temporadas tienes abiertas en el modo historia y qué te falta para abrir las demás
 function storyUnlock(s) {
   // Regla compartida con el motor nuevo (src/core/temporada.ts)
-  if (TEMPORADAS_ES.some((t) => t.id === s.id) || s.id === "escustom" || s.id === "esaw" || s.id === "espar" || s.id === "esbr") return DFTC.temporada.desbloqueo(s.id, store.get("dftc-story-wins", []) || []);
+  if (TEMPORADAS_ES.some((t) => t.id === s.id) || s.id === "escustom" || s.id === "esaw" || s.id === "esbr") return DFTC.temporada.desbloqueo(s.id, store.get("dftc-story-wins", []) || []);
   const wins = store.get("dftc-story-wins", []);
   const reg = REGULAR_ES();
   const nameOf = (id) => (TEMPORADAS_ES.find((t) => t.id === id) || {}).name || id;

@@ -3165,10 +3165,6 @@ body.portrait .rg-pieces li span { white-space: normal; display: -webkit-box; -w
 .lz-pool.safe { background: #eafff2; }
 .lz-pool.danger { background: #ffe7ef; }
 
-/* All Stars por parejas: dos caras juntas a cada lado del VS */
-.pair-faces { display: inline-flex; gap: 4px; }
-.vs .pair-faces img { width: clamp(64px, 20vw, 120px); height: clamp(64px, 20vw, 120px); border-width: 3px; }
-
 /* Track record: el color del bracket o de la pareja de cada reina (como en los All Stars 10 y 11) */
 .track td.qn.grp { background: var(--grp); color: #fff; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
 .track tr.me td.qn.grp { background: var(--grp); box-shadow: inset 0 0 0 3px #ffd84d; }
@@ -3183,3 +3179,15 @@ body.portrait .rg-pieces li span { white-space: normal; display: -webkit-box; -w
 .br-box span.me { font-weight: 800; }
 .br-box span.adv { background: color-mix(in srgb, var(--grp) 22%, transparent); border-radius: 8px; }
 .br-box span.fuera { opacity: .55; }
+
+/* All Stars por brackets: alianzas por parejas */
+.al-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 12px 0; }
+.al-pair { display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 14px; background: color-mix(in srgb, #e0458f 10%, #fff); border: 2px solid #e0458f55; color: #2a1236; text-align: left; }
+.al-pair.mine { border-color: #e0458f; box-shadow: 0 0 0 3px #ffd84d; }
+.al-pair span { display: flex; align-items: center; gap: 8px; font-size: .95rem; }
+.al-pair span i { width: 34px; height: 34px; border-radius: 50%; background: center 20% / cover; flex: none; border: 2px solid #e0458f; }
+.al-cands { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 10px; }
+.al-q { display: grid; grid-template-columns: 52px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; text-align: left; padding: 10px; border-radius: 14px; border: 2px solid #e0458f55; background: #fff; color: #2a1236; cursor: pointer; font: inherit; }
+.al-q:hover, .al-q:focus-visible { border-color: #e0458f; transform: translateY(-2px); }
+.al-q i { grid-row: 1 / 3; width: 52px; height: 52px; border-radius: 50%; background: center 20% / cover; }
+.al-q small { color: #6b4a78; }

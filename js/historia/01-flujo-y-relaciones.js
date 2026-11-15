@@ -7,7 +7,6 @@
   const seasonInfo = () => TEMPORADAS_HISTORIA[S.season.id] || { lema: "", intro: [] };
   // All Stars por brackets: tras la fase de grupos, la temporada sigue con las reglas de siempre
   const BR_COLORS = [{ n: "Bracket Rosa", c: "#e0458f" }, { n: "Bracket Naranja", c: "#e98a1e" }, { n: "Bracket Morado", c: "#7b3fc4" }];
-  const PAR_COLORS = { Rosa: "#e0458f", Oro: "#c99a12", Turquesa: "#1b9e9e", Lila: "#9b6bd6", Coral: "#ee6e4f", Esmeralda: "#2e9e5b", Plata: "#7f8c99", Rubí: "#b3123a" };
   const twistOf = () => { const t = seasonInfo().twist || null; return t === "brackets" && S && S.br && S.br.merged ? null : t; };
   // All Stars y All Winners comparten el lip sync del top 2
   const asLike = (t) => t === "allstars" || t === "winners";
@@ -725,11 +724,9 @@
     return DFTC.ppe(Object.values(S.track.me || {}));
   }
   // Lo que sale en el track record (orden, puestos y PPE); lo pintan la tabla clásica y la del motor nuevo
-  // Color del grupo de cada reina en el track record: su bracket (All Stars por brackets) o su pareja (por parejas)
+  // Color del grupo de cada reina en el track record: su bracket (All Stars por brackets)
   function grpOf(k) {
     if (S.br && S.br.groups) { const i = S.br.groups.findIndex((g) => g.includes(k)); if (i >= 0) return { c: BR_COLORS[i % BR_COLORS.length].c, t: BR_COLORS[i % BR_COLORS.length].n }; }
-    const p = S.parHist && S.parHist[k];
-    if (p) return { c: PAR_COLORS[p] || "#e8559b", t: p };
     return null;
   }
   function trackRows() {

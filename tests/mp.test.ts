@@ -227,7 +227,7 @@ describe("temporada en directo", () => {
     while (s.phase !== "corona" && guard++ < 3000) { onStep && onStep(s); s = advance(s, guard * 1000, e); }
     return s;
   };
-  for (const fmt of ["normal", "allstars", "winners", "repesca", "suerte", "corazon", "moneda", "parejas"]) {
+  for (const fmt of ["normal", "allstars", "winners", "repesca", "suerte", "corazon", "moneda", "brackets"]) {
     it(`la dinámica ${fmt} llega hasta la corona con una sola ganadora`, () => {
       for (const seed of [1, 2, 3, 9, 21]) {
         const { s: s0, c } = fmtRoom(fmt, seed);
@@ -289,28 +289,29 @@ describe("temporada en directo", () => {
     expect(s.phase).toBe("corona");
     expect(c.length).toBe(8);
   });
-  it("All Stars por parejas: parejas fijas, la peor pareja se enfrenta entre sí y una semana se van dos de golpe", () => {
-    let dobles = 0;
+  it("All Stars por brackets: tres brackets con alianzas, nadie se va en tres semanas, pasan dos de cada uno y vuelve una", () => {
     for (const seed of [1, 2, 3, 9, 21]) {
       const e = engine(seed);
-      let { s } = fmtRoom("parejas", seed);
-      let first: string[][] | null = null, doble = 0, fratricida = 0;
+      let { s } = fmtRoom("brackets", seed, 12);
+      let groups: string[][] = [], cut: RoomState | null = null, alianzas = 0, duelos = 0;
       s = runAll(s, e, (x) => {
-        if (x.phase === "equipos" && x.groups && x.groups.ep === x.ep) {
-          if (!first) first = x.groups.members.map((m) => m.slice());
-          // Las parejas no se rehacen: cada pareja es una de las de la primera semana, o dos que se quedaron solas
-          x.groups.members.forEach((m) => { if (m.length === 2 && first!.some((f) => f.includes(m[0]) && f.includes(m[1]))) expect(first!.some((f) => f.includes(m[1]))).toBe(true); });
+        if (x.br && !groups.length) groups = x.br.groups;
+        if (x.br && !x.br.done) {
+          expect(x.out).toHaveLength(0); // en los brackets no se va nadie
+          if (x.phase === "equipos" && x.al?.ep === x.ep) { alianzas++; x.al.pairs.forEach((p) => expect(groups.some((g) => p.every((k) => g.includes(k)))).toBe(true)); }
+          if (x.phase === "lipsync") duelos = Math.max(duelos, (x.pairs || []).length);
         }
-        if (x.phase === "lipsync" && x.bottom?.length === 4) doble++;
-        if (x.phase === "lipsync" && x.bottom?.length === 2 && x.groups?.ep === x.ep && x.groups.members.some((m) => m.length === 2 && m.includes(x.bottom![0]) && m.includes(x.bottom![1]))) fratricida++;
+        if (x.br?.done && !cut) cut = x;
       });
-      expect(first!.every((m) => m.length === 2)).toBe(true);
-      expect(doble).toBeLessThanOrEqual(1);
-      expect(fratricida).toBeGreaterThan(0);
+      expect(groups.map((g) => g.length)).toEqual([4, 4, 4]);
+      expect(alianzas).toBe(3);
+      expect(duelos).toBe(3);
+      // Tras el corte siguen 7: dos de cada bracket y la que vuelve (con RTRN)
+      expect(aliveKeys(cut!)).toHaveLength(7);
+      expect(Object.values(cut!.track[cut!.br!.back!])).toContain("RTRN");
+      expect(cut!.out.every((o) => o.place === "8º/12º")).toBe(true);
       expect(aliveKeys(s)).toHaveLength(1);
-      dobles += doble;
     }
-    expect(dobles).toBeGreaterThan(0);
   });
   it("Segunda Oportunidrag: con siete, una eliminada vuelve y hay lip sync a tres bandas", () => {
     const e = engine(8);

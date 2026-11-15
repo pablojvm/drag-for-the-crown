@@ -82,7 +82,7 @@
     /** Formato de la temporada para la sala. */
     formato: (seasonId) => {
       const t = (TEMPORADAS_HISTORIA[seasonId] || {}).twist;
-      return ["allstars", "winners", "repesca", "suerte", "corazon", "moneda", "parejas"].includes(t) ? t : "normal";
+      return ["allstars", "winners", "repesca", "suerte", "corazon", "moneda", "brackets"].includes(t) ? t : "normal";
     },
     /** Reto de la Segunda Oportunidrag (stand-up en parejas con las eliminadas). */
     repescaReto: () => ({ tipo: "repescaStand", titulo: RETOS.repescaStand.titulo(), desc: RETOS.repescaStand.desc, noRunway: true, ctrl: RETOS.repescaStand.ctrl }),

@@ -155,8 +155,8 @@ export function desbloqueo(id: string, wins: string[]): { ok: boolean; why?: str
   if (id === "escustom") return reg.every((t) => wins.includes(t.id)) ? { ok: true } : { ok: false, why: "Gana todas las temporadas" };
   // All Winners: basta con haber ganado una temporada (te presentas con una de tus ganadoras)
   if (id === "esaw") return wins.some((w) => w !== "esaw") ? { ok: true } : { ok: false, why: "Gana al menos una temporada" };
-  // All Stars por parejas: se abre ganando un All Stars
-  if (id === PAREJAS_ID || id === BRACKETS_ID) return wins.some((w) => /^esas/.test(w) || w === "escustom") ? { ok: true } : { ok: false, why: "Gana un All Stars" };
+  // All Stars por brackets: se abre ganando un All Stars
+  if (id === BRACKETS_ID) return wins.some((w) => /^esas/.test(w) || w === "escustom") ? { ok: true } : { ok: false, why: "Gana un All Stars" };
   return { ok: true };
 }
 /** All Winners: las ganadoras de las temporadas ya emitidas (si una repite, entra su finalista). */
@@ -169,20 +169,10 @@ export function allWinnersCast(): string[] {
   });
   return [...used];
 }
-/** All Stars por parejas: las finalistas que se quedaron a las puertas (sin corona), de cada temporada. Siempre par. */
-export const PAREJAS_ID = "espar";
-export function parejasCast(): string[] {
-  const reg = TEMPORADAS_ES.filter((t) => t.franchise === "es" && !t.enEmision && t.cast.length > 4);
-  const ganadoras = new Set(TEMPORADAS_ES.filter((t) => !t.enEmision && t.cast.length > 1).map((t) => t.cast[t.cast.length - 1]));
-  const out: string[] = [];
-  for (const back of [2, 3, 4]) reg.forEach((t) => { const id = t.cast[t.cast.length - back]; if (id && !ganadoras.has(id) && !out.includes(id) && REINAS_ES[id]) out.push(id); });
-  const c = out.slice(0, 12);
-  return c.length % 2 ? c.slice(0, -1) : c;
-}
 /** All Stars por brackets (como el All Stars 10 y 11): reinas sin corona de todas las temporadas, en tres grupos. */
 export const BRACKETS_ID = "esbr";
 /** Puntos de cada resultado en la fase de grupos (como en el programa). */
-export const BRACKET_PTS: Record<string, number> = { WIN: 10, TOP2: 9, HIGH: 8, SAFE: 5, LOW: 2, BTM2: 1, ELIM: 0 };
+export { BRACKET_PTS } from "./alianzas";
 export function bracketsCast(): string[] {
   const reg = TEMPORADAS_ES.filter((t) => t.franchise === "es" && !t.enEmision && t.cast.length > 6);
   const ganadoras = new Set(TEMPORADAS_ES.filter((t) => !t.enEmision && t.cast.length > 1).map((t) => t.cast[t.cast.length - 1]));
@@ -198,7 +188,6 @@ export const customPool = () => [...new Set(TEMPORADAS_ES.flatMap((t) => t.cast)
 export function seasonById(id: string): Temporada | null {
   if (id === "esaw") return { franchise: "esaw", id, name: "All Winners", year: 2026, cast: allWinnersCast() };
   if (id === CUSTOM.id) return { franchise: "esas", id, name: "All Stars a tu gusto", year: 2026, cast: customPool() };
-  if (id === PAREJAS_ID) return { franchise: "esas", id, name: "All Stars por parejas", year: 2026, cast: parejasCast() };
   if (id === BRACKETS_ID) return { franchise: "esas", id, name: "All Stars por brackets", year: 2026, cast: bracketsCast() };
   return TEMPORADAS_ES.find((t) => t.id === id) || null;
 }

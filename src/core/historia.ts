@@ -91,22 +91,13 @@ Object.assign(TEMPORADAS_HISTORIA, {
   },
   esbr: {
     twist: "brackets",
-    lema: "All Stars por brackets: tres grupos, solo pasan dos",
+    lema: "All Stars por brackets: alianzas, puntos y solo pasan dos",
     intro: [
       ["host", "¡Bienvenidas, All Stars! Este año no competís todas juntas: os hemos repartido en tres brackets."],
       ["host", "Cada bracket compite tres semanas. Nadie se va a casa: las dos mejores de cada semana hacen lip sync por la victoria, y cada resultado da puntos."],
-      ["host", "Al acabar, solo las dos con más puntos de cada bracket pasan a la fase final. Y alguna de las demás... puede que vuelva."],
+      ["host", "Dentro de cada bracket os aliaréis por parejas. Buscad a quien os complemente: os valoraremos juntas... salvo que una hunda a la otra."],
+      ["host", "Las alianzas se pueden romper cada semana. Al acabar, solo las dos con más puntos de cada bracket pasan. Y alguna de las demás... puede que vuelva."],
       ["judge", "Tres semanas para demostrarlo todo. No hay segundas oportunidades. O casi."],
-    ],
-  },
-  espar: {
-    twist: "parejas",
-    lema: "All Stars por parejas: juntas hasta el final... o no",
-    intro: [
-      ["host", "¡Bienvenidas, All Stars! Esta vez no vais a competir solas: hoy formáis parejas, y son para toda la temporada."],
-      ["host", "Se juzga a la pareja. La peor pareja de la semana hará lip sync... la una contra la otra."],
-      ["host", "Y una semana, cuando menos lo esperéis, las dos peores parejas bailarán dos contra dos. La que pierda se va entera."],
-      ["judge", "Elegid bien a quién le dais la mano. Puede ser la que os empuje fuera."],
     ],
   },
   esaw: {

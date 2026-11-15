@@ -412,11 +412,15 @@
     if (tipo === "repescaStand" && S.flags.immune === "me") return mcEpisode();
     if (tipo === "repescaStand") return repescaPairs(go);
     if (tipo === "repescaMakeover") return makeoverEpisode();
-    if (twistOf() === "parejas" && tipo !== "lalaparuza" && parejasWeek(go)) return;
-    const grouped = reto.groups && S.rivals.length + 1 >= reto.groups * 2;
-    if (grouped) return formChallengeGroups(reto.groups, go);
-    if (reto.team && S.rivals.length >= 3) return caps();
-    go();
+    const rest = () => {
+      const grouped = reto.groups && S.rivals.length + 1 >= reto.groups * 2;
+      if (grouped) return formChallengeGroups(reto.groups, go);
+      if (reto.team && S.rivals.length >= 3) return caps();
+      go();
+    };
+    // All Stars por brackets: antes del reto, las alianzas de la semana
+    if (twistOf() === "brackets" && S.br && !S.br.merged && tipo !== "lalaparuza") return alianzaWeek(rest);
+    rest();
   }
 
   // Parejas o grupos para el reto. Si has ganado el minirreto, eliges tú a tus compañeras; si no, las reparte Supremme
@@ -711,6 +715,20 @@
       myScore = LR.score.me;
       sc.__dado = myScore;
     }
+    // All Stars por brackets: las aliadas se valoran en pareja (salvo que una haya hundido a la otra)
+    if (twistOf() === "brackets" && S.al && S.al.ep === S.ep && !S.cGroups && !sc.__al) {
+      sc.__al = 1;
+      const v = (k) => (k === "me" ? myScore : sc[k]);
+      const ra = (k) => retoAttrOf(brQ(k));
+      S.al.sep = [];
+      S.al.pairs.forEach((p) => {
+        if (p.length < 2 || p.some((k) => v(k) == null)) return;
+        const [a, b] = p;
+        const r = DFTC.alianzas.notaEnPareja(clamp(v(a) + DFTC.alianzas.ayudaAliada(ra(a), ra(b)), 0, 99), clamp(v(b) + DFTC.alianzas.ayudaAliada(ra(b), ra(a)), 0, 99));
+        [[a, r.a], [b, r.b]].forEach(([k, x]) => { if (k === "me") { sc.__me = x; myScore = x; } else sc[k] = x; });
+        if (r.separadas) S.al.sep.push(p);
+      });
+    }
     if (S.phase && S.phase.ep === S.ep && !S.phase.sc) { S.phase.sc = { ...sc }; save(); }
     let teamLine = "";
     let winTeam = null;
@@ -741,11 +759,10 @@
       const byK = new Map(rows.map((r) => [keyOf(r.q), r]));
       // Cada grupo con su nombre (el que se le dio al formarlos: Pareja Rosa, Grupo Oro...)
       // En Girl Groups, cada grupo es una banda: la tuya con el nombre que le pusisteis y las demás con el suyo
-      const pjOf = (g) => (twistOf() === "parejas" && S.parejas ? S.parejas.find((p) => p.k.includes(g[0])) : null);
-      const gLabel = (g, i) => (pjOf(g) ? `Pareja ${pjOf(g).name}` : band && S.curTipo === "equipos" ? `«${g.includes(keyOf(S.queen)) ? band : ggBandOf(i)}»` : `${groupWord(S.cSize || g.length)} ${GROUP_NAMES[i % GROUP_NAMES.length]}`);
+      const gLabel = (g, i) => (band && S.curTipo === "equipos" ? `«${g.includes(keyOf(S.queen)) ? band : ggBandOf(i)}»` : `${groupWord(S.cSize || g.length)} ${GROUP_NAMES[i % GROUP_NAMES.length]}`);
       const G = S.cGroups.map((g, i) => Object.assign(g.map((k) => byK.get(k)).filter(Boolean), { label: gLabel(g, i) })).filter((g) => g.length);
       if (G.length >= 2) {
-        G.forEach((g) => (g.avg = g.reduce((a, r) => a + r.s, 0) / g.length + (twistOf() === "parejas" ? parQuim(g.map((r) => keyOf(r.q))) : 0)));
+        G.forEach((g) => (g.avg = g.reduce((a, r) => a + r.s, 0) / g.length));
         G.sort((a, b) => b.avg - a.avg).forEach((g) => g.sort((a, b) => b.s - a.s));
         rows = G.flat();
         groupOf = new Map();
@@ -773,13 +790,8 @@
     const winner = rows[0];
     const tw = twistOf();
     // Tamaño del bottom: regla compartida con el multijugador (src/core/week.ts)
-    const sizeAt = (gi) => rows.filter((r) => groupOf.get(r) === gi).length;
-    const lastGroupSize0 = groupOf ? sizeAt(nGroups - 1) : undefined;
-    // All Stars por parejas: si la peor «pareja» es una sola, al bottom va con la peor de la pareja anterior
-    const lastGroupSize = tw === "parejas" ? DFTC.parejas.ultimoGrupoParejas(lastGroupSize0) : lastGroupSize0;
-    let nb = DFTC.bottomSize({ twist: tw, n, repescaWeek: S.curTipo === "repescaStand" && repescaNow(), lastGroupSize });
-    // Y una vez por temporada, doble eliminación: las dos peores parejas, 2 contra 2
-    if (tw === "parejas" && groupOf && nGroups >= 3 && DFTC.parejas.dobleToca({ ep: S.ep, n, hecha: S.flags.parDoble, ultimas: [sizeAt(nGroups - 2), sizeAt(nGroups - 1)], rnd: Math.random })) { nb = 4; S.flags.parDoble = S.ep; }
+    const lastGroupSize = groupOf ? rows.filter((r) => groupOf.get(r) === nGroups - 1).length : undefined;
+    const nb = DFTC.bottomSize({ twist: tw, n, repescaWeek: S.curTipo === "repescaStand" && repescaNow(), lastGroupSize });
     // Primera finalista: esta semana no puede caer al bottom (se sube justo por encima)
     const immK = S.flags.immF && S.flags.immF.ep === S.ep ? S.flags.immF.key : null;
     if (immK && !groupOf) {
@@ -788,6 +800,7 @@
     }
     let bottomRows = rows.slice(n - nb);
     const notes = [];
+    if (tw === "brackets" && S.al && S.al.ep === S.ep && (S.al.sep || []).length) notes.push(`👯 ${S.al.sep.map((p) => p.map((k) => `<b>${esc(k === "me" ? "Tú" : brQ(k).name)}</b>`).join(" y ")).join(", ")}: esta semana una ha hundido a la otra, así que el jurado os valora por separado.`);
     // El reto anterior a la Segunda Oportunidrag da inmunidad para esa semana
     if (tw === "repesca" && !S.flags.repesca && !S.meOut && n === REPESCA_AT + 1 && S.flags.immuneEp !== S.ep) {
       S.flags.immune = winner.me ? "me" : winner.q.id;
@@ -861,7 +874,7 @@
         blocks: blocks ? blocks.map((b) => b.rows.map((r) => keyOf(r.q))) : undefined,
         blocked: S.block && S.block.ep === S.ep ? S.block.id : null,
       });
-      rows.forEach((r, k) => labs.set(r, L[k] === "BTM4" ? "BTM2" : L[k]));
+      rows.forEach((r, k) => labs.set(r, L[k]));
       const labOf = labs;
       const nm = (r) => esc(r.me ? "Tú" : r.q.name);
       const faces = (list, cls = "") => `<div class="call-faces ${cls}">${list.map((r, k) => `<span class="${r.me ? "me" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}</span>`).join("")}</div>`;
@@ -1477,11 +1490,10 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     if (twistOf() === "brackets") return topLipSync(top2, () => bracketWeekEnd());
     // Segunda Oportunidrag: con siete reinas se van dos de golpe... y vuelve una por sorpresa
     if (repescaNow()) return tripleLipSync(bottomRows, winner, rows);
-    if (twistOf() === "parejas" && bottomRows.length === 4) return parejasDoble(bottomRows);
     if (meBottom) return lipSync(others[0], false);
     const [a, b] = others;
     // Doble sashay: solo si las dos del bottom lo han hecho fatal (nunca en el estreno, como mucho una vez)
-    if (!S.flags.dsashay && S.ep >= 2 && twistOf() !== "repesca" && twistOf() !== "parejas" && S.rivals.length >= 7 && bottomRows.every((r) => (r.s ?? 50) <= 35) && Math.random() < 0.5) {
+    if (!S.flags.dsashay && S.ep >= 2 && twistOf() !== "repesca" && S.rivals.length >= 7 && bottomRows.every((r) => (r.s ?? 50) <= 35) && Math.random() < 0.5) {
       S.flags.dsashay = true;
       eliminate(a);
       eliminate(b);
@@ -1914,7 +1926,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
   // bracket y, de las demás, vuelve la mejor. Luego la temporada sigue con las reglas de siempre.
   const BR_NAMES = ["Rosa", "Naranja", "Morado"];
   const brQ = (k) => (k === "me" ? S.queen : qById(k));
-  const brPts = (k, eps) => eps.reduce((t, e) => t + (DFTC.temporada.BRACKET_PTS[(S.track[k] || {})[e]] || 0), 0);
+  const brPts = (k, eps) => DFTC.alianzas.puntos(S.track[k], eps);
   const brWins = (k, eps) => eps.filter((e) => /WIN/.test((S.track[k] || {})[e] || "")).length;
   const brRank = (keys, eps) => keys.map((k) => ({ k, p: brPts(k, eps), w: brWins(k, eps), r: Math.random() })).sort((a, b) => b.p - a.p || b.w - a.w || a.r - b.r);
   const brEps = (g) => Array.from({ length: S.br.per }, (_, i) => S.br.start[g] + i);
@@ -1923,8 +1935,84 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     const R = brRank(S.br.groups[g], eps);
     return `<div class="br-box" style="--grp:${BR_COLORS[g].c}"><b>${BR_COLORS[g].n}</b>${R.map((x, i) => `<span class="${x.k === "me" ? "me" : ""} ${adv && i < 2 ? "adv" : adv ? "fuera" : ""}"><i style="background-image:url('${photo(brQ(x.k))}')"></i>${esc(x.k === "me" ? "Tú" : brQ(x.k).name)}<em>${x.p} pts</em></span>`).join("")}</div>`;
   }
+  // Alianzas por parejas dentro del bracket (regla compartida: src/core/alianzas.ts). Cada semana se pueden cambiar
+  function alianzaWeek(then) {
+    const keys = ["me", ...S.rivals.map(keyOf)];
+    const labPrev = (k) => (S.track[k] || {})[S.ep - 1];
+    const at = (k) => attrsOf(brQ(k));
+    const rel = (a, b) => (a === "me" ? relOf(brQ(b)) : b === "me" ? relOf(brQ(a)) : groupAff(brQ(a), brQ(b)));
+    const comp = (a, b) => DFTC.alianzas.complemento(at(a), at(b));
+    const val = (a, b) => comp(a, b) * 3 + rel(a, b) + rnd(-1.5, 1.5);
+    const first = !S.al || !S.al.pairs;
+    let pairs = first ? [] : S.al.pairs.map((p) => p.filter((k) => keys.includes(k))).filter((p) => p.length === 2);
+    // Las reinas del juego rompen por interés (si su aliada quedó mal y ella bien, si se llevan mal...)
+    const broke = [];
+    if (!first) pairs = pairs.filter((p) => {
+      const [a, b] = p;
+      const quiere = (x, y) => x !== "me" && DFTC.alianzas.rompe({ suya: labPrev(y), deEllaAntes: labPrev(x), rel: rel(x, y), rnd: Math.random });
+      if (quiere(a, b) || quiere(b, a)) { broke.push(p); return false; }
+      return true;
+    });
+    const mine = pairs.find((p) => p.includes("me"));
+    const exMine = !first && !mine ? broke.find((p) => p.includes("me")) : null;
+    const nm = (k) => esc(k === "me" ? "Tú" : brQ(k).name);
+    const finish = (myPair, msg = "") => {
+      const fijas = pairs.filter((p) => !p.includes("me") && !(myPair || []).some((k) => p.includes(k)));
+      S.al = { ep: S.ep, pairs: DFTC.alianzas.formarAlianzas(keys, val, myPair ? [myPair, ...fijas] : fijas) };
+      const mate = (S.al.pairs.find((p) => p.includes("me")) || []).find((k) => k !== "me");
+      logEv(`Alianzas del Bracket Rosa: ${S.al.pairs.map((p) => p.map((k) => (k === "me" ? S.queen.name : brQ(k).name)).join(" y ")).join(" · ")}`);
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">👯 Bracket Rosa · alianzas de la semana</p>
+          <h3>${mate ? `Tu aliada: ${nm(mate)}` : "Esta semana vas sola"}</h3>
+          ${msg ? `<p class="twist-note">${msg}</p>` : ""}
+          ${broke.filter((p) => !p.includes("me")).length ? `<p class="muted">💔 Alianzas rotas: ${broke.filter((p) => !p.includes("me")).map((p) => p.map(nm).join(" y ")).join(", ")}.</p>` : ""}
+          <div class="al-grid">${S.al.pairs.map((p) => `<div class="al-pair ${p.includes("me") ? "mine" : ""}">${p.map((k) => brFace(k)).join("")}</div>`).join("")}</div>
+          <p class="muted">El jurado os valora en pareja: vuestras notas se acercan. Pero si una hunde a la otra, se os juzga por separado.</p>
+          <button class="btn btn-primary" id="story-next">¡Al reto!</button>
+        </div>`;
+      $("#story-next").addEventListener("click", then);
+    };
+    // Proponer alianza: acepta según lo que os complementáis, cómo os lleváis y si ya tiene aliada
+    const propose = (k, fallback) => {
+      const taken = pairs.some((p) => p.includes(k));
+      const p = clamp(0.55 + relOf(brQ(k)) * 0.08 + (comp("me", k) - 6.5) * 0.12 - (taken ? 0.2 : 0), 0.15, 0.95);
+      if (Math.random() < p) return finish(["me", k], `🤝 ${nm(k)} acepta ser tu aliada${taken ? " (y deja a su pareja de antes)" : ""}.`);
+      return finish(fallback, `🙅 ${nm(k)} no quiere: prefiere ${taken ? "seguir con su aliada" : "ir por su cuenta"}.${fallback ? " Sigues con la de antes." : ""}`);
+    };
+    const pickList = (fallback) => {
+      const mineA = at("me");
+      const cands = keys.filter((k) => k !== "me").map((k) => {
+        const a = at(k);
+        const cubre = Object.keys(a).filter((x) => a[x] - (mineA[x] || 0) >= 2).sort((x, y) => a[y] - mineA[y] - (a[x] - mineA[x])).slice(0, 2).map((x) => ATTR_NAMES[x]);
+        const con = pairs.find((p) => p.includes(k) && !p.includes("me"));
+        return `<button class="al-q" data-p="${k}"><i style="background-image:url('${photo(brQ(k))}')"></i><b>${nm(k)}</b><small>${cubre.length ? `Te cubre: ${esc(cubre.join(", "))}` : "Parecida a ti"}${con ? ` · va con ${nm(con.find((x) => x !== k))}` : ""}</small></button>`;
+      }).join("");
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">👯 Bracket Rosa · alianzas</p>
+          <h3>${first ? "Elige a tu aliada" : "¿A quién le propones alianza?"}</h3>
+          ${exMine ? `<p class="twist-note">💔 ${nm(exMine.find((k) => k !== "me"))} ha roto vuestra alianza.</p>` : ""}
+          <p class="muted">Mejor alguien que te complemente: fuerte en lo que tú flojeas.</p>
+          <div class="al-cands">${cands}</div>
+        </div>`;
+      document.querySelectorAll(".al-q").forEach((b) => b.addEventListener("click", () => propose(b.dataset.p, fallback)));
+    };
+    if (first || !mine) return pickList(null);
+    const mate = mine.find((k) => k !== "me");
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">👯 Bracket Rosa · alianzas</p>
+        <h3>¿Sigues con ${nm(mate)}?</h3>
+        <div class="al-grid"><div class="al-pair mine">${brFace("me")}${brFace(mate)}</div></div>
+        <p class="muted">La semana pasada: tú ${esc(labPrev("me") || "–")}, ella ${esc(labPrev(mate) || "–")}.</p>
+        <div class="row"><button class="btn btn-ghost" id="al-change">Cambiar de aliada</button><button class="btn btn-primary" id="al-keep">Seguimos juntas</button></div>
+      </div>`;
+    $("#al-keep").addEventListener("click", () => finish(mine));
+    $("#al-change").addEventListener("click", () => pickList(mine));
+  }
   function brInit(then) {
-    const per = 3;
+    const per = DFTC.alianzas.BRACKET_SEMANAS;
     const others = shuffle(S.rivals.map(keyOf));
     const size = Math.floor((others.length + 1) / 3);
     const groups = [["me", ...others.slice(0, size - 1)], others.slice(size - 1, 2 * size - 1), others.slice(2 * size - 1, 3 * size - 1)];
@@ -1935,7 +2023,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       <div class="story-card">
         <p class="eyebrow">🏆 All Stars por brackets</p>
         <h3>Así quedan los tres brackets</h3>
-        <p class="muted">Cada bracket compite tres semanas. Nadie se va a casa: las dos mejores de cada semana hacen lip sync por la victoria. Puntos: WIN 10 · TOP2 9 · HIGH 8 · SAFE 5 · LOW 2. Pasan las dos con más puntos.</p>
+        <p class="muted">Cada bracket compite tres semanas. Nadie se va a casa: las dos mejores de cada semana hacen lip sync por la victoria. Puntos: WIN 10 · TOP2 9 · HIGH 8 · SAFE 5 · LOW 2. Pasan las dos con más puntos. Dentro de cada bracket os aliaréis por parejas.</p>
         <div class="br-grid">${groups.map((g, i) => `<div class="br-box" style="--grp:${BR_COLORS[i].c}"><b>${BR_COLORS[i].n}${i === 0 ? " · el tuyo" : ""}</b>${g.map((k) => brFace(k)).join("")}</div>`).join("")}</div>
         <p>Empieza el <b>Bracket Rosa</b>: el tuyo. Los otros dos esperan su turno.</p>
         <button class="btn btn-primary" id="story-next">¡A competir!</button>
@@ -1993,9 +2081,11 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     const gone = B.groups.flatMap((g, gi) => brRank(g, brEps(gi)).slice(2).map((x) => ({ ...x, g: gi })));
     const back = gone.sort((a, b) => b.p - a.p || b.w - a.w || a.r - b.r)[0];
     const backQ = back ? brQ(back.k) : null;
+    if (back) S.track[back.k][brEps(back.g)[B.per - 1]] = "RTRN"; // como en el programa: RTRN en vez de ELIM
     if (back && back.k !== "me") { S.out = S.out.filter((q) => q !== backQ); }
     B.back = back ? back.k : null;
     B.merged = true;
+    S.al = null; // desde aquí, cada una por su cuenta
     S.rivals = adv.concat(back ? [back.k] : []).filter((k) => k !== "me").map(qById).filter(Boolean);
     const meIn = meAdv || (back && back.k === "me");
     logEv(`Fin de los brackets. Pasan ${adv.map((k) => brQ(k).name).join(", ")}${backQ ? `; vuelve ${backQ.name}` : ""}`);
@@ -2012,120 +2102,11 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
         <div class="br-grid">${[0, 1, 2].map((g) => brTable(g, brEps(g), true)).join("")}</div>
         <p class="muted">${notes.join("<br>")}</p>
         ${backQ ? `<p class="twist-note">🔁 Y una sorpresa: de las que no pasaron, la que más puntos sumó vuelve. <b>${esc(back.k === "me" ? "¡Eres tú!" : backQ.name)}</b></p>` : ""}
-        <p>Desde ahora, todas juntas y con las reglas de siempre: las dos peores, al lip sync.</p>
+        <p>Se acabaron las alianzas: desde ahora, todas juntas y cada una por su cuenta. Las dos peores, al lip sync.</p>
         <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
       </div>`;
     if (back && back.k === "me") { S.meOut = false; }
     endEpisodeBtn();
-  }
-
-  // ------------------------------ All Stars por parejas ------------------------------
-  // Parejas fijas toda la temporada (regla compartida con el multijugador: src/core/parejas.ts)
-  const parQuim = (ks) => {
-    if (ks.length < 2) return 0;
-    const other = ks.includes("me") ? ks.find((k) => k !== "me") : null;
-    return other ? clamp(Math.round(relOf(qById(other)) * 1.5), -6, 6) : DFTC.parejas.quimica(ks);
-  };
-  const parName = (k) => (k === "me" ? "Tú" : (qById(k) || {}).name || "");
-  // Pone las parejas de esta semana como grupos del reto. Devuelve true si enseña una pantalla (y sigue ella).
-  function parejasWeek(then) {
-    const act = [...(S.meOut ? [] : ["me"]), ...S.rivals.map(keyOf)];
-    if (!DFTC.parejas.parejasSiguen(act.length)) {
-      if (S.flags.parFin) return false;
-      S.flags.parFin = 1;
-      logEv("Se acaban las parejas: cada una por su cuenta hasta la final");
-      dialog([["host", `Reinas, quedáis ${act.length}. Se acabaron las parejas.`], ["host", "Desde hoy, cada una por su cuenta. La corona no se comparte."]], ctxWith(pick1(S.rivals), {}), then);
-      return true;
-    }
-    const first = !S.parejas;
-    const { parejas, nuevas } = DFTC.parejas.parejasAlDia(S.parejas, act, Math.random);
-    S.parejas = parejas;
-    // Para el track record: la pareja de cada una (la última que tuvo)
-    S.parHist = S.parHist || {};
-    parejas.forEach((p) => p.k.forEach((k) => (S.parHist[k] = p.name)));
-    S.cGroups = parejas.map((p) => p.k.slice());
-    S.cSize = 2;
-    const mine = parejas.find((p) => p.k.includes("me"));
-    S.team = mine ? mine.k.filter((k) => k !== "me").map(qById).filter(Boolean) : [];
-    if (first) logEv(`All Stars por parejas: ${S.queen.name} va con ${S.team.map((q) => q.name).join("") || "nadie"}`);
-    if (!first && !nuevas.length) { then(); return true; }
-    const mineNew = mine && nuevas.some((k) => k.includes("me"));
-    const col = (p, i) => `<div class="group-col ${p.k.includes("me") ? "mine" : ""}" style="--i:${i}"><b>Pareja ${esc(p.name)}</b>${p.k.map((k) => { const q = k === "me" ? S.queen : qById(k); return `<span><i style="background-image:url('${photo(q)}')"></i>${esc(parName(k))}</span>`; }).join("")}</div>`;
-    body().innerHTML = `
-      <div class="story-card">
-        <p class="eyebrow">👯 All Stars por parejas</p>
-        <h3>${first ? "Así quedan las parejas" : "¡Parejas nuevas!"}</h3>
-        <p class="muted">${first ? "Supremme os ha emparejado para toda la temporada. Se juzga a la pareja: la peor hará lip sync... entre ellas." : mineNew ? "Te has quedado sin pareja, pero no por mucho: te toca con otra reina que también estaba sola." : "Las que se habían quedado solas forman pareja nueva."}</p>
-        <div class="groups-grid">${(first ? parejas : parejas.filter((p) => nuevas.includes(p.k))).map(col).join("")}</div>
-        ${first && S.team[0] ? `<p>Tu pareja: <b>${esc(S.team[0].name)}</b>. ${relOf(S.team[0]) > 0 ? "Os lleváis bien: eso se nota en el escenario." : relOf(S.team[0]) < 0 ? "Uy... no os lleváis precisamente bien." : "Aún no os conocéis mucho."}</p>` : ""}
-        <button class="btn btn-primary" id="story-next">¡Al reto!</button>
-      </div>`;
-    $("#story-next").addEventListener("click", then);
-    return true;
-  }
-  // Doble eliminación: las dos peores parejas, dos duelos cruzados. La pareja que pierde se va entera
-  function parejasDoble(bottomRows) {
-    const A = bottomRows.slice(0, 2).map((r) => r.q), B = bottomRows.slice(2).map((r) => r.q);
-    const sk = (q) => (q === S.queen ? 70 : skillOf(q) + (S.form[q.id] || 0));
-    const mineA = A.includes(S.queen), mineB = B.includes(S.queen);
-    const pair = (L) => L.map((q) => esc(q === S.queen ? "Tú" : q.name)).join(" y ");
-    const finish = (aWins, myLine = "") => {
-      const [win, lose] = aWins ? [A, B] : [B, A];
-      const meLose = lose.includes(S.queen);
-      lose.filter((q) => q !== S.queen).forEach(eliminate);
-      logEv(`Doble eliminación: ${lose.map((q) => q.name).join(" y ")} se van a casa`);
-      if (meLose) return aftermath(win.find((q) => q !== S.queen) || win[0], `${myLine}Vuestra pareja pierde el lip sync por parejas.`);
-      if (win.includes(S.queen)) { S.lipsyncs++; S.points += 1000; }
-      header();
-      body().innerHTML = `
-        <div class="story-card">
-          <p class="eyebrow">Doble eliminación · lip sync por parejas</p>
-          <h3>${win.includes(S.queen) ? "¡Vuestra pareja sigue!" : `Se queda la pareja de ${pair(win)}`}</h3>
-          ${myLine ? `<p>${myLine}</p>` : ""}
-          <div class="vs"><span class="pair-faces">${win.map((q) => `<img src="${photo(q)}">`).join("")}</span><span>VS</span><span class="pair-faces">${lose.map((q) => `<img class="gone" src="${photo(q)}">`).join("")}</span></div>
-          <p><b>${pair(win)}</b>, shantay, you stay. <b>${pair(lose)}</b>, sashay away: os vais las dos.</p>
-          <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
-        </div>`;
-      endEpisodeBtn();
-    };
-    const intro = `
-      <div class="story-card">
-        <p class="eyebrow">👯 Doble eliminación</p>
-        <h3>Lip sync por parejas</h3>
-        <p>Las dos peores parejas de la semana bailan a la vez, dos contra dos. <b>La pareja que pierda se va entera a casa.</b></p>
-        <div class="vs"><span class="pair-faces">${A.map((q) => `<img src="${photo(q)}">`).join("")}</span><span>VS</span><span class="pair-faces">${B.map((q) => `<img src="${photo(q)}">`).join("")}</span></div>
-        <p class="muted">${pair(A)} contra ${pair(B)}</p>
-        <button class="btn btn-primary" id="story-ls">${mineA || mineB ? "¡A la pasarela!" : "Ver el lip sync"}</button>
-      </div>`;
-    body().innerHTML = intro;
-    Music.play("tension");
-    if (!mineA && !mineB) {
-      $("#story-ls").addEventListener("click", () => {
-        Music.stop();
-        const pa = clamp(0.5 + (sk(A[0]) + sk(A[1]) - sk(B[0]) - sk(B[1])) / 60, 0.2, 0.8);
-        finish(Math.random() < pa);
-      });
-      return;
-    }
-    const mate = (mineA ? A : B).find((q) => q !== S.queen);
-    const opp = mineA ? B : A;
-    const rival = opp.slice().sort((x, y) => sk(y) - sk(x))[0];
-    $("#story-ls").addEventListener("click", () => Curtain.run(() => {
-      Music.stop();
-      S.lsBonus = 0;
-      lsGame(rival, (res) => {
-        UI.show("story");
-        if (window.__forceLose) { res.won = false; if (window.__forceLose === "once") window.__forceLose = false; } // solo pruebas
-        S.points += Math.round(res.score || 0);
-        // El otro duelo: tu pareja contra la otra del otro lado
-        const otra = opp.find((q) => q !== rival);
-        const mateWon = Math.random() < clamp(0.5 + (sk(mate) - sk(otra)) / 40, 0.2, 0.8);
-        const mine = (res.won ? 1 : 0) + (mateWon ? 1 : 0);
-        const weWin = mine === 2 || (mine === 1 && Math.random() < clamp(0.5 + ((res.ratio || 0.5) - 0.5), 0.25, 0.75));
-        const line = `${res.won ? `Ganas tu duelo contra <b>${esc(rival.name)}</b>` : `Pierdes tu duelo contra <b>${esc(rival.name)}</b>`} y <b>${esc(mate.name)}</b> ${mateWon ? "gana" : "pierde"} el suyo contra <b>${esc(otra.name)}</b>.${mine === 1 ? " Empate a un duelo: decide el jurado." : ""} `;
-        finish(mineA ? weWin : !weWin, line);
-      });
-    }, "LIP SYNC POR PAREJAS"));
   }
 
   // ------------------------------ Repesca (T3) ------------------------------

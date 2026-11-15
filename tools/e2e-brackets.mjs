@@ -1,5 +1,5 @@
-// Prueba del All Stars por parejas o por brackets (TXT="por brackets") del modo historia: juega varios capítulos y apunta cómo cambian las parejas,
-// la semana de la doble eliminación y quién sigue. Uso: MIN=5 node tools/e2e-parejas.mjs [http://localhost:4173/]
+// Prueba del All Stars por brackets (con alianzas) del modo historia: juega varios capítulos y apunta el corte
+// de los brackets, quién vuelve y quién sigue. Uso: MIN=5 node tools/e2e-brackets.mjs [http://localhost:4173/]
 //   npx playwright install chromium   (la primera vez)
 //   npm run build && npm run preview   (en otra terminal)
 //   node tools/e2e-historia.mjs [http://localhost:4173/]
@@ -23,7 +23,7 @@ await page.reload();
 await page.waitForTimeout(800);
 await page.click("#btn-story");
 await page.locator(".franchise-card").nth(1).click();
-await page.locator(".season-card", { hasText: process.env.TXT || "por parejas" }).click();
+await page.locator(".season-card", { hasText: process.env.TXT || "por brackets" }).click();
 await page.evaluate((v) => { window.__forceScore = v; }, Number(process.env.SCORE || 55));
 await page.locator("#queen-grid > *").nth(0).click();
 // JURADO=1: la pasarela con concepto, con un jurado de prueba (el resto de textos, los de siempre)
@@ -50,8 +50,8 @@ for (let i = 0; time() && !done; i++) {
     try {
       const d = JSON.parse(localStorage.getItem("dftc-story-save") || "null");
       window.__log = window.__log || [];
+      if (d && d.al) { const t = "al " + JSON.stringify([d.ep, d.al.pairs]); if (window.__log[window.__log.length - 1] !== t) window.__log.push(t); }
       if (d && d.br) { const t = JSON.stringify([d.ep, d.br.merged, d.br.back, d.meOut, d.rivals.length, d.out.length]); if (window.__log[window.__log.length - 1] !== t) window.__log.push(t); }
-      if (d && d.parejas) { const t = JSON.stringify([d.ep, d.parejas.map((p) => p.k.join("+")), d.flags && d.flags.parDoble, d.meOut, d.rivals.length]); if (window.__log[window.__log.length - 1] !== t) window.__log.push(t); }
       if (!d || (d.ep < 11 && !d.meOut)) return null;
       // Con JURADO=1 se sigue hasta ver una pasarela con concepto (hay retos sin pasarela, como el Ball)
       if (window.__jurado === 0 && d.ep < 5) return null;
