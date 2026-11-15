@@ -10,11 +10,12 @@ import { BANDAS, COLORES_GRUPO, grupoCritica, NOMBRE_JURADO } from "../core/crit
 import { allWinnersCut, allWinnersBottom } from "../core/finales";
 import { lalaStart, lalaPending, lalaResolve, lalaScoreDe, type Lala } from "../core/lala";
 import { rescueFromBottom, coinResult, lipstickKind, addHalfHearts } from "../core/dinamicas";
+import { parejasAlDia, parejasSiguen, ultimoGrupoParejas, dobleToca, quimica, dobleGanadora, type Pareja } from "../core/parejas";
 
 export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "reencuentro" | "finalistas" | "votacion" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
 /** Formato de la temporada: normal (las dos peores hacen lip sync) o All Stars (lip sync del top 2 y la ganadora elimina). */
-export type Formato = "normal" | "allstars" | "winners" | "repesca" | "suerte" | "corazon" | "moneda";
+export type Formato = "normal" | "allstars" | "winners" | "repesca" | "suerte" | "corazon" | "moneda" | "parejas";
 /** Nombre y explicación de cada dinámica (para elegirla en la partida personalizada). */
 export const FORMATOS: Record<Formato, { n: string; icon: string; d: string }> = {
   normal: { n: "Clásica", icon: "👑", d: "Las dos peores hacen lip sync y se va la que pierde." },
@@ -24,6 +25,7 @@ export const FORMATOS: Record<Formato, { n: string; icon: string; d: string }> =
   suerte: { n: "Reina de la suerte", icon: "🍀", d: "Una reina tiene en secreto la reina de la suerte: puede salvar a quien quiera del lip sync una vez." },
   corazon: { n: "Temporada del corazón", icon: "❤️", d: "Cada eliminada deja medio corazón. Con uno entero salvas a alguien del bottom." },
   moneda: { n: "Temporada de la moneda", icon: "🪙", d: "Bottom de tres y moneda al aire: cara, las salvadas votan a quién salvar; cruz, a quién condenar." },
+  parejas: { n: "All Stars por parejas", icon: "👯", d: "Parejas fijas toda la temporada. La peor pareja hace lip sync entre ellas, y una semana las dos peores parejas se juegan seguir 2 contra 2." },
 };
 // Formas de la gran final: compartidas con el modo historia (src/core/finales.ts)
 import type { FinalFmt } from "../core/finales";
@@ -169,6 +171,9 @@ export interface RoomState {
   /** Segunda Oportunidrag: parejas del monólogo y la maestra de ceremonias (la ganadora del reto anterior, que no compite). */
   rp?: { ep: number; pairs: { c: string; o: string | null }[]; mc?: string };
   rpDone?: boolean;
+  /** All Stars por parejas: las parejas de la temporada y la semana de la doble eliminación (2 contra 2). */
+  parejas?: Pareja[];
+  dobleP?: number;
   /** Minirreto de la semana: cuál es y, al acabar, la nota de cada una y el orden (la primera, la ganadora). */
   mini?: MiniDef & { ep: number; scores?: Record<string, number>; rank?: string[] };
   /** Reto por grupos: las capitanas (las mejores del minirreto) eligen por turnos. members[i][0] es la capitana. */
@@ -405,6 +410,8 @@ function afterMini(s: RoomState, now: number, e: Engine): RoomState {
     const by = w && isP(w) && s.rp.pairs.some((p) => p.c === w) && options.length >= 2 ? w : undefined;
     return { ...s, draft: { ep: s.ep, by, options, at: now, done: !by }, phase: "equipos", deadline: by ? (s.ritmo === "libre" ? 0 : now + PICK_MS) : now + VER_SORTEO, v: s.v + 1 };
   }
+  const pj = parejasStep(s, now, e);
+  if (pj) return pj;
   const size = s.reto?.groups || 0;
   const ks = aliveKeys(s);
   if (size >= 2 && ks.length >= size * 2) {
@@ -414,6 +421,15 @@ function afterMini(s: RoomState, now: number, e: Engine): RoomState {
     return { ...s, groups: { ep: s.ep, size, names, members: caps.map((c) => [c]), turn: 0, at: now }, phase: "equipos", deadline: 0, v: s.v + 1 };
   }
   return { ...s, phase: "reto", deadline: limite(now, dur(s, "reto")), v: s.v + 1 };
+}
+/** All Stars por parejas: cada semana se compite con la pareja de la temporada (se forman la primera semana). */
+function parejasStep(s: RoomState, now: number, e: Engine): RoomState | null {
+  const ks = aliveKeys(s);
+  if (s.fmt !== "parejas" || s.finalRun || !s.reto || s.reto.tipo === LALA.tipo || !parejasSiguen(ks.length)) return null;
+  const { parejas } = parejasAlDia(s.parejas, ks, e.rnd);
+  const members = parejas.map((p) => p.k.slice());
+  const names = parejas.map((p) => `Pareja ${p.name}`);
+  return { ...s, parejas, groups: { ep: s.ep, size: 2, names, members, turn: members.length, at: now, done: true }, phase: "equipos", deadline: now + VER_EQUIPOS, v: s.v + 1 };
 }
 /** La capitana a la que le toca elegir. */
 export const capOf = (s: RoomState) => { const g = s.groups!; return g.members[g.turn % g.members.length][0]; };
@@ -465,7 +481,7 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
   let groupOf: Record<string, number> | null = null;
   let order: number[] = [];
   if (G) {
-    const avg = G.members.map((m) => { const r = rows.filter((x) => m.includes(x.key)); return r.reduce((t, x) => t + x.score, 0) / Math.max(1, r.length); });
+    const avg = G.members.map((m) => { const r = rows.filter((x) => m.includes(x.key)); return r.reduce((t, x) => t + x.score, 0) / Math.max(1, r.length) + (s.fmt === "parejas" && m.length === 2 ? quimica(m) : 0); });
     order = G.members.map((_, i) => i).sort((a, b) => avg[b] - avg[a]);
     rows = order.flatMap((gi) => rows.filter((r) => G.members[gi].includes(r.key)));
     groupOf = {};
@@ -482,11 +498,16 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
   // Bottom de tres en la moneda (con seis o más) y en la Segunda Oportunidrag (lip sync a tres bandas)
   // Las mismas reglas que el modo historia (src/core/week.ts)
   const twist = s.fmt || "normal";
-  const lastGroupSize = G ? rows.filter((r) => groupOf![r.key] === order.length - 1).length : undefined;
-  const nb = bottomSize({ twist, n, repescaWeek: !!(s.rp && s.rp.ep === s.ep), lastGroupSize });
+  const sizeAt = (pos: number) => rows.filter((r) => groupOf![r.key] === pos).length;
+  const lastGroupSize0 = G ? sizeAt(order.length - 1) : undefined;
+  const lastGroupSize = twist === "parejas" ? ultimoGrupoParejas(lastGroupSize0) : lastGroupSize0;
+  let nb = bottomSize({ twist, n, repescaWeek: !!(s.rp && s.rp.ep === s.ep), lastGroupSize });
+  // All Stars por parejas: una semana, las dos peores parejas al bottom (2 contra 2)
+  let dobleP = s.dobleP;
+  if (twist === "parejas" && G && order.length >= 3 && dobleToca({ ep: s.ep, n, hecha: s.dobleP, ultimas: [sizeAt(order.length - 2), sizeAt(order.length - 1)], rnd: e.rnd })) { nb = 4; dobleP = s.ep; }
   const blocked = s.block && s.block.ep === s.ep ? s.block.id : null;
   const labels = weekLabels(rows.map((r) => ({ key: r.key, group: groupOf ? groupOf[r.key] : undefined })), { twist, nb, bottom: rows.slice(n - nb).map((r) => r.key), blocked, nGroups: G ? order.length : undefined });
-  rows.forEach((r, i) => (r.label = labels[i]));
+  rows.forEach((r, i) => (r.label = labels[i] === "BTM4" ? "BTM2" : labels[i]));
   // Doble victoria: si las dos mejores van casi empatadas, a veces ganan las dos
   if (!G && !isAS(s) && !isAW(s) && n >= 5 && rows[0]?.label === "WIN" && rows[1]?.label === "HIGH" && rows[0].score - rows[1].score <= 1 && e.rnd() < 0.5) rows[1].label = "WIN";
   const allCrit = allCritiqued(n, twist);
@@ -512,7 +533,7 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
     .map((c, i) => (c.lines[0] && /^(Ahora h|H)ablamos con /.test(c.lines[0][1]) ? { ...c, lines: [[c.lines[0][0], c.lines[0][1].replace(/^(Ahora h|H)ablamos con /, i ? "Ahora hablamos con " : "Hablamos con ")] as [string, string], ...c.lines.slice(1)] } : c));
   // Por grupos: antes de las críticas una a una, el jurado valora cada grupo por su nombre
   const gcrit = G ? (isAW(s) ? order.slice(0, 1) : order).map((gi, pos) => ({ name: G.names[gi], keys: G.members[gi], lines: grupoCritica(G.names[gi], pos === 0 ? "top" : pos === order.length - 1 ? "low" : "mid", e.rnd).map(([k, t]) => [NOMBRE_JURADO[k], t] as [string, string]) })) : undefined;
-  return { ...s, rows, crit, gcrit };
+  return { ...s, rows, crit, gcrit, dobleP };
 }
 
 const writeTrack = (s: RoomState, rows: Row[]) => {
@@ -666,7 +687,9 @@ function toLipsync(s: RoomState, now: number): RoomState {
   const b = s.bottom || [];
   const subs = Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, ls: undefined }]));
   const triple = b.length === 3 ? b : undefined;
-  const pairs: Pair[] = !triple && b.length === 2 ? [{ a: b[0], b: b[1] }] : [];
+  // Doble eliminación por parejas: dos duelos cruzados (una de cada pareja contra una de la otra)
+  const doble = s.fmt === "parejas" && s.dobleP === s.ep && b.length === 4;
+  const pairs: Pair[] = doble ? [{ a: b[0], b: b[2] }, { a: b[1], b: b[3] }] : !triple && b.length === 2 ? [{ a: b[0], b: b[1] }] : [];
   const anyP = [...b].some(isP);
   return { ...s, subs, pairs, triple, twist: undefined, twistResult: undefined, phase: "lipsync", deadline: anyP ? limite(now, DURACION[s.ritmo].lipsync) : now + 6000, v: s.v + 1 };
 }
@@ -1034,7 +1057,7 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
     case "anuncio":
       if (s.reto?.tipo === LALA.tipo) return lzStart(s, now, e);
       if (s.finalRun) return at("reto", dur(s, "reto"));
-      return startMini(s, now, e) || at("reto", dur(s, "reto"));
+      return startMini(s, now, e) || parejasStep(s, now, e) || at("reto", dur(s, "reto"));
     case "mini":
       return afterMini(endMini(s, e), now, e);
     case "equipos": {
@@ -1160,6 +1183,17 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       }
       let t: RoomState = { ...s, pairs };
       const nm = (k: string) => nameOfKey(t, k, e);
+      // All Stars por parejas, doble eliminación: la pareja que pierde se va entera
+      const bt = s.bottom || [];
+      if (s.fmt === "parejas" && s.dobleP === s.ep && bt.length === 4 && pairs.length === 2 && pairs.every((p) => p.winner)) {
+        const A = [bt[0], bt[1]], B = [bt[2], bt[3]];
+        const lsOf = (k: string) => (isP(k) ? s.subs[idOf(k)]?.ls?.score ?? 0 : 50 + ppeOf(s, k) * 6);
+        const gana = dobleGanadora(A, B, pairs.map((p) => ({ w: p.winner! })), lsOf);
+        const [win, lose] = gana === "a" ? [A, B] : [B, A];
+        const n = aliveKeys(s).length;
+        lose.forEach((k) => (t = eliminate(t, k, `${n - 1}º/${n}º`, "ELIM", e)));
+        return { ...t, note: `Doble eliminación: ${win.map(nm).join(" y ")} ganan el lip sync por parejas. ${lose.map(nm).join(" y ")} se van las dos a casa.`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+      }
       // Muy de vez en cuando: doble shantay (las dos lo han bordado) o doble sashay (las dos, fatal)
       const p0 = pairs.length === 1 ? pairs[0] : null;
       if (p0) {

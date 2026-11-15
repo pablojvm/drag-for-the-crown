@@ -227,7 +227,7 @@ describe("temporada en directo", () => {
     while (s.phase !== "corona" && guard++ < 3000) { onStep && onStep(s); s = advance(s, guard * 1000, e); }
     return s;
   };
-  for (const fmt of ["normal", "allstars", "winners", "repesca", "suerte", "corazon", "moneda"]) {
+  for (const fmt of ["normal", "allstars", "winners", "repesca", "suerte", "corazon", "moneda", "parejas"]) {
     it(`la dinámica ${fmt} llega hasta la corona con una sola ganadora`, () => {
       for (const seed of [1, 2, 3, 9, 21]) {
         const { s: s0, c } = fmtRoom(fmt, seed);
@@ -288,6 +288,29 @@ describe("temporada en directo", () => {
     s = runAll(s, e);
     expect(s.phase).toBe("corona");
     expect(c.length).toBe(8);
+  });
+  it("All Stars por parejas: parejas fijas, la peor pareja se enfrenta entre sí y una semana se van dos de golpe", () => {
+    let dobles = 0;
+    for (const seed of [1, 2, 3, 9, 21]) {
+      const e = engine(seed);
+      let { s } = fmtRoom("parejas", seed);
+      let first: string[][] | null = null, doble = 0, fratricida = 0;
+      s = runAll(s, e, (x) => {
+        if (x.phase === "equipos" && x.groups && x.groups.ep === x.ep) {
+          if (!first) first = x.groups.members.map((m) => m.slice());
+          // Las parejas no se rehacen: cada pareja es una de las de la primera semana, o dos que se quedaron solas
+          x.groups.members.forEach((m) => { if (m.length === 2 && first!.some((f) => f.includes(m[0]) && f.includes(m[1]))) expect(first!.some((f) => f.includes(m[1]))).toBe(true); });
+        }
+        if (x.phase === "lipsync" && x.bottom?.length === 4) doble++;
+        if (x.phase === "lipsync" && x.bottom?.length === 2 && x.groups?.ep === x.ep && x.groups.members.some((m) => m.length === 2 && m.includes(x.bottom![0]) && m.includes(x.bottom![1]))) fratricida++;
+      });
+      expect(first!.every((m) => m.length === 2)).toBe(true);
+      expect(doble).toBeLessThanOrEqual(1);
+      expect(fratricida).toBeGreaterThan(0);
+      expect(aliveKeys(s)).toHaveLength(1);
+      dobles += doble;
+    }
+    expect(dobles).toBeGreaterThan(0);
   });
   it("Segunda Oportunidrag: con siete, una eliminada vuelve y hay lip sync a tres bandas", () => {
     const e = engine(8);

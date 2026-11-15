@@ -89,6 +89,16 @@ Object.assign(TEMPORADAS_HISTORIA, {
       ["judge", "Aquí nadie viene a hacer amigas. Bueno, alguna sí. Pero pocas."],
     ],
   },
+  espar: {
+    twist: "parejas",
+    lema: "All Stars por parejas: juntas hasta el final... o no",
+    intro: [
+      ["host", "¡Bienvenidas, All Stars! Esta vez no vais a competir solas: hoy formáis parejas, y son para toda la temporada."],
+      ["host", "Se juzga a la pareja. La peor pareja de la semana hará lip sync... la una contra la otra."],
+      ["host", "Y una semana, cuando menos lo esperéis, las dos peores parejas bailarán dos contra dos. La que pierda se va entera."],
+      ["judge", "Elegid bien a quién le dais la mano. Puede ser la que os empuje fuera."],
+    ],
+  },
   esaw: {
     twist: "winners",
     lema: "All Winners: solo ganadoras",

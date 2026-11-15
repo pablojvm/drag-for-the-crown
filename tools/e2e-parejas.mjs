@@ -1,0 +1,102 @@
+// Prueba del All Stars por parejas (modo historia): juega varios capítulos y apunta cómo cambian las parejas,
+// la semana de la doble eliminación y quién sigue. Uso: MIN=5 node tools/e2e-parejas.mjs [http://localhost:4173/]
+//   npx playwright install chromium   (la primera vez)
+//   npm run build && npm run preview   (en otra terminal)
+//   node tools/e2e-historia.mjs [http://localhost:4173/]
+import { chromium } from "playwright";
+import { seeded, deadline } from "./e2e-util.mjs";
+
+const URL = process.argv[2] || "http://localhost:4173/";
+const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await seeded(page);
+const errors = [];
+page.on("pageerror", (e) => errors.push(e.message));
+// Sin servidor ni IA: la prueba juega siempre igual (en CI hay claves de Supabase y la IA cambiaría los retos)
+await page.route(/supabase\.co|generativelanguage|groq\.com|openrouter|pollinations/, (r) => r.abort());
+await page.goto(new globalThis.URL("clasico.html", URL).href); // la versión clásica
+await page.waitForTimeout(800);
+// SEASON=5 juega la sexta temporada (la de la moneda); se abren todas las anteriores como ganadas
+const SEASON = Number(process.env.SEASON || 0);
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem("dftc-story-wins", JSON.stringify(["es1", "es2", "es3", "esas1"])); });
+await page.reload();
+await page.waitForTimeout(800);
+await page.click("#btn-story");
+await page.locator(".franchise-card").nth(1).click();
+await page.locator(".season-card", { hasText: "por parejas" }).click();
+await page.evaluate(() => { window.__forceScore = Number(55); });
+await page.locator("#queen-grid > *").nth(0).click();
+// JURADO=1: la pasarela con concepto, con un jurado de prueba (el resto de textos, los de siempre)
+if (process.env.JURADO) await page.evaluate(() => {
+  window.__jurado = 0;
+  // La reina de la prueba saca buena nota para seguir en la temporada hasta que llegue una pasarela con concepto
+  window.__forceScore = 95;
+  // Solo en la pasarela: el resto del capítulo sigue con los textos de siempre (más rápido)
+  IA.ready = () => !!window.__rwOn;
+  IA.chat = async (system) => {
+    if (/coreógrafa/.test(system)) return { entrada: ["Salgo despacio", "Paso firme", "Bailando"], detalle: ["Enseño la espalda", "Giro", "Peluca"], final: ["Pose", "Guiño", "Drama"], pregunta: "Por qué ese tejido", respuestas: [{ t: "Cae como el agua", calidad: "buena" }, { t: "Me gusta", calidad: "regular" }, { t: "No sé", calidad: "mala" }] };
+    if (/valorando una pasarela/.test(system)) { window.__jurado++; return { concepto: 80, coherencia: 80, desfile: 80, supreme: "Bien", ana: "Muy bien" }; }
+    return null;
+  };
+});
+await page.click("#btn-start");
+
+const VALID = /^(WIN|TOP2|BTOP|HIGH|SAFE|LOW|BTM2|BTM3|ELIM|BWIN)$/;
+let looks = 0, done = null;
+const time = deadline(Number(process.env.MIN || 6));
+for (let i = 0; time() && !done; i++) {
+  await page.waitForTimeout(40);
+  done = await page.evaluate(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem("dftc-story-save") || "null");
+      window.__log = window.__log || [];
+      if (d && d.parejas) { const t = JSON.stringify([d.ep, d.parejas.map((p) => p.k.join("+")), d.flags && d.flags.parDoble, d.meOut, d.rivals.length]); if (window.__log[window.__log.length - 1] !== t) window.__log.push(t); }
+      if (!d || (d.ep < 11 && !d.meOut)) return null;
+      // Con JURADO=1 se sigue hasta ver una pasarela con concepto (hay retos sin pasarela, como el Ball)
+      if (window.__jurado === 0 && d.ep < 5) return null;
+      const labs = Object.values(d.track || {}).map((t) => t[1]).filter(Boolean);
+      return labs.length ? labs : null;
+    } catch { return null; }
+  });
+  const r = await page.evaluate(() => {
+    const q = (s) => document.querySelector(s);
+    const cp = q("#rw-cp");
+    if (cp && !cp.value) { cp.value = "Una sirena en una red de pesca de lujo"; cp.form.requestSubmit(); return ""; }
+    // Girl Groups: la banda necesita nombre antes del estilo (se elige una sugerencia)
+    const gg = q("#gg-n"); if (gg && !gg.value) { const n = q("[data-n]"); if (n) { n.click(); return ""; } }
+    const nx = q("#ls-next");
+    if (nx && !nx.disabled) { nx.click(); return "look"; }
+    const falta = q(".ls-sel li:not(.ok)");
+    if (falta) { falta.click(); q("#ls-loan").click(); return ""; }
+    if (document.querySelector("#screen-game.active") && window.Game && Game._debug) { Game._debug().win(); return ""; }
+    const mem = [...document.querySelectorAll(".mem-card:not(.open):not(.done)")];
+    if (mem.length) { mem[Math.floor(Math.random() * mem.length)].click(); return ""; }
+    for (const s of ["#lf-classic", "#dr-go", "#story-ls", "#rw-done", "#ut-skip", ".dlg-choices button[data-k]", ".dlg", ".siren-card #story-go", "#story-go", "#story-next", "#track-next", "#hub-skip", "[data-o]", "[data-st]", "[data-p]", ".dc-opt:not(.picked):not(.dim)", ".es-opt", "#pa-go", ".mq-c", ".sg-opt", ".rw-opt", "#rw-done", "[data-j]", "[data-qa]", "#lv-done", "#mini-btn.go", "#pz-btn", ".bl-pad"]) {
+      const e = q(s);
+      if (e) {
+        if (s === "#dr-go") window.__rwOn = true;
+        if (s === "#rw-done") window.__rwOn = false;
+        e.click();
+        return "";
+      }
+    }
+    const b = [...document.querySelectorAll(".story-card .btn-primary, .mg .btn-primary")].find((x) => x.offsetParent && !x.disabled);
+    if (b) { b.click(); return ""; }
+    // Votar (la moneda) o elegir a alguien cuando no queda otra cosa que pulsar
+    const who = q(".story-card .hub-q[data-id]");
+    if (who) who.click();
+    return "";
+  });
+  if (r === "look") looks++;
+  if (process.env.SHOTS && i % 600 === 0) await page.screenshot({ path: `/tmp/eh-${i}.png` });
+}
+console.log((await page.evaluate(() => window.__log || [])).join("\n"));
+await page.screenshot({ path: "/tmp/par-end.png" });
+const jurado = process.env.JURADO ? await page.evaluate(() => window.__jurado) : null;
+await browser.close();
+const labs = done || [];
+const bad = labs.filter((l) => !VALID.test(l));
+const ok = looks > 0 && labs.length > 3 && labs.filter((l) => /^(WIN|TOP2)$/.test(l)).length >= 1 && !bad.length && !errors.length && (jurado === null || jurado > 0);
+console.log(`Looks: ${looks} · capítulo 1 en el track record: ${labs.length ? labs.join(" ") : "no"} · etiquetas raras: ${bad.length}${jurado === null ? "" : ` · pasarelas con concepto: ${jurado}`} · errores: ${errors.length}`);
+errors.forEach((e) => console.log("  ✖ " + e));
+process.exit(ok ? 0 : 1);

@@ -3164,3 +3164,7 @@ body.portrait .rg-pieces li span { white-space: normal; display: -webkit-box; -w
 .lz-pool b { width: 100%; font-size: 14px; color: var(--ink); }
 .lz-pool.safe { background: #eafff2; }
 .lz-pool.danger { background: #ffe7ef; }
+
+/* All Stars por parejas: dos caras juntas a cada lado del VS */
+.pair-faces { display: inline-flex; gap: 4px; }
+.vs .pair-faces img { width: clamp(64px, 20vw, 120px); height: clamp(64px, 20vw, 120px); border-width: 3px; }
