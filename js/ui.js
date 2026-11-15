@@ -160,28 +160,68 @@ const UI = (() => {
   }
 
   // All Stars a tu gusto: eliges hasta 14 reinas de cualquier temporada
-  // All Stars por brackets: eliges tu reina entre todas las de todas las temporadas; las otras 17 salen al azar
+  // All Stars por brackets: 1) eliges tu reina (de cualquier temporada); 2) eliges a tus 17 rivales o las sorteas.
+  // Después empieza la temporada directamente.
   function bracketsQueenPicker() {
-    const ids = ALL_QUEEN_IDS();
-    const cur = (store.get("dftc-brackets-cast", []) || [])[0];
+    const ids = ALL_QUEEN_IDS().filter((id) => queenById2(id));
+    const prev = store.get("dftc-brackets-cast", []) || [];
+    let mine = null;
+    let sel = [];
     const m = document.createElement("div");
     m.className = "cc-modal";
     document.body.append(m);
-    m.innerHTML = `<div class="cc-box">
-        <h3>🏆 All Stars por brackets</h3>
-        <p class="muted">Elige tu reina, de cualquier temporada. Tus 17 rivales salen al azar.</p>
-        <div class="cc-grid">${ids.map((id) => { const q = queenById2(id); if (!q) return ""; return `<button class="cc-q ${id === cur ? "on" : ""}" data-id="${id}"><i style="background-image:${portraitBg(q)}"></i><span>${esc(q.name)}</span></button>`; }).join("")}</div>
-        <div class="cc-bar"><span>Pulsa una reina</span><button class="btn btn-ghost" id="cc-x">Cancelar</button></div>
-      </div>`;
-    m.querySelectorAll(".cc-q").forEach((b) => b.addEventListener("click", () => {
-      const cast = bracketsCastFor(b.dataset.id);
+    const card = (id, on) => { const q = queenById2(id); return `<button class="cc-q ${on ? "on" : ""}" data-id="${id}"><i style="background-image:${portraitBg(q)}"></i><span>${esc(q.name)}</span></button>`; };
+    const go = () => {
+      const cast = [mine, ...sel];
       store.set("dftc-brackets-cast", cast);
       m.remove();
       currentSeason = seasonById("esbr");
-      selected = queenById2(b.dataset.id) || null;
-      show("select");
-    }));
-    m.querySelector("#cc-x").addEventListener("click", () => m.remove());
+      selected = queenById2(mine);
+      if (mode === "story" && selected && currentSeason) Story.start(selected, currentSeason);
+    };
+    // Paso 1: tu reina
+    const step1 = () => {
+      m.innerHTML = `<div class="cc-box">
+        <h3>🏆 All Stars por brackets · 1/2</h3>
+        <p class="muted">Elige la reina con la que vas a participar.</p>
+        <div class="cc-grid">${ids.map((id) => card(id, id === prev[0])).join("")}</div>
+        <div class="cc-bar"><span>Pulsa tu reina</span><button class="btn btn-ghost" id="cc-x">Cancelar</button></div>
+      </div>`;
+      m.querySelectorAll(".cc-q").forEach((b) => b.addEventListener("click", () => {
+        mine = b.dataset.id;
+        sel = sel.filter((x) => x !== mine);
+        step2();
+      }));
+      m.querySelector("#cc-x").addEventListener("click", () => m.remove());
+    };
+    // Paso 2: tus 17 rivales (las eliges, completas al azar o todas al azar)
+    const step2 = () => {
+      const rest = ids.filter((id) => id !== mine);
+      m.innerHTML = `<div class="cc-box">
+        <h3>🏆 All Stars por brackets · 2/2</h3>
+        <p class="muted">Juegas con <b>${esc(queenById2(mine).name)}</b>. Ahora elige a tus 17 rivales, o déjalo al azar.</p>
+        <div class="cc-grid">${rest.map((id) => card(id, sel.includes(id))).join("")}</div>
+        <div class="cc-bar"><span>${sel.length}/17 rivales</span><button class="btn btn-ghost" id="cc-back">‹ Cambiar mi reina</button><button class="btn btn-ghost" id="cc-rnd">🎲 ${sel.length ? "Completar al azar" : "Todas al azar"}</button><button class="btn btn-primary" id="cc-ok" ${sel.length === 17 ? "" : "disabled"}>¡A competir!</button></div>
+      </div>`;
+      m.querySelectorAll(".cc-q").forEach((b) => b.addEventListener("click", () => {
+        const id = b.dataset.id;
+        if (sel.includes(id)) sel = sel.filter((x) => x !== id);
+        else if (sel.length < 17) sel.push(id);
+        else return Toast.show("Ya tienes 17", "Quita alguna para meter otra");
+        const y = m.querySelector(".cc-grid").scrollTop;
+        step2();
+        m.querySelector(".cc-grid").scrollTop = y;
+      }));
+      m.querySelector("#cc-back").addEventListener("click", step1);
+      // Al azar: primero las que no tienen corona (como en el programa)
+      m.querySelector("#cc-rnd").addEventListener("click", () => {
+        const auto = bracketsCastFor(mine).slice(1).filter((id) => !sel.includes(id));
+        sel = [...sel, ...auto].slice(0, 17);
+        go();
+      });
+      m.querySelector("#cc-ok").addEventListener("click", go);
+    };
+    step1();
   }
   function customCastPicker() {
     const ids = ALL_QUEEN_IDS();
