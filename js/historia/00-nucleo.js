@@ -171,6 +171,15 @@ const Story = (() => {
     attrs: ["comedia", "carisma"],
     run: (el, done) => (IA.ready() ? liveStandPair(el, done) : RETOS.comedia.run(el, done)),
   };
+  // Temporada 1: la repesca del makeover. Cada reina en competición transforma a una eliminada en su familia drag
+  RETOS.repescaMakeover = {
+    titulo: () => "La repesca: makeover de familia drag",
+    desc: "Vuelven las eliminadas. Cada reina en competición hace un makeover a una de ellas: maquillaje y vestuario adaptados a su cara y a su estilo, para que parezcáis familia. La pareja más floja manda a su reina al lip sync... y la eliminada que mejor lo haga vuelve a la competición.",
+    ctrl: "Clic o teclas 1, 2 y 3",
+    attrs: ["maquillaje", "moda"],
+    noRunway: true,
+    run: (el, done) => mxMakeover(el, done),
+  };
   const MATERIALES_RAROS = {
     good: [["🥔", 12], ["🧸", 10], ["🪴", 10], ["🔩", 14], ["🎈", 10], ["📰", 8], ["🧽", 10]],
     bad: [["✂️", -15], ["🩹", -10], ["💧", -8]],

@@ -3,10 +3,12 @@
 
 export const TEMPORADAS_HISTORIA: Record<string, { twist?: string; lema: string; intro: [string, string][] }> = {
   es1: {
+    twist: "makeover",
     lema: "La primera vez de todas",
     intro: [
       ["host", "¡Bienvenidas a la primera temporada de Drag Race España! Nadie sabe todavía lo que se va a encontrar."],
       ["judge", "Aquí no hay favoritas. Cada semana empieza de cero."],
+      ["host", "Y un aviso: irse a casa no siempre es para siempre. Cuando queden seis... ya lo veréis."],
     ],
   },
   es2: {

@@ -277,6 +277,9 @@
   }
 
   function mxMakeover(el, done) {
+    // Repesca de la Temporada 1: la modelo es tu eliminada (su carisma dice cuánto se suelta delante de la cámara)
+    const RP = S.mkRp && S.mkRp.ep === S.ep && S.mkRp.mate ? qById(S.mkRp.mate) : null;
+    if (RP) return mkRepescaGame(el, done, RP);
     if (IA.ready() && !mxMakeover.classic) return aiOrClassic(el, "Makeover", "💄", () => liveMakeover(el, done, S.curTitulo || "Makeover: tu hermana drag"), () => { mxMakeover.classic = true; mxMakeover(el, (sc) => { mxMakeover.classic = false; done(sc); }); });
     // La invitada sale del título anunciado: familia o amigas con muchas ganas de hacer drag
     const tt = (S.curTitulo || "").toLowerCase();
@@ -502,6 +505,40 @@
     runSteps(el, { title: "Branding: tu propia marca", icon: "🛍️", steps, finish: (st, base) => base + (A(P[st.prod || "pintalabios"].attr) - 5) * 1.5 }, (sc, st) => { if (sc >= 85) growAttr(P[(st && st.prod) || "pintalabios"].attr); done(sc); });
   }
 
+  function mkRepescaGame(el, done, P) {
+    const a = attrsOf(P);
+    const model = { n: P.name, comfort: a.carisma >= 7 ? "alta" : a.carisma >= 5 ? "media" : "baja", body: hashN(P.id, "mk") % 2 ? "grande" : "menudo" };
+    const sobre = { alta: "Se deja hacer de todo y viene a comerse el escenario", media: "Tiene ganas, pero vuelve con los nervios de la eliminación", baja: "Está nerviosa: lo de irse a casa todavía le pesa" }[model.comfort];
+    const est = Object.entries(RASGOS.fort).find(([k]) => k === traitsOf(P).fort);
+    const steps = [
+      () => ({
+        q: `👥 Tu familia drag: ${esc(P.name)}`,
+        sub: `${sobre}. ${est ? `Su fuerte: ${esc(est[1].n.toLowerCase())}. ` : ""}Tu Maquillaje: <b>${A("maquillaje")}</b>. ¿Cómo adaptas el maquillaje a su cara?`,
+        opts: [
+          { t: "🪞 Mi cara calcada en la suya", d: "Máximo parecido", go: () => (model.comfort === "alta" ? { pts: 94, msg: "¡Sois dos gotas de agua!" } : { pts: 44, msg: "Tanta pintura la tapa: no se reconoce ni ella." }) },
+          { t: "🎨 Mi paleta, adaptada a sus facciones", d: "Equilibrado", go: () => ({ pts: 80, msg: "Se ve la familia sin borrarla a ella." }) },
+          { t: "🌸 Suavizar y que brille ella", d: "Para quien vuelve con nervios", go: () => (model.comfort === "baja" ? { pts: 92, msg: "Se siente guapa y se le nota en la cara." } : { pts: 58, msg: "Bonita, pero no parecéis familia." }) },
+        ],
+      }),
+      () => ({
+        q: "👗 El vestuario",
+        opts: [
+          { t: "👯 Looks gemelos", d: "Mismo vestido para las dos", go: () => (model.body === "menudo" ? { pts: 90, msg: "Parecéis muñecas rusas. ¡Precioso!" } : { pts: 46, msg: "El mismo patrón no le sienta igual: se nota." }) },
+          { t: "🎨 Misma paleta, distinto corte", d: "Adaptado a su cuerpo", go: () => ({ pts: model.body === "grande" ? 92 : 78, msg: "Familia, pero cada una con su silueta." }) },
+          { t: "✨ Su estilo de siempre, con tus colores", d: "Respetar quién es", go: () => ({ pts: 74 + (relOf(P) > 0 ? 10 : 0), msg: relOf(P) > 0 ? "Se nota que la conoces: está encantada." : "Correcto, aunque le falta algo tuyo." }) },
+        ],
+      }),
+      () => ({
+        q: "🎭 La presentación en pareja",
+        opts: [
+          { t: "💃 Coreografía juntas", d: "Baile", go: () => res(check(["baile"], 54), 90, 40, "¡Sincronizadas como hermanas!", "Ella va por un lado y tú por otro.") },
+          { t: "🎤 Que hable ella: su segunda oportunidad", d: "Carisma de las dos", go: () => (model.comfort !== "baja" ? { pts: 92, msg: "El jurado se emociona con su vuelta." } : { pts: 50, msg: "Se queda en blanco con el micro." }) },
+          { t: "🙂 Desfilar y ya", d: "Seguro", go: () => ({ pts: 60, msg: "Correcto, sin más." }) },
+        ],
+      }),
+    ];
+    runSteps(el, { title: "La repesca: makeover de familia drag", icon: "💄", steps, finish: (st, base) => base + (A("maquillaje") - 5) * 1.2 + (A("moda") - 5) * 0.8 }, (sc) => { if (sc >= 85) growAttr("maquillaje"); done(sc); });
+  }
   // Lalaparuza, como en el programa (src/core/lala.ts): la que gana su duelo se salva y se va al camerino;
   // las que pierden siguen luchando entre ellas. Las dos últimas son el bottom y van al lip sync de eliminación.
   function mxLalaparuza(el, done) {
@@ -584,6 +621,15 @@
     body().innerHTML = `<div id="story-play"></div>`;
     RETOS[tipo].run($("#story-play"), (sc) => { cleanup = null; cb && cb(sc); window.__lastScore = sc; });
   };
+  // Para las pruebas: la repesca del makeover (home: desde casa)
+  const _mkTest = (home = false) => {
+    if (cleanup) cleanup();
+    while (S.rivals.length > (home ? 7 : 5)) eliminate(S.rivals[S.rivals.length - 1]);
+    if (home) { S.meOut = true; S.flags.waitRepesca = 1; S.out.push(S.rivals.pop()); return homeMakeover(); }
+    S.ep++;
+    S.curTipo = "repescaMakeover"; S.curEpTipo = S.ep; S.epNames[S.ep] = "La repesca"; S.miniWin = null;
+    makeoverEpisode();
+  };
   // Para las pruebas: salta a la gran final con una forma concreta (out: verla desde el público)
   const _finalTest = (fmt, out = false) => {
     if (cleanup) cleanup();
@@ -630,5 +676,5 @@
     return out;
   }
   window.DFTC_SIM = (sid = "es1", n = 300) => { const r = simulate(sid, n); if (r) console.table(r); return r; };
-  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), preview, _test, _finalTest, simulate, repetirEpisodio: repeatEpisode, mp: mpApi, lastEntryId: null };
+  return { start, abandon, menu, exitToMenu, openShopModal, openBoard: () => S && openBoard(), preview, _test, _finalTest, _mkTest, simulate, repetirEpisodio: repeatEpisode, mp: mpApi, lastEntryId: null };
 })();

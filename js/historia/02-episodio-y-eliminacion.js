@@ -234,6 +234,7 @@
   // ------------------------------- Reto ------------------------------------
   function pickReto() {
     if (twistOf() === "repesca" && !S.flags.repesca && !S.meOut && S.rivals.length + 1 <= REPESCA_AT && S.out.length) return "repescaStand";
+    if (twistOf() === "makeover" && !S.flags.repesca && !S.meOut && S.rivals.length + 1 <= MK_AT && S.out.length) return "repescaMakeover";
     if (S.retoEp && S.retoEp.ep === S.ep) return S.retoEp.tipo;
     // Partidas guardadas antes de que hubiera retos nuevos: se añaden al final de su orden (el resto no cambia)
     if (S.order) { const miss = ORDEN_RETOS.filter((t) => t !== "pasarela" && t !== "talento" && !S.order.includes(t)); if (miss.length) S.order = [...S.order.filter((t) => ORDEN_RETOS.includes(t)), ...shuffle(miss)]; }
@@ -381,7 +382,9 @@
       $("#story-go").addEventListener("click", next);
     };
     const ctx = ctxWith(pick1(S.rivals), { reto: S.curTitulo });
-    const anuncio = () => S.curTipo === "repescaStand"
+    const anuncio = () => S.curTipo === "repescaMakeover"
+      ? dialog([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", "Esta semana: makeover de familia drag. Cada una de vosotras transformará a una de ellas para que parezcáis familia."], ["host", "La pareja más floja manda a su reina al lip sync. Y la eliminada que mejor lo haga... vuelve a la competición."]], ctx, then)
+      : S.curTipo === "repescaStand"
       ? dialog([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", `Esta semana: ${S.curTitulo}. Cada una de vosotras hará un monólogo con una de ellas.`], ["host", "La eliminada de la pareja ganadora... vuelve a la competición. Y las reinas de las tres peores parejas harán un lip sync a tres bandas: solo se salva una."], ...(S.flags.immune ? [["host", `${S.flags.immune === "me" ? "{yo}" : (qById(S.flags.immune) || {}).name}, tú ganaste la semana pasada: esta semana no compites. Serás nuestra maestra de ceremonias.`]] : [])], ctx, then)
       : dialog([...pickFresh(HISTORIA.anuncio), ...girosAnuncio()], ctx, then);
     // All Stars: nada más entrar, Supremme pregunta a la que perdió el lip sync qué pintalabios había elegido
@@ -408,6 +411,7 @@
     };
     if (tipo === "repescaStand" && S.flags.immune === "me") return mcEpisode();
     if (tipo === "repescaStand") return repescaPairs(go);
+    if (tipo === "repescaMakeover") return makeoverEpisode();
     const grouped = reto.groups && S.rivals.length + 1 >= reto.groups * 2;
     if (grouped) return formChallengeGroups(reto.groups, go);
     if (reto.team && S.rivals.length >= 3) return caps();
@@ -1789,7 +1793,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       nemEvent("vote", dec, go);
       if (go === S.queen && S.pacts && S.pacts[dec.id]) { delete S.pacts[dec.id]; nemEvent("betray", dec, S.queen); }
       if (go === S.queen) {
-        if (twistOf() === "repesca" && !S.flags.repesca) return goHomeRepesca(dec);
+        if (rpTwist() && !S.flags.repesca) return goHomeRepesca(dec);
         return aftermath(dec, "La ganadora del reto ha decidido que te vas.");
       }
       if (meIn) changeRel(dec, 1);
@@ -1875,7 +1879,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
           return endEpisodeBtn();
         }
         if (!res.won) {
-          if (!forCrown && twistOf() === "repesca" && !S.flags.repesca) return goHomeRepesca(rival);
+          if (!forCrown && rpTwist() && !S.flags.repesca) return goHomeRepesca(rival);
           if (!forCrown) return aftermath(rival);
           return theEnd(false, rival, forCrown);
         }
@@ -1910,10 +1914,212 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
         <p class="eyebrow">Te vas a casa... de momento</p>
         <h3>Sashay away, ${esc(S.queen.name)}</h3>
         ${by ? `<div class="vs"><img class="gone" src="${photo(S.queen)}"><span>💔</span><img src="${photo(by)}"></div>` : ""}
-        <p>Pero esta temporada hay <b>Segunda Oportunidrag</b>. Mientras esperas en casa, la competición sigue. Cuando queden siete reinas, las eliminadas volveréis al taller para un stand-up en parejas: si tu pareja gana, vuelves.</p>
+        <p>${twistOf() === "makeover" ? "Pero esta temporada irse no es para siempre. Mientras esperas en casa, la competición sigue. Cuando queden seis reinas, las eliminadas volveréis al taller para un makeover: cada una hará familia drag con una reina en competición, y la eliminada que mejor lo haga vuelve." : "Pero esta temporada hay <b>Segunda Oportunidrag</b>. Mientras esperas en casa, la competición sigue. Cuando queden siete reinas, las eliminadas volveréis al taller para un stand-up en parejas: si tu pareja gana, vuelves."}</p>
         <button class="btn btn-primary" id="story-next">Ver cómo sigue</button>
       </div>`;
     $("#story-next").addEventListener("click", repescaStep);
+  }
+  // ---------------- Repesca del makeover (Temporada 1) ----------------
+  // Cuando quedan seis vuelven las eliminadas. Cada reina en competición hace familia drag con una de ellas (las parejas
+  // las decide la ganadora del minirreto). La pareja más floja manda a su reina al lip sync; aparte, la eliminada que
+  // mejor lo haga vuelve a la competición a salvo.
+  const MK_AT = 6;
+  const rpTwist = () => twistOf() === "repesca" || twistOf() === "makeover";
+  // Nota de una eliminada por su cuenta (maquillaje, moda y carisma: lo que pide un makeover) y química de la pareja
+  const mkSolo = (q) => clamp(Math.round(rivalScore(q) + (attrsOf(q).carisma - 5) * 1.5 + rnd(-8, 8)), 0, 99);
+  const mkQuim = (a, b) => (a === S.queen ? clamp(relOf(b) * 3, -9, 9) : b === S.queen ? clamp(relOf(a) * 3, -9, 9) : rnd(-4, 4));
+  // Muestra las parejas (y cómo se han decidido) antes del reto
+  function mkShowPairs(pairs, how, then) {
+    const label = (q) => (q === S.queen ? "Tú" : q.name);
+    body().innerHTML = `
+      <div class="story-card rp-draw">
+        <p class="eyebrow">💄 La repesca · las parejas</p>
+        <h3>${how}</h3>
+        <div class="rp-pairs">${pairs.map((p, i) => `<div class="rp-pair ${p.c === S.queen || p.o === S.queen ? "me" : ""}" style="--i:${i}"><span><i style="background-image:url('${photo(p.c)}')"></i>${esc(label(p.c))}</span><b>+</b><span class="rp-slot done">${p.o ? `<i style="background-image:url('${photo(p.o)}')"></i>${esc(label(p.o))}` : "<em>Va sola</em>"}</span></div>`).join("")}</div>
+        <p class="muted">La pareja más floja manda a su reina al lip sync. La eliminada que mejor lo haga, vuelve.</p>
+        <button class="btn btn-primary" id="story-next">¡A maquillar!</button>
+      </div>`;
+    $("#story-next").addEventListener("click", then);
+  }
+  // Reparte las eliminadas. pick: la que eliges tú (si has ganado el minirreto)
+  function mkPairs(pick, chooser) {
+    const outs = shuffle(S.out.slice()).filter((q) => q !== pick);
+    let mine = pick;
+    if (!mine && outs.length) {
+      // Quien reparte no es neutral: a una enemiga le da la eliminada más floja; a una amiga, la mejor
+      const r = chooser ? relOf(chooser) : 0;
+      const bySkill = outs.slice().sort((a, b) => skillOf(b) - skillOf(a));
+      mine = r <= -1 ? bySkill[bySkill.length - 1] : r >= 1 ? bySkill[0] : outs[0];
+    }
+    const rest = outs.filter((q) => q !== mine);
+    return [{ c: S.queen, o: mine || null }, ...shuffle(S.rivals.slice()).map((c) => ({ c, o: rest.shift() || null }))];
+  }
+  function makeoverEpisode() {
+    flowGo("reto");
+    setSet("werkroom");
+    const winQ = S.miniWin && S.miniWin !== "me" ? qById(S.miniWin) : null;
+    const start = (pairs, how) => {
+      S.mkRp = { ep: S.ep, mate: (pairs[0].o || {}).id || null, pairs: pairs.map((p) => [p.c === S.queen ? "me" : p.c.id, p.o ? p.o.id : null]) };
+      mkShowPairs(pairs, how, () => {
+        body().innerHTML = `<div id="story-play"></div>`;
+        Music.play("reto");
+        RETOS.repescaMakeover.run($("#story-play"), (raw) => {
+          cleanup = null;
+          if (typeof window.__forceScore === "number") raw = window.__forceScore;
+          Music.stop();
+          mkResults(pairs, raw);
+        });
+      });
+    };
+    if (S.miniWin === "me" && S.out.length >= 2) {
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">Has ganado el minirreto</p>
+          <h3>Tú repartes las parejas: elige primero a tu familia drag</h3>
+          <div class="hub-grid">${S.out.map((q, i) => `<button class="hub-q" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relOf(q) >= 1 ? "Os lleváis bien" : relOf(q) <= -1 ? "Hay tensión" : "Eliminada"}</small></button>`).join("")}</div>
+        </div>`;
+      return body().querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => start(mkPairs(qById(b.dataset.id)), `Has elegido a ${esc(qById(b.dataset.id).name)}. El resto, a tu gusto... o casi`)));
+    }
+    const pairs = mkPairs(null, winQ);
+    const mate = pairs[0].o;
+    const r = winQ ? relOf(winQ) : 0;
+    const lines = winQ && mate ? [["r1", r <= -1 ? `{yo}, para ti... ${mate.name}. A ver qué haces con ella.` : r >= 1 ? `{yo}, te doy a ${mate.name}. Hacéis buena pareja.` : `{yo}, tú con ${mate.name}.`]] : [["host", "Las parejas las he hecho yo. ¡A trabajar!"]];
+    dialog(lines, ctxWith(winQ || pick1(S.rivals)), () => start(pairs, winQ ? `${esc(winQ.name)} ha ganado el minirreto y reparte las parejas` : "Las parejas de la repesca"));
+  }
+  function mkResults(pairs, raw) {
+    const forced = typeof window.__forceScore === "number";
+    const mine = forced ? raw : myDado(raw);
+    // Nota de cada eliminada por su cuenta (la tuya: lo bien que la has hecho brillar)
+    const solo = new Map(pairs.filter((p) => p.o).map((p) => [p.o, p.c === S.queen ? clamp(Math.round(mine * 0.5 + mkSolo(p.o) * 0.5), 0, 99) : mkSolo(p.o)]));
+    pairs.forEach((p) => {
+      const c = p.c === S.queen ? mine : rivalScore(p.c);
+      p.s = p.o ? Math.round(c * 0.6 + solo.get(p.o) * 0.4 + mkQuim(p.c, p.o)) : c;
+    });
+    pairs.sort((a, b) => b.s - a.s);
+    const n = pairs.length;
+    pairs.forEach((p, k) => mark(p.c, k === 0 ? "WIN" : k === 1 ? "HIGH" : k >= n - 2 ? "BTM2" : "SAFE"));
+    if (pairs[0].c === S.queen) { S.wins++; Confetti.burst(1500); }
+    // Vuelve la eliminada con mejor nota por su cuenta
+    const back = [...solo.entries()].sort((a, b) => b[1] - a[1])[0];
+    const backQ = back ? back[0] : null;
+    S.flags.repesca = true;
+    S.mkRp = null;
+    const RES = (k) => (k === 0 ? "win" : k >= n - 2 ? "btm" : "safe");
+    header();
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">💄 La repesca · resultados por parejas</p>
+        <h3>${pairs[0].c === S.queen ? "¡Vuestra familia gana el reto! 👑" : `Ganan ${esc(pairs[0].c.name)}${pairs[0].o ? ` y ${esc(pairs[0].o.name)}` : ""}`}</h3>
+        ${pairRankHTML(pairs.map((p, k) => ({ c: p.c, o: p.o, me: p.c === S.queen, res: RES(k) })))}
+        <p class="muted">${esc(pairs[n - 2].c === S.queen ? "Tú" : pairs[n - 2].c.name)} y ${esc(pairs[n - 1].c === S.queen ? "tú" : pairs[n - 1].c.name)}, al lip sync. Pero antes: ¿qué eliminada vuelve?</p>
+        <button class="btn btn-primary" id="story-next">Continuar</button>
+      </div>`;
+    $("#story-next").addEventListener("click", () => {
+      const fin = () => mkLipSync(pairs.slice(-2).map((p) => p.c));
+      if (!backQ) return fin();
+      S.out = S.out.filter((q) => q !== backQ);
+      S.rivals.push(backQ);
+      mark(backQ, "RTRN");
+      logEv(`${backQ.name} vuelve a la competición en la repesca del makeover`);
+      dialog(
+        [["host", "Eliminadas, habéis estado todas a la altura. Pero una ha brillado más que ninguna..."], ["host", `${backQ.name}... ¡vuelves a la competición!`], ...HISTORIA.regresoVuelve],
+        ctxWith(backQ),
+        fin,
+        [
+          { txt: "¡Bienvenida de nuevo, {r1}!", rel: { r1: 1 }, reply: ["r1", "¡Gracias, reina! Esta vez voy a por todas."] },
+          { txt: "Pues ya somos una más para echar...", rel: { r1: -1 }, bonus: 80, reply: ["r1", "Tranquila, que empiezo por ti."] },
+        ],
+      );
+    });
+  }
+  function mkLipSync(two) {
+    const [a, b] = two;
+    const finish = (stay, go) => {
+      if (go === S.queen) return aftermath(stay, "La repesca te ha dejado en el lip sync... y no ha salido.");
+      nemEvent("elim", stay, go);
+      eliminate(go);
+      header();
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💄 Lip sync for your life</p>
+          <h3>${esc(stay === S.queen ? "Tú" : stay.name)}, shantay you stay</h3>
+          <div class="vs"><img src="${photo(stay)}"><span>💔</span><img class="gone" src="${photo(go)}"></div>
+          <p><b>${esc(go.name)}</b>, sashay away.</p>
+          <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
+        </div>`;
+      endEpisodeBtn();
+    };
+    if (a !== S.queen && b !== S.queen) {
+      const [w, l] = simLS(a, b);
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💄 Lip sync for your life</p>
+          <h3>${esc(a.name)} vs ${esc(b.name)}</h3>
+          <div class="vs"><img src="${photo(a)}"><span>VS</span><img src="${photo(b)}"></div>
+          <button class="btn btn-primary" id="story-ls">Ver el veredicto</button>
+        </div>`;
+      return $("#story-ls").addEventListener("click", () => finish(w, l));
+    }
+    const rival = a === S.queen ? b : a;
+    playLS(rival, { eyebrow: "💄 Lip sync for your life", text: "Tu pareja ha sido la más floja de la repesca. Toca defenderte.", curtain: "LIP SYNC FOR YOUR LIFE" }, (won) => (won ? finish(S.queen, rival) : finish(rival, S.queen)));
+  }
+  // Desde casa: vuelves al taller y haces familia drag con una reina en competición
+  function homeMakeover() {
+    if (S.flags.repesca) return;
+    store.set(EPSTART_KEY, snapshot());
+    S.ep++;
+    S.epNames[S.ep] = "La repesca";
+    S.curTipo = "repescaMakeover";
+    S.curEpTipo = S.ep;
+    S.flags.waitRepesca = 0;
+    setSet("werkroom");
+    header();
+    const comp = shuffle(S.rivals.slice());
+    const outs = shuffle(S.out.slice());
+    const mate = comp[0];
+    const pairs = [{ c: mate, o: S.queen }, ...comp.slice(1).map((c) => ({ c, o: outs.shift() || null }))];
+    dialog(
+      [["host", "¡Reinas eliminadas, volvéis al taller! Ha llegado LA REPESCA."], ["host", "Cada una hará familia drag con una reina en competición: makeover completo, maquillaje y vestuario."], ["host", "La eliminada que mejor lo haga... vuelve a la competición."], ["r1", "{yo}, me ha tocado contigo. Vamos a parecer hermanas."]],
+      ctxWith(mate),
+      () => mkShowPairs(pairs, `Tu familia drag: ${esc(mate.name)}`, () => {
+        body().innerHTML = `<div id="story-play"></div>`;
+        Music.play("reto");
+        // Desde casa no maquillas tú: os maquilláis la una a la otra, y lo que cuenta es cómo lo haces tú
+        S.mkRp = { ep: S.ep, mate: mate.id };
+        RETOS.repescaMakeover.run($("#story-play"), (raw) => {
+          cleanup = null;
+          if (typeof window.__forceScore === "number") raw = window.__forceScore;
+          Music.stop();
+          S.mkRp = null;
+          S.flags.repesca = true;
+          const mine = typeof window.__forceScore === "number" ? raw : myDado(raw);
+          const solo = new Map(pairs.filter((p) => p.o).map((p) => [p.o, p.o === S.queen ? mine : mkSolo(p.o)]));
+          pairs.forEach((p) => (p.s = p.o ? Math.round(rivalScore(p.c) * 0.6 + solo.get(p.o) * 0.4 + mkQuim(p.c, p.o)) : rivalScore(p.c)));
+          pairs.sort((a, b) => b.s - a.s);
+          const n = pairs.length;
+          pairs.forEach((p, k) => mark(p.c, k === 0 ? "WIN" : k === 1 ? "HIGH" : k >= n - 2 ? "BTM2" : "SAFE"));
+          const backQ = [...solo.entries()].sort((a, b) => b[1] - a[1])[0][0];
+          const two = pairs.slice(-2).map((p) => p.c);
+          const [stay, go] = simLS(two[0], two[1]);
+          eliminate(go);
+          const meBack = backQ === S.queen;
+          if (meBack) { mark(S.queen, "RTRN"); S.meOut = false; Achievements.unlock("segunda"); Confetti.burst(2000); Toast.show("🔁 ¡Has vuelto!", "La repesca te devuelve a la competición"); }
+          else { S.out = S.out.filter((q) => q !== backQ); S.rivals.push(backQ); mark(backQ, "RTRN"); }
+          logEv(`${meBack ? S.queen.name : backQ.name} vuelve a la competición en la repesca del makeover`);
+          header();
+          body().innerHTML = `
+            <div class="story-card">
+              <p class="eyebrow">💄 La repesca · resultados</p>
+              <h3>${meBack ? `¡${esc(S.queen.name)} vuelve a la competición!` : `${esc(backQ.name)} vuelve a la competición`}</h3>
+              ${pairRankHTML(pairs.map((p, k) => ({ c: p.c, o: p.o, res: k === 0 ? "win" : k >= n - 2 ? "btm" : "safe" })))}
+              <p>💄 Lip sync: <b>${esc(stay.name)}</b> se queda y <b>${esc(go.name)}</b> se va a casa.</p>
+              <button class="btn btn-primary" id="story-next">${meBack ? "Volver al taller" : "Continuar"}</button>
+            </div>`;
+          if (meBack) return endEpisodeBtn();
+          $("#story-next").addEventListener("click", () => aftermath(null, "La repesca no ha salido bien.", S.flags.myPlace));
+        });
+      }),
+    );
   }
   // ¿Toca la Segunda Oportunidrag? Cuando quedan siete reinas en competición
   const REPESCA_AT = BALANCE.repescaCuando;
@@ -2207,6 +2413,15 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
   }
   // Semanas sin ti hasta que quedan siete reinas: doble eliminación y te juegas volver en un lip sync
   function repescaStep() {
+    if (twistOf() === "makeover") {
+      if (S.rivals.length <= MK_AT) return Curtain.run(() => homeMakeover(), "LA REPESCA");
+      const r = simWeek();
+      S.phase = null;
+      save();
+      const face = (q) => `<i class="tn-face" style="background-image:url('${photo(q)}')"></i>`;
+      return showTrack(repescaStep, S.rivals.length > MK_AT ? "Siguiente semana" : "Siguiente semana: ¡quedan seis!",
+        `${face(r.win)} 👑 Gana <b>${esc(r.win.name)}</b> · ${face(r.go)} 💔 <b>${esc(r.go.name)}</b> pierde el lip sync contra <b>${esc(r.stay.name)}</b> y se va a casa.`);
+    }
     if (S.rivals.length <= REPESCA_AT) return Curtain.run(() => homeRepesca(), "SEGUNDA OPORTUNIDRAG");
     const r = simWeek();
     S.phase = null;

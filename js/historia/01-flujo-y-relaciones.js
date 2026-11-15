@@ -622,6 +622,7 @@
     if (tw === "moneda") chip = "🪙 Bottom de 3 y moneda al aire";
     if (tw === "corazon") { const h = (S.hearts.me || 0) / 2; chip = `❤️ Tienes ${String(h).replace(".", ",")} ${h === 1 ? "corazón" : "corazones"}`; }
     if (tw === "suerte") chip = S.luck === undefined ? "🍀 Cajitas por abrir" : S.luck === "me" ? "🍀 ¡La tienes tú! (en secreto)" : S.luck ? "🍀 ¿Quién la tendrá?" : "🍀 Ya se ha usado";
+    if (tw === "makeover") chip = S.flags.repesca ? "💄 La repesca: hecha" : "💄 Cuando queden seis... vuelven";
     if (tw === "repesca") chip = S.flags.repesca ? "🔁 Segunda Oportunidrag: hecha" : "🔁 Segunda Oportunidrag: pendiente";
     if (tw === "allstars") chip = "💄 Decide la ganadora";
     if (tw === "winners") chip = `Tus estrellas: ${(S.stars || {}).me || 0}${S.ep === winnersWeeks() ? " · 🌟 Esta semana el top 2 gana 3 estrellas" : ""}${S.block && S.block.ep === S.ep ? ` · 🚫 Bloqueada: ${S.block.id === "me" ? "tú" : nameOfKey(S.block.id)}` : ""}`;
@@ -708,6 +709,7 @@
   EP_SHORT.lalaparuza = "Lalaparuza";
   EP_SHORT.equipos = "Girl Groups";
   EP_SHORT.repescaStand = "Segunda Oportunidrag";
+  EP_SHORT.repescaMakeover = "La repesca";
   function mark(q, lab) {
     const k = keyOf(q);
     (S.track[k] = S.track[k] || {})[S.ep] = lab;
