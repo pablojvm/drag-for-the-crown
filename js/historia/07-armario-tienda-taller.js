@@ -80,6 +80,15 @@
     if (twistOf() === "winners") return winnersWeeks();
     return S.season.cast.length - 4;
   }
+  // Los episodios en los que compites tú (los que necesitan look). En el All Stars por brackets solo los de tu bracket
+  // (1 a 3) y los de todas juntas hasta quedar siete (con 18, el 10 y el 11); los demás brackets se ven en resumen.
+  function playedEps() {
+    if (seasonInfo().twist === "brackets") {
+      const per = DFTC.alianzas.BRACKET_SEMANAS, juntas = Math.max(0, Math.ceil(Math.floor(S.season.cast.length / 3) / 2) * 3 - DFTC.alianzas.BRACKETS_FINAL);
+      return [...Array.from({ length: per }, (_, i) => i + 1), ...Array.from({ length: juntas }, (_, i) => 3 * per + 1 + i)];
+    }
+    return Array.from({ length: seasonEpisodes() }, (_, i) => i + 1);
+  }
   // Familias de pasarelas que se parecen demasiado (src/core/temas.ts): de cada familia, una por temporada
   const famOf = (n) => (DFTC.familiaPasarela ? DFTC.familiaPasarela(n) : n);
   function buildSchedule() {
@@ -99,7 +108,7 @@
       return n;
     };
     const sched = [];
-    for (let ep = 1; ep <= seasonEpisodes(); ep++) {
+    for (const ep of playedEps()) {
       const tipo = tipoDeEp(ord, ep);
       const looks = [];
       if (tipo === "ball") {
