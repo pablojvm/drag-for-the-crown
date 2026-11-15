@@ -634,13 +634,13 @@
   /** Sin ver semana a semana: se juegan las que faltan y se enseña el track record con lo que ha pasado. */
   function skipToReunion() {
     const notes = [];
-    while (S.rivals.length > 4) {
+    while (S.rivals.length > 4 && !brFinalToca()) {
       const r = simWeek();
       notes.push(r.gone ? `Ep. ${S.ep}: gana <b>${esc(r.win.name)}</b>; doble eliminación de ${r.gone.map((q) => `<b>${esc(q.name)}</b>`).join(" y ")}${r.back ? `; vuelve <b>${esc(r.back.name)}</b>` : ""}.` : `Ep. ${S.ep}: gana <b>${esc(r.win.name)}</b>; se va <b>${esc(r.go.name)}</b>.`);
     }
     S.phase = null;
     save();
-    showTrack(afterReunion, "Al reencuentro", notes.join("<br>"));
+    showTrack(brFinalToca() ? afterStep : afterReunion, brFinalToca() ? "A la Lalaparuza" : "Al reencuentro", notes.join("<br>"));
   }
   function simWeek() {
     S.ep++;
@@ -684,6 +684,8 @@
     return { win: rows[0].q, stay, go };
   }
   function afterStep() {
+    // All Stars por brackets: con siete, la Lalaparuza final (y la eliminada puedes ser tú)
+    if (brFinalToca()) return Curtain.run(() => { S.ep++; bracketsFinal(); }, "LALAPARUZA");
     if (S.rivals.length <= 4) return afterReunion();
     const r = simWeek();
     S.phase = null;

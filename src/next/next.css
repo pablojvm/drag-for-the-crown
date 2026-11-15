@@ -576,3 +576,4 @@ body:has(.nx-dlg) .nx-ts-panel { visibility: hidden; }
 /* Track record: el color del bracket o de la pareja de cada reina (como en los All Stars 10 y 11) */
 :is(.nx-track, .nx-legacy .track) td.qn.grp { background: var(--grp); color: #fff; font-weight: 800; text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
 :is(.nx-track, .nx-legacy .track) tr.me td.qn.grp { background: var(--grp); box-shadow: inset 0 0 0 3px #ffd84d; }
+:is(.nx-track, .nx-legacy .track) .t-lost { background: #7f9a5a; color: #fff; font-size: .78em; line-height: 1.1; }

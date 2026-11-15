@@ -260,6 +260,8 @@
       const alt = ord.find((t) => !hechos.has(t) && t !== "talento" && (t !== "lalaparuza" || p2 || twistOf() === "winners"));
       if (alt) tipo = alt;
     }
+    // All Stars por brackets: la Lalaparuza es la final (no un reto de la temporada)
+    if (tipo === "lalaparuza" && seasonInfo().twist === "brackets") tipo = ord.find((t) => !hechos.has(t) && t !== "talento" && t !== "lalaparuza") || "snatch";
     S.retoHist[S.ep] = tipo;
     S.retoEp = { ep: S.ep, tipo };
     return tipo;
@@ -1933,7 +1935,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
   const brFace = (k, extra = "") => `<span class="${k === "me" ? "me" : ""}"><i style="background-image:url('${photo(brQ(k))}')"></i>${esc(k === "me" ? "Tú" : brQ(k).name)}${extra}</span>`;
   function brTable(g, eps, adv) {
     const R = brRank(S.br.groups[g], eps);
-    return `<div class="br-box" style="--grp:${BR_COLORS[g].c}"><b>${BR_COLORS[g].n}</b>${R.map((x, i) => `<span class="${x.k === "me" ? "me" : ""} ${adv && i < 2 ? "adv" : adv ? "fuera" : ""}"><i style="background-image:url('${photo(brQ(x.k))}')"></i>${esc(x.k === "me" ? "Tú" : brQ(x.k).name)}<em>${x.p} pts</em></span>`).join("")}</div>`;
+    return `<div class="br-box" style="--grp:${BR_COLORS[g].c}"><b>${BR_COLORS[g].n}</b>${R.map((x, i) => `<span class="${x.k === "me" ? "me" : ""} ${adv && i < S.br.adv ? "adv" : adv ? "fuera" : ""}"><i style="background-image:url('${photo(brQ(x.k))}')"></i>${esc(x.k === "me" ? "Tú" : brQ(x.k).name)}<em>${x.p} pts</em></span>`).join("")}</div>`;
   }
   // Alianzas por parejas dentro del bracket (regla compartida: src/core/alianzas.ts). Cada semana se pueden cambiar
   function alianzaWeek(then) {
@@ -2016,14 +2018,14 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     const others = shuffle(S.rivals.map(keyOf));
     const size = Math.floor((others.length + 1) / 3);
     const groups = [["me", ...others.slice(0, size - 1)], others.slice(size - 1, 2 * size - 1), others.slice(2 * size - 1, 3 * size - 1)];
-    S.br = { groups, per, start: [1, 1 + per, 1 + 2 * per], merged: false };
+    S.br = { groups, per, start: [1, 1 + per, 1 + 2 * per], adv: Math.ceil(size / 2), merged: false };
     S.rivals = groups[0].filter((k) => k !== "me").map(qById).filter(Boolean);
     logEv(`All Stars por brackets: ${S.queen.name} compite en el Bracket Rosa`);
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">🏆 All Stars por brackets</p>
         <h3>Así quedan los tres brackets</h3>
-        <p class="muted">Cada bracket compite tres semanas. Nadie se va a casa: las dos mejores de cada semana hacen lip sync por la victoria. Puntos: WIN 10 · TOP2 9 · HIGH 8 · SAFE 5 · LOW 2. Pasan las dos con más puntos. Dentro de cada bracket os aliaréis por parejas.</p>
+        <p class="muted">Cada bracket compite tres semanas. Nadie se va a casa: las dos mejores de cada semana hacen lip sync por la victoria. Puntos: WIN 10 · TOP2 9 · HIGH 8 · SAFE 5 · LOW 2. Pasan las ${Math.ceil(size / 2)} con más puntos. Dentro de cada bracket os aliaréis por parejas.</p>
         <div class="br-grid">${groups.map((g, i) => `<div class="br-box" style="--grp:${BR_COLORS[i].c}"><b>${BR_COLORS[i].n}${i === 0 ? " · el tuyo" : ""}</b>${g.map((k) => brFace(k)).join("")}</div>`).join("")}</div>
         <p>Empieza el <b>Bracket Rosa</b>: el tuyo. Los otros dos esperan su turno.</p>
         <button class="btn btn-primary" id="story-next">¡A competir!</button>
@@ -2055,17 +2057,18 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
           <p class="eyebrow">🏆 Bracket Rosa · semana ${eps.length} de ${B.per}</p>
           <h3>Así va tu bracket</h3>
           ${brTable(0, eps, false)}
-          <p class="muted">Nadie se va a casa. Al acabar la semana ${B.per}, pasan las dos con más puntos.</p>
+          <p class="muted">Nadie se va a casa. Al acabar la semana ${B.per}, pasan las ${B.adv} con más puntos.</p>
           <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
         </div>`;
       return endEpisodeBtn();
     }
-    // Último episodio del bracket: pasan dos; las demás, fuera (ELIM en esta semana)
+    // Último episodio del bracket: pasan las mejores (la mitad); las demás, fuera (ELIM en esta semana)
     const R0 = brRank(B.groups[0], eps);
+    const nAdv = B.adv;
+    const meAdv = R0.slice(0, nAdv).some((x) => x.k === "me");
+    R0.slice(nAdv).forEach((x) => { if (x.k !== "me") eliminate(qById(x.k)); else mark(S.queen, "ELIM"); });
+    const adv = R0.slice(0, nAdv).map((x) => x.k);
     const lastEp = S.ep;
-    const meAdv = R0.slice(0, 2).some((x) => x.k === "me");
-    R0.slice(2).forEach((x) => { if (x.k !== "me") eliminate(qById(x.k)); else mark(S.queen, "ELIM"); });
-    const adv = [R0[0].k, R0[1].k];
     // Mientras tanto, los otros dos brackets
     const notes = [];
     [1, 2].forEach((g) => {
@@ -2073,24 +2076,16 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       const wins = [];
       for (let i = 0; i < B.per; i++) wins.push(brSimWeek(keys));
       const R = brRank(keys, brEps(g));
-      R.slice(2).forEach((x) => { S.track[x.k][S.ep] = "ELIM"; S.out.unshift(qById(x.k)); });
-      adv.push(R[0].k, R[1].k);
-      notes.push(`<b>${BR_COLORS[g].n}</b>: ganan reto ${wins.map((q) => esc(q.name)).join(", ")}. Pasan <b>${esc(qById(R[0].k).name)}</b> y <b>${esc(qById(R[1].k).name)}</b>.`);
+      R.slice(nAdv).forEach((x) => { S.track[x.k][S.ep] = "ELIM"; S.out.unshift(qById(x.k)); });
+      adv.push(...R.slice(0, nAdv).map((x) => x.k));
+      notes.push(`<b>${BR_COLORS[g].n}</b>: ganan reto ${wins.map((q) => esc(q.name)).join(", ")}. Pasan ${R.slice(0, nAdv).map((x) => `<b>${esc(qById(x.k).name)}</b>`).join(", ").replace(/, ([^,]*)$/, " y $1")}.`);
     });
-    // La que vuelve: la eliminada con más puntos de los tres brackets (puedes ser tú)
-    const gone = B.groups.flatMap((g, gi) => brRank(g, brEps(gi)).slice(2).map((x) => ({ ...x, g: gi })));
-    const back = gone.sort((a, b) => b.p - a.p || b.w - a.w || a.r - b.r)[0];
-    const backQ = back ? brQ(back.k) : null;
-    if (back) S.track[back.k][brEps(back.g)[B.per - 1]] = "RTRN"; // como en el programa: RTRN en vez de ELIM
-    if (back && back.k !== "me") { S.out = S.out.filter((q) => q !== backQ); }
-    B.back = back ? back.k : null;
     B.merged = true;
     S.al = null; // desde aquí, cada una por su cuenta
-    S.rivals = adv.concat(back ? [back.k] : []).filter((k) => k !== "me").map(qById).filter(Boolean);
-    const meIn = meAdv || (back && back.k === "me");
-    logEv(`Fin de los brackets. Pasan ${adv.map((k) => brQ(k).name).join(", ")}${backQ ? `; vuelve ${backQ.name}` : ""}`);
-    if (!meIn) {
-      aftermath(brQ(R0[0].k), `No has pasado el corte del Bracket Rosa: pasan ${esc(brQ(R0[0].k).name)} y ${esc(brQ(R0[1].k).name)}.`);
+    S.rivals = adv.filter((k) => k !== "me").map(qById).filter(Boolean);
+    logEv(`Fin de los brackets. Pasan ${adv.map((k) => brQ(k).name).join(", ")}`);
+    if (!meAdv) {
+      aftermath(brQ(R0[0].k), `No has pasado el corte del Bracket Rosa: pasan ${R0.slice(0, nAdv).map((x) => esc(brQ(x.k).name)).join(", ").replace(/, ([^,]*)$/, " y $1")}. Pero atenta: cuando queden siete, la mejor eliminada de cada bracket se juega volver.`);
       S.flags.outEp = lastEp;
       save();
       return;
@@ -2098,15 +2093,116 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">🏆 Fin de la fase de grupos</p>
-        <h3>${meAdv ? "¡Pasas a la fase final!" : "¡Vuelves a la competición!"}</h3>
+        <h3>¡Pasas a la fase final!</h3>
         <div class="br-grid">${[0, 1, 2].map((g) => brTable(g, brEps(g), true)).join("")}</div>
         <p class="muted">${notes.join("<br>")}</p>
-        ${backQ ? `<p class="twist-note">🔁 Y una sorpresa: de las que no pasaron, la que más puntos sumó vuelve. <b>${esc(back.k === "me" ? "¡Eres tú!" : backQ.name)}</b></p>` : ""}
-        <p>Se acabaron las alianzas: desde ahora, todas juntas y cada una por su cuenta. Las dos peores, al lip sync.</p>
+        <p>Se acabaron las alianzas: desde ahora, todas juntas y cada una por su cuenta. Las dos peores, al lip sync. Cuando quedéis siete, vuelve una eliminada y se decide todo en la Lalaparuza.</p>
         <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
       </div>`;
-    if (back && back.k === "me") { S.meOut = false; }
     endEpisodeBtn();
+  }
+  /** All Stars por brackets: con siete en competición se acaba la temporada regular y llega la Lalaparuza final. */
+  const brFinalToca = () => seasonInfo().twist === "brackets" && S.br && S.br.merged && !S.br.final && (S.meOut ? 0 : 1) + S.rivals.length <= 7;
+  // Final del All Stars por brackets (como el All Stars 10): 1) lip sync de las eliminadas (la mejor de cada bracket),
+  // la ganadora vuelve; 2) Lalaparuza a 8, por eliminatorias: las que pierden en la 1ª y la 2ª ronda se van; 3) las
+  // dos últimas, lip sync por la corona.
+  function bracketsFinal() {
+    const B = S.br;
+    B.final = true;
+    setSet("stage");
+    S.epNames[S.ep] = "Lalaparuza";
+    const isOut = (k) => (k === "me" ? S.meOut : !S.rivals.some((q) => keyOf(q) === k));
+    const lab = (k) => (k === "me" ? "Tú" : brQ(k).name);
+    // La mejor eliminada de cada bracket, por sus puntos en el bracket (y su PPE de toda la temporada)
+    const cands = B.groups.map((g, gi) => g.filter(isOut).map((k) => ({ k, p: brPts(k, brEps(gi)) + DFTC.ppe(Object.values(S.track[k] || {})) })).sort((a, b) => b.p - a.p)[0]).filter(Boolean).sort((a, b) => a.p - b.p).map((x) => x.k);
+    const sk = (k) => (k === "me" ? 70 : skillOf(brQ(k)));
+    const duel = (a, b, eyebrow, curtain, cb) => {
+      if (a === "me" || b === "me") {
+        const rv = a === "me" ? b : a;
+        return playLS(brQ(rv), { eyebrow, curtain }, (won) => cb(won ? "me" : rv, won ? rv : "me"));
+      }
+      const [w, l] = simLS(brQ(a), brQ(b));
+      cb(keyOf(w), keyOf(l));
+    };
+    const card = (eyebrow, title, html, btn, then) => {
+      header();
+      body().innerHTML = `<div class="story-card"><p class="eyebrow">${eyebrow}</p><h3>${title}</h3>${html}<button class="btn btn-primary" id="story-next">${btn}</button></div>`;
+      $("#story-next").addEventListener("click", then);
+    };
+    const faces = (ks, cls = "") => `<div class="call-faces ${cls}">${ks.map((k, i) => `<span class="${k === "me" ? "me" : ""}" style="--i:${i}"><i style="background-image:url('${photo(brQ(k))}')"></i>${esc(lab(k))}</span>`).join("")}</div>`;
+    const back = (k) => {
+      if (k === "me") { S.meOut = false; S.flags.aftermath = 0; Toast.show("🔁 ¡Vuelves a la competición!", "A por la Lalaparuza"); }
+      else { const q = qById(k); S.out = S.out.filter((x) => x !== q); S.rivals.push(q); }
+      (S.track[k] = S.track[k] || {})[S.ep - 1] = "RTRN"; // en la última semana, como en el programa
+      logEv(`${lab(k)} vuelve en el lip sync de las eliminadas`);
+    };
+    const intro = [
+      ["host", `Reinas, quedáis ${(S.meOut ? 0 : 1) + S.rivals.length}. Se acabó la temporada regular.`],
+      ["host", "Pero antes de la Lalaparuza... ¡que pasen las eliminadas! La mejor de cada bracket se juega volver en un lip sync."],
+    ];
+    dialog(intro, ctxWith(S.rivals[0] || pick1(S.out)), () => {
+      if (cands.length < 2) { if (cands[0]) back(cands[0]); return lalaparuza(); }
+      card("🔁 Lip sync de las eliminadas", "Solo una vuelve", `<p>La mejor eliminada de cada bracket: ${cands.map((k) => `<b>${esc(lab(k))}</b>`).join(", ").replace(/, ([^,]*)$/, " y $1")}. Primero bailan las dos con menos puntos; la que gane, contra la mejor.</p>${faces(cands)}`, cands.includes("me") ? "💃 ¡Al escenario!" : "Ver el lip sync", () =>
+        duel(cands[0], cands[1], "🔁 Lip sync de las eliminadas", "VUELVE UNA", (w1) => {
+          if (!cands[2]) { back(w1); return card("🔁 Vuelve una eliminada", `¡${esc(lab(w1))} vuelve!`, faces([w1]), "A la Lalaparuza", lalaparuza); }
+          card("🔁 Lip sync de las eliminadas", `${esc(lab(w1))} sigue`, `<p>Ahora, contra <b>${esc(lab(cands[2]))}</b>. La que gane, vuelve.</p>${faces([w1, cands[2]])}`, [w1, cands[2]].includes("me") ? "💃 ¡Al escenario!" : "Ver el lip sync", () =>
+            duel(w1, cands[2], "🔁 Lip sync de las eliminadas", "VUELVE UNA", (w2) => { back(w2); card("🔁 Vuelve una eliminada", w2 === "me" ? "¡Vuelves a la competición!" : `¡${esc(lab(w2))} vuelve!`, faces([w2]), "A la Lalaparuza", lalaparuza); }));
+        }));
+    });
+    // Lalaparuza a 8 por eliminatorias (la mejor contra la peor por PPE)
+    function lalaparuza() {
+      save();
+      let pool = [...(S.meOut ? [] : ["me"]), ...S.rivals.map(keyOf)].sort((a, b) => DFTC.ppe(Object.values(S.track[b] || {})) - DFTC.ppe(Object.values(S.track[a] || {})));
+      let round = 1;
+      const lost = { 1: [], 2: [] };
+      const play = () => {
+        if (pool.length <= 2) return crown();
+        const pairs = [];
+        const bye = pool.length % 2 ? pool[0] : null;
+        const rest = pool.filter((k) => k !== bye);
+        for (let i = 0; i < rest.length / 2; i++) pairs.push([rest[i], rest[rest.length - 1 - i]]);
+        const winners = bye ? [bye] : [];
+        let di = 0;
+        const next = (note) => {
+          if (di >= pairs.length) {
+            pool = pool.filter((k) => winners.includes(k));
+            round++;
+            return card(`👑 Lalaparuza · fin de la ${round - 1}ª ronda`, pool.length <= 2 ? "¡Ya tenemos el top 2!" : "Siguen en pie", `${note ? `<p class="twist-note">${note}</p>` : ""}${faces(pool)}`, pool.length <= 2 ? "Lip sync por la corona" : `${round}ª ronda`, play);
+          }
+          const [a, b] = pairs[di++];
+          card(`👑 Lalaparuza · ${round}ª ronda · duelo ${di} de ${pairs.length}`, `${esc(lab(a))} vs ${esc(lab(b))}`, `${note ? `<p class="twist-note">${note}</p>` : ""}<p class="muted">La que pierda, se va a casa.</p>${faces([a, b])}`, a === "me" || b === "me" ? "💃 Mi lip sync" : "Ver el duelo", () =>
+            duel(a, b, `👑 Lalaparuza · ${round}ª ronda`, "LALAPARUZA", (w, l) => {
+              winners.push(w);
+              const L = round === 1 ? "LOST1" : "LOST2";
+              (S.track[l] = S.track[l] || {})[S.ep] = L;
+              (lost[round] = lost[round] || []).push(l);
+              if (l === "me") { S.meOut = true; S.flags.myPlace = round === 1 ? 5 : 3; }
+              else eliminate(qById(l));
+              if (S.track[l][S.ep] !== L) S.track[l][S.ep] = L; // eliminate() pone ELIM: aquí es «pierde en la ronda»
+              next(`${esc(lab(w))} gana a ${esc(lab(l))}${l === "me" ? ": te vas a casa" : ""}.`);
+            }));
+        };
+        next("");
+      };
+      play();
+    }
+    // Las dos últimas: TOP2 en la Lalaparuza y, en la final, lip sync por la corona
+    function crown() {
+      const [a, b] = pool2();
+      [a, b].forEach((k) => ((S.track[k] = S.track[k] || {})[S.ep] = "TOP2"));
+      S.ep++;
+      S.epNames[S.ep] = "Final";
+      const meIn = a === "me" || b === "me";
+      card("👑 Gran final", `${esc(lab(a))} vs ${esc(lab(b))}`, `<p>Un último lip sync. Una corona.</p>${faces([a, b])}`, meIn ? "👑 Lip sync por la corona" : "Ver el lip sync", () =>
+        duel(a, b, "👑 Lip sync por la corona", "LIP SYNC POR LA CORONA", (w, l) => {
+          if (w === "me") return theEnd(true, brQ(l), true);
+          if (l === "me") return theEnd(false, brQ(w), true, `${brQ(w).name} te gana la corona en la gran final.`, 2);
+          (S.track[w] = S.track[w] || {})[S.ep] = "WINNER";
+          (S.track[l] = S.track[l] || {})[S.ep] = "RUNNER-UP";
+          return theEnd(false, brQ(w), false, `La corona se la lleva ${brQ(w).name}.`, S.flags.myPlace || 3);
+        }));
+    }
+    function pool2() { return [...(S.meOut ? [] : ["me"]), ...S.rivals.map(keyOf)].slice(0, 2); }
   }
 
   // ------------------------------ Repesca (T3) ------------------------------

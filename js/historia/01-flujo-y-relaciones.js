@@ -717,8 +717,8 @@
     (S.track[k] = S.track[k] || {})[S.ep] = lab;
   }
   const TRACK_CLASS = (l) =>
-    l === "WIN" || l === "WINNER" ? "t-win" : l === "BWIN" ? "t-win t-blocked" : l === "BTOP" ? "t-top2 t-blocked" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" || l === "P3" || l === "P4" ? "t-third" : l === "MISSC" ? "t-miss" : l === "RTRN" ? "t-rtrn" : l === "MC" ? "t-mc" : l === "FINALISTA" ? "t-third" : l === "QOSD" ? "t-qosd" : l === "ELIMF" ? "t-elim" : "t-none";
-  const LAB_ES = { WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", P3: "3ª", P4: "4ª", MISSC: "MISS CONGENIALITY", RTRN: "RTRN", MC: "MC", FINALISTA: "FINALISTA", SINESTRELLA: "SIN ⭐", QOSD: "QoSDADHH", ELIMF: "ELIMINADA", BWIN: "WIN", BTOP: "TOP2" };
+    l === "LOST1" || l === "LOST2" ? "t-lost" : l === "WIN" || l === "WINNER" ? "t-win" : l === "BWIN" ? "t-win t-blocked" : l === "BTOP" ? "t-top2 t-blocked" : l === "TOP2" ? "t-top2" : l === "HIGH" ? "t-high" : l === "SAFE" ? "t-safe" : l === "LOW" ? "t-low" : /^BTM/.test(l) ? "t-btm" : l === "ELIM" ? "t-elim" : l === "RUNNER-UP" ? "t-runner" : l === "FINAL" ? "t-final" : l === "FINAL-MISSC" ? "t-miss" : l === "3ª" || l === "P3" || l === "P4" ? "t-third" : l === "MISSC" ? "t-miss" : l === "RTRN" ? "t-rtrn" : l === "MC" ? "t-mc" : l === "FINALISTA" ? "t-third" : l === "QOSD" ? "t-qosd" : l === "ELIMF" ? "t-elim" : "t-none";
+  const LAB_ES = { LOST1: "PIERDE 1ª RONDA", LOST2: "PIERDE 2ª RONDA", WIN: "WIN", HIGH: "HIGH", SAFE: "SAFE", LOW: "LOW", BTM2: "BTM2", BTM3: "BTM3", ELIM: "ELIM", TOP2: "TOP2", WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", FINAL: "RUN", "FINAL-MISSC": "MISS CONGENIALITY", "3ª": "3ª/4ª", P3: "3ª", P4: "4ª", MISSC: "MISS CONGENIALITY", RTRN: "RTRN", MC: "MC", FINALISTA: "FINALISTA", SINESTRELLA: "SIN ⭐", QOSD: "QoSDADHH", ELIMF: "ELIMINADA", BWIN: "WIN", BTOP: "TOP2" };
   // Puntuación del track record (PPE) de tu reina: media de sus resultados semana a semana
   function myPPE() {
     return DFTC.ppe(Object.values(S.track.me || {}));
@@ -734,9 +734,11 @@
     const everyone = [S.queen, ...S.rivals, ...S.out];
     const count = (k, test) => eps.filter((e) => test((S.track[k] || {})[e] || "")).length;
     // Orden de las que siguen: cómo quedaron en el último episodio con resultados
-    const ORDER = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, FINAL: 3, HIGH: 4, "3ª": 5, P3: 5, P4: 5.2, FINALISTA: 5, QOSD: 5.5, SAFE: 6, SINESTRELLA: 6.8, ELIMF: 8.5, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9, MC: 6, RTRN: 6.5 };
+    const ORDER = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, FINAL: 3, HIGH: 4, "3ª": 5, P3: 5, P4: 5.2, FINALISTA: 5, QOSD: 5.5, LOST2: 5.6, LOST1: 5.9, SAFE: 6, SINESTRELLA: 6.8, ELIMF: 8.5, LOW: 7, BTM2: 8, BTM3: 8, ELIM: 9, MC: 6, RTRN: 6.5 };
     const lastScored = [...eps].reverse().find((e) => everyone.some((q) => ORDER[(S.track[keyOf(q)] || {})[e]] !== undefined));
     const lastRank = (k) => { const l = lastScored && (S.track[k] || {})[lastScored]; return ORDER[l] !== undefined ? ORDER[l] : 7.5; };
+    // Las que se fueron en el mismo episodio: antes la que llegó más lejos (en la Lalaparuza final, 2ª ronda antes que 1ª)
+    const ownRank = (r) => { const l = (S.track[r.k] || {})[r.last]; return ORDER[l] !== undefined ? ORDER[l] : 7.5; };
     const lastEp = (k) => Math.max(0, ...eps.filter((e) => (S.track[k] || {})[e] && S.track[k][e] !== "MISSC"));
     const isOut = (q) => (q === S.queen ? S.meOut || !!S.finished && !S.wonAll : S.out.includes(q));
     const rows = everyone
@@ -749,14 +751,14 @@
           s: count(k, (l) => l === "SAFE"), lo: count(k, (l) => l === "LOW"), b: count(k, (l) => /^BTM/.test(l)),
         };
       })
-      .sort((a, b) => a.out - b.out || (a.out ? b.last - a.last : 0) || lastRank(a.k) - lastRank(b.k) || b.w - a.w || b.h - a.h || b.s - a.s || a.lo - b.lo || a.b - b.b);
+      .sort((a, b) => a.out - b.out || (a.out ? b.last - a.last : 0) || (a.out ? ownRank(a) - ownRank(b) : 0) || lastRank(a.k) - lastRank(b.k) || b.w - a.w || b.h - a.h || b.s - a.s || a.lo - b.lo || a.b - b.b);
     const ppe = (k) => {
       const V = DFTC.PPE_VALOR;
       const v = eps.map((e) => V[(S.track[k] || {})[e]]).filter((x) => x !== undefined);
       return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) : "–";
     };
     // Las que se van en el mismo episodio (doble eliminación) comparten puesto: 7º/8º
-    const elimAt = (r) => r.out && (S.track[r.k] || {})[r.last] === "ELIM" ? r.last : null;
+    const elimAt = (r) => { const l = r.out && (S.track[r.k] || {})[r.last]; return /^(ELIM|LOST1|LOST2)$/.test(l || "") ? `${r.last}:${l}` : null; };
     // All Winners: la final deja a cada reina en su puesto exacto
     const FP = S.finalPlace;
     const fpOk = FP && rows.every((r) => FP[r.k]);
@@ -894,8 +896,9 @@
     };
     // All Stars: el pintalabios de la que perdió el lip sync se enseña cuando Supremme se lo pregunta, al entrar al taller
     if (S.asPending && S.asPending.ep !== S.ep - 1) S.asPending = null;
-    // All Stars por brackets: el primer día se reparten los tres grupos
+    // All Stars por brackets: el primer día se reparten los tres grupos; con siete, la Lalaparuza final
     if (tw === "brackets" && !S.br) return brInit(go);
+    if (brFinalToca()) return bracketsFinal();
     go();
   }
   // Con 4 reinas: primero el reencuentro (Miss Simpatía) y luego la gran final

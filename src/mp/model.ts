@@ -10,7 +10,7 @@ import { BANDAS, COLORES_GRUPO, grupoCritica, NOMBRE_JURADO } from "../core/crit
 import { allWinnersCut, allWinnersBottom } from "../core/finales";
 import { lalaStart, lalaPending, lalaResolve, lalaScoreDe, type Lala } from "../core/lala";
 import { rescueFromBottom, coinResult, lipstickKind, addHalfHearts } from "../core/dinamicas";
-import { repartirBrackets, clasificacion, formarAlianzas, notaEnPareja, rompe, BRACKET_NOMBRES, BRACKET_SEMANAS } from "../core/alianzas";
+import { repartirBrackets, clasificacion, formarAlianzas, notaEnPareja, rompe, puntos, BRACKET_NOMBRES, BRACKET_SEMANAS, BRACKETS_FINAL } from "../core/alianzas";
 
 export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "reencuentro" | "finalistas" | "votacion" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
@@ -25,7 +25,7 @@ export const FORMATOS: Record<Formato, { n: string; icon: string; d: string }> =
   suerte: { n: "Reina de la suerte", icon: "🍀", d: "Una reina tiene en secreto la reina de la suerte: puede salvar a quien quiera del lip sync una vez." },
   corazon: { n: "Temporada del corazón", icon: "❤️", d: "Cada eliminada deja medio corazón. Con uno entero salvas a alguien del bottom." },
   moneda: { n: "Temporada de la moneda", icon: "🪙", d: "Bottom de tres y moneda al aire: cara, las salvadas votan a quién salvar; cruz, a quién condenar." },
-  brackets: { n: "All Stars por brackets", icon: "🏆", d: "Tres brackets con alianzas por parejas. Nadie se va: el top 2 de cada bracket hace lip sync por la victoria y suma puntos. Pasan dos de cada uno y vuelve la mejor de las demás (hacen falta 9 reinas o más)." },
+  brackets: { n: "All Stars por brackets", icon: "🏆", d: "Tres brackets con alianzas por parejas. Nadie se va: el top 2 de cada bracket hace lip sync por la victoria y suma puntos. Pasa la mitad de cada uno; luego, cada una por su cuenta y, con siete, vuelve una eliminada y Lalaparuza final por eliminatorias (hacen falta 9 reinas o más)." },
 };
 // Formas de la gran final: compartidas con el modo historia (src/core/finales.ts)
 import type { FinalFmt } from "../core/finales";
@@ -172,7 +172,7 @@ export interface RoomState {
   rp?: { ep: number; pairs: { c: string; o: string | null }[]; mc?: string };
   rpDone?: boolean;
   /** All Stars por brackets: los tres grupos, desde qué episodio y cuántas semanas compiten; al acabar, done. */
-  br?: { groups: string[][]; start: number; per: number; done?: boolean; back?: string };
+  br?: { groups: string[][]; start: number; per: number; done?: boolean; back?: string; final?: boolean };
   /** Alianzas por parejas de la semana (dentro de cada bracket) y el top 2 de cada bracket. */
   al?: { ep: number; pairs: string[][] };
   brTop?: string[][];
@@ -330,7 +330,7 @@ function nextEpisode(s0: RoomState, now: number, e: Engine): RoomState {
   }
   // Lalaparuza: cuando quedan 8 (o 16), como en la historia; en All Winners, una semana al azar
   const n = aliveKeys(s).length;
-  if (!brPhase(s) && !s.used.includes(LALA.tipo) && (s.lzEp ? ep === s.lzEp && n >= 5 : ep >= 2 && (n === 8 || n === 16))) {
+  if (s.fmt !== "brackets" && !s.used.includes(LALA.tipo) && (s.lzEp ? ep === s.lzEp && n >= 5 : ep >= 2 && (n === 8 || n === 16))) {
     return { ...s, ep, reto: { ...LALA }, used: [...s.used, LALA.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, decision: undefined, twist: undefined, twistResult: undefined, bottom: undefined, triple: undefined, protectedKeys: undefined, rp: undefined, lala: undefined, note: undefined, script: undefined, reveal: s.reveal && s.reveal.ep === s.ep ? s.reveal : undefined, planShift: (s.planShift || 0) + 1, epNames: { ...s.epNames, [ep]: LALA.titulo }, phase: "anuncio", deadline: 0, v: s.v + 1 };
   }
   // A veces, con seis, la ganadora será la primera finalista; con cinco, la ganadora tiene el pase directo a la final
@@ -627,24 +627,46 @@ function bracketLipsync(s: RoomState, now: number, e: Engine): RoomState {
   const wonTxt = pairs.filter((p) => p.winner).map((p) => nm(p.winner!)).join(", ");
   const D = DURACION[s.ritmo];
   if (s.ep < B.start + B.per - 1) return { ...t, note: `Ganan el lip sync por la victoria: ${wonTxt}. Nadie se va a casa: se suman los puntos.`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
-  // El corte: pasan las dos con más puntos de cada bracket; de las demás, vuelve la que más puntos sumó
+  // El corte: pasa la mitad de cada bracket (las de más puntos); las demás, a casa
   const eps = Array.from({ length: B.per }, (_, i) => B.start + i);
   const alive = new Set(aliveKeys(t));
-  const gone: { k: string; p: number; w: number; r: number }[] = [];
+  const gone: string[] = [];
   const adv: string[] = [];
   B.groups.forEach((g) => {
     const cl = clasificacion(g.filter((k) => alive.has(k)), (k) => t.track[k], eps, e.rnd);
-    adv.push(...cl.slice(0, 2).map((x) => x.k));
-    gone.push(...cl.slice(2));
+    const n = Math.ceil(g.length / 2);
+    adv.push(...cl.slice(0, n).map((x) => x.k));
+    gone.push(...cl.slice(n).map((x) => x.k));
   });
-  const back = gone.slice().sort((a, b) => b.p - a.p || b.w - a.w || a.r - b.r)[0];
-  const fuera = gone.length - (back ? 1 : 0);
-  const A = alive.size - fuera;
-  const place = fuera > 1 ? `${A + 1}º/${A + fuera}º` : `${A + 1}º`;
-  gone.forEach((x) => (t = eliminate(t, x.k, place, "ELIM", e)));
-  if (back) t = revive(t, back.k);
-  const note = `Ganan el lip sync por la victoria: ${wonTxt}. Fin de los brackets: pasan ${adv.map(nm).join(", ")}.${back ? ` Y vuelve ${nm(back.k)}, la que más puntos sumó de las demás.` : ""} Desde ahora, cada una por su cuenta.`;
-  return { ...t, br: { ...B, done: true, back: back?.k }, al: undefined, brTop: undefined, note, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+  const A = alive.size - gone.length;
+  const place = gone.length > 1 ? `${A + 1}º/${A + gone.length}º` : `${A + 1}º`;
+  gone.forEach((k) => (t = eliminate(t, k, place, "ELIM", e)));
+  const note = `Ganan el lip sync por la victoria: ${wonTxt}. Fin de los brackets: pasan ${adv.map(nm).join(", ")}. Desde ahora, cada una por su cuenta.`;
+  return { ...t, br: { ...B, done: true }, al: undefined, brTop: undefined, note, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+}
+/** ¿Toca ya la final del All Stars por brackets? Con siete (o menos) tras los brackets. */
+const brFinalToca = (s: RoomState) => s.fmt === "brackets" && !!s.br?.done && !s.br.final && aliveKeys(s).length <= BRACKETS_FINAL;
+/**
+ * Final del All Stars por brackets: vuelve una eliminada (la mejor de cada bracket se juega volver en lip syncs) y
+ * Lalaparuza por eliminatorias entre todas: las que pierden en la 1ª ronda, fuera; en la 2ª, fuera; y la última, la corona.
+ */
+function brFinalStart(s: RoomState, now: number, e: Engine): RoomState {
+  const B = s.br!;
+  const ep = s.ep + 1;
+  const nm = (k: string) => nameOfKey(s, k, e);
+  const outK = new Set(s.out.map((o) => o.key));
+  const eps = Array.from({ length: B.per }, (_, i) => B.start + i);
+  const val = (k: string) => puntos(s.track[k], eps) + ppeOf(s, k);
+  const cands = B.groups.map((g) => g.filter((k) => outK.has(k)).sort((a, b) => val(b) - val(a))[0]).filter(Boolean).sort((a, b) => val(a) - val(b));
+  let back = cands[0];
+  cands.slice(1).forEach((c) => { const qa = queenOfKey(s, back), qc = queenOfKey(s, c); back = e.simLS(qa, qc) === qa ? back : c; });
+  // Vuelve (RTRN en la última semana, como en el programa) y empieza el episodio de la Lalaparuza
+  const base = back ? revive(s, back) : s;
+  let t: RoomState = { ...base, ep, epNames: { ...base.epNames, [ep]: "Lalaparuza" }, reto: undefined, rows: undefined, crit: undefined, subs: {}, pairs: undefined, bottom: undefined, br: { ...B, final: true } };
+  const sd = seeds(t);
+  const note = `${cands.length > 1 ? `Lip sync de las eliminadas (${cands.map(nm).join(", ")}): vuelve ${nm(back)}. ` : back ? `Vuelve ${nm(back)}. ` : ""}Y ahora, la Lalaparuza: eliminatorias de lip sync. La que pierde, a casa.`;
+  t = { ...t, awFinal: { top: sd, bottom: [], tierB: "", tierQ: "" } };
+  return bracketRound({ ...t, bracket: { kind: "corona", seeds: sd, alive: sd, round: 1 } }, now, e, note);
 }
 
 // ------------------------------ Track record ------------------------------
@@ -652,7 +674,7 @@ const labelsOf = (s: RoomState, k: string) => Object.values(s.track[k] || {});
 export const ppeOf = (s: RoomState, k: string) => ppe(labelsOf(s, k));
 export const winsOf = (s: RoomState, k: string) => labelsOf(s, k).filter((l) => l === "WIN" || l === "BWIN" || l === "WINNER").length;
 /** Orden del último episodio con resultados (como en el modo historia). */
-const ORDER: Record<string, number> = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, HIGH: 4, "3ª": 5, QOSD: 5.5, SAFE: 6, MC: 6, RTRN: 6.5, LOW: 7, BTM2: 8, BTM3: 8, ELIMF: 8.5, ELIM: 9 };
+const ORDER: Record<string, number> = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, HIGH: 4, "3ª": 5, QOSD: 5.5, LOST2: 5.6, LOST1: 5.9, SAFE: 6, MC: 6, RTRN: 6.5, LOW: 7, BTM2: 8, BTM3: 8, ELIMF: 8.5, ELIM: 9 };
 /** Clasificación para el track record: arriba las que siguen (por su última semana y su temporada); debajo las eliminadas, de la última a la primera. */
 export function standings(s: RoomState): { key: string; place: string; out: boolean }[] {
   const eps = Object.keys(s.epNames).map(Number).sort((a, b) => a - b);
@@ -917,6 +939,13 @@ function bracketNext(s: RoomState, now: number, e: Engine): RoomState {
     if (alive.length > 1) return bracketRound({ ...t, bracket: { ...b, alive, round: b.round + 1 } }, now, e, duels);
     t = { ...eliminate(t, alive[0], af.tierQ || af.tierB, "QOSD"), awFinal: { ...af, qosd: alive[0] } };
     return bracketRound({ ...t, bracket: { kind: "corona", seeds: af.top, alive: af.top, round: 1 } }, now, e, `${duels} 💅 ${nm(alive[0])} se lleva el título de QoSDADHH. Ahora, la final por la corona: ${list(af.top)}.`);
+  }
+  if (alive.length > 1 && s.fmt === "brackets") {
+    // Lalaparuza final del All Stars por brackets: pierde en la 1ª ronda o en la 2ª (las dos de la semifinal)
+    const lab = alive.length > 2 ? "LOST1" : "LOST2";
+    const place = losers.length > 1 ? `${alive.length + 1}º/${alive.length + losers.length}º` : `${alive.length + 1}º`;
+    losers.forEach((l) => (t = eliminate(t, l, place, lab)));
+    return bracketRound({ ...t, bracket: { ...b, alive, round: b.round + 1 } }, now, e, duels);
   }
   if (alive.length > 1) {
     losers.forEach((l) => (t = eliminate(t, l, af.top.length > 3 ? "3º/4º" : "3º", "3ª")));
@@ -1295,6 +1324,7 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       return continueChain({ ...s, twist: undefined, twistResult: undefined }, from, now, e);
     }
     case "track": {
+      if (brFinalToca(s)) return brFinalStart(s, now, e);
       if (isAW(s) ? s.ep < (s.weeks || 0) : aliveKeys(s).length > 4) return nextEpisode(s, now, e);
       // All Winners: como en el All Stars 7 (corte del top 4 por estrellas, QoSDADHH y corona)
       if (isAW(s)) return awCut(s, now, e);

@@ -24,7 +24,7 @@ await page.waitForTimeout(800);
 await page.click("#btn-story");
 await page.locator(".franchise-card").nth(1).click();
 await page.locator(".season-card", { hasText: process.env.TXT || "por brackets" }).click();
-await page.evaluate((v) => { window.__forceScore = v; }, Number(process.env.SCORE || 55));
+await page.evaluate(([v, f]) => { window.__forceScore = v; window.__hastaFinal = f; }, [Number(process.env.SCORE || 55), process.env.HASTA === "final"]);
 await page.locator("#queen-grid > *").nth(0).click();
 // JURADO=1: la pasarela con concepto, con un jurado de prueba (el resto de textos, los de siempre)
 if (process.env.JURADO) await page.evaluate(() => {
@@ -52,7 +52,12 @@ for (let i = 0; time() && !done; i++) {
       window.__log = window.__log || [];
       if (d && d.al) { const t = "al " + JSON.stringify([d.ep, d.al.pairs]); if (window.__log[window.__log.length - 1] !== t) window.__log.push(t); }
       if (d && d.br) { const t = JSON.stringify([d.ep, d.br.merged, d.br.back, d.meOut, d.rivals.length, d.out.length]); if (window.__log[window.__log.length - 1] !== t) window.__log.push(t); }
-      if (!d || (d.ep < 11 && !d.meOut)) return null;
+      // Al acabar la temporada: el track record que se guarda en la clasificación (puesto, reina y las tres últimas semanas)
+      const fin = JSON.parse(localStorage.getItem("dftc-story-board") || "[]").find((x) => x.season === "esbr" && x.trackData);
+      if (fin) return ["\n" + fin.trackData.rows.map((r) => `${r.place} ${r.name} · ${r.cells.slice(-3).map((c) => c.t || "-").join(" | ")}`).join("\n")];
+      if (!d) return null;
+      if (!window.__hastaFinal && d.ep < 11 && !d.meOut) return null;
+      if (window.__hastaFinal) return null;
       // Con JURADO=1 se sigue hasta ver una pasarela con concepto (hay retos sin pasarela, como el Ball)
       if (window.__jurado === 0 && d.ep < 5) return null;
       const labs = Object.values(d.track || {}).map((t) => t[1]).filter(Boolean);

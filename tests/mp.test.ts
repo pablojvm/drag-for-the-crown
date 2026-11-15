@@ -289,11 +289,11 @@ describe("temporada en directo", () => {
     expect(s.phase).toBe("corona");
     expect(c.length).toBe(8);
   });
-  it("All Stars por brackets: tres brackets con alianzas, nadie se va en tres semanas, pasan dos de cada uno y vuelve una", () => {
-    for (const seed of [1, 2, 3, 9, 21]) {
+  it("All Stars por brackets: tres brackets con alianzas, nadie se va en tres semanas, pasa la mitad y final con vuelta y Lalaparuza por eliminatorias", () => {
+    for (const [n, seed] of [[12, 1], [12, 2], [18, 3], [18, 9], [9, 21]] as const) {
       const e = engine(seed);
-      let { s } = fmtRoom("brackets", seed, 12);
-      let groups: string[][] = [], cut: RoomState | null = null, alianzas = 0, duelos = 0;
+      let { s } = fmtRoom("brackets", seed, n);
+      let groups: string[][] = [], cut: RoomState | null = null, fin: RoomState | null = null, alianzas = 0, duelos = 0;
       s = runAll(s, e, (x) => {
         if (x.br && !groups.length) groups = x.br.groups;
         if (x.br && !x.br.done) {
@@ -302,15 +302,23 @@ describe("temporada en directo", () => {
           if (x.phase === "lipsync") duelos = Math.max(duelos, (x.pairs || []).length);
         }
         if (x.br?.done && !cut) cut = x;
+        if (x.br?.final && !fin) fin = x;
       });
-      expect(groups.map((g) => g.length)).toEqual([4, 4, 4]);
+      const size = n / 3, pasan = Math.ceil(size / 2);
+      expect(groups.map((g) => g.length)).toEqual([size, size, size]);
       expect(alianzas).toBe(3);
       expect(duelos).toBe(3);
-      // Tras el corte siguen 7: dos de cada bracket y la que vuelve (con RTRN)
-      expect(aliveKeys(cut!)).toHaveLength(7);
-      expect(Object.values(cut!.track[cut!.br!.back!])).toContain("RTRN");
-      expect(cut!.out.every((o) => o.place === "8º/12º")).toBe(true);
+      expect(aliveKeys(cut!)).toHaveLength(pasan * 3);
+      expect(cut!.out.every((o) => o.place === `${pasan * 3 + 1}º/${n}º`)).toBe(true);
+      // Final: vuelve una (RTRN) y Lalaparuza por eliminatorias
+      const ep = fin!.ep;
+      const labs = Object.values(s.track).map((t) => t[ep]).filter(Boolean);
+      expect(Object.values(s.track).map((t) => t[ep - 1])).toContain("RTRN");
+      expect(labs).toContain("LOST1");
+      expect(labs).toContain("LOST2");
+      expect(labs).toContain("WINNER");
       expect(aliveKeys(s)).toHaveLength(1);
+      expect(s.out.filter((o) => o.place === "3º/4º")).toHaveLength(2);
     }
   });
   it("Segunda Oportunidrag: con siete, una eliminada vuelve y hay lip sync a tres bandas", () => {

@@ -167,7 +167,7 @@ const FMT_LOOK: Record<Formato, { c: string; c2: string; reglas: string[] }> = {
   suerte: { c: "#2fbf71", c2: "#00a6a6", reglas: ["Una cajita esconde la reina de la suerte", "Salva a quien quiera, una sola vez", "Nadie sabe quién la tiene"] },
   corazon: { c: "#ff4d6d", c2: "#c2127f", reglas: ["Cada eliminada deja medio corazón", "Con uno entero, salvas a una del bottom", "Los corazones se destapan en el veredicto"] },
   moneda: { c: "#c9a227", c2: "#8a5a00", reglas: ["Bottom de tres cada semana", "Cara: las salvadas votan a quién salvar", "Cruz: votan a quién condenar"] },
-  brackets: { c: "#e0458f", c2: "#7b3fc4", reglas: ["Tres brackets con alianzas por parejas", "Top 2 de cada bracket: lip sync por puntos", "Pasan dos de cada uno y vuelve una"] },
+  brackets: { c: "#e0458f", c2: "#7b3fc4", reglas: ["Tres brackets con alianzas por parejas", "Pasa la mitad de cada bracket", "Final: vuelve una y Lalaparuza por eliminatorias"] },
 };
 /** Color de cada bracket en el track record (como en los All Stars 10 y 11), el mismo que en el modo historia. */
 const BR_COLOR = ["#e0458f", "#e98a1e", "#7b3fc4"];
@@ -1043,7 +1043,7 @@ function duel(s: RoomState, p: { a: string; b: string }, myKey: string, eyebrow:
     })));
 }
 // All Winners: nombre de la eliminatoria y de la ronda
-const brLabel = (s: RoomState) => (s.bracket ? `${s.bracket.kind === "qosd" ? "💅 QoSDADHH" : "👑 Reina de reinas"} · ${s.bracket.alive.length === 2 ? "la final" : `ronda ${s.bracket.round}`}` : "");
+const brLabel = (s: RoomState) => (s.bracket ? `${s.bracket.kind === "qosd" ? "💅 QoSDADHH" : s.fmt === "brackets" ? "👑 Lalaparuza" : "👑 Reina de reinas"} · ${s.bracket.alive.length === 2 ? "la final" : `ronda ${s.bracket.round}`}` : "");
 function lipsync(s: RoomState, myKey: string | null) {
   // Lip sync a cuatro (o a tres) de la gran final: todas a la vez; el jurado salva a dos
   if (s.quad) {
@@ -1087,8 +1087,8 @@ function lipsync(s: RoomState, myKey: string | null) {
 function track(s: RoomState) {
   const eps = Object.keys(s.epNames).map(Number).sort((a, b) => a - b);
   const rows = standings(s);
-  const cls = (l: string) => ({ WIN: "t-win", BWIN: "t-win t-blocked", WINNER: "t-win", TOP2: "t-top2", BTOP: "t-top2 t-blocked", HIGH: "t-high", SAFE: "t-safe", LOW: "t-low", BTM2: "t-btm", BTM3: "t-btm", ELIM: "t-elim", ELIMF: "t-elim", RTRN: "t-rtrn", MC: "t-mc", "RUNNER-UP": "t-runner", "3ª": "t-third", P3: "t-third", P4: "t-third", QOSD: "t-qosd" } as Record<string, string>)[l] || "t-none";
-  const lab = (l: string) => ({ WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", "3ª": "3ª/4ª", BWIN: "WIN", BTOP: "TOP2", ELIMF: "ELIMINADA", QOSD: "QoSDADHH", P3: "3ª", P4: "4ª" } as Record<string, string>)[l] || l;
+  const cls = (l: string) => ({ WIN: "t-win", BWIN: "t-win t-blocked", WINNER: "t-win", TOP2: "t-top2", BTOP: "t-top2 t-blocked", HIGH: "t-high", SAFE: "t-safe", LOW: "t-low", BTM2: "t-btm", BTM3: "t-btm", ELIM: "t-elim", ELIMF: "t-elim", RTRN: "t-rtrn", MC: "t-mc", "RUNNER-UP": "t-runner", "3ª": "t-third", P3: "t-third", P4: "t-third", QOSD: "t-qosd", LOST1: "t-lost", LOST2: "t-lost" } as Record<string, string>)[l] || "t-none";
+  const lab = (l: string) => ({ WINNER: "GANADORA", "RUNNER-UP": "RUNNER-UP", "3ª": "3ª/4ª", BWIN: "WIN", BTOP: "TOP2", ELIMF: "ELIMINADA", QOSD: "QoSDADHH", P3: "3ª", P4: "4ª", LOST1: "PIERDE 1ª RONDA", LOST2: "PIERDE 2ª RONDA" } as Record<string, string>)[l] || l;
   const AW = s.fmt === "winners";
   const lastEp = (k: string) => Math.max(0, ...eps.filter((e) => (s.track[k] || {})[e]));
   return `<div class="track-wrap"><table class="track"><thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(s.epNames[e])}</small></th>`).join("")}${AW ? `<th>${LL}</th>` : ""}<th>PPE</th></tr></thead><tbody>${rows
@@ -1219,7 +1219,7 @@ function recordHTML() {
   return `<div class="mp-record"><span>💄 <b>${lent.toLocaleString("es-ES")}</b> lipsticks</span><span>👗 <b>${prendas}</b> ${prendas === 1 ? "prenda" : "prendas"} en tu armario</span><span>🎬 <b>${r.partidas}</b> ${r.partidas === 1 ? "temporada" : "temporadas"}</span><span>🏆 <b>${r.victorias}</b> retos ganados</span><span>👑 <b>${r.coronas}</b> ${r.coronas === 1 ? "corona" : "coronas"}</span></div>`;
 }
 // Lo que se gana en el multijugador va a tus lipsticks (con ellos compras en tu armario del multijugador)
-const PAY: Record<string, number> = { WIN: 25, BWIN: 25, TOP2: 20, BTOP: 20, HIGH: 18, SAFE: 15, RTRN: 15, LOW: 12, BTM2: 10, BTM3: 10, ELIM: 10, ELIMF: 10, "3ª": 20, QOSD: 25, "RUNNER-UP": 30, WINNER: 60 };
+const PAY: Record<string, number> = { LOST1: 20, LOST2: 22, WIN: 25, BWIN: 25, TOP2: 20, BTOP: 20, HIGH: 18, SAFE: 15, RTRN: 15, LOW: 12, BTM2: 10, BTM3: 10, ELIM: 10, ELIMF: 10, "3ª": 20, QOSD: 25, "RUNNER-UP": 30, WINNER: 60 };
 function payout(s: RoomState | null) {
   if (!s || s.phase === "lobby" || s.phase === "maletas") return;
   const mine = pkey(room.me);

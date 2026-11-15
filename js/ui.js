@@ -217,7 +217,7 @@ const UI = (() => {
         card.innerHTML = `
           <span class="s-top"><span class="s-name">${esc(s.name)}</span></span>
           ${cover ? "" : `<span class="faces">${s.cast.slice(0, 7).map((id) => `<i style="background-image:${portraitBg(queenById2(id), s.id)}"></i>`).join("")}${s.cast.length > 7 ? `<b>+${s.cast.length - 7}</b>` : ""}</span>`}
-          <span class="s-cast">${s.special === "custom" ? (s.cast.length ? `${s.cast.length} reinas elegidas por ti` : "Elige hasta 14 reinas de cualquier temporada") : s.special === "winners" ? `${s.cast.length} reinas con las que has ganado` : s.special === "brackets" ? `${s.cast.length} reinas · 🏆 tres brackets, pasan dos de cada uno` : `${s.cast.length} reinas · ${s.enEmision ? "📺 En emisión" : won ? `Ganadora: ${esc(queenById2(s.winner).name)}` : "¿Quién se llevará la corona?"}`}</span>
+          <span class="s-cast">${s.special === "custom" ? (s.cast.length ? `${s.cast.length} reinas elegidas por ti` : "Elige hasta 14 reinas de cualquier temporada") : s.special === "winners" ? `${s.cast.length} reinas con las que has ganado` : s.special === "brackets" ? `${s.cast.length} reinas · 🏆 tres brackets, alianzas y Lalaparuza final` : `${s.cast.length} reinas · ${s.enEmision ? "📺 En emisión" : won ? `Ganadora: ${esc(queenById2(s.winner).name)}` : "¿Quién se llevará la corona?"}`}</span>
           <span class="s-state">${won ? "👑 Ganada" : unlocked ? (s.special ? (s.special === "custom" ? "✨ Monta tu reparto" : s.special === "brackets" ? "🏆 Por brackets" : "🏆 Solo ganadoras") : `Dificultad ${"★".repeat(Math.min(5, s.index + 1))}`) : `🔒 ${esc(lock.why)}`}</span>`;
         card.addEventListener("click", () => {
           if (!unlocked) {

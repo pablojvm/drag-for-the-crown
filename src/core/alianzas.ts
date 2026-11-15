@@ -6,13 +6,17 @@
 //   otra le sobra). Se valora en pareja (la nota de las dos se acerca a la media), salvo que una haya hundido a la
 //   otra: entonces se juzga a cada una por separado.
 // - Las alianzas pueden cambiar cada semana, por interés.
-// - Al acabar los brackets pasan las dos con más puntos de cada uno y vuelve la mejor de las demás. Desde ahí,
-//   cada una por su cuenta, con las reglas de siempre.
+// - Al acabar cada bracket pasa la mitad (las de más puntos). Desde ahí, cada una por su cuenta, con las reglas
+//   de siempre, hasta que quedan siete.
+// - Final (como el All Stars 10): la mejor eliminada de cada bracket se juega volver en lip sync, y Lalaparuza
+//   por eliminatorias: las que pierden en la 1ª ronda y en la 2ª, fuera; las dos últimas, por la corona.
 
 export const BRACKET_PTS: Record<string, number> = { WIN: 10, TOP2: 9, HIGH: 8, SAFE: 5, LOW: 2, BTM2: 1, ELIM: 0 };
 export const BRACKET_NOMBRES = ["Rosa", "Naranja", "Morado"];
 /** Semanas que compite cada bracket. */
 export const BRACKET_SEMANAS = 3;
+/** Con cuántas en competición (o menos) llega la final: vuelve una eliminada y Lalaparuza por eliminatorias. */
+export const BRACKETS_FINAL = 7;
 /** Diferencia de nota a partir de la cual una ha hundido a su pareja y se juzga por separado. */
 export const HUNDIDA = 15;
 
