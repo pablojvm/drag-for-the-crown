@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parejasAlDia, parejasSiguen, ultimoGrupoParejas, dobleToca, dobleGanadora, quimica } from "../src/core/parejas";
-import { parejasCast, desbloqueo, seasonById } from "../src/core/temporada";
+import { parejasCast, bracketsCast, desbloqueo, seasonById } from "../src/core/temporada";
 import { makeRng } from "../src/core";
 
 describe("All Stars por parejas", () => {
@@ -45,5 +45,13 @@ describe("All Stars por parejas", () => {
     expect(seasonById("espar")?.cast).toEqual(c);
     expect(desbloqueo("espar", ["es1"]).ok).toBe(false);
     expect(desbloqueo("espar", ["esas1"]).ok).toBe(true);
+  });
+  it("All Stars por brackets: reparto múltiplo de tres (de 15 a 18), sin ganadoras y sin repetir", () => {
+    const c = bracketsCast();
+    expect(c.length % 3).toBe(0);
+    expect(c.length).toBeGreaterThanOrEqual(15);
+    expect(new Set(c).size).toBe(c.length);
+    expect(seasonById("esbr")?.cast).toEqual(c);
+    expect(desbloqueo("esbr", ["esas2"]).ok).toBe(true);
   });
 });

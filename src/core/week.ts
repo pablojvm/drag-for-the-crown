@@ -3,7 +3,7 @@
 
 /** Dinámicas de temporada. */
 export type Twist = "normal" | "allstars" | "winners" | "repesca" | "suerte" | "corazon" | "moneda" | string;
-export const asLike = (tw: Twist) => tw === "allstars" || tw === "winners";
+export const asLike = (tw: Twist) => tw === "allstars" || tw === "winners" || tw === "brackets";
 
 /** Cuántas reinas van al bottom esta semana. */
 export function bottomSize(o: { twist: Twist; n: number; repescaWeek?: boolean; lastGroupSize?: number }): number {
@@ -15,6 +15,8 @@ export function bottomSize(o: { twist: Twist; n: number; repescaWeek?: boolean; 
   if (o.lastGroupSize != null) nb = Math.max(1, Math.min(nb, o.lastGroupSize));
   // All Winners: no hay bottom
   if (o.twist === "winners") nb = 0;
+  // All Stars por brackets: en la fase de grupos nadie va al bottom (se suman puntos)
+  if (o.twist === "brackets") nb = 0;
   return nb;
 }
 

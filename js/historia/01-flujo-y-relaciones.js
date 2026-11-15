@@ -5,7 +5,10 @@
   const qById = (id) => QUEENS.find((q) => q.id === id);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const seasonInfo = () => TEMPORADAS_HISTORIA[S.season.id] || { lema: "", intro: [] };
-  const twistOf = () => seasonInfo().twist || null;
+  // All Stars por brackets: tras la fase de grupos, la temporada sigue con las reglas de siempre
+  const BR_COLORS = [{ n: "Bracket Rosa", c: "#e0458f" }, { n: "Bracket Naranja", c: "#e98a1e" }, { n: "Bracket Morado", c: "#7b3fc4" }];
+  const PAR_COLORS = { Rosa: "#e0458f", Oro: "#c99a12", Turquesa: "#1b9e9e", Lila: "#9b6bd6", Coral: "#ee6e4f", Esmeralda: "#2e9e5b", Plata: "#7f8c99", Rubí: "#b3123a" };
+  const twistOf = () => { const t = seasonInfo().twist || null; return t === "brackets" && S && S.br && S.br.merged ? null : t; };
   // All Stars y All Winners comparten el lip sync del top 2
   const asLike = (t) => t === "allstars" || t === "winners";
   const keyOf = (q) => (q === S.queen ? "me" : q.id);
@@ -722,6 +725,13 @@
     return DFTC.ppe(Object.values(S.track.me || {}));
   }
   // Lo que sale en el track record (orden, puestos y PPE); lo pintan la tabla clásica y la del motor nuevo
+  // Color del grupo de cada reina en el track record: su bracket (All Stars por brackets) o su pareja (por parejas)
+  function grpOf(k) {
+    if (S.br && S.br.groups) { const i = S.br.groups.findIndex((g) => g.includes(k)); if (i >= 0) return { c: BR_COLORS[i % BR_COLORS.length].c, t: BR_COLORS[i % BR_COLORS.length].n }; }
+    const p = S.parHist && S.parHist[k];
+    if (p) return { c: PAR_COLORS[p] || "#e8559b", t: p };
+    return null;
+  }
   function trackRows() {
     const eps = Object.keys(S.epNames).map(Number).sort((a, b) => a - b);
     const everyone = [S.queen, ...S.rivals, ...S.out];
@@ -737,7 +747,7 @@
       .map((q) => {
         const k = keyOf(q);
         return {
-          q, k, out: isOut(q), last: lastEp(k),
+          q, k, out: isOut(q), last: lastEp(k), grp: grpOf(k),
           w: count(k, (l) => l === "WIN" || l === "BWIN" || l === "WINNER"), h: count(k, (l) => l === "HIGH" || l === "TOP2" || l === "BTOP"),
           s: count(k, (l) => l === "SAFE"), lo: count(k, (l) => l === "LOW"), b: count(k, (l) => /^BTM/.test(l)),
         };
@@ -772,8 +782,8 @@
         <thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(S.epNames[e])}</small></th>`).join("")}${twistOf() === "corazon" ? "<th>❤️</th>" : ""}<th>PPE</th></tr></thead>
         <tbody>${rows
           .map((r, i) => `<tr class="${r.q === S.queen ? "me" : ""} ${r.out ? "out" : ""}" style="--i:${i}"><td class="rk">${rk[i]}</td>
-            <td class="qn"><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${r.q === S.queen ? " <b>(tú)</b>" : roleKnown(r.q) ? ` <small title="${esc(roleOf(r.q).name)}">${roleOf(r.q).icon}</small>` : ""}</span></td>
-            ${eps.map((e) => { const l = (S.track[r.k] || {})[e]; return `<td class="${l ? TRACK_CLASS(l) : r.last && e > r.last && S.epNames[e] !== "Reencuentro" ? "t-gone" : "t-none"}">${l ? LAB_ES[l] || l : ""}</td>`; }).join("")}
+            <td class="qn${r.grp ? " grp" : ""}"${r.grp ? ` style="--grp:${r.grp.c}" title="${esc(r.grp.t)}"` : ""}><i style="background-image:url('${photo(r.q)}')"></i><span>${esc(r.q.name)}${r.q === S.queen ? " <b>(tú)</b>" : roleKnown(r.q) ? ` <small title="${esc(roleOf(r.q).name)}">${roleOf(r.q).icon}</small>` : ""}</span></td>
+            ${eps.map((e) => { const l = (S.track[r.k] || {})[e]; return `<td class="${l ? TRACK_CLASS(l) : r.out && r.last && e > r.last && S.epNames[e] !== "Reencuentro" ? "t-gone" : "t-none"}">${l ? LAB_ES[l] || l : ""}</td>`; }).join("")}
             ${twistOf() === "corazon" ? `<td class="hearts">${r.out ? "–" : heartsTxt(r.k)}</td>` : ""}<td class="ppe">${ppe(r.k)}</td></tr>`)
           .join("")}</tbody>
       </table></div>`;
@@ -787,8 +797,8 @@
       epNames: eps.map((e) => S.epNames[e] || ""),
       ...(heart ? { extra: "❤️" } : {}),
       rows: rows.map((r, i) => ({
-        key: r.k, img: photo(r.q), name: r.q.name, me: r.q === S.queen, out: !!r.out, place: rk[i], ppe: ppe(r.k),
-        cells: eps.map((e) => { const l = (S.track[r.k] || {})[e]; return { t: l ? LAB_ES[l] || l : "", c: l ? TRACK_CLASS(l) : r.last && e > r.last && S.epNames[e] !== "Reencuentro" ? "t-gone" : "t-none" }; }),
+        key: r.k, img: photo(r.q), name: r.q.name, me: r.q === S.queen, out: !!r.out, place: rk[i], ppe: ppe(r.k), ...(r.grp ? { grp: r.grp.c } : {}),
+        cells: eps.map((e) => { const l = (S.track[r.k] || {})[e]; return { t: l ? LAB_ES[l] || l : "", c: l ? TRACK_CLASS(l) : r.out && r.last && e > r.last && S.epNames[e] !== "Reencuentro" ? "t-gone" : "t-none" }; }),
         ...(heart ? { extra: r.out ? "–" : heartsTxt(r.k) } : {}),
       })),
     };
@@ -887,6 +897,8 @@
     };
     // All Stars: el pintalabios de la que perdió el lip sync se enseña cuando Supremme se lo pregunta, al entrar al taller
     if (S.asPending && S.asPending.ep !== S.ep - 1) S.asPending = null;
+    // All Stars por brackets: el primer día se reparten los tres grupos
+    if (tw === "brackets" && !S.br) return brInit(go);
     go();
   }
   // Con 4 reinas: primero el reencuentro (Miss Simpatía) y luego la gran final

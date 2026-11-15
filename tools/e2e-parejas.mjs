@@ -1,4 +1,4 @@
-// Prueba del All Stars por parejas (modo historia): juega varios capítulos y apunta cómo cambian las parejas,
+// Prueba del All Stars por parejas o por brackets (TXT="por brackets") del modo historia: juega varios capítulos y apunta cómo cambian las parejas,
 // la semana de la doble eliminación y quién sigue. Uso: MIN=5 node tools/e2e-parejas.mjs [http://localhost:4173/]
 //   npx playwright install chromium   (la primera vez)
 //   npm run build && npm run preview   (en otra terminal)
@@ -23,8 +23,8 @@ await page.reload();
 await page.waitForTimeout(800);
 await page.click("#btn-story");
 await page.locator(".franchise-card").nth(1).click();
-await page.locator(".season-card", { hasText: "por parejas" }).click();
-await page.evaluate(() => { window.__forceScore = Number(55); });
+await page.locator(".season-card", { hasText: process.env.TXT || "por parejas" }).click();
+await page.evaluate((v) => { window.__forceScore = v; }, Number(process.env.SCORE || 55));
 await page.locator("#queen-grid > *").nth(0).click();
 // JURADO=1: la pasarela con concepto, con un jurado de prueba (el resto de textos, los de siempre)
 if (process.env.JURADO) await page.evaluate(() => {
@@ -50,6 +50,7 @@ for (let i = 0; time() && !done; i++) {
     try {
       const d = JSON.parse(localStorage.getItem("dftc-story-save") || "null");
       window.__log = window.__log || [];
+      if (d && d.br) { const t = JSON.stringify([d.ep, d.br.merged, d.br.back, d.meOut, d.rivals.length, d.out.length]); if (window.__log[window.__log.length - 1] !== t) window.__log.push(t); }
       if (d && d.parejas) { const t = JSON.stringify([d.ep, d.parejas.map((p) => p.k.join("+")), d.flags && d.flags.parDoble, d.meOut, d.rivals.length]); if (window.__log[window.__log.length - 1] !== t) window.__log.push(t); }
       if (!d || (d.ep < 11 && !d.meOut)) return null;
       // Con JURADO=1 se sigue hasta ver una pasarela con concepto (hay retos sin pasarela, como el Ball)
@@ -88,6 +89,11 @@ for (let i = 0; time() && !done; i++) {
     return "";
   });
   if (r === "look") looks++;
+  // SHOTS_DIR: fotos de la tabla con los colores de grupo y de la pantalla del corte de los brackets
+  if (process.env.SHOTS_DIR) {
+    const what = await page.evaluate(() => (document.querySelector(".br-box span.adv") ? "corte" : document.querySelector(".track td.qn.grp") && document.querySelectorAll(".track tbody tr").length > 8 ? "track" : ""));
+    if (what && !globalThis["__shot_" + what]) { globalThis["__shot_" + what] = 1; await page.waitForTimeout(900); await page.screenshot({ path: `${process.env.SHOTS_DIR}/${what}.png`, fullPage: true }); }
+  }
   if (process.env.SHOTS && i % 600 === 0) await page.screenshot({ path: `/tmp/eh-${i}.png` });
 }
 console.log((await page.evaluate(() => window.__log || [])).join("\n"));

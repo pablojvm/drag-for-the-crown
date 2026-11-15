@@ -105,7 +105,7 @@ function Fama() {
   const wins = storyWins();
   const fr = [
     { tag: "ES", name: "Drag Race España", color: "#ff3b3b", ids: REGULARES().map((x) => x.id) },
-    { tag: "AS", name: "Drag Race España All Stars", color: "#e0a400", ids: [...ALLSTARS().map((x) => x.id), "escustom", "espar", "esaw"] },
+    { tag: "AS", name: "Drag Race España All Stars", color: "#e0a400", ids: [...ALLSTARS().map((x) => x.id), "escustom", "espar", "esbr", "esaw"] },
   ];
   return (
     <div className="nx-hof">

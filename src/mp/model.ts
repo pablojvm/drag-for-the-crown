@@ -174,6 +174,8 @@ export interface RoomState {
   /** All Stars por parejas: las parejas de la temporada y la semana de la doble eliminación (2 contra 2). */
   parejas?: Pareja[];
   dobleP?: number;
+  /** La pareja de cada reina (la última que tuvo), para el color del track record. */
+  parHist?: Record<string, string>;
   /** Minirreto de la semana: cuál es y, al acabar, la nota de cada una y el orden (la primera, la ganadora). */
   mini?: MiniDef & { ep: number; scores?: Record<string, number>; rank?: string[] };
   /** Reto por grupos: las capitanas (las mejores del minirreto) eligen por turnos. members[i][0] es la capitana. */
@@ -429,7 +431,9 @@ function parejasStep(s: RoomState, now: number, e: Engine): RoomState | null {
   const { parejas } = parejasAlDia(s.parejas, ks, e.rnd);
   const members = parejas.map((p) => p.k.slice());
   const names = parejas.map((p) => `Pareja ${p.name}`);
-  return { ...s, parejas, groups: { ep: s.ep, size: 2, names, members, turn: members.length, at: now, done: true }, phase: "equipos", deadline: now + VER_EQUIPOS, v: s.v + 1 };
+  const parHist = { ...(s.parHist || {}) };
+  parejas.forEach((p) => p.k.forEach((k) => (parHist[k] = p.name)));
+  return { ...s, parejas, parHist, groups: { ep: s.ep, size: 2, names, members, turn: members.length, at: now, done: true }, phase: "equipos", deadline: now + VER_EQUIPOS, v: s.v + 1 };
 }
 /** La capitana a la que le toca elegir. */
 export const capOf = (s: RoomState) => { const g = s.groups!; return g.members[g.turn % g.members.length][0]; };

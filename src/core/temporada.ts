@@ -156,7 +156,7 @@ export function desbloqueo(id: string, wins: string[]): { ok: boolean; why?: str
   // All Winners: basta con haber ganado una temporada (te presentas con una de tus ganadoras)
   if (id === "esaw") return wins.some((w) => w !== "esaw") ? { ok: true } : { ok: false, why: "Gana al menos una temporada" };
   // All Stars por parejas: se abre ganando un All Stars
-  if (id === PAREJAS_ID) return wins.some((w) => /^esas/.test(w) || w === "escustom") ? { ok: true } : { ok: false, why: "Gana un All Stars" };
+  if (id === PAREJAS_ID || id === BRACKETS_ID) return wins.some((w) => /^esas/.test(w) || w === "escustom") ? { ok: true } : { ok: false, why: "Gana un All Stars" };
   return { ok: true };
 }
 /** All Winners: las ganadoras de las temporadas ya emitidas (si una repite, entra su finalista). */
@@ -179,6 +179,18 @@ export function parejasCast(): string[] {
   const c = out.slice(0, 12);
   return c.length % 2 ? c.slice(0, -1) : c;
 }
+/** All Stars por brackets (como el All Stars 10 y 11): reinas sin corona de todas las temporadas, en tres grupos. */
+export const BRACKETS_ID = "esbr";
+/** Puntos de cada resultado en la fase de grupos (como en el programa). */
+export const BRACKET_PTS: Record<string, number> = { WIN: 10, TOP2: 9, HIGH: 8, SAFE: 5, LOW: 2, BTM2: 1, ELIM: 0 };
+export function bracketsCast(): string[] {
+  const reg = TEMPORADAS_ES.filter((t) => t.franchise === "es" && !t.enEmision && t.cast.length > 6);
+  const ganadoras = new Set(TEMPORADAS_ES.filter((t) => !t.enEmision && t.cast.length > 1).map((t) => t.cast[t.cast.length - 1]));
+  const out: string[] = [];
+  const max = Math.max(...reg.map((t) => t.cast.length));
+  for (let back = 2; back <= max && out.length < 18; back++) reg.forEach((t) => { const id = t.cast[t.cast.length - back]; if (id && !ganadoras.has(id) && !out.includes(id) && REINAS_ES[id] && out.length < 18) out.push(id); });
+  return out.slice(0, out.length - (out.length % 3));
+}
 /** All Stars a tu gusto: tú eliges el reparto (de 8 a 12 reinas de todas las temporadas). */
 export const CUSTOM = { id: "escustom", min: 8, max: 12 };
 /** Reinas que se pueden elegir para el All Stars a tu gusto (todas las que han pasado por una temporada). */
@@ -187,6 +199,7 @@ export function seasonById(id: string): Temporada | null {
   if (id === "esaw") return { franchise: "esaw", id, name: "All Winners", year: 2026, cast: allWinnersCast() };
   if (id === CUSTOM.id) return { franchise: "esas", id, name: "All Stars a tu gusto", year: 2026, cast: customPool() };
   if (id === PAREJAS_ID) return { franchise: "esas", id, name: "All Stars por parejas", year: 2026, cast: parejasCast() };
+  if (id === BRACKETS_ID) return { franchise: "esas", id, name: "All Stars por brackets", year: 2026, cast: bracketsCast() };
   return TEMPORADAS_ES.find((t) => t.id === id) || null;
 }
 export const twistOf = (id: string): Twist => (TEMPORADAS_HISTORIA[id]?.twist as Twist) || "normal";

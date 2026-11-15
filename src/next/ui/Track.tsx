@@ -19,7 +19,7 @@ export function TrackTabla({ snap }: { snap: TrackSnap }) {
           {snap.rows.map((r, i) => (
             <tr key={r.key} className={`${r.me ? "me" : ""} ${r.out ? "out" : ""}`} style={{ ["--i" as string]: i }}>
               <td className="rk">{r.place}</td>
-              <td className="qn"><i style={{ backgroundImage: r.img ? `url('./${r.img}')` : undefined }} /><span>{r.name}{r.me && <b> (tú)</b>}</span></td>
+              <td className={r.grp ? "qn grp" : "qn"} style={r.grp ? ({ ["--grp" as string]: r.grp } as React.CSSProperties) : undefined}><i style={{ backgroundImage: r.img ? `url('./${r.img}')` : undefined }} /><span>{r.name}{r.me && <b> (tú)</b>}</span></td>
               {r.cells.map((c, e) => <td key={e} className={c.c}>{c.t}</td>)}
               {snap.extra && <td className="ppe">{r.extra}</td>}
               <td className="ppe">{r.ppe}</td>

@@ -89,6 +89,16 @@ Object.assign(TEMPORADAS_HISTORIA, {
       ["judge", "Aquí nadie viene a hacer amigas. Bueno, alguna sí. Pero pocas."],
     ],
   },
+  esbr: {
+    twist: "brackets",
+    lema: "All Stars por brackets: tres grupos, solo pasan dos",
+    intro: [
+      ["host", "¡Bienvenidas, All Stars! Este año no competís todas juntas: os hemos repartido en tres brackets."],
+      ["host", "Cada bracket compite tres semanas. Nadie se va a casa: las dos mejores de cada semana hacen lip sync por la victoria, y cada resultado da puntos."],
+      ["host", "Al acabar, solo las dos con más puntos de cada bracket pasan a la fase final. Y alguna de las demás... puede que vuelva."],
+      ["judge", "Tres semanas para demostrarlo todo. No hay segundas oportunidades. O casi."],
+    ],
+  },
   espar: {
     twist: "parejas",
     lema: "All Stars por parejas: juntas hasta el final... o no",

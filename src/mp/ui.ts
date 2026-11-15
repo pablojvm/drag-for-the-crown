@@ -159,6 +159,8 @@ function entry() {
 }
 // Partida personalizada: dinámica, cuántas reinas y cómo se eligen las rivales
 // Cómo es cada dinámica: su color y tres claves para entenderla de un vistazo
+/** Color de cada pareja en el track record (All Stars por parejas), el mismo que en el modo historia. */
+const PAR_COLOR: Record<string, string> = { Rosa: "#e0458f", Oro: "#c99a12", Turquesa: "#1b9e9e", Lila: "#9b6bd6", Coral: "#ee6e4f", Esmeralda: "#2e9e5b", Plata: "#7f8c99", Rubí: "#b3123a" };
 const FMT_LOOK: Record<Formato, { c: string; c2: string; reglas: string[] }> = {
   normal: { c: "#ff3d9a", c2: "#ff9a3d", reglas: ["Reto y pasarela cada semana", "Las dos peores, al lip sync", "La que pierde se va a casa"] },
   allstars: { c: "#e0245e", c2: "#7a1fa2", reglas: ["Las dos mejores bailan por el poder", "Cada una guarda en secreto su pintalabios", "La ganadora manda a casa a una del bottom"] },
@@ -1090,7 +1092,7 @@ function track(s: RoomState) {
   const AW = s.fmt === "winners";
   const lastEp = (k: string) => Math.max(0, ...eps.filter((e) => (s.track[k] || {})[e]));
   return `<div class="track-wrap"><table class="track"><thead><tr><th>#</th><th>Reina</th>${eps.map((e) => `<th>Ep. ${e}<small>${esc(s.epNames[e])}</small></th>`).join("")}${AW ? `<th>${LL}</th>` : ""}<th>PPE</th></tr></thead><tbody>${rows
-    .map((r, i) => { const k = r.key; return `<tr class="${k === pkey(room.me) ? "me" : ""} ${r.out ? "out" : ""}" style="--i:${i}"><td class="rk">${esc(r.place)}</td><td class="qn"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(keyName(s, k))}${keyPlayer(s, k) ? ` <b>(${esc(keyPlayer(s, k))})</b>` : ""}</span></td>${eps.map((e) => { const l = (s.track[k] || {})[e]; return `<td class="${l ? cls(l) : r.out && e > lastEp(k) ? "t-gone" : "t-none"}">${l ? lab(l) : ""}</td>`; }).join("")}${AW ? `<td class="ppe">${s.stars?.[k] || 0}</td>` : ""}<td class="ppe">${Object.keys(s.track[k] || {}).length ? ppeOf(s, k).toFixed(2) : "–"}</td></tr>`; })
+    .map((r, i) => { const k = r.key; return `<tr class="${k === pkey(room.me) ? "me" : ""} ${r.out ? "out" : ""}" style="--i:${i}"><td class="rk">${esc(r.place)}</td><td class="qn${s.parHist?.[k] ? " grp" : ""}"${s.parHist?.[k] ? ` style="--grp:${PAR_COLOR[s.parHist[k]] || "#e0458f"}" title="Pareja ${esc(s.parHist[k])}"` : ""}><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(keyName(s, k))}${keyPlayer(s, k) ? ` <b>(${esc(keyPlayer(s, k))})</b>` : ""}</span></td>${eps.map((e) => { const l = (s.track[k] || {})[e]; return `<td class="${l ? cls(l) : r.out && e > lastEp(k) ? "t-gone" : "t-none"}">${l ? lab(l) : ""}</td>`; }).join("")}${AW ? `<td class="ppe">${s.stars?.[k] || 0}</td>` : ""}<td class="ppe">${Object.keys(s.track[k] || {}).length ? ppeOf(s, k).toFixed(2) : "–"}</td></tr>`; })
     .join("")}</tbody></table></div>`;
 }
 // Ficha de la reina como en el modo normal: retrato, frase, atributos de historia, carácter y fortaleza

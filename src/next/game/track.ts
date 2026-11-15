@@ -5,7 +5,7 @@ import { queenImg } from "../../core/reinas";
 import { PPE_VALOR } from "../../core/track";
 
 export interface TrackCell { t: string; c: string }
-export interface TrackRow { key: string; img: string; name: string; me: boolean; out: boolean; place: string; cells: TrackCell[]; extra?: string; ppe: string }
+export interface TrackRow { key: string; img: string; name: string; me: boolean; out: boolean; place: string; cells: TrackCell[]; extra?: string; ppe: string; /** Color de su grupo (bracket o pareja), para la casilla del nombre. */ grp?: string }
 export interface TrackSnap { eps: number; epNames: string[]; extra?: "⭐" | "❤️"; rows: TrackRow[] }
 
 const ORDER: Record<string, number> = { WINNER: 0, WIN: 1, BWIN: 1, "RUNNER-UP": 2, TOP2: 3, BTOP: 3, HIGH: 4, "3ª/4ª": 5, SAFE: 6, MC: 6, RTRN: 6.5, LOW: 7, BTM2: 8, BTM3: 8, OUT: 8.5, ELIM: 9 };
