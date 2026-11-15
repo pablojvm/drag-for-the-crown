@@ -3147,3 +3147,20 @@ body.portrait .rg-pieces { flex-direction: row; gap: 8px; }
 body.portrait .rg-pieces li { flex: 1; flex-direction: column; font-size: 15px; padding: 8px 6px; text-align: center; }
 body.portrait .rg-pieces li img { width: 72px; height: 72px; }
 body.portrait .rg-pieces li span { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* Lalaparuza como en el programa: rondas, camerino y peligro */
+.lz-rounds { display: flex; gap: 14px; overflow-x: auto; margin: 12px 0; padding: 14px; border-radius: 20px; background: #2f2a36; }
+.lz-round { display: flex; flex-direction: column; gap: 8px; min-width: 230px; }
+.lz-round .lz-rn { position: static; color: #ffd84d; font: 800 12px Poppins, sans-serif; letter-spacing: 1px; text-transform: uppercase; }
+.lz-round.now .lz-rn { color: #ff7ac6; }
+.lz-duel { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 12px; background: rgba(255,255,255,.08); }
+.lz-duel em { font-style: normal; color: #ccb; font-size: 12px; }
+.lz-duel.bye { opacity: .75; }
+.lz-f { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 3px; border-radius: 999px; background: rgba(255,255,255,.9); color: var(--ink); font-weight: 700; font-size: 13px; }
+.lz-f i { width: 26px; height: 26px; border-radius: 50%; background: #eee center 20% / cover; }
+.lz-f.me { box-shadow: 0 0 0 2px var(--gold); }
+.lz-f.win { background: #d9ffe6; }
+.lz-f.lose { opacity: .55; }
+.lz-pool { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; padding: 8px 12px; border-radius: 16px; }
+.lz-pool b { width: 100%; font-size: 14px; color: var(--ink); }
+.lz-pool.safe { background: #eafff2; }
+.lz-pool.danger { background: #ffe7ef; }

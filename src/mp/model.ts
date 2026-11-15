@@ -5,10 +5,10 @@ import { ppe } from "../core/track";
 import { nivelNota } from "../core/dado";
 import { lookRival } from "../core/reinas";
 import { familiaPasarela } from "../core/temas";
-import { buildBracket } from "../core/bracket";
 import { bottomSize, weekLabels, allCritiqued } from "../core/week";
 import { BANDAS, COLORES_GRUPO, grupoCritica, NOMBRE_JURADO } from "../core/criticas";
-import { allWinnersCut, allWinnersBottom, lalaScore } from "../core/finales";
+import { allWinnersCut, allWinnersBottom } from "../core/finales";
+import { lalaStart, lalaPending, lalaResolve, lalaScoreDe, type Lala } from "../core/lala";
 import { rescueFromBottom, coinResult, lipstickKind, addHalfHearts } from "../core/dinamicas";
 
 export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "reencuentro" | "finalistas" | "votacion" | "final" | "corona";
@@ -115,7 +115,7 @@ export interface Decision { top: string[]; options: string[]; picks: Record<stri
 export interface Reveal { ep: number; by: string; go: string; went: string }
 export interface LzMatch { a: string | null; b: string | null; w?: string; slot?: number }
 /** Lalaparuza: sin taller ni pasarela, eliminatorias de lip sync con todo el reparto (como en el modo historia). */
-export const LALA: Reto = { tipo: "lalaparuza", titulo: "Lalaparuza: el torneo de lip syncs", desc: "Sin taller: eliminatorias directas de lip sync entre todas. La que gane el torneo gana el reto; las que caigan pronto, al bottom.", noRunway: true };
+export const LALA: Reto = { tipo: "lalaparuza", titulo: "Lalaparuza: el torneo de lip syncs", desc: "Sin taller: duelos de lip sync con todo el reparto. La que gana su duelo se salva y se va al camerino; las que pierden siguen luchando entre ellas. Las dos que pierdan todos sus duelos van al lip sync de eliminación.", noRunway: true };
 export interface Reto { tipo: string; titulo: string; desc: string; noRunway: boolean; cat?: { n: string; d: string }; /** Reto por grupos: de cuántas (2 = parejas). */ groups?: number }
 export interface MiniDef { id: string; titulo: string; desc: string }
 export interface RoomState {
@@ -165,7 +165,7 @@ export interface RoomState {
   /** All Winners: semana de la Lalaparuza. */
   lzEp?: number;
   /** Lalaparuza: el cuadro de lip syncs (rondas; la 0 es la ronda previa) y hasta dónde llega cada una. */
-  lala?: { rounds: LzMatch[][]; R: number; round: number; reached: Record<string, number>; ls: Record<string, number>; champ?: string; top2?: string[]; done?: boolean; score?: Record<string, number>; show?: boolean };
+  lala?: Lala & { ls: Record<string, number>; champ?: string; top2?: string[]; score?: Record<string, number>; show?: boolean };
   /** Segunda Oportunidrag: parejas del monólogo y la maestra de ceremonias (la ganadora del reto anterior, que no compite). */
   rp?: { ep: number; pairs: { c: string; o: string | null }[]; mc?: string };
   rpDone?: boolean;
@@ -729,24 +729,18 @@ function resolveTriple(s: RoomState, e: Engine): string {
 
 /** Siembra de la final por PPE (1 contra 4, 2 contra 3). */
 // ------------------------------ Lalaparuza ------------------------------
-// Cuadro con cabezas de serie por la temporada (PPE); si no sois potencia de 2, ronda previa para las últimas.
-// En All Stars y All Winners el torneo acaba en semifinales: las dos que llegan a la final son el top 2.
+// Como en el programa (src/core/lala.ts): la que gana su duelo se salva; las que pierden siguen luchando entre ellas
+// y las dos que lo pierden todo son el bottom (van al lip sync de eliminación de siempre). Cruces por la temporada (PPE).
 function lzStart(s: RoomState, now: number, e: Engine): RoomState {
   const ranked = aliveKeys(s).sort((a, b) => ppeOf(s, b) - ppeOf(s, a) || winsOf(s, b) - winsOf(s, a) || e.rnd() - 0.5);
-  const { P, R, slots, pre } = buildBracket(ranked);
-  const rounds: LzMatch[][] = [pre.map((m) => ({ a: m.a, b: m.b, slot: m.slot }))];
-  for (let r = 0; r < R; r++) rounds.push(Array.from({ length: P / 2 ** (r + 1) }, (_, i) => (r === 0 ? { a: slots[2 * i], b: slots[2 * i + 1] } : { a: null, b: null })));
-  const lala = { rounds, R, round: pre.length ? 0 : 1, reached: {} as Record<string, number>, ls: {} as Record<string, number> };
-  return lzRound({ ...s, lala }, now);
+  return lzRound({ ...s, lala: { ...lalaStart(ranked), ls: {} } }, now);
 }
-const lzStop = (s: RoomState) => (isAS(s) || isAW(s) ? s.lala!.R - 1 : s.lala!.R);
 function lzRound(s: RoomState, now: number): RoomState {
   const L = s.lala!;
-  const ms = L.rounds[L.round].filter((m) => m.a && m.b && !m.w);
-  const pairs: Pair[] = ms.map((m) => ({ a: m.a!, b: m.b! }));
+  const pairs: Pair[] = lalaPending(L).map((m) => ({ a: m.a!, b: m.b! }));
   const anyP = pairs.some((p) => isP(p.a) || isP(p.b));
   const subs = Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, ls: undefined }]));
-  // Antes de cada ronda se ve el cuadro (cómo va y quién se enfrenta a quién); luego empiezan los lip syncs
+  // Antes de cada ronda se ve cómo va (quién está a salvo y quién se enfrenta a quién); luego empiezan los lip syncs
   return { ...s, lala: { ...L, show: true }, subs, pairs, finalStage: 300 + L.round, phase: "lalaparuza", deadline: now + (anyP ? LZ_VER : LZ_VER_NPC), v: s.v + 1 };
 }
 /** Cuánto se ve el cuadro antes de cada ronda, y cuánto dura una ronda que solo bailan reinas del juego. */
@@ -756,35 +750,24 @@ function lzGo(s: RoomState, now: number): RoomState {
   return { ...s, lala: { ...s.lala!, show: false }, duelKey: undefined, phase: "lalaparuza", deadline: anyP ? limite(now, DURACION[s.ritmo].lalaparuza) : now + LZ_NPC, v: s.v + 1 };
 }
 function lzNext(s: RoomState, now: number, e: Engine): RoomState {
-  const L = s.lala!;
+  const L0 = s.lala!;
   const pairs = resolvePairs(s, e);
-  const rounds = L.rounds.map((rs) => rs.map((m) => ({ ...m })));
-  const reached = { ...L.reached }, ls = { ...L.ls };
-  const r = L.round;
+  const ls = { ...L0.ls };
+  let L: Lala = L0;
   pairs.forEach((p) => {
-    const i = rounds[r].findIndex((m) => m.a === p.a && m.b === p.b);
-    const m = rounds[r][i];
-    m.w = p.winner!;
-    const l = p.winner === p.a ? p.b : p.a;
-    reached[l] = r;
+    L = lalaResolve(L, p.a, p.b, p.winner!);
     [p.a, p.b].forEach((k) => { if (isP(k)) { const sc = s.subs[idOf(k)]?.ls?.score; if (sc != null) ls[k] = sc; } });
-    if (r === 0) { const t = rounds[1][Math.floor(m.slot! / 2)]; if (m.slot! % 2 === 0) t.a = m.w; else t.b = m.w; }
-    else if (r < L.R) { const nx = rounds[r + 1][Math.floor(i / 2)]; if (i % 2 === 0) nx.a = m.w; else nx.b = m.w; }
   });
-  let t: RoomState = { ...s, pairs, lala: { ...L, rounds, reached, ls } };
-  if (r < lzStop(s)) return lzRound({ ...t, lala: { ...t.lala!, round: r + 1 } }, now);
-  // Fin del torneo: la nota sale de hasta dónde llega cada una (la campeona arriba, las que caen pronto abajo)
-  const last = rounds[r].map((m) => m.w!).filter(Boolean);
-  const champ = r === L.R ? last[0] : undefined;
-  const top2 = r === L.R ? undefined : last;
-  const R = L.R;
-  last.forEach((k) => (reached[k] = R + 1));
+  let t: RoomState = { ...s, pairs, lala: { ...L0, ...L, ls } };
+  if (!L.done) return lzRound(t, now);
+  // Fin: las que se salvan antes, arriba; las dos del bottom, abajo (tu lip sync matiza dentro de cada ronda)
   const score: Record<string, number> = {};
   aliveKeys(s).forEach((k) => {
-    const tweak = isP(k) ? ((ls[k] ?? 50) - 50) * 0.08 : (e.rivalScore(idOf(k), LALA.tipo) - 55) * 0.08;
-    score[k] = lalaScore({ reached: reached[k] ?? 0, R, champ: k === champ, top2: !!top2 && top2.includes(k), tweak });
+    const tweak = isP(k) ? (ls[k] ?? 50) - 50 : e.rivalScore(idOf(k), LALA.tipo) - 55;
+    score[k] = lalaScoreDe(L.saved[k], tweak);
   });
-  t = { ...t, lala: { ...t.lala!, reached, champ, top2, done: true, score } };
+  const best = Object.keys(score).sort((a, b) => score[b] - score[a]);
+  t = { ...t, lala: { ...t.lala!, done: true, score, champ: best[0], top2: best.slice(0, 2) } };
   // Sin pasarela: directas a las críticas
   return advanceRaw({ ...t, phase: "pasarela", finalStage: undefined, pairs: undefined }, now, e);
 }

@@ -25,3 +25,4 @@ export * from "./armario";
 export * from "./logros";
 export * from "./charla";
 export * from "./criticas";
+export * as lala from "./lala";

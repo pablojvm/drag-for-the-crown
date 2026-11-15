@@ -236,7 +236,7 @@ function nextWeekRaw(s: Season, rnd: () => number): Season {
   // Lalaparuza: una vez por temporada, cuando quedan siete (o en la tercera semana de All Winners)
   if (!s.lzDone && (s.twist === "winners" ? ep === 3 : s.alive.length === 7)) {
     const ranked = s.alive.slice().sort((a, b) => ppe(s.track[b] || []) - ppe(s.track[a] || []) || (s.record[b] || 0) - (s.record[a] || 0) || rnd() - 0.5);
-    const week: Week = { tipo: "lalaparuza", titulo: MAXI.lalaparuza.titulo, tema: "", adv: 0, mini: { id: MINIS[(ep - 1) % MINIS.length].id }, lala: lalaStart(ranked, asLike(s.twist)) };
+    const week: Week = { tipo: "lalaparuza", titulo: MAXI.lalaparuza.titulo, tema: "", adv: 0, mini: { id: MINIS[(ep - 1) % MINIS.length].id }, lala: lalaStart(ranked) };
     return { ...base, lzDone: true, phase: inGame(s) ? "anuncio" : "fuera", week };
   }
   // Si la temporada da la vuelta al plan, el talent show no se repite
@@ -611,7 +611,7 @@ export function lalaDuel(s: Season, a: string, b: string, winner: string): Seaso
 export function lalaFinish(s: Season, myLs: number, rnd: () => number): Season {
   const L = s.week!.lala!;
   const sc = lalaScores(L, s.alive, (k) => (k === ME ? myLs : rivalScore(s, k, rnd)) - 55);
-  const champ = L.champ ? `👑 ${nameOf(s, L.champ)} gana la Lalaparuza.` : `Llegan a la final del torneo: ${(L.top2 || []).map((k) => nameOf(s, k)).join(" y ")}.`;
+  const champ = `💔 ${(L.bottom || []).map((k) => nameOf(s, k)).join(" y ")} pierden todos sus duelos: al lip sync por quedarse.`;
   return { ...scoreWeek(s, rnd, sc), news: [...s.news, champ] };
 }
 

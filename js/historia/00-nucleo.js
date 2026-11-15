@@ -266,7 +266,7 @@ const Story = (() => {
   };
   RETOS.lalaparuza = {
     titulo: () => "Lalaparuza: el torneo de lip syncs",
-    desc: "Sin taller: eliminatorias directas de lip sync. Elige canción según tu perfil y el de tu rival, y gestiona la energía en cada duelo.",
+    desc: "Sin taller: duelos de lip sync con todo el reparto. La que gana su duelo se salva y se va al camerino; las que pierden siguen luchando entre ellas. Las dos que pierdan todos sus duelos van al lip sync de eliminación. Elige canción según tu perfil y el de tu rival.",
     ctrl: DC, attrs: ["lipsync", "baile"], run: (el, d) => mxLalaparuza(el, d),
   };
   // Los Balls: tres pasarelas conectadas que cuentan una historia. Las dos primeras se traen de casa;

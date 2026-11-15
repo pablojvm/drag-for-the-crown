@@ -368,7 +368,7 @@ describe("temporada en directo", () => {
       expect(checked).toBe(true);
     }
   });
-  it("Lalaparuza: cuando quedan 8 hay torneo de lip syncs y la campeona gana el reto", () => {
+  it("Lalaparuza: cuando quedan 8 hay torneo de lip syncs y las dos que lo pierden todo son el bottom", () => {
     for (const seed of [1, 4, 9]) {
       const e = engine(seed);
       let { s } = fmtRoom("normal", seed, 10);
@@ -377,8 +377,11 @@ describe("temporada en directo", () => {
         if (s.phase === "anuncio" && s.reto?.tipo === "lalaparuza") expect(aliveKeys(s)).toHaveLength(8);
         if (s.phase === "resultados" && s.lala?.done) {
           saw = true;
-          expect(s.rows![0].key).toBe(s.lala.champ);
           expect(s.rows![0].label).toBe("WIN");
+          expect(s.lala.bottom).toHaveLength(2);
+          const n = s.rows!.length;
+          expect(s.rows!.slice(n - 2).map((r) => r.key).sort()).toEqual(s.lala.bottom!.slice().sort());
+          expect(Object.keys(s.lala.saved)).toHaveLength(n - 2);
         }
         s = advance(s, guard * 1000, e);
       }

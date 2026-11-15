@@ -257,14 +257,23 @@ describe("armario, taller y minirretos", () => {
 });
 
 describe("Lalaparuza, reencuentro y retos escritos en directo", () => {
-  it("el torneo corona a una y da la mejor nota a la campeona", async () => {
+  it("Lalaparuza como en el programa: la que gana se salva, las que pierden siguen y las dos últimas son el bottom", async () => {
     const { lalaStart, lalaPending, lalaResolve, lalaScores } = await import("../src/core/lala");
-    const keys = ["a", "b", "c", "d", "e", "f", "g"];
-    let L = lalaStart(keys);
-    for (let p = lalaPending(L)[0]; p; p = lalaPending(L)[0]) L = lalaResolve(L, p.a!, p.b!, p.a!);
-    expect(L.done).toBe(true);
-    const sc = lalaScores(L, keys, () => 0);
-    expect(sc[L.champ!]).toBe(Math.max(...Object.values(sc)));
+    for (const n of [5, 6, 7, 8, 9, 12]) {
+      const keys = Array.from({ length: n }, (_, i) => "q" + i);
+      let L = lalaStart(keys);
+      for (let p = lalaPending(L)[0]; p; p = lalaPending(L)[0]) L = lalaResolve(L, p.a!, p.b!, p.b!);
+      expect(L.done).toBe(true);
+      expect(L.bottom).toHaveLength(2);
+      expect(Object.keys(L.saved)).toHaveLength(n - 2);
+      L.bottom!.forEach((k) => expect(L.saved[k]).toBeUndefined());
+      const sc = lalaScores(L, keys, () => 0);
+      const low = Object.entries(sc).sort((a, b) => a[1] - b[1]).slice(0, 2).map((x) => x[0]).sort();
+      expect(low).toEqual(L.bottom!.slice().sort());
+      // Ganar en la primera ronda vale más que ganar en la segunda
+      const r1 = keys.find((k) => L.saved[k] === 1)!, r2 = keys.find((k) => L.saved[k] === 2);
+      if (r2) expect(sc[r1]).toBeGreaterThan(sc[r2]);
+    }
   });
   it("un reto escrito en directo se monta con tres opciones por paso (o se descarta)", async () => {
     const { maxiFromAI } = await import("../src/core/maxi");
