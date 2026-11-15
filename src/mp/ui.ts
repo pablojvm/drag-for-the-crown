@@ -174,9 +174,10 @@ const BR_COLOR = ["#e0458f", "#e98a1e", "#7b3fc4"];
 function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
   let fmt: Formato = (W.store?.get("dftc-mp-cfmt", "allstars") as Formato) || "allstars";
   let pick: "elegidas" | "azar" = W.store?.get("dftc-mp-cpick", "azar") === "elegidas" ? "elegidas" : "azar";
-  // Hasta 18 reinas (el All Stars por brackets, como en el programa: tres brackets de seis)
-  const MAXQ = 18;
-  let size = Math.max(6, Math.min(MAXQ, +(W.store?.get("dftc-mp-csize", 10) || 10)));
+  // De 6 a 14 reinas; el All Stars por brackets, siempre 18 (tres brackets de seis, como en el programa)
+  const MAXQ = 14, BRACKETS_Q = 18;
+  let chosen = Math.max(6, Math.min(MAXQ, +(W.store?.get("dftc-mp-csize", 10) || 10)));
+  let size = fmt === "brackets" ? BRACKETS_Q : chosen;
   // Unas caras de muestra para el reparto (cambian al abrir la pantalla)
   const muestra = (api().allQueens() as { id: string; season?: string }[]).map((x) => [Math.random(), x] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]).slice(0, 18);
   const facesHTML = (nuevas = -1) => Array.from({ length: size }, (_, i) => {
@@ -247,11 +248,13 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
   const calma = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   let swap = 0;
   const cast = () => {
-    ($(".mp-cs-pickinfo") as HTMLElement).textContent = pick === "azar" ? "Las rivales se sortean al empezar." : "Las eliges en la sala, antes de empezar.";
+    ($(".mp-cs-pickinfo") as HTMLElement).textContent = (pick === "azar" ? "Las rivales se sortean al empezar." : "Las eliges en la sala, antes de empezar.") + (fmt === "brackets" ? " Este modo es siempre con 18." : "");
     document.querySelectorAll<HTMLElement>("[data-p]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.p === pick)));
     ($(".mp-cs-n") as HTMLElement).textContent = String(size);
-    (document.querySelector('[data-s="-1"]') as HTMLButtonElement).disabled = size <= 6;
-    (document.querySelector('[data-s="1"]') as HTMLButtonElement).disabled = size >= MAXQ;
+    const fijo = fmt === "brackets";
+    (document.querySelector('[data-s="-1"]') as HTMLButtonElement).disabled = fijo || size <= 6;
+    (document.querySelector('[data-s="1"]') as HTMLButtonElement).disabled = fijo || size >= MAXQ;
+    ($(".mp-size") as HTMLElement).title = fijo ? "Este modo se juega siempre con 18 reinas" : "";
   };
   cast();
   // Cambiar de dinámica: los colores se funden de una a otra y el texto se cruza, sin repintar la pantalla
@@ -265,7 +268,10 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
     document.querySelectorAll<HTMLElement>("[data-f]").forEach((b) => { const on = b.dataset.f === fmt; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
     ($(".mp-cs-goic") as HTMLElement).textContent = FORMATOS[fmt].icon;
     // El All Stars por brackets se juega con 18 (tres brackets de seis): se propone al elegirlo
-    if (fmt === "brackets" && size < MAXQ) { const f = $(".mp-cs-faces") as HTMLElement; const antes = size; size = MAXQ; W.store?.set("dftc-mp-csize", size); f.insertAdjacentHTML("beforeend", facesHTML(antes).split("</i>").slice(antes, size).map((x) => x + "</i>").join("")); cast(); }
+    // El All Stars por brackets va siempre con 18; al salir de él, vuelve el número que tenías
+    const n = fmt === "brackets" ? BRACKETS_Q : chosen;
+    if (n !== size) { size = n; ($(".mp-cs-faces") as HTMLElement).innerHTML = facesHTML(); }
+    cast();
     const id = ++swap;
     const viejo = hero.querySelector(".mp-cs-in:not(.out)") as HTMLElement | null;
     const nuevo = document.createElement("div");
@@ -288,8 +294,9 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
     cast();
   }));
   document.querySelectorAll<HTMLElement>("[data-s]").forEach((b) => (b.onclick = () => {
+    if (fmt === "brackets") return;
     const antes = size;
-    size = Math.max(6, Math.min(MAXQ, size + +b.dataset.s!));
+    size = chosen = Math.max(6, Math.min(MAXQ, size + +b.dataset.s!));
     if (size === antes) return;
     W.store?.set("dftc-mp-csize", size);
     const f = $(".mp-cs-faces") as HTMLElement;

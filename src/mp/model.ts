@@ -25,7 +25,7 @@ export const FORMATOS: Record<Formato, { n: string; icon: string; d: string }> =
   suerte: { n: "Reina de la suerte", icon: "🍀", d: "Una reina tiene en secreto la reina de la suerte: puede salvar a quien quiera del lip sync una vez." },
   corazon: { n: "Temporada del corazón", icon: "❤️", d: "Cada eliminada deja medio corazón. Con uno entero salvas a alguien del bottom." },
   moneda: { n: "Temporada de la moneda", icon: "🪙", d: "Bottom de tres y moneda al aire: cara, las salvadas votan a quién salvar; cruz, a quién condenar." },
-  brackets: { n: "All Stars por brackets", icon: "🏆", d: "Como el All Stars 10: tres brackets con alianzas, se suman puntos y pasa la mitad de cada uno. Con siete, vuelve una y Lalaparuza final. Mejor con 18 reinas." },
+  brackets: { n: "All Stars por brackets", icon: "🏆", d: "Como el All Stars 10: tres brackets con alianzas, se suman puntos y pasa la mitad de cada uno. Con siete, vuelve una y Lalaparuza final. Siempre con 18 reinas." },
 };
 // Formas de la gran final: compartidas con el modo historia (src/core/finales.ts)
 import type { FinalFmt } from "../core/finales";
