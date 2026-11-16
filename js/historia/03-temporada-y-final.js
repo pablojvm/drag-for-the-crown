@@ -849,6 +849,8 @@
         const ru = rival || [...S.rivals, ...S.out].find((x) => (S.track[keyOf(x)] || {})[fe3] === "RUNNER-UP");
         const C = store.get("dftc-story-crowns", {});
         C[S.season.id] = { queen: S.queen.id, runner: ru ? ru.id : null, date: entry.date };
+        // Corona doble (All Stars en parejas): tu pareja también es ganadora
+        if (S.flags.pjDuoId) C[S.season.id].duo = S.flags.pjDuoId;
         store.set("dftc-story-crowns", C);
       }
       Sound.win();

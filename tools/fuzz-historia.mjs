@@ -33,7 +33,7 @@ for (const seed of SEEDS) {
   if (await page.locator(".cc-q").first().isVisible().catch(() => false)) { await page.locator(".cc-q").first().click(); await page.locator("#cc-rnd").click(); }
   else if (/Winners/.test(SE)) await page.locator("#queen-grid > *:not(.locked)").first().click();
   else await page.locator("#queen-grid > *").nth(seed % 5).click();
-  await page.evaluate((sc) => { if (sc !== "libre") window.__forceScore = Number(sc); }, SCORE);
+  await page.evaluate(([sc, duo]) => { if (sc !== "libre") window.__forceScore = Number(sc); if (duo) window.__pjDuo = duo === "1"; }, [SCORE, process.env.DUO || ""]); // DUO=1/0: fuerza la corona doble o individual en parejas
   if (await page.locator("#btn-start").isVisible().catch(() => false)) await page.click("#btn-start");
   const time = deadline(MIN);
   let last = "", since = Date.now(), end = false, stuck = null, lentos = 0;
@@ -92,7 +92,11 @@ for (const seed of SEEDS) {
       await page.screenshot({ path: `${process.env.OUT || "."}/fuzz-${FR}-${SE}-${seed}.png` }).catch(() => {});
     }
     errors.slice(0, 5).forEach((e) => console.log("  ✖ " + e));
-  } else console.log(`✔ semilla ${seed}${lentos ? ` (${lentos} pantallas lentas: más de 45 s sin cambiar)` : ""}`);
+  } else {
+    // TABLA=1: enseña cómo queda la clasificación final (puesto, reina y última casilla)
+    if (process.env.TABLA) console.log(await page.evaluate(() => { const b = JSON.parse(localStorage.getItem("dftc-story-board") || "[]")[0]; const c = JSON.parse(localStorage.getItem("dftc-story-crowns") || "{}"); return (b && b.trackData ? b.trackData.rows.slice(0, 5).map((r) => `  ${r.place} ${r.name} · ${(r.cells[r.cells.length - 1] || {}).t || "-"}`).join("\n") : "  sin tabla") + "\n  coronas: " + JSON.stringify(c[b && b.season] || null) + " · All Winners: " + allSeasons().find((x) => x.id === "esaw").cast.length + " reinas"; }));
+    console.log(`✔ semilla ${seed}${lentos ? ` (${lentos} pantallas lentas: más de 45 s sin cambiar)` : ""}`);
+  }
   await ctx.close();
 }
 await browser.close();

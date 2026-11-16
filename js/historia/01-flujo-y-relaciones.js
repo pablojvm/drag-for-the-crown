@@ -811,6 +811,9 @@
     if (fpOk) rows.sort((a, b) => fo(a.k) - fo(b.k) || b.w - a.w);
     const rk = fpOk ? rows.map((r) => (typeof FP[r.k] === "object" ? FP[r.k].r : `${FP[r.k]}º`)) : rows.map((r, i) => {
       const e = elimAt(r);
+      // Corona doble (All Stars en parejas): las dos ganadoras son primeras y las dos finalistas, segundas
+      const fin = (S.track[r.k] || {})[r.last];
+      if ((fin === "WINNER" || fin === "RUNNER-UP") && rows.filter((x) => (S.track[x.k] || {})[x.last] === fin).length > 1) return fin === "WINNER" ? "1º" : "2º";
       if (e == null) return `${i + 1}º`;
       let a = i, b = i;
       while (a > 0 && elimAt(rows[a - 1]) === e) a--;

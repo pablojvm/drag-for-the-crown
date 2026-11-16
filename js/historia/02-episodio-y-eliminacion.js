@@ -2133,7 +2133,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
         ["judge", "Larga vida a las reinas."],
       ];
       dialog(crown, ctxWith(pjQ(win.find((k) => k !== "me"))), () => {
-        if (win.includes("me")) { Confetti.burst(3000); S.flags.pjDuo = pjQ(pjMate("me")).name; return theEnd(true, pjQ(lose[0]), true); }
+        if (win.includes("me")) { Confetti.burst(3000); S.flags.pjDuo = pjQ(pjMate("me")).name; S.flags.pjDuoId = pjMate("me"); return theEnd(true, pjQ(lose[0]), true); }
         if (mine) return theEnd(false, pjQ(win[0]), true, `La corona doble es para ${esc(full(win))}.`, 2);
         header();
         showTrack(() => theEnd(false, pjQ(win[0]), false, `Te fuiste en el episodio ${S.flags.outEp || "?"}. La corona doble es para ${esc(full(win))}.`, S.flags.myPlace || S.out.length + 1), "Resultado final");

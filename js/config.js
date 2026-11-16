@@ -179,7 +179,12 @@ function allWinnersOrigin() {
   [...REGULAR_ES(), ...PLAYABLE_AS(), { id: "escustom", name: "All Stars a tu gusto", cast: [] }, { id: "esbr", name: "All Stars por brackets", cast: [] }, { id: "espj", name: "All Stars en parejas", cast: [] }].forEach((t) => {
     const name = t.name || t.id;
     const c = storyCrown(t.id);
-    if (c) { if (!add(c.queen, { season: name, how: "win" })) add(c.runner, { season: name, how: "runner" }); return; }
+    if (c) {
+      if (!add(c.queen, { season: name, how: "win" })) add(c.runner, { season: name, how: "runner" });
+      // Corona doble (All Stars en parejas): tu pareja también ganó contigo y te puedes presentar con ella
+      if (c.duo && ALL_QUEEN_IDS().includes(c.duo)) add(c.duo, { season: name, how: "win" });
+      return;
+    }
     const cast = t.cast || [];
     // Temporadas sin ganadora de verdad (brackets, a tu gusto): entra la que ganó tu última partida, aunque no fueras tú
     const R = store.get("dftc-reinantes", {})[t.id];
