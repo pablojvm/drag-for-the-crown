@@ -25,7 +25,9 @@ await page.click("#btn-story");
 await page.locator(".franchise-card").nth(1).click();
 await page.locator(".season-card", { hasText: process.env.TXT || "por brackets" }).click();
 await page.evaluate(([v, f]) => { window.__forceScore = v; window.__hastaFinal = f; }, [Number(process.env.SCORE || 55), process.env.HASTA === "final"]);
-await page.locator("#queen-grid > *").nth(0).click();
+// Dos pasos: tu reina y, después, las 17 rivales al azar (empieza la temporada directamente)
+await page.locator(".cc-q").first().click();
+await page.locator("#cc-rnd").click();
 // JURADO=1: la pasarela con concepto, con un jurado de prueba (el resto de textos, los de siempre)
 if (process.env.JURADO) await page.evaluate(() => {
   window.__jurado = 0;
@@ -39,7 +41,7 @@ if (process.env.JURADO) await page.evaluate(() => {
     return null;
   };
 });
-await page.click("#btn-start");
+if (await page.locator("#btn-start").isVisible().catch(() => false)) await page.click("#btn-start");
 
 const VALID = /^(WIN|TOP2|BTOP|HIGH|SAFE|LOW|BTM2|BTM3|ELIM|BWIN)$/;
 let looks = 0, done = null;
@@ -51,6 +53,7 @@ for (let i = 0; time() && !done; i++) {
       const d = JSON.parse(localStorage.getItem("dftc-story-save") || "null");
       window.__log = window.__log || [];
       if (d && d.al) { const t = "al " + JSON.stringify([d.ep, d.al.pairs]); if (window.__log[window.__log.length - 1] !== t) window.__log.push(t); }
+      if (d && d.br && d.br.mvq) { const t = "mvq " + Object.keys(d.br.mvq).join(","); if (!window.__log.includes(t)) window.__log.push(t); window.__mvq = Object.keys(d.br.mvq).length; window.__merged = !!d.br.merged; }
       if (d && d.br) { const t = JSON.stringify([d.ep, d.br.merged, d.br.back, d.meOut, d.rivals.length, d.out.length]); if (window.__log[window.__log.length - 1] !== t) window.__log.push(t); }
       // Al acabar la temporada: el track record que se guarda en la clasificación (puesto, reina y las tres últimas semanas)
       const fin = JSON.parse(localStorage.getItem("dftc-story-board") || "[]").find((x) => x.season === "esbr" && x.trackData);
@@ -104,10 +107,11 @@ for (let i = 0; time() && !done; i++) {
 console.log((await page.evaluate(() => window.__log || [])).join("\n"));
 await page.screenshot({ path: "/tmp/par-end.png" });
 const jurado = process.env.JURADO ? await page.evaluate(() => window.__jurado) : null;
+const mvq = await page.evaluate(() => window.__mvq || 0);
 await browser.close();
 const labs = done || [];
 const bad = labs.filter((l) => !VALID.test(l));
-const ok = looks > 0 && labs.length > 3 && labs.filter((l) => /^(WIN|TOP2)$/.test(l)).length >= 1 && !bad.length && !errors.length && (jurado === null || jurado > 0);
-console.log(`Looks: ${looks} · capítulo 1 en el track record: ${labs.length ? labs.join(" ") : "no"} · etiquetas raras: ${bad.length}${jurado === null ? "" : ` · pasarelas con concepto: ${jurado}`} · errores: ${errors.length}`);
+const ok = looks > 0 && labs.length > 3 && labs.filter((l) => /^(WIN|TOP2)$/.test(l)).length >= 1 && !bad.length && !errors.length && (jurado === null || jurado > 0) && mvq >= 3;
+console.log(`Looks: ${looks} · capítulo 1 en el track record: ${labs.length ? labs.join(" ") : "no"} · semanas con votos MVQ: ${mvq} · etiquetas raras: ${bad.length}${jurado === null ? "" : ` · pasarelas con concepto: ${jurado}`} · errores: ${errors.length}`);
 errors.forEach((e) => console.log("  ✖ " + e));
 process.exit(ok ? 0 : 1);

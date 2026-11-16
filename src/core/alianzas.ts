@@ -1,7 +1,8 @@
 // All Stars por brackets (como el All Stars 10 y 11) con alianzas por parejas dentro de cada bracket.
 // Regla compartida por el modo historia y el multijugador.
-// - Tres brackets que compiten por separado. Nadie se va: el top 2 de cada semana hace lip sync por la victoria
-//   y cada resultado da puntos (WIN 10, TOP2 9, HIGH 8, SAFE 5, LOW 2).
+// - Tres brackets que compiten por separado. Nadie se va: las dos ganadoras del reto se llevan 2 puntos cada una y
+//   hacen lip sync por la victoria (la que gana suma 1 más). Las otras cuatro dan cada una su punto MVQ a la
+//   compañera del bracket que quieran (como en el All Stars 10).
 // - Dentro de cada bracket, las reinas se alían por parejas, mejor si se complementan (lo que a una le falta, a la
 //   otra le sobra). Se valora en pareja (la nota de las dos se acerca a la media), salvo que una haya hundido a la
 //   otra: entonces se juzga a cada una por separado.
@@ -11,7 +12,9 @@
 // - Final (como el All Stars 10): la mejor eliminada de cada bracket se juega volver en lip sync, y Lalaparuza
 //   por eliminatorias: las que pierden en la 1ª ronda y en la 2ª, fuera; las dos últimas, por la corona.
 
-export const BRACKET_PTS: Record<string, number> = { WIN: 10, TOP2: 9, HIGH: 8, SAFE: 5, LOW: 2, BTM2: 1, ELIM: 0 };
+export const BRACKET_PTS: Record<string, number> = { WIN: 3, TOP2: 2 };
+/** Votos MVQ: en cada episodio, quién da su punto a quién. */
+export type Mvq = Record<number, Record<string, string>>;
 export const BRACKET_NOMBRES = ["Rosa", "Naranja", "Morado"];
 /** Semanas que compite cada bracket. */
 export const BRACKET_SEMANAS = 3;
@@ -30,12 +33,25 @@ export function repartirBrackets(keys: string[], rnd: () => number, primera?: st
   for (let g = 0; g < 3; g++) { const size = base + (g < extra ? 1 : 0); out.push(all.slice(i, i + size)); i += size; }
   return out;
 }
-/** Puntos de una reina en unas semanas, según su track record. */
-export const puntos = (track: Record<number, string> | undefined, eps: number[]) => eps.reduce((t, e) => t + (BRACKET_PTS[(track || {})[e]] || 0), 0);
+/** Puntos MVQ que ha recibido una reina en unas semanas. */
+export const mvqDe = (mvq: Mvq | undefined, k: string, eps: number[]) => eps.reduce((t, e) => t + Object.values((mvq || {})[e] || {}).filter((x) => x === k).length, 0);
+/** Puntos de una reina en unas semanas: los del jurado (su track record) y los votos MVQ de sus compañeras. */
+export const puntos = (track: Record<number, string> | undefined, eps: number[], mvq?: Mvq, k?: string) =>
+  eps.reduce((t, e) => t + (BRACKET_PTS[(track || {})[e]] || 0), 0) + (mvq && k ? mvqDe(mvq, k, eps) : 0);
 /** Clasificación de un bracket: más puntos; si empatan, más victorias; si no, al azar. */
-export function clasificacion(keys: string[], trackOf: (k: string) => Record<number, string> | undefined, eps: number[], rnd: () => number) {
+export function clasificacion(keys: string[], trackOf: (k: string) => Record<number, string> | undefined, eps: number[], rnd: () => number, mvq?: Mvq) {
   const wins = (k: string) => eps.filter((e) => /WIN/.test((trackOf(k) || {})[e] || "")).length;
-  return keys.map((k) => ({ k, p: puntos(trackOf(k), eps), w: wins(k), r: rnd() })).sort((a, b) => b.p - a.p || b.w - a.w || a.r - b.r);
+  return keys.map((k) => ({ k, p: puntos(trackOf(k), eps, mvq, k), w: wins(k), r: rnd() })).sort((a, b) => b.p - a.p || b.w - a.w || a.r - b.r);
+}
+/** Quién da punto MVQ esta semana: todas menos las dos que han hecho lip sync por la victoria. */
+export const votanMvq = (keys: string[], top2: string[]) => keys.filter((k) => !top2.includes(k));
+/**
+ * A quién da su punto MVQ una reina del juego: a su aliada, a quien aprecia... y, por estrategia, mejor no a las
+ * que van primeras (una rival menos para el corte). Nunca a sí misma.
+ */
+export function eligeMvq(o: { yo: string; cands: string[]; aliada?: string | null; rel: (k: string) => number; pts: (k: string) => number; rnd: () => number }): string {
+  const cs = o.cands.filter((k) => k !== o.yo);
+  return cs.map((k) => ({ k, v: (k === o.aliada ? 5 : 0) + o.rel(k) * 1.2 - o.pts(k) * 0.4 + o.rnd() * 3 })).sort((a, b) => b.v - a.v)[0]?.k || cs[0];
 }
 
 /** Lo bien que se complementan dos reinas: en cada atributo cuenta la mejor de las dos (y resta si flojean en lo mismo). */

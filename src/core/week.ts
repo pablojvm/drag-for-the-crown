@@ -60,6 +60,8 @@ export function weekLabels(rows: LabelRow[], c: LabelCtx): string[] {
     else if (k <= highTo) lab = "HIGH";
     else if (k >= n - c.nb - 1) lab = "LOW";
     else lab = "SAFE";
+    // All Stars por brackets: el jurado solo elige a las dos mejores; las demás, a salvo (los puntos los dan ellas)
+    if (c.twist === "brackets" && lab !== "TOP2") lab = "SAFE";
     if (c.twist === "winners") {
       // Sin bottom ni críticas negativas
       if (lab === "LOW" || /^BTM/.test(lab)) lab = "SAFE";

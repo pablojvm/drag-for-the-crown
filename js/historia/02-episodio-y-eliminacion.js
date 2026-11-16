@@ -1489,7 +1489,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     // All Stars: antes del lip sync, cada una del top 2 elige en secreto su pintalabios; la ganadora lo saca
     if (twistOf() === "allstars") return asPicks(top2, bottomRows, (picks) => topLipSync(top2, (dec) => asReveal(dec, top2, picks, bottomRows)));
     if (twistOf() === "winners") return topLipSync(top2, (dec) => winnersStar(dec, top2));
-    if (twistOf() === "brackets") return topLipSync(top2, () => bracketWeekEnd());
+    if (twistOf() === "brackets") return topLipSync(top2, () => brMvqWeek(() => bracketWeekEnd()));
     // Segunda Oportunidrag: con siete reinas se van dos de golpe... y vuelve una por sorpresa
     if (repescaNow()) return tripleLipSync(bottomRows, winner, rows);
     if (meBottom) return lipSync(others[0], false);
@@ -1924,11 +1924,63 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
 
   // ------------------------------ All Stars por brackets ------------------------------
   // Como el All Stars 10 y 11: tres brackets que compiten por separado (tres semanas cada uno). Nadie se va:
-  // el top 2 hace lip sync por la victoria y cada resultado da puntos. Pasan las dos con más puntos de cada
-  // bracket y, de las demás, vuelve la mejor. Luego la temporada sigue con las reglas de siempre.
+  // las dos ganadoras del reto se llevan 2 puntos y hacen lip sync por la victoria (+1 la que gana); las demás
+  // dan su punto MVQ a una compañera. Al final del bracket pasan las de más puntos. Luego, las reglas de siempre.
   const BR_NAMES = ["Rosa", "Naranja", "Morado"];
   const brQ = (k) => (k === "me" ? S.queen : qById(k));
-  const brPts = (k, eps) => DFTC.alianzas.puntos(S.track[k], eps);
+  const brPts = (k, eps) => DFTC.alianzas.puntos(S.track[k], eps, S.br && S.br.mvq, k);
+  // Lo que se aprecian dos reinas (tú cuentas con tu relación; entre ellas, si son del mismo grupo de amigas)
+  const brRel = (a, b) => (a === "me" ? relOf(brQ(b)) : b === "me" ? relOf(brQ(a)) : groupAff(brQ(a), brQ(b)));
+  const brAliada = (k) => (S.al && S.al.ep === S.ep ? ((S.al.pairs.find((p) => p.includes(k)) || []).find((x) => x !== k) || null) : null);
+  /** Votos MVQ de las que no han hecho lip sync en un bracket (las reinas del juego; el tuyo lo eliges tú). */
+  function brVotos(keys, top2, eps, mine) {
+    const votos = {};
+    DFTC.alianzas.votanMvq(keys, top2).forEach((k) => {
+      if (k === "me") { if (mine) votos.me = mine; return; }
+      votos[k] = DFTC.alianzas.eligeMvq({ yo: k, cands: keys, aliada: brAliada(k), rel: (x) => brRel(k, x), pts: (x) => brPts(x, eps), rnd: Math.random });
+    });
+    return votos;
+  }
+  // Tras el lip sync por la victoria: el punto MVQ. Si no estás en el top 2, eliges a quién se lo das
+  function brMvqWeek(then) {
+    const keys = S.br.groups[0];
+    const eps = brEps(0).filter((e) => e <= S.ep);
+    const top2 = keys.filter((k) => /WIN|TOP2/.test((S.track[k] || {})[S.ep] || ""));
+    const nm = (k) => esc(k === "me" ? "Tú" : brQ(k).name);
+    const reveal = (mine) => {
+      const votos = brVotos(keys, top2, eps, mine);
+      S.br.mvq = { ...(S.br.mvq || {}), [S.ep]: votos };
+      const notes = [];
+      Object.entries(votos).forEach(([de, a]) => {
+        if (a === "me" && de !== "me") changeRel(brQ(de), 1);
+        if (de === "me") changeRel(brQ(a), 1);
+      });
+      const ali = brAliada("me");
+      if (ali && votos[ali] && votos[ali] !== "me") { changeRel(brQ(ali), -1); notes.push(`💔 Tu aliada, ${nm(ali)}, no te ha dado su punto: se lo ha dado a ${nm(votos[ali])}.`); }
+      const mios = Object.entries(votos).filter(([, a]) => a === "me").map(([de]) => de);
+      logEv(`Votos MVQ del Bracket Rosa: ${Object.entries(votos).map(([de, a]) => `${de === "me" ? S.queen.name : brQ(de).name} a ${a === "me" ? S.queen.name : brQ(a).name}`).join(", ")}`);
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">⭐ Bracket Rosa · votos MVQ</p>
+          <h3>${mios.length ? `Recibes ${mios.length} punto${mios.length > 1 ? "s" : ""} MVQ` : "Esta semana no recibes ningún punto MVQ"}</h3>
+          <p class="muted">Supremme lee los votos: cada una ha dado su punto a la reina que ha querido.</p>
+          <div class="al-grid">${Object.entries(votos).map(([de, a]) => `<div class="al-pair ${de === "me" || a === "me" ? "mine" : ""}">${brFace(de)}<span class="mvq-arrow">⭐ →</span>${brFace(a)}</div>`).join("")}</div>
+          ${notes.map((t) => `<p class="twist-note">${t}</p>`).join("")}
+          <button class="btn btn-primary" id="story-next">Ver la clasificación</button>
+        </div>`;
+      $("#story-next").addEventListener("click", then);
+    };
+    if (top2.includes("me")) return reveal(null);
+    const ali = brAliada("me");
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">⭐ Bracket Rosa · tu punto MVQ</p>
+        <h3>¿A quién le das tu punto?</h3>
+        <p class="muted">Las que no habéis hecho lip sync dais un punto a una compañera del bracket. Al acabar la tercera semana pasan las de más puntos: piensa a quién ayudas.</p>
+        <div class="al-cands">${keys.filter((k) => k !== "me").map((k) => `<button class="al-q" data-p="${k}"><i style="background-image:url('${photo(brQ(k))}')"></i><b>${nm(k)}</b><small>${brPts(k, eps)} pts${k === ali ? " · tu aliada" : ""}${top2.includes(k) ? " · top 2 esta semana" : ""}</small></button>`).join("")}</div>
+      </div>`;
+    document.querySelectorAll(".al-q").forEach((b) => b.addEventListener("click", () => reveal(b.dataset.p)));
+  }
   const brWins = (k, eps) => eps.filter((e) => /WIN/.test((S.track[k] || {})[e] || "")).length;
   const brRank = (keys, eps) => keys.map((k) => ({ k, p: brPts(k, eps), w: brWins(k, eps), r: Math.random() })).sort((a, b) => b.p - a.p || b.w - a.w || a.r - b.r);
   const brEps = (g) => Array.from({ length: S.br.per }, (_, i) => S.br.start[g] + i);
@@ -2025,7 +2077,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       <div class="story-card">
         <p class="eyebrow">🏆 All Stars por brackets</p>
         <h3>Así quedan los tres brackets</h3>
-        <p class="muted">Cada bracket compite tres semanas. Nadie se va a casa: las dos mejores de cada semana hacen lip sync por la victoria. Puntos: WIN 10 · TOP2 9 · HIGH 8 · SAFE 5 · LOW 2. Pasan las ${Math.ceil(size / 2)} con más puntos. Dentro de cada bracket os aliaréis por parejas.</p>
+        <p class="muted">Cada bracket compite tres semanas. Nadie se va a casa: las dos ganadoras del reto se llevan 2 puntos y hacen lip sync por la victoria (la que gana, 1 más). Las demás dan su punto MVQ a la compañera que quieran. Pasan las ${Math.ceil(size / 2)} con más puntos. Dentro de cada bracket os aliaréis por parejas.</p>
         <div class="br-grid">${groups.map((g, i) => `<div class="br-box" style="--grp:${BR_COLORS[i].c}"><b>${BR_COLORS[i].n}${i === 0 ? " · el tuyo" : ""}</b>${g.map((k) => brFace(k)).join("")}</div>`).join("")}</div>
         <p>Empieza el <b>Bracket Rosa</b>: el tuyo. Los otros dos esperan su turno.</p>
         <button class="btn btn-primary" id="story-next">¡A competir!</button>
@@ -2044,6 +2096,9 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     rows.forEach((r, i) => ((S.track[r.k] = S.track[r.k] || {})[S.ep] = L[i]));
     const [w] = simLS(qById(rows[0].k), qById(rows[1].k));
     S.track[w.id][S.ep] = "WIN";
+    // Votos MVQ de este bracket
+    const eps = Array.from({ length: S.ep }, (_, i) => i + 1);
+    S.br.mvq = { ...(S.br.mvq || {}), [S.ep]: brVotos(keys, [rows[0].k, rows[1].k], eps, null) };
     return w;
   }
   // Fin de semana en la fase de grupos: la clasificación del bracket o, si es la última semana, el corte
@@ -2084,22 +2139,34 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     S.al = null; // desde aquí, cada una por su cuenta
     S.rivals = adv.filter((k) => k !== "me").map(qById).filter(Boolean);
     logEv(`Fin de los brackets. Pasan ${adv.map((k) => brQ(k).name).join(", ")}`);
-    if (!meAdv) {
-      aftermath(brQ(R0[0].k), `No has pasado el corte del Bracket Rosa: pasan ${R0.slice(0, nAdv).map((x) => esc(brQ(x.k).name)).join(", ").replace(/, ([^,]*)$/, " y $1")}. Pero atenta: cuando queden siete, la mejor eliminada de cada bracket se juega volver.`);
-      S.flags.outEp = lastEp;
-      save();
-      return;
-    }
-    body().innerHTML = `
-      <div class="story-card">
-        <p class="eyebrow">🏆 Fin de la fase de grupos</p>
-        <h3>¡Pasas a la fase final!</h3>
-        <div class="br-grid">${[0, 1, 2].map((g) => brTable(g, brEps(g), true)).join("")}</div>
-        <p class="muted">${notes.join("<br>")}</p>
-        <p>Se acabaron las alianzas: desde ahora, todas juntas y cada una por su cuenta. Las dos peores, al lip sync. Cuando quedéis siete, vuelve una eliminada y se decide todo en la Lalaparuza.</p>
-        <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
-      </div>`;
-    endEpisodeBtn();
+    // El corte, como en el programa: Supremme lee los puntos de tu bracket
+    const nmK = (k) => (k === "me" ? S.queen.name : brQ(k).name);
+    const lista = (ks) => ks.map(nmK).join(", ").replace(/, ([^,]*)$/, " y $1");
+    const pasan = R0.slice(0, nAdv), fuera = R0.slice(nAdv);
+    const corte = [
+      ["host", "Reinas del Bracket Rosa, se acabó la fase de grupos. Han hablado el jurado... y vosotras con vuestros votos."],
+      ...pasan.map((x, i) => ["host", `${i === 0 ? "Con más puntos que nadie" : "Con"} ${x.p} puntos... ${nmK(x.k)}. ${x.k === "me" ? "Pasas" : "Pasa"} a la fase final.`]),
+      ["host", `${lista(fuera.map((x) => x.k))}: no os llegan los puntos. Aquí se acaba vuestro camino... de momento.`],
+      ["judge", "Cuando queden siete, la mejor eliminada de cada bracket se juega volver. Que nadie se relaje."],
+    ];
+    dialog(corte, ctxWith(brQ(R0[0].k === "me" ? (R0[1] || R0[0]).k : R0[0].k)), () => {
+      if (!meAdv) {
+        aftermath(brQ(R0[0].k), `No has pasado el corte del Bracket Rosa: pasan ${R0.slice(0, nAdv).map((x) => esc(brQ(x.k).name)).join(", ").replace(/, ([^,]*)$/, " y $1")}. Pero atenta: cuando queden siete, la mejor eliminada de cada bracket se juega volver.`);
+        S.flags.outEp = lastEp;
+        save();
+        return;
+      }
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">🏆 Fin de la fase de grupos</p>
+          <h3>¡Pasas a la fase final!</h3>
+          <div class="br-grid">${[0, 1, 2].map((g) => brTable(g, brEps(g), true)).join("")}</div>
+          <p class="muted">${notes.join("<br>")}</p>
+          <p>Se acabaron las alianzas: desde ahora, todas juntas y cada una por su cuenta. Las dos peores, al lip sync. Cuando quedéis siete, vuelve una eliminada y se decide todo en la Lalaparuza.</p>
+          <button class="btn btn-primary" id="story-next">Siguiente episodio</button>
+        </div>`;
+      endEpisodeBtn();
+    });
   }
   /** All Stars por brackets: con siete en competición se acaba la temporada regular y llega la Lalaparuza final. */
   const brFinalToca = () => seasonInfo().twist === "brackets" && S.br && S.br.merged && !S.br.final && (S.meOut ? 0 : 1) + S.rivals.length <= 7;

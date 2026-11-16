@@ -10,7 +10,7 @@ import { BANDAS, COLORES_GRUPO, grupoCritica, NOMBRE_JURADO } from "../core/crit
 import { allWinnersCut, allWinnersBottom } from "../core/finales";
 import { lalaStart, lalaPending, lalaResolve, lalaScoreDe, type Lala } from "../core/lala";
 import { rescueFromBottom, coinResult, lipstickKind, addHalfHearts } from "../core/dinamicas";
-import { repartirBrackets, clasificacion, formarAlianzas, notaEnPareja, rompe, puntos, BRACKET_NOMBRES, BRACKET_SEMANAS, BRACKETS_FINAL } from "../core/alianzas";
+import { repartirBrackets, clasificacion, formarAlianzas, notaEnPareja, rompe, puntos, eligeMvq, votanMvq, BRACKET_NOMBRES, BRACKET_SEMANAS, BRACKETS_FINAL, type Mvq } from "../core/alianzas";
 
 export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "reencuentro" | "finalistas" | "votacion" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
@@ -25,7 +25,7 @@ export const FORMATOS: Record<Formato, { n: string; icon: string; d: string }> =
   suerte: { n: "Reina de la suerte", icon: "🍀", d: "Una reina tiene en secreto la reina de la suerte: puede salvar a quien quiera del lip sync una vez." },
   corazon: { n: "Temporada del corazón", icon: "❤️", d: "Cada eliminada deja medio corazón. Con uno entero salvas a alguien del bottom." },
   moneda: { n: "Temporada de la moneda", icon: "🪙", d: "Bottom de tres y moneda al aire: cara, las salvadas votan a quién salvar; cruz, a quién condenar." },
-  brackets: { n: "All Stars por brackets", icon: "🏆", d: "Como el All Stars 10: tres brackets con alianzas, se suman puntos y pasa la mitad de cada uno. Con siete, vuelve una y Lalaparuza final. Siempre con 18 reinas." },
+  brackets: { n: "All Stars por brackets", icon: "🏆", d: "Como el All Stars 10: tres brackets con alianzas; el top 2 suma puntos, las demás dan votos MVQ y pasa la mitad de cada uno. Con siete, vuelve una y Lalaparuza final. Siempre con 18 reinas." },
 };
 // Formas de la gran final: compartidas con el modo historia (src/core/finales.ts)
 import type { FinalFmt } from "../core/finales";
@@ -172,7 +172,7 @@ export interface RoomState {
   rp?: { ep: number; pairs: { c: string; o: string | null }[]; mc?: string };
   rpDone?: boolean;
   /** All Stars por brackets: los tres grupos, desde qué episodio y cuántas semanas compiten; al acabar, done. */
-  br?: { groups: string[][]; start: number; per: number; done?: boolean; back?: string; final?: boolean };
+  br?: { groups: string[][]; start: number; per: number; done?: boolean; back?: string; final?: boolean; /** Votos MVQ de cada semana (quién da su punto a quién). */ mvq?: Mvq };
   /** Alianzas por parejas de la semana (dentro de cada bracket) y el top 2 de cada bracket. */
   al?: { ep: number; pairs: string[][] };
   brTop?: string[][];
@@ -623,17 +623,34 @@ function bracketLipsync(s: RoomState, now: number, e: Engine): RoomState {
   pairs.forEach((p) => p.winner && (track[p.winner] = { ...(track[p.winner] || {}), [s.ep]: "WIN" }));
   let t: RoomState = { ...s, pairs, track };
   const nm = (k: string) => nameOfKey(t, k, e);
-  const B = s.br!;
+  // Votos MVQ (como el All Stars 10): las que no han hecho lip sync dan su punto a una compañera del bracket
+  const B0 = s.br!;
+  const alive0 = new Set(aliveKeys(t));
+  const epsYa = Array.from({ length: s.ep - B0.start + 1 }, (_, i) => B0.start + i);
+  const votos: Record<string, string> = {};
+  B0.groups.forEach((g) => {
+    const ks = g.filter((k) => alive0.has(k));
+    const top2 = (s.brTop || []).find((p) => p.some((k) => g.includes(k))) || [];
+    votanMvq(ks, top2).forEach((k) => {
+      const aliada = (s.al?.pairs.find((p) => p.includes(k)) || []).find((x) => x !== k) || null;
+      votos[k] = eligeMvq({ yo: k, cands: ks, aliada, rel: () => 0, pts: (x) => puntos(t.track[x], epsYa, B0.mvq, x), rnd: e.rnd });
+    });
+  });
+  const B = { ...B0, mvq: { ...(B0.mvq || {}), [s.ep]: votos } };
+  t = { ...t, br: B };
+  const rec: Record<string, number> = {};
+  Object.values(votos).forEach((k) => (rec[k] = (rec[k] || 0) + 1));
+  const mvqTxt = Object.entries(rec).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${nm(k)} (${n})`).join(", ");
   const wonTxt = pairs.filter((p) => p.winner).map((p) => nm(p.winner!)).join(", ");
   const D = DURACION[s.ritmo];
-  if (s.ep < B.start + B.per - 1) return { ...t, note: `Ganan el lip sync por la victoria: ${wonTxt}. Nadie se va a casa: se suman los puntos.`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+  if (s.ep < B.start + B.per - 1) return { ...t, note: `Ganan el lip sync por la victoria: ${wonTxt}. Votos MVQ: ${mvqTxt || "ninguno"}. Nadie se va a casa: se suman los puntos.`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
   // El corte: pasa la mitad de cada bracket (las de más puntos); las demás, a casa
   const eps = Array.from({ length: B.per }, (_, i) => B.start + i);
   const alive = new Set(aliveKeys(t));
   const gone: string[] = [];
   const adv: string[] = [];
   B.groups.forEach((g) => {
-    const cl = clasificacion(g.filter((k) => alive.has(k)), (k) => t.track[k], eps, e.rnd);
+    const cl = clasificacion(g.filter((k) => alive.has(k)), (k) => t.track[k], eps, e.rnd, B.mvq);
     const n = Math.ceil(g.length / 2);
     adv.push(...cl.slice(0, n).map((x) => x.k));
     gone.push(...cl.slice(n).map((x) => x.k));
@@ -641,7 +658,7 @@ function bracketLipsync(s: RoomState, now: number, e: Engine): RoomState {
   const A = alive.size - gone.length;
   const place = gone.length > 1 ? `${A + 1}º/${A + gone.length}º` : `${A + 1}º`;
   gone.forEach((k) => (t = eliminate(t, k, place, "ELIM", e)));
-  const note = `Ganan el lip sync por la victoria: ${wonTxt}. Fin de los brackets: pasan ${adv.map(nm).join(", ")}. Desde ahora, cada una por su cuenta.`;
+  const note = `Ganan el lip sync por la victoria: ${wonTxt}. Votos MVQ: ${mvqTxt || "ninguno"}. Fin de los brackets (pasan las de más puntos): pasan ${adv.map(nm).join(", ")}. Desde ahora, cada una por su cuenta.`;
   return { ...t, br: { ...B, done: true }, al: undefined, brTop: undefined, note, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
 }
 /** ¿Toca ya la final del All Stars por brackets? Con siete (o menos) tras los brackets. */
@@ -656,7 +673,7 @@ function brFinalStart(s: RoomState, now: number, e: Engine): RoomState {
   const nm = (k: string) => nameOfKey(s, k, e);
   const outK = new Set(s.out.map((o) => o.key));
   const eps = Array.from({ length: B.per }, (_, i) => B.start + i);
-  const val = (k: string) => puntos(s.track[k], eps) + ppeOf(s, k);
+  const val = (k: string) => puntos(s.track[k], eps, s.br?.mvq, k) + ppeOf(s, k);
   const cands = B.groups.map((g) => g.filter((k) => outK.has(k)).sort((a, b) => val(b) - val(a))[0]).filter(Boolean).sort((a, b) => val(a) - val(b));
   let back = cands[0];
   cands.slice(1).forEach((c) => { const qa = queenOfKey(s, back), qc = queenOfKey(s, c); back = e.simLS(qa, qc) === qa ? back : c; });
