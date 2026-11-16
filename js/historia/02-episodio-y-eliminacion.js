@@ -2072,6 +2072,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     const groups = [["me", ...others.slice(0, size - 1)], others.slice(size - 1, 2 * size - 1), others.slice(2 * size - 1, 3 * size - 1)];
     S.br = { groups, per, start: [1, 1 + per, 1 + 2 * per], adv: Math.ceil(size / 2), merged: false };
     S.rivals = groups[0].filter((k) => k !== "me").map(qById).filter(Boolean);
+    header(); // arriba ya solo tu bracket
     logEv(`All Stars por brackets: ${S.queen.name} compite en el Bracket Rosa`);
     body().innerHTML = `
       <div class="story-card">

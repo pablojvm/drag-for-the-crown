@@ -636,6 +636,7 @@
     if (nq && S.nemesis.announced) $("#story-season").innerHTML += ` <span class="twist-chip nem-chip">⚔️ Némesis: ${esc(nq.name)}</span>`;
     $("#story-exit").innerHTML = "<i>💾</i><span>Guardar y salir</span>";
     $("#story-count").textContent = S.meOut ? "Fuera de la competición" : `${S.rivals.length + 1} en competición · ${S.out.length} fuera`;
+    const brPh = S.br && S.br.groups && !S.br.merged;
     $("#story-shop").hidden = false;
     $("#story-board").hidden = false;
     $("#story-ia").hidden = true;
@@ -650,6 +651,46 @@
         })
         .join("") +
       S.out.map((q) => `<i title="${esc(q.name)}" class="out" style="background-image:url('${photo(q)}')"></i>`).join("");
+    bracketHud(brPh);
+  }
+  // All Stars por brackets: arriba, solo tu bracket con su color; al pulsar, un desplegable con los tres
+  function bracketHud(brPh) {
+    const box = $("#story-cast") && $("#story-cast").parentElement;
+    if (!box) return;
+    const old = document.querySelector(".br-drop");
+    if (old) old.remove();
+    box.classList.toggle("br-hud", !!(S.br && S.br.groups));
+    box.onclick = null;
+    if (!S.br || !S.br.groups) { box.style.removeProperty("--grp"); return; }
+    const gi = Math.max(0, S.br.groups.findIndex((g) => g.includes("me")));
+    const colOf = (k) => { const i = S.br.groups.findIndex((g) => g.includes(k)); return i >= 0 ? BR_COLORS[i].c : ""; };
+    // Cada cara con el color de su bracket
+    $("#story-cast").querySelectorAll("i").forEach((el, i) => {
+      const q = (S.meOut ? S.rivals : [S.queen, ...S.rivals]).concat(S.out)[i];
+      const c = q && colOf(keyOf(q));
+      if (c) el.style.setProperty("border-color", c, "important");
+    });
+    if (brPh) {
+      box.style.setProperty("--grp", BR_COLORS[gi].c);
+      $("#story-count").innerHTML = `${esc(BR_COLORS[gi].n)} · ${S.rivals.length + (S.meOut ? 0 : 1)} reinas <b class="br-caret">▾</b>`;
+    } else box.style.removeProperty("--grp");
+    box.onclick = (ev) => {
+      ev.stopPropagation();
+      const open = document.querySelector(".br-drop");
+      if (open) return open.remove();
+      const isOut = (k) => (k === "me" ? S.meOut : S.out.some((q) => keyOf(q) === k));
+      const face = (k) => { const q = k === "me" ? S.queen : qById(k); return q ? `<span class="${k === "me" ? "me" : ""} ${isOut(k) ? "out" : ""}"><i style="background-image:url('${photo(q)}')"></i>${esc(k === "me" ? "Tú" : q.name)}</span>` : ""; };
+      const d = document.createElement("div");
+      d.className = "br-drop";
+      d.innerHTML = S.br.groups.map((g, i) => `<div class="br-box" style="--grp:${BR_COLORS[i].c}"><b>${esc(BR_COLORS[i].n)}${i === gi ? " · el tuyo" : ""}</b>${g.map(face).join("")}</div>`).join("");
+      // Encima de todo (fuera de la cabecera, que queda por debajo de las tarjetas)
+      const r = box.getBoundingClientRect();
+      d.style.top = `${r.bottom + 8}px`;
+      document.body.appendChild(d);
+      d.style.left = `${Math.max(8, Math.min(innerWidth - d.offsetWidth - 8, r.right - d.offsetWidth))}px`;
+      const close = (e) => { if (!d.contains(e.target)) { d.remove(); document.removeEventListener("click", close); } };
+      setTimeout(() => document.addEventListener("click", close), 0);
+    };
   }
 
   // --------------------------- Críticas del jurado --------------------------

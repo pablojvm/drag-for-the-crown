@@ -3208,3 +3208,12 @@ body.portrait .rg-pieces li span { white-space: normal; display: -webkit-box; -w
   .mp-customset .mp-cs-cast { padding: 10px 16px; margin-bottom: 10px; }
 }
 body.portrait .mp-cs-faces { flex-wrap: wrap; }
+
+/* All Stars por brackets: arriba, tu bracket con su color; al pulsar, los tres brackets */
+.hud-cast.br-hud { position: relative; cursor: pointer; }
+.hud-cast.br-hud[style*="--grp"] { border: 3px solid var(--grp); border-radius: 18px; padding: 4px 8px; background: color-mix(in srgb, var(--grp) 12%, transparent); }
+.hud-cast.br-hud .hud-count { color: var(--grp, inherit); font-weight: 800; }
+.br-caret { display: inline-block; margin-left: 4px; transition: transform .2s; }
+.br-drop { position: fixed; z-index: 9999; display: grid; grid-template-columns: repeat(3, minmax(170px, 1fr)); gap: 10px; width: min(640px, 92vw); padding: 12px; border-radius: 18px; background: #fff; box-shadow: 0 20px 50px -20px rgba(40,0,60,.55); cursor: default; animation: fade-in .2s ease; }
+.br-drop .br-box span.out { opacity: .45; text-decoration: line-through; }
+body.portrait .br-drop { grid-template-columns: 1fr; max-height: 70vh; overflow-y: auto; }

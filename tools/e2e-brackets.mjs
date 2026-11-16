@@ -100,6 +100,15 @@ for (let i = 0; time() && !done; i++) {
   // SHOTS_DIR: fotos de la tabla con los colores de grupo y de la pantalla del corte de los brackets
   if (process.env.SHOTS_DIR) {
     const what = await page.evaluate(() => (document.querySelector(".br-box span.adv") ? "corte" : document.querySelector(".track td.qn.grp") && document.querySelectorAll(".track tbody tr").length > 8 ? "track" : ""));
+    // La cabecera con tu bracket y, al pulsarla, el desplegable con los tres
+    if (!globalThis.__shot_hud && (await page.evaluate(() => !!document.querySelector('.hud-cast.br-hud[style*="--grp"]') && !document.querySelector(".dlg")))) {
+      globalThis.__shot_hud = 1;
+      await page.screenshot({ path: `${process.env.SHOTS_DIR}/hud.png` });
+      await page.click(".hud-cast");
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: `${process.env.SHOTS_DIR}/hud-abierto.png` });
+      await page.mouse.click(5, 5);
+    }
     if (what && !globalThis["__shot_" + what]) { globalThis["__shot_" + what] = 1; await page.waitForTimeout(900); await page.screenshot({ path: `${process.env.SHOTS_DIR}/${what}.png`, fullPage: true }); }
   }
   if (process.env.SHOTS && i % 600 === 0) await page.screenshot({ path: `/tmp/eh-${i}.png` });
