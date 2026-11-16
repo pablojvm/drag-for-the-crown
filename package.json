@@ -23,6 +23,7 @@
     "e2e:jurado": "JURADO=1 node tools/e2e-historia.mjs http://localhost:4173/",
     "e2e:temporada": "node tools/e2e-temporada.mjs http://localhost:4173/",
     "e2e:brackets": "node tools/e2e-brackets.mjs http://localhost:4173/",
+    "e2e:mp-retos": "node tools/e2e-mp-retos.mjs http://localhost:4173/",
     "e2e:atascos": "node tools/fuzz-historia.mjs http://localhost:4173/",
     "server": "npm run build --prefix server && node server/dist/index.js",
     "e2e:mp-server": "node tools/e2e-mp-server.mjs ws://localhost:2599 && node tools/e2e-mp-online.mjs http://localhost:4173/ ws://localhost:2599",

@@ -2,7 +2,7 @@
 // Los textos de los retos los puede traer quien crea la sala (los mismos que ve en su juego); si no, salen del núcleo.
 import type { Engine, Reto, MiniDef } from "./model";
 import { MINIS, miniRival } from "../core/taller";
-import { MAXI } from "../core/maxi";
+import { MAXI, talentoDe } from "../core/maxi";
 import { criticaJurado, NOMBRE_JURADO } from "../core/criticas";
 import { TEMAS_PASARELA } from "../core/temas";
 import { REINAS_ES, queenStats, baseAttrs, pasarelaAttr, QATTRS, type QAttr } from "../core/reinas";
@@ -11,10 +11,11 @@ import { BALANCE } from "../core/balance";
 
 export interface Content { retos?: (Reto & { attrs?: QAttr[] })[]; categorias?: { n: string; d: string }[]; repesca?: Reto; names?: Record<string, string>; minis?: MiniDef[] }
 
-const MP_RETOS = ["snatch", "roast", "rusical", "actuacion", "diseno", "makeover", "impro"];
+const MP_RETOS = ["talento", "snatch", "roast", "rusical", "actuacion", "diseno", "makeover", "impro", "talkshow", "branding"];
+const TITULOS: Record<string, string> = { diseno: "Reto de diseño", talkshow: "Talk show: tu propio programa", branding: "Branding: lanza tu propia marca" };
 /** Retos por grupos (de cuántas): los mismos que en el modo historia. */
 const GRUPOS: Record<string, number> = { equipos: 3, impro: 3, publicidad: 2 };
-const ATTRS: Record<string, QAttr[]> = { diseno: ["costura", "moda"], repescaStand: ["comedia", "improvisacion"] };
+const ATTRS: Record<string, QAttr[]> = { diseno: ["costura", "moda"], repescaStand: ["comedia", "improvisacion"], talkshow: ["improvisacion", "carisma"], branding: ["carisma", "moda"] };
 const QA: QAttr[] = QATTRS;
 const s = (v: unknown, n: number) => String(v ?? "").slice(0, n);
 
@@ -31,7 +32,7 @@ export function cleanContent(c: unknown): Content {
 }
 
 const defaultRetos = (): Reto[] =>
-  MP_RETOS.map((k) => ({ tipo: k, titulo: MAXI[k]?.titulo || (k === "diseno" ? "Reto de diseño" : k), desc: "", noRunway: !!MAXI[k]?.noRunway, ...(GRUPOS[k] ? { groups: GRUPOS[k] } : {}) }));
+  MP_RETOS.map((k) => ({ tipo: k, titulo: MAXI[k]?.titulo || TITULOS[k] || k, desc: "", noRunway: !!MAXI[k]?.noRunway, ...(GRUPOS[k] ? { groups: GRUPOS[k] } : {}) }));
 
 export function coreEngine(content: () => Content, rnd: () => number = Math.random): Engine {
   const attrsOfTipo = (tipo: string): QAttr[] => {
@@ -45,7 +46,8 @@ export function coreEngine(content: () => Content, rnd: () => number = Math.rand
     categorias: () => content().categorias || TEMAS_PASARELA.filter((t) => !t.rv).map((t) => ({ n: t.n, d: t.d })),
     rivalScore: (q, tipo) => {
       const a = baseAttrs(q, queenStats(q));
-      const keys = attrsOfTipo(tipo);
+      // En el talent show cada una enseña lo que mejor se le da
+      const keys = tipo === "talento" ? talentoDe(a).attrs : attrsOfTipo(tipo);
       const v = keys.reduce((t, k) => t + a[k], 0) / keys.length;
       const noRunway = !!(MAXI[tipo]?.noRunway || content().retos?.find((r) => r.tipo === tipo)?.noRunway);
       return clamp(notaDe(tirarDado(noRunway ? v : v * 0.7 + pasarelaAttr(a) * 0.3, rnd), rnd()), 5, 99);

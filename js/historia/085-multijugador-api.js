@@ -3,7 +3,7 @@
   // La temporada en directo (src/mp) lleva su propio flujo; aquí solo se le prestan los retos, la pasarela,
   // el lip sync, las notas, los diálogos y los textos del jurado. Mientras dura (S.mp) no se guarda la partida individual;
   // la IA solo se usa si la sala se creó con ella (S.mpIA).
-  const MP_RETOS = ["snatch", "roast", "rusical", "actuacion", "diseno", "makeover", "impro", "equipos", "publicidad"];
+  const MP_RETOS = ["talento", "snatch", "roast", "rusical", "actuacion", "diseno", "makeover", "impro", "equipos", "publicidad", "talkshow", "branding"];
   const mpQ = (k) => (k === "me" ? S.queen : qById(k));
   const mpApi = {
     begin(queenId, seasonId, rivalIds, opts = {}) {
@@ -133,7 +133,7 @@
         runLipsync(el.querySelector("#mp-ls-play"), rival, (won, score) => { cleanup = null; cb(!!won, Math.round(score || 0)); });
       }, o.curtain || "LIP SYNC"));
     },
-    retos: () => MP_RETOS.filter((k) => RETOS[k]).map((k) => ({ tipo: k, titulo: RETOS[k].titulo(), desc: RETOS[k].desc, noRunway: !!RETOS[k].noRunway, ctrl: RETOS[k].ctrl, ...(RETOS[k].groups ? { groups: RETOS[k].groups } : {}) })),
+    retos: () => MP_RETOS.filter((k) => RETOS[k]).map((k) => ({ tipo: k, titulo: RETOS[k].titulo(), desc: RETOS[k].desc, noRunway: !!RETOS[k].noRunway, ctrl: RETOS[k].ctrl, attrs: RETOS[k].attrs, ...(RETOS[k].groups ? { groups: RETOS[k].groups } : {}) })),
     /** Minirretos (los del modo historia). */
     minis: () => Object.keys(MINIRETOS).map((id) => ({ id, titulo: MINIRETOS[id].titulo(), desc: MINIRETOS[id].desc, ctrl: MINIRETOS[id].ctrl })),
     /** Juega el minirreto (nota de 0 a 100). */

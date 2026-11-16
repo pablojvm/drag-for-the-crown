@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { newRoom } from "../src/mp/model";
+import { newRoom, makePlan } from "../src/mp/model";
 import { applyOp, handOver } from "../src/mp/ops";
 import { coreEngine, cleanContent } from "../src/mp/engine-core";
 
@@ -48,6 +48,16 @@ describe("motor del servidor (solo núcleo)", () => {
     expect(c.some(([who]) => who === "Ana Locking")).toBe(true);
     expect(e.retos().length).toBeGreaterThan(3);
     expect(e.categorias().length).toBeGreaterThan(3);
+  });
+  it("la temporada abre con el talent show y no lo repite; están el talk show y el branding", () => {
+    const tipos = e.retos().map((r) => r.tipo);
+    expect(tipos).toEqual(expect.arrayContaining(["talento", "talkshow", "branding"]));
+    for (let k = 0; k < 20; k++) {
+      const plan = makePlan(14, e);
+      expect(plan[0].tipo).toBe("talento");
+      expect(plan.filter((p) => p.tipo === "talento")).toHaveLength(1);
+    }
+    for (let k = 0; k < 20; k++) expect(e.rivalScore("pupi", "talento")).toBeGreaterThan(0);
   });
   it("limpia lo que manda el cliente", () => {
     const c = cleanContent({ retos: [{ tipo: "snatch", titulo: "x".repeat(500), desc: 1, attrs: ["comedia", "hack"] }, { nope: 1 }], categorias: "no", names: { a: "b" } });

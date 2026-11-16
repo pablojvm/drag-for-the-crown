@@ -283,16 +283,21 @@ export function startSeason(s: RoomState, cast: string[], now: number, e: Engine
   if (s.fmt === "suerte") { const all = aliveKeys(base); base.luck = all[Math.floor(e.rnd() * all.length)]; }
   return base;
 }
+/** El reto que abre la temporada. */
+const TALENTO = "talento";
 /** Reparto de retos (sin repetir hasta agotarlos) y una pasarela distinta para cada uno que la tenga. */
 export function makePlan(n: number, e: Pick<Engine, "retos" | "categorias" | "rnd">): PlanEp[] {
-  const all = e.retos();
+  // El talent show abre la temporada (como en el programa) y no se repite
+  const abre = e.retos().find((r) => r.tipo === TALENTO);
+  const resto = e.retos().filter((r) => r.tipo !== TALENTO);
+  const all = resto.length ? resto : e.retos();
   const cats = e.categorias().slice();
   const out: PlanEp[] = [];
   const fams = new Set<string>();
   let pool: typeof all = [];
   for (let i = 0; i < n; i++) {
     if (!pool.length) pool = all.slice();
-    const r = pool.splice(Math.floor(e.rnd() * pool.length), 1)[0];
+    const r = i === 0 && abre ? abre : pool.splice(Math.floor(e.rnd() * pool.length), 1)[0];
     const ep: PlanEp = { tipo: r.tipo };
     if (!r.noRunway) {
       // Ni repetida ni parecida a otra de la temporada (mientras queden)
@@ -343,7 +348,8 @@ function nextEpisode(s0: RoomState, now: number, e: Engine): RoomState {
     r = { ...all.find((x) => x.tipo === planned.tipo)! };
     if (!r.noRunway) r.cat = planned.cat || e.categorias()[0];
   } else {
-    let pool = all.filter((x) => !s.used.includes(x.tipo));
+    let pool = all.filter((x) => !s.used.includes(x.tipo) && x.tipo !== TALENTO);
+    if (!pool.length) pool = all.filter((x) => x.tipo !== TALENTO);
     if (!pool.length) pool = all;
     r = { ...pool[Math.floor(e.rnd() * pool.length)] };
     if (!r.noRunway) { const cats = e.categorias(); r.cat = cats[Math.floor(e.rnd() * cats.length)]; }
@@ -1024,7 +1030,7 @@ function startFinal(s0: RoomState, now: number, e: Engine): RoomState {
   }
   if (fmt === "reto") {
     // Un último reto con pasarela (sin grupos ni Lalaparuza): lo que no se haya hecho aún, si queda
-    const all = e.retos().filter((r) => !r.groups && r.tipo !== LALA.tipo && !r.noRunway);
+    const all = e.retos().filter((r) => !r.groups && r.tipo !== LALA.tipo && r.tipo !== TALENTO && !r.noRunway);
     const pool = all.filter((r) => !s.used.includes(r.tipo));
     const src = pool.length ? pool : all.length ? all : e.retos();
     const r: Reto = { ...src[Math.floor(e.rnd() * src.length)] };
