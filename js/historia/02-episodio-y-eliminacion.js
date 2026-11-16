@@ -242,7 +242,7 @@
     if (ord.length < ORDEN_RETOS.length - (ord.includes("talento") ? 0 : 1)) ord = ORDEN_RETOS; // partidas muy antiguas, sin orden
     // La Lalaparuza solo cae con 8 o 16 reinas (cuadro sin ronda previa): si toca antes, se aplaza; si toca ya, se adelanta
     const n = S.rivals.length + 1, p2 = n >= 8 && (n & (n - 1)) === 0;
-    if (S.order && ord.length === S.order.length && twistOf() !== "winners") {
+    if (S.order && ord.length === S.order.length && twistOf() !== "winners" && twistOf() !== "parejas") {
       const O = S.order, i = (S.ep - 1) % O.length, li = O.indexOf("lalaparuza");
       if (O[i] === "lalaparuza" && !p2) {
         const tgt = n > 8 ? i + (n - 8) : O.length - 1;
@@ -262,6 +262,8 @@
     }
     // All Stars por brackets: la Lalaparuza es la final (no un reto de la temporada)
     if (tipo === "lalaparuza" && seasonInfo().twist === "brackets") tipo = ord.find((t) => !hechos.has(t) && t !== "talento" && t !== "lalaparuza") || "snatch";
+    // All Stars en parejas: sin retos de grupos de tres ni Lalaparuza
+    if (twistOf() === "parejas" && PJ_SIN.includes(tipo)) tipo = ord.find((t) => !hechos.has(t) && t !== "talento" && !PJ_SIN.includes(t)) || "snatch";
     S.retoHist[S.ep] = tipo;
     S.retoEp = { ep: S.ep, tipo };
     return tipo;
@@ -354,7 +356,7 @@
     const n = S.rivals.length + 1;
     const tw = twistOf();
     const out = [];
-    if (!asLike(tw) && !S.meOut) {
+    if (!asLike(tw) && tw !== "parejas" && !S.meOut) {
       if (n === 6 && S.flags.finalistaEp == null && Math.random() < 0.4) S.flags.finalistaEp = S.ep;
       if (n === 5 && S.flags.paseEp == null && Math.random() < 0.4) S.flags.paseEp = S.ep;
     }
@@ -417,6 +419,8 @@
     if (tipo === "repescaStand") return repescaPairs(go);
     if (tipo === "repescaMakeover") return makeoverEpisode();
     const rest = () => {
+      // All Stars en parejas: todos los retos se hacen (y se valoran) con tu pareja
+      if (pjOn()) { const m = pjMate("me"); S.cGroups = pjPairs(); S.cSize = 2; S.team = m ? [pjQ(m)] : null; return go(); }
       const grouped = reto.groups && S.rivals.length + 1 >= reto.groups * 2;
       if (grouped) return formChallengeGroups(reto.groups, go);
       if (reto.team && S.rivals.length >= 3) return caps();
@@ -733,6 +737,15 @@
         if (r.separadas) S.al.sep.push(p);
       });
     }
+    // All Stars en parejas: lo que a una le falta lo pone la otra (la mejor de las dos en el reto echa una mano)
+    if (pjOn() && !sc.__pj) {
+      sc.__pj = 1;
+      const ra = (k) => retoAttrOf(pjQ(k));
+      pjPairs().forEach(([a, b]) => [[a, b], [b, a]].forEach(([k, o]) => {
+        const x = DFTC.alianzas.ayudaAliada(ra(k), ra(o));
+        if (k === "me") { myScore = clamp(myScore + x, 0, 100); sc.__me = myScore; } else if (sc[k] != null) sc[k] = clamp(sc[k] + x, 0, 99);
+      }));
+    }
     if (S.phase && S.phase.ep === S.ep && !S.phase.sc) { S.phase.sc = { ...sc }; save(); }
     let teamLine = "";
     let winTeam = null;
@@ -763,7 +776,7 @@
       const byK = new Map(rows.map((r) => [keyOf(r.q), r]));
       // Cada grupo con su nombre (el que se le dio al formarlos: Pareja Rosa, Grupo Oro...)
       // En Girl Groups, cada grupo es una banda: la tuya con el nombre que le pusisteis y las demás con el suyo
-      const gLabel = (g, i) => (band && S.curTipo === "equipos" ? `«${g.includes(keyOf(S.queen)) ? band : ggBandOf(i)}»` : `${groupWord(S.cSize || g.length)} ${GROUP_NAMES[i % GROUP_NAMES.length]}`);
+      const gLabel = (g, i) => pjOn() ? pjNameOf(g) : (band && S.curTipo === "equipos" ? `«${g.includes(keyOf(S.queen)) ? band : ggBandOf(i)}»` : `${groupWord(S.cSize || g.length)} ${GROUP_NAMES[i % GROUP_NAMES.length]}`);
       const G = S.cGroups.map((g, i) => Object.assign(g.map((k) => byK.get(k)).filter(Boolean), { label: gLabel(g, i) })).filter((g) => g.length);
       if (G.length >= 2) {
         G.forEach((g) => (g.avg = g.reduce((a, r) => a + r.s, 0) / g.length));
@@ -803,6 +816,9 @@
       if (i >= n - nb && n - nb - 1 >= 1) { const [r] = rows.splice(i, 1); rows.splice(n - nb - 1, 0, r); }
     }
     let bottomRows = rows.slice(n - nb);
+    // All Stars en parejas: al lip sync van las dos peores parejas (las cuatro)
+    const pj = pjOn() && !!groupOf && nGroups >= 3;
+    if (pj) bottomRows = rows.filter((r) => groupOf.get(r) >= nGroups - 2);
     const notes = [];
     if (tw === "brackets" && S.al && S.al.ep === S.ep && (S.al.sep || []).length) notes.push(`👯 ${S.al.sep.map((p) => p.map((k) => `<b>${esc(k === "me" ? "Tú" : brQ(k).name)}</b>`).join(" y ")).join(", ")}: esta semana una ha hundido a la otra, así que el jurado os valora por separado.`);
     // El reto anterior a la Segunda Oportunidrag da inmunidad para esa semana
@@ -830,7 +846,7 @@
     const finish = () => {
       const myPos = rows.findIndex((r) => r.me);
       const bottom = bottomRows.some((r) => r.me);
-      const won = myPos === 0;
+      const won = pj ? groupOf.get(rows[myPos]) === 0 : myPos === 0;
       // Al reanudar a mitad de resultados no se vuelve a sumar la semana
       const already = !!(S.phase && S.phase.ep === S.ep && S.phase.counted);
       if (!already) {
@@ -879,6 +895,8 @@
         blocked: S.block && S.block.ep === S.ep ? S.block.id : null,
       });
       rows.forEach((r, k) => labs.set(r, L[k]));
+      // All Stars en parejas: gana la pareja entera y las dos peores parejas van al lip sync
+      if (pj) rows.forEach((r) => { const gi = groupOf.get(r); labs.set(r, gi === 0 ? "WIN" : gi >= nGroups - 2 ? "BTM2" : gi === 1 && nGroups >= 5 ? "HIGH" : "SAFE"); });
       const labOf = labs;
       const nm = (r) => esc(r.me ? "Tú" : r.q.name);
       const faces = (list, cls = "") => `<div class="call-faces ${cls}">${list.map((r, k) => `<span class="${r.me ? "me" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}</span>`).join("")}</div>`;
@@ -958,7 +976,9 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         if (!blocks) return [];
         const list = blocks.filter((b) => allCrit || b.rows.some((r) => judged.includes(r)));
         if (!list.length) return [];
-        return [["host", "Vamos a empezar por los grupos."], ...list.flatMap((b) => pickFresh(GRUPO_CRIT[blockTone(b)]).map(([k, t]) => [k, t.replace("{g}", blockName(b))])), ["host", "Y ahora, una a una."]];
+        // Por parejas, el jurado habla de la pareja (no del grupo)
+        const dos = S.cSize === 2 ? (t) => t.replace(/como grupo/g, "como pareja").replace("eso es un grupo", "eso es una pareja").replace("un reto en grupo", "un reto en pareja").replace("un grupo", "una pareja") : (t) => t;
+        return [["host", S.cSize === 2 ? "Vamos a empezar por las parejas." : "Vamos a empezar por los grupos."], ...list.flatMap((b) => pickFresh(GRUPO_CRIT[blockTone(b)]).map(([k, t]) => [k, dos(t).replace("{g}", blockName(b))])), ["host", "Y ahora, una a una."]];
       };
       // Como en el programa: «Hablamos con» a la primera reina y «Ahora hablamos con» a las siguientes
       const turnos = (ls) => { let n = 0; return ls.map(([k, t]) => (k === "host" && /^(Ahora h|H)ablamos con /.test(t) ? [k, t.replace(/^(Ahora h|H)ablamos con /, n++ ? "Ahora hablamos con " : "Hablamos con ")] : [k, t])); };
@@ -1004,15 +1024,15 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         body().innerHTML = `
           <div class="story-card call">
             <p class="eyebrow">Las decisiones del jurado</p>
-            <h3>${myLab === "TOP2" || myLab === "BTOP" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? "¡Has ganado el reto! 👑" : /^BTM/.test(myLab) ? (tw === "winners" ? "Semana floja... pero sigues" : "Vas al lip sync...") : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
+            <h3>${myLab === "TOP2" || myLab === "BTOP" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? (pj ? "¡Tu pareja gana el reto! 👑" : "¡Has ganado el reto! 👑") : /^BTM/.test(myLab) ? (tw === "winners" ? "Semana floja... pero sigues" : "Vas al lip sync...") : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
             <div class="verdict">
               ${blocks ? `<div class="v-row win" style="--i:0"><b>🏆 ${blocks[0].name ? `Gana ${/^«/.test(blocks[0].name) ? "" : /^Pareja/.test(blocks[0].name) ? "la " : "el "}${esc(blocks[0].name)}` : "Grupo ganador"}</b>${faces(blocks[0].rows)}</div>` : teamLine}
-              <div class="v-row win" style="--i:0"><b>${tw === "winners" ? `<img class="ll-ic" src="./images/legendary-star-sm.png?v=2" alt=""> Top 2: os jugáis la Legendary Legend Star` : tw === "allstars" ? "💄 Top 2: os jugáis el poder" : tw === "brackets" ? "🏆 Top 2: os jugáis la victoria y un punto extra" : n === 5 && S.flags.paseEp === S.ep ? "👑 Ganadora del reto y 🎟️ pase directo a la gran final" : n === 6 && S.flags.finalistaEp === S.ep ? "👑 Ganadora del reto y primera finalista" : "👑 Felicidrages, ganadora del reto"}</b>${tw === "winners" ? `<div class="call-faces">${wins.map((r, k) => `<span class="${r.me ? "me" : ""} ${labOf.get(r) === "TOP2" ? "ll-won" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}${labOf.get(r) === "TOP2" ? `<img class="ll-badge" src="./images/legendary-star-sm.png?v=2" alt="Legendary Legend Star">` : ""}</span>`).join("")}</div>` : faces(wins)}</div>
+              ${pj ? "" : `<div class="v-row win" style="--i:0"><b>${tw === "winners" ? `<img class="ll-ic" src="./images/legendary-star-sm.png?v=2" alt=""> Top 2: os jugáis la Legendary Legend Star` : tw === "allstars" ? "💄 Top 2: os jugáis el poder" : tw === "brackets" ? "🏆 Top 2: os jugáis la victoria y un punto extra" : n === 5 && S.flags.paseEp === S.ep ? "👑 Ganadora del reto y 🎟️ pase directo a la gran final" : n === 6 && S.flags.finalistaEp === S.ep ? "👑 Ganadora del reto y primera finalista" : "👑 Felicidrages, ganadora del reto"}</b>${tw === "winners" ? `<div class="call-faces">${wins.map((r, k) => `<span class="${r.me ? "me" : ""} ${labOf.get(r) === "TOP2" ? "ll-won" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}${labOf.get(r) === "TOP2" ? `<img class="ll-badge" src="./images/legendary-star-sm.png?v=2" alt="Legendary Legend Star">` : ""}</span>`).join("")}</div>` : faces(wins)}</div>`}
               ${highs.length ? `<div class="v-row high" style="--i:1"><b>✨ Buen trabajo, estáis a salvo</b>${faces(highs)}</div>` : ""}
               ${safesC.length ? `<div class="v-row high" style="--i:1"><b>🙂 Estáis a salvo</b>${faces(safesC)}</div>` : ""}
               ${lows.length ? `<div class="v-row low" style="--i:2"><b>😬 A salvo... por los pelos</b>${faces(lows)}</div>` : ""}
               ${immuneNote ? `<p class="twist-note">${immuneNote}</p>` : ""}
-              ${btms.length ? `<div class="v-row btm" style="--i:3"><b>💔 Lo siento: sois el bottom ${btms.length}</b>${faces(btms)}</div>` : ""}
+              ${btms.length ? `<div class="v-row btm" style="--i:3"><b>💔 ${pj ? "Lo siento: las dos parejas vais al lip sync" : `Lo siento: sois el bottom ${btms.length}`}</b>${faces(btms)}</div>` : ""}
             </div>
             <button class="btn btn-primary" id="story-next">Continuar</button>
           </div>`;
@@ -1493,6 +1513,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
     if (twistOf() === "allstars") return asPicks(top2, bottomRows, (picks) => topLipSync(top2, (dec) => asReveal(dec, top2, picks, bottomRows)));
     if (twistOf() === "winners") return topLipSync(top2, (dec) => winnersStar(dec, top2));
     if (twistOf() === "brackets") return topLipSync(top2, () => brMvqWeek(() => bracketWeekEnd()));
+    // All Stars en parejas: lip sync entre las dos peores parejas; la que pierde se va entera
+    if (pjOn()) return pjLipSync(bottomRows);
     // Segunda Oportunidrag: con siete reinas se van dos de golpe... y vuelve una por sorpresa
     if (repescaNow()) return tripleLipSync(bottomRows, winner, rows);
     if (meBottom) return lipSync(others[0], false);
@@ -1923,6 +1945,217 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
         endEpisodeBtn();
       });
     }, forCrown ? "LIP SYNC POR LA CORONA" : onWin ? "SEGUNDA OPORTUNIDRAG" : "LIP SYNC FOR YOUR LIFE"));
+  }
+
+  // ------------------------------ All Stars en parejas ------------------------------
+  // Como el primer All Stars de Estados Unidos: el primer día se forman las parejas (cada una escribe con quién quiere ir).
+  // El jurado valora a la pareja: gana una pareja entera y las dos peores van al lip sync. De cada pareja baila una, y
+  // su compañera puede pulsar el botón de she-mergency y entrar por ella. La pareja que pierde se va: las dos.
+  // Cuando quedan dos parejas llega la final: a veces la corona es para una pareja entera y a veces se separan.
+  const PJ_SIN = ["equipos", "impro", "lalaparuza"];
+  const PJ_COLORS = ["#e0458f", "#d99a1f", "#1fa9a3", "#8a5bd6", "#f0705a", "#2f9e62", "#3b82c4"];
+  const pjQ = (k) => (k === "me" ? S.queen : qById(k));
+  const pjOn = () => !!(S && S.pj && S.pj.pairs && seasonInfo().twist === "parejas");
+  const pjAlive = (k) => (k === "me" ? !S.meOut : S.rivals.some((q) => q.id === k));
+  const pjPairs = () => (S.pj ? S.pj.pairs.filter((p) => p.length === 2 && p.every(pjAlive)) : []);
+  const pjMate = (k) => { const p = S.pj && S.pj.pairs.find((x) => x.includes(k)); return p ? p.find((x) => x !== k) || null : null; };
+  const pjName = (i) => `Pareja ${GROUP_NAMES[Math.max(0, i) % GROUP_NAMES.length]}`;
+  const pjNameOf = (p) => pjName(S.pj.pairs.findIndex((x) => x.includes(p[0])));
+  const pjNm = (k) => (k === "me" ? "Tú" : pjQ(k).name);
+  const pjNames = (p) => p.map((k) => esc(pjNm(k))).join(" y ");
+  const pjFace = (k, cls = "") => `<span class="${k === "me" ? "me" : ""} ${cls}"><i style="background-image:url('${photo(pjQ(k))}')"></i>${esc(pjNm(k))}</span>`;
+  const pjBox = (p, cls = "") => `<div class="al-pair ${p.includes("me") ? "mine" : ""} ${cls}" style="--grp:${PJ_COLORS[Math.max(0, S.pj.pairs.findIndex((x) => x.includes(p[0]))) % PJ_COLORS.length]}">${p.map((k) => pjFace(k)).join("")}</div>`;
+  // La que mejor defiende un lip sync de una pareja (de las reinas del juego)
+  const pjLsPow = (k) => skillOf(pjQ(k)) + (traitsOf(pjQ(k)).fort === "lipsync" ? 10 : 0) - (traitsOf(pjQ(k)).deb === "lsFlojo" ? 8 : 0);
+  const pjRep = (p) => p.filter((k) => k !== "me").sort((a, b) => pjLsPow(b) - pjLsPow(a))[0];
+  /** El primer día: cada una escribe en su cartel con quién quiere ir. Si coincidís, sois pareja. */
+  function pjInit(then) {
+    const keys = ["me", ...S.rivals.map(keyOf)];
+    const at = (k) => attrsOf(pjQ(k));
+    const rel = (a, b) => (a === "me" ? relOf(pjQ(b)) : b === "me" ? relOf(pjQ(a)) : groupAff(pjQ(a), pjQ(b)));
+    const comp = (a, b) => DFTC.alianzas.complemento(at(a), at(b));
+    const finish = (mine, no, msg) => {
+      // La que te ha dicho que no ya no acaba contigo
+      const val = (a, b) => ([a, b].includes("me") && [a, b].includes(no) ? -99 : comp(a, b) * 3 + rel(a, b) + rnd(-1.5, 1.5));
+      const pairs = DFTC.alianzas.formarAlianzas(keys, val, mine ? [mine] : []).sort((a, b) => (b.includes("me") ? 1 : 0) - (a.includes("me") ? 1 : 0));
+      // En secreto hasta la final: si la corona es para la pareja o solo para una. Y la semana en la que no se va nadie
+      S.pj = { pairs, duo: typeof window.__pjDuo === "boolean" ? window.__pjDuo : Math.random() < 0.5, // (window.__pjDuo: solo pruebas)
+        libre: 2 + Math.floor(Math.random() * 3) };
+      const mate = pjMate("me");
+      if (mate) changeRel(pjQ(mate), 1);
+      logEv(`All Stars en parejas: ${pairs.map((p) => p.map((k) => (k === "me" ? S.queen.name : pjQ(k).name)).join(" y ")).join(" · ")}`);
+      header();
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">👯 All Stars en parejas</p>
+          <h3>${mate ? `Tu pareja: ${esc(pjQ(mate).name)}` : "Así quedan las parejas"}</h3>
+          ${msg ? `<p class="twist-note">${msg}</p>` : ""}
+          <div class="al-grid">${pairs.map((p) => pjBox(p)).join("")}</div>
+          <p class="muted">Desde hoy ganáis juntas y caéis juntas: el jurado valora a la pareja. Lo que a una le falta, que lo ponga la otra.</p>
+          <button class="btn btn-primary" id="story-next">¡Al taller!</button>
+        </div>`;
+      $("#story-next").addEventListener("click", then);
+    };
+    const mineA = at("me");
+    const cands = keys.filter((k) => k !== "me").map((k) => {
+      const a = at(k);
+      const cubre = Object.keys(a).filter((x) => a[x] - (mineA[x] || 0) >= 2).sort((x, y) => a[y] - mineA[y] - (a[x] - mineA[x])).slice(0, 2).map((x) => ATTR_NAMES[x]);
+      return `<button class="al-q" data-p="${k}"><i style="background-image:url('${photo(pjQ(k))}')"></i><b>${esc(pjQ(k).name)}</b><small>${cubre.length ? `Te cubre: ${esc(cubre.join(", "))}` : "Parecida a ti"}</small></button>`;
+    }).join("");
+    setSet("werkroom");
+    header();
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">👯 All Stars en parejas · los carteles</p>
+        <h3>¿Con quién quieres ir?</h3>
+        <p class="muted">Al llegar, producción os da un cartel a cada una: escribe el nombre de la reina con la que quieres hacer pareja. Si ella ha escrito el tuyo, sois pareja toda la temporada. Mejor alguien que te complemente.</p>
+        <div class="al-cands">${cands}</div>
+      </div>`;
+    document.querySelectorAll(".al-q").forEach((b) => b.addEventListener("click", () => {
+      const k = b.dataset.p;
+      const p = clamp(0.55 + relOf(pjQ(k)) * 0.08 + (comp("me", k) - 6.5) * 0.12, 0.15, 0.95);
+      if (Math.random() < p) return finish(["me", k], null, `🤝 ¡Coincidís! ${esc(pjQ(k).name)} también había escrito tu nombre.`);
+      finish(null, k, `🙅 ${esc(pjQ(k).name)} había escrito otro nombre. Te toca con quien también se ha quedado sin su primera opción.`);
+    }));
+  }
+  /** Lip sync de las dos peores parejas: baila una de cada pareja; la pareja que pierde se va entera. */
+  function pjLipSync(bottomRows) {
+    setSet("stage");
+    const keys = bottomRows.map((r) => keyOf(r.q));
+    const prs = pjPairs().filter((p) => p.some((k) => keys.includes(k))).slice(0, 2);
+    const mine = prs.find((p) => p.includes("me"));
+    const other = prs.find((p) => p !== mine);
+    const libre = S.pj.libre === S.ep;
+    const card = (eyebrow, title, html, btn = "Siguiente episodio") => {
+      header();
+      body().innerHTML = `<div class="story-card"><p class="eyebrow">${eyebrow}</p><h3>${title}</h3>${html}<button class="btn btn-primary" id="story-next">${btn}</button></div>`;
+    };
+    const close = (win, lose, note = "") => {
+      logEv(`Lip sync por parejas: ${win.map((k) => (k === "me" ? S.queen.name : pjQ(k).name)).join(" y ")} ganan a ${lose.map((k) => (k === "me" ? S.queen.name : pjQ(k).name)).join(" y ")}${libre ? " (nadie se va)" : ""}`);
+      const extra = note ? `<p class="muted">${note}</p>` : "";
+      if (libre) {
+        card("💖 ¡Momento histórico!", "Shantay... os quedáis las cuatro", `${extra}<div class="al-grid">${pjBox(win)}${pjBox(lose)}</div><p>${lose.includes("me") ? "Habéis perdido el lip sync, pero Supremme no quiere despedirse de nadie esta noche." : "Supremme no quiere despedirse de nadie esta noche: las dos parejas siguen."} <b>No habrá otra oportunidad así.</b></p>`);
+        return endEpisodeBtn();
+      }
+      if (lose.includes("me")) {
+        const mate = pjQ(pjMate("me"));
+        eliminate(mate);
+        return aftermath(pjQ(win.find((k) => k !== "me")), `${extra}Vuestra pareja pierde el lip sync contra ${pjNames(win)}. ${esc(mate.name)} y tú os vais juntas.`);
+      }
+      lose.forEach((k) => eliminate(pjQ(k)));
+      card("Lip sync for your life · por parejas", win.includes("me") ? "¡Seguís en la competición!" : `${pjNames(win)}, shantay you stay`, `${extra}<div class="al-grid">${pjBox(win)}${pjBox(lose, "fuera")}</div><p><b>${pjNames(lose)}</b>, sashay away. Se va la pareja entera.</p>`);
+      endEpisodeBtn();
+    };
+    // Tu pareja no está en el bottom: lo ves desde el fondo del escenario
+    if (!mine) {
+      const [A, B] = prs;
+      const ra = pjRep(A), rb = pjRep(B);
+      const [w] = simLS(pjQ(ra), pjQ(rb));
+      const win = w.id === ra ? A : B, lose = win === A ? B : A;
+      const rl = win === A ? rb : ra;
+      const she = Math.random() < 0.25 ? `🚨 A mitad de canción, ${esc(pjQ(pjMate(rl)).name)} pulsa el botón de she-mergency y entra por ${esc(pjQ(rl).name)}. No ha sido suficiente.` : "";
+      return close(win, lose, `Bailan ${esc(pjQ(ra).name)} y ${esc(pjQ(rb).name)}. ${she}`);
+    }
+    const mate = pjMate("me"), rv = pjRep(other);
+    const yo = (note) => playLS(pjQ(rv), { eyebrow: "💄 Lip sync for your life · por parejas", curtain: "LIP SYNC FOR YOUR LIFE" }, (won) => {
+      if (window.__forceLose) { won = false; if (window.__forceLose === "once") window.__forceLose = false; } // solo pruebas
+      close(won ? mine : other, won ? other : mine, note);
+    });
+    header();
+    Music.play("tension");
+    body().innerHTML = `
+      <div class="story-card">
+        <p class="eyebrow">💄 Lip sync for your life · por parejas</p>
+        <h3>${esc(pjNameOf(mine))} vs ${esc(pjNameOf(other))}</h3>
+        <div class="al-grid">${pjBox(mine)}${pjBox(other)}</div>
+        <p>De cada pareja baila una. Por ellas sale <b>${esc(pjQ(rv).name)}</b>. ¿Quién sale por vosotras?</p>
+        <p class="muted">Si baila ${esc(pjQ(mate).name)}, a mitad de canción puedes pulsar el botón de she-mergency y entrar tú.</p>
+        <div class="row"><button class="btn btn-ghost" id="pj-ella">🤝 Que baile ${esc(pjQ(mate).name)}</button><button class="btn btn-primary" id="pj-yo">💃 Bailo yo</button></div>
+      </div>`;
+    $("#pj-yo").addEventListener("click", () => yo(""));
+    $("#pj-ella").addEventListener("click", () => {
+      const [w] = simLS(pjQ(mate), pjQ(rv));
+      const gana = w.id === mate;
+      // Lo que se ve desde el lateral casi siempre es verdad
+      const bien = Math.random() < 0.78 ? gana : !gana;
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">💄 Lip sync · mitad de la canción</p>
+          <h3>${esc(pjQ(mate).name)} ${bien ? "va por delante" : "lo está pasando mal"}</h3>
+          <div class="vs"><img src="${photo(pjQ(mate))}"><span>VS</span><img src="${photo(pjQ(rv))}"></div>
+          <p>${bien ? "Desde el lateral se la ve segura: el público está con ella." : `Desde el lateral lo ves claro: ${esc(pjQ(rv).name)} se está comiendo el escenario.`} Tienes el botón delante.</p>
+          <div class="row"><button class="btn btn-ghost" id="pj-no">🙏 Confío en ella</button><button class="btn btn-primary" id="pj-she">🚨 ¡She-mergency! Entro yo</button></div>
+        </div>`;
+      $("#pj-she").addEventListener("click", () => yo(`🚨 Pulsas el botón de she-mergency y entras por ${esc(pjQ(mate).name)}.`));
+      $("#pj-no").addEventListener("click", () => { Music.stop(); close(gana ? mine : other, gana ? other : mine, `${esc(pjQ(mate).name)} acaba la canción ella sola.`); });
+    });
+  }
+  /** Una semana sin ti (te has ido con tu pareja): gana una pareja y, salvo la semana de gracia, se va otra. */
+  function pjSimWeek() {
+    S.ep++;
+    const tipo = pickReto();
+    S.curTipo = tipo;
+    S.curEpTipo = S.ep;
+    S.epNames[S.ep] = EP_SHORT[tipo] || "Reto";
+    const rows = pjPairs().map((p) => ({ p, s: p.reduce((t, k) => t + rivalScore(pjQ(k)), 0) / p.length + rnd(-8, 8) })).sort((a, b) => b.s - a.s);
+    const n = rows.length;
+    rows.forEach((r, i) => r.p.forEach((k) => mark(pjQ(k), i === 0 ? "WIN" : i >= n - 2 ? "BTM2" : i === 1 && n >= 5 ? "HIGH" : "SAFE")));
+    const A = rows[n - 2].p, B = rows[n - 1].p;
+    const ra = pjRep(A), rb = pjRep(B);
+    const [w] = simLS(pjQ(ra), pjQ(rb));
+    const win = w.id === ra ? A : B, lose = win === A ? B : A;
+    const libre = S.pj.libre === S.ep;
+    if (!libre) lose.forEach((k) => eliminate(pjQ(k)));
+    const nn = (p) => p.map((k) => `<b>${esc(pjQ(k).name)}</b>`).join(" y ");
+    return { pj: true, win: pjQ(rows[0].p[0]), text: `👑 Ganan ${nn(rows[0].p)} · ${libre ? `💖 ${nn(lose)} pierden el lip sync contra ${nn(win)}, pero esta semana no se va nadie.` : `💔 ${nn(lose)} pierden el lip sync contra ${nn(win)} y se van a casa.`}` };
+  }
+  /** Final con corona doble: las dos parejas se juegan la corona en un último lip sync. Gana la pareja entera. */
+  function pjFinal(spect) {
+    setSet("stage");
+    S.epNames[S.ep] = "Final";
+    const prs = pjPairs();
+    const mine = prs.find((p) => p.includes("me"));
+    const A = mine || prs[0], B = prs.find((p) => p !== A);
+    const full = (p) => p.map((k) => (k === "me" ? S.queen.name : pjQ(k).name)).join(" y ");
+    const intro = [
+      ["host", pick1(["Reinas, bienvenidas a la gran final.", `Bienvenidas a la gran final de ${S.season.name}.`])],
+      ["host", "Llegasteis de dos en dos, habéis ganado de dos en dos... y así vais a terminar."],
+      ["host", "Esta temporada la corona es doble: se la lleva una pareja entera."],
+      ["judge", "Un último lip sync. Las cuatro en el escenario. Aquí no se regala nada."],
+    ];
+    const done = (win, lose) => {
+      win.forEach((k) => k !== "me" && mark(pjQ(k), "WINNER"));
+      lose.forEach((k) => k !== "me" && mark(pjQ(k), "RUNNER-UP"));
+      const crown = [
+        ["host", "Reinas, ha llegado el momento."],
+        ["host", `Las ganadoras de ${S.season.name}... las nuevas reinas de Drag Race España son... ¡${full(win)}!`],
+        ["ambrossi", "¡Que traigan dos coronas y dos cetros!"],
+        ["judge", "Larga vida a las reinas."],
+      ];
+      dialog(crown, ctxWith(pjQ(win.find((k) => k !== "me"))), () => {
+        if (win.includes("me")) { Confetti.burst(3000); S.flags.pjDuo = pjQ(pjMate("me")).name; return theEnd(true, pjQ(lose[0]), true); }
+        if (mine) return theEnd(false, pjQ(win[0]), true, `La corona doble es para ${esc(full(win))}.`, 2);
+        header();
+        showTrack(() => theEnd(false, pjQ(win[0]), false, `Te fuiste en el episodio ${S.flags.outEp || "?"}. La corona doble es para ${esc(full(win))}.`, S.flags.myPlace || S.out.length + 1), "Resultado final");
+      });
+    };
+    dialog(intro, ctxWith(S.rivals[0]), () => {
+      header();
+      const rb = pjRep(B);
+      body().innerHTML = `
+        <div class="story-card">
+          <p class="eyebrow">👑 Gran final · corona doble</p>
+          <h3>${esc(pjNameOf(A))} vs ${esc(pjNameOf(B))}</h3>
+          <div class="al-grid">${pjBox(A)}${pjBox(B)}</div>
+          <p>${mine ? `Bailáis las cuatro. Tú te mides con <b>${esc(pjQ(rb).name)}</b>.` : "Las cuatro en el escenario. Una pareja se lleva las dos coronas."}</p>
+          <button class="btn btn-primary" id="story-next">${mine ? "👑 Lip sync por la corona" : "Ver el lip sync"}</button>
+        </div>`;
+      $("#story-next").addEventListener("click", () => {
+        if (mine && !spect) return playLS(pjQ(rb), { eyebrow: "👑 Lip sync por la corona", curtain: "LIP SYNC POR LA CORONA" }, (won) => done(won ? A : B, won ? B : A));
+        const [w] = simLS(pjQ(pjRep(A)), pjQ(rb));
+        w.id === pjRep(A) ? done(A, B) : done(B, A);
+      });
+    });
   }
 
   // ------------------------------ All Stars por brackets ------------------------------

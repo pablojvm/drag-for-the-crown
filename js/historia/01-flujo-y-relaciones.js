@@ -43,6 +43,8 @@
       else if (total >= 8 && ep8 >= 1 && ep8 <= rest.length) rest.splice(ep8 - 1, 0, "lalaparuza");
       else rest.push("lalaparuza");
     }
+    // All Stars en parejas: sin retos de grupos de tres ni Lalaparuza (se quedan al final del orden, donde no se llega)
+    if (twistOf() === "parejas") { const fuera = PJ_SIN.filter((t) => rest.includes(t)); rest.splice(0, rest.length, ...rest.filter((t) => !fuera.includes(t)), ...fuera); }
     S.order = rest;
     S.runwayPlan = buildPlan();
     // La memoria de otras temporadas: cómo te recuerdan las demás
@@ -627,6 +629,7 @@
     if (tw === "makeover") chip = S.flags.repesca ? "💄 La repesca: hecha" : "💄 Cuando queden seis... vuelven";
     if (tw === "repesca") chip = S.flags.repesca ? "🔁 Segunda Oportunidrag: hecha" : "🔁 Segunda Oportunidrag: pendiente";
     if (tw === "allstars") chip = "💄 Decide la ganadora";
+    if (tw === "parejas" && S.pj) { const m = pjMate("me"); chip = m ? `👯 Tu pareja: ${pjQ(m).name}` : "👯 En parejas"; }
     if (tw === "winners") chip = `Tus estrellas: ${(S.stars || {}).me || 0}${S.ep === winnersWeeks() ? " · 🌟 Esta semana el top 2 gana 3 estrellas" : ""}${S.block && S.block.ep === S.ep ? ` · 🚫 Bloqueada: ${S.block.id === "me" ? "tú" : nameOfKey(S.block.id)}` : ""}`;
     $("#story-ep").textContent = S.meOut ? "Fuera de la competición" : isFinal() ? (S.flags.reunion ? "Gran final" : "El reencuentro") : `Episodio ${S.ep}`;
     if (chip) $("#story-season").innerHTML += ` <span class="twist-chip">${esc(chip)}</span>`;
@@ -768,6 +771,7 @@
   // Color del grupo de cada reina en el track record: su bracket (All Stars por brackets)
   function grpOf(k) {
     if (S.br && S.br.groups) { const i = S.br.groups.findIndex((g) => g.includes(k)); if (i >= 0) return { c: BR_COLORS[i % BR_COLORS.length].c, t: BR_COLORS[i % BR_COLORS.length].n }; }
+    if (S.pj && S.pj.pairs) { const i = S.pj.pairs.findIndex((g) => g.includes(k)); if (i >= 0) return { c: PJ_COLORS[i % PJ_COLORS.length], t: pjName(i) }; }
     return null;
   }
   function trackRows() {
@@ -939,6 +943,8 @@
     if (S.asPending && S.asPending.ep !== S.ep - 1) S.asPending = null;
     // All Stars por brackets: el primer día se reparten los tres grupos; con siete, la Lalaparuza final
     if (tw === "brackets" && !S.br) return brInit(go);
+    // All Stars en parejas: el primer día se forman las parejas
+    if (tw === "parejas" && !S.pj) return pjInit(go);
     if (brFinalToca()) return bracketsFinal();
     go();
   }

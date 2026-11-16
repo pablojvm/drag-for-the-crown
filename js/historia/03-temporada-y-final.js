@@ -638,13 +638,15 @@
     const notes = [];
     while (S.rivals.length > 4 && !brFinalToca()) {
       const r = simWeek();
-      notes.push(r.gone ? `Ep. ${S.ep}: gana <b>${esc(r.win.name)}</b>; doble eliminación de ${r.gone.map((q) => `<b>${esc(q.name)}</b>`).join(" y ")}${r.back ? `; vuelve <b>${esc(r.back.name)}</b>` : ""}.` : `Ep. ${S.ep}: gana <b>${esc(r.win.name)}</b>; se va <b>${esc(r.go.name)}</b>.`);
+      notes.push(r.pj ? `Ep. ${S.ep}: ${r.text}` : r.gone ? `Ep. ${S.ep}: gana <b>${esc(r.win.name)}</b>; doble eliminación de ${r.gone.map((q) => `<b>${esc(q.name)}</b>`).join(" y ")}${r.back ? `; vuelve <b>${esc(r.back.name)}</b>` : ""}.` : `Ep. ${S.ep}: gana <b>${esc(r.win.name)}</b>; se va <b>${esc(r.go.name)}</b>.`);
     }
     S.phase = null;
     save();
     showTrack(brFinalToca() ? afterStep : afterReunion, brFinalToca() ? "A la Lalaparuza" : "Al reencuentro", notes.join("<br>"));
   }
   function simWeek() {
+    // All Stars en parejas: las semanas se juegan (y se pierden) de dos en dos
+    if (pjOn()) return pjSimWeek();
     S.ep++;
     const tipo = pickReto();
     S.curTipo = tipo;
@@ -693,6 +695,7 @@
     S.phase = null;
     save();
     const face = (q) => `<i class="tn-face" style="background-image:url('${photo(q)}')"></i>`;
+    if (r.pj) return showTrack(afterStep, S.rivals.length <= 4 ? "Al reencuentro" : "Siguiente semana", r.text);
     if (r.gone) return showTrack(afterStep, S.rivals.length <= 4 ? "Al reencuentro" : "Siguiente semana",
       `${face(r.win)} 👑 Gana <b>${esc(r.win.name)}</b> · 💥 Doble eliminación: ${r.gone.map((q) => `<b>${esc(q.name)}</b>`).join(" y ")} se van de golpe${r.back ? ` · 🔁 Sorpresa: <b>${esc(r.back.name)}</b> vuelve con la Segunda Oportunidrag` : ""}.`);
     showTrack(afterStep, S.rivals.length <= 4 ? "Al reencuentro" : "Siguiente semana",
@@ -872,8 +875,8 @@
         <img class="story-queen" src="${sprite(S.queen)}" alt="">
         <div>
           <p class="eyebrow">${esc(S.season.name)} · resultado final</p>
-          <h3>${won ? `¡${esc(S.queen.name)}, eres la ganadora! 👑` : `Sashay away... puesto ${placeTxt(place)}`}</h3>
-          <p>${won ? "La corona es tuya. Felicidrages." : reason || `${esc(rival.name)} te ha ganado el lip sync.`}</p>
+          <h3>${won && S.flags.pjDuo ? "¡Sois las ganadoras! 👑👑" : won ? `¡${esc(S.queen.name)}, eres la ganadora! 👑` : `Sashay away... puesto ${placeTxt(place)}`}</h3>
+          <p>${won && S.flags.pjDuo ? `Corona doble: una para ti y otra para ${esc(S.flags.pjDuo)}. Felicidrages.` : won ? "La corona es tuya. Felicidrages." : reason || `${esc(rival.name)} te ha ganado el lip sync.`}</p>
           <p class="story-pts">Track record: ${(entry.ppe || 0).toFixed(2).replace(".", ",")} PPE · 💵 +${euros(prize + earned)} para tu armario</p>
           <p class="muted">Retos ganados: ${S.wins} · Veces en el bottom: ${S.bottoms} · Lip syncs ganados: ${S.lipsyncs} · Aliadas: ${allies().length}</p>
           ${pos >= 0 ? `<label class="name-entry active story-name">Puesto ${pos + 1} del Top 10 de historia. Tu nombre:

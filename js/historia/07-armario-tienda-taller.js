@@ -78,6 +78,8 @@
   function seasonEpisodes() {
     // Una eliminación por episodio hasta quedar 4 (+1 si hay Segunda Oportunidrag)
     if (twistOf() === "winners") return winnersWeeks();
+    // All Stars en parejas: se va una pareja por semana hasta quedar dos (y una semana no se va nadie)
+    if (twistOf() === "parejas") return Math.floor(S.season.cast.length / 2) - 1;
     return S.season.cast.length - 4;
   }
   // Los episodios en los que compites tú (los que necesitan look). En el All Stars por brackets solo los de tu bracket

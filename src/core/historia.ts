@@ -102,6 +102,18 @@ Object.assign(TEMPORADAS_HISTORIA, {
       ["judge", "Tres semanas para demostrarlo todo. No hay segundas oportunidades. O casi."],
     ],
   },
+  espj: {
+    twist: "parejas",
+    lema: "All Stars en parejas: se gana de dos en dos y se cae de dos en dos",
+    intro: [
+      ["host", "¡Bienvenidas, All Stars! Este año no competís solas: vais a competir en parejas."],
+      ["host", "Ya habéis enseñado vuestros carteles: las parejas están hechas, y son para toda la temporada."],
+      ["host", "Os valoramos juntas: gana una pareja entera, y las dos peores parejas van al lip sync."],
+      ["judge", "De cada pareja baila una. Y si la cosa se tuerce, su compañera puede pulsar el botón de she-mergency y entrar por ella."],
+      ["host", "La pareja que pierda se va a casa. Las dos."],
+      ["judge", "¿Y la corona? ¿Para una o para dos? Eso lo sabréis en la gran final."],
+    ],
+  },
   esaw: {
     twist: "winners",
     lema: "All Winners: solo ganadoras",

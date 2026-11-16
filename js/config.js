@@ -176,7 +176,7 @@ function storyCrown(sid) {
 function allWinnersOrigin() {
   const used = new Set(), out = {};
   const add = (id, o) => { if (id && !used.has(id)) { used.add(id); out[id] = o; return true; } return false; };
-  [...REGULAR_ES(), ...PLAYABLE_AS(), { id: "escustom", name: "All Stars a tu gusto", cast: [] }, { id: "esbr", name: "All Stars por brackets", cast: [] }].forEach((t) => {
+  [...REGULAR_ES(), ...PLAYABLE_AS(), { id: "escustom", name: "All Stars a tu gusto", cast: [] }, { id: "esbr", name: "All Stars por brackets", cast: [] }, { id: "espj", name: "All Stars en parejas", cast: [] }].forEach((t) => {
     const name = t.name || t.id;
     const c = storyCrown(t.id);
     if (c) { if (!add(c.queen, { season: name, how: "win" })) add(c.runner, { season: name, how: "runner" }); return; }
@@ -200,6 +200,12 @@ function bracketsCastFor(mine) {
   const rest = ALL_QUEEN_IDS().filter((id) => id !== mine).map((id) => [Math.random() + (corona.has(id) ? 1 : 0), id]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
   return [mine, ...rest.slice(0, 17)];
 }
+// All Stars en parejas: tu reina y 11 rivales (seis parejas)
+const PAREJAS_Q = 12;
+function parejasCastSaved() {
+  const c = (store.get("dftc-parejas-cast", []) || []).filter((id) => ALL_QUEEN_IDS().includes(id));
+  return c.length === PAREJAS_Q ? c : [];
+}
 function bracketsCastSaved() {
   const c = (store.get("dftc-brackets-cast", []) || []).filter((id) => ALL_QUEEN_IDS().includes(id));
   return c.length === 18 ? c : [];
@@ -210,12 +216,13 @@ function specialSeasons() {
     { franchise: "esas", id: "escustom", name: "All Stars a tu gusto", year: "Tú eliges", cast: custom, special: "custom", index: 2 },
     { franchise: "esas", id: "esaw", name: "All Winners", year: "Solo ganadoras", cast: allWinnersCast(), special: "winners", index: 5 },
     { franchise: "esas", id: "esbr", name: "All Stars por brackets", year: "Tres grupos", cast: bracketsCastSaved(), special: "brackets", index: 4 },
+    { franchise: "esas", id: "espj", name: "All Stars en parejas", year: "Seis parejas", cast: parejasCastSaved(), special: "parejas", index: 3 },
   ];
 }
 // Qué temporadas tienes abiertas en el modo historia y qué te falta para abrir las demás
 function storyUnlock(s) {
   // Regla compartida con el motor nuevo (src/core/temporada.ts)
-  if (TEMPORADAS_ES.some((t) => t.id === s.id) || s.id === "escustom" || s.id === "esaw" || s.id === "esbr") return DFTC.temporada.desbloqueo(s.id, store.get("dftc-story-wins", []) || []);
+  if (TEMPORADAS_ES.some((t) => t.id === s.id) || s.id === "escustom" || s.id === "esaw" || s.id === "esbr" || s.id === "espj") return DFTC.temporada.desbloqueo(s.id, store.get("dftc-story-wins", []) || []);
   const wins = store.get("dftc-story-wins", []);
   const reg = REGULAR_ES();
   const nameOf = (id) => (TEMPORADAS_ES.find((t) => t.id === id) || {}).name || id;

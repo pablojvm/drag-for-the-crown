@@ -6,7 +6,8 @@
   function finalFmtOf() {
     if (!S.flags.finalFmt) {
       const n = S.rivals.length + (S.meOut ? 0 : 1);
-      S.flags.finalFmt = pick1(n >= 3 ? ["torneo", "reto", "track", "votan", "cuatro", "cadena"] : ["torneo", "reto", "track", "votan"]);
+      // All Stars en parejas: la final individual nunca es un cuadro (acaban de separarse dos parejas)
+      S.flags.finalFmt = pick1((n >= 3 ? ["torneo", "reto", "track", "votan", "cuatro", "cadena"] : ["torneo", "reto", "track", "votan"]).filter((f) => !pjOn() || f !== "torneo"));
     }
     return S.flags.finalFmt;
   }
@@ -41,6 +42,8 @@
   const finalOnce = () => { if (finalRun === runId) return false; finalRun = runId; return true; };
   function finale() {
     if (!finalOnce()) return;
+    // All Stars en parejas: a veces la corona es doble (gana una pareja entera)
+    if (pjOn() && S.pj.duo && pjPairs().length === 2) return pjFinal(false);
     const fmt = finalFmtOf();
     if (fmt === "torneo") return finaleLala();
     setSet("stage");
@@ -51,6 +54,7 @@
   // Desde el público (te eliminaron antes)
   function afterFinal() {
     if (!finalOnce()) return;
+    if (pjOn() && S.pj.duo && pjPairs().length === 2) return Curtain.run(() => { S.ep++; $("#story-ep").textContent = "Gran final"; pjFinal(true); }, "GRAN FINAL");
     const fmt = finalFmtOf();
     if (fmt === "torneo") return afterFinalLala();
     Curtain.run(() => {
@@ -67,6 +71,7 @@
     const edge = clamp(S.wins * 3 - S.bottoms * 2, -6, 12);
     const intro = [
       ["host", pick1(["Reinas, bienvenidas a la gran final.", `Bienvenidas a la gran final de ${S.season.name}.`, "Hemos llegado a la gran final. Una corona, y solo una."])],
+      ...(pjOn() ? [["host", "Habéis llegado hasta aquí de dos en dos. Pero corona solo hay una."], ["judge", "Desde este momento, las parejas se separan: cada una por su cuenta."]] : []),
       ["host", `Y esta final es... ${F.icon} ¡${F.n}!`],
       ["host", F.d],
       ...(pase ? [["host", `${pase === S.queen ? "Tú tienes" : `${pase.name} tiene`} el pase directo: ${pase === S.queen ? "esperas" : "espera"} en el último duelo.`]] : []),

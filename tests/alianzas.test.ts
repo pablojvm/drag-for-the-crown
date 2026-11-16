@@ -61,5 +61,8 @@ describe("All Stars por brackets y alianzas", () => {
     expect(seasonById("esbr")?.cast).toEqual(c);
     expect(desbloqueo("esbr", ["es1"]).ok).toBe(false);
     expect(desbloqueo("esbr", ["esas2"]).ok).toBe(true);
+    // El All Stars en parejas se abre igual: ganando un All Stars
+    expect(desbloqueo("espj", ["es1"]).ok).toBe(false);
+    expect(desbloqueo("espj", ["esas1"]).ok).toBe(true);
   });
 });

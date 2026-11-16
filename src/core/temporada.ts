@@ -157,6 +157,8 @@ export function desbloqueo(id: string, wins: string[]): { ok: boolean; why?: str
   if (id === "esaw") return wins.some((w) => w !== "esaw") ? { ok: true } : { ok: false, why: "Gana al menos una temporada" };
   // All Stars por brackets: se abre ganando un All Stars
   if (id === BRACKETS_ID) return wins.some((w) => /^esas/.test(w) || w === "escustom") ? { ok: true } : { ok: false, why: "Gana un All Stars" };
+  // All Stars en parejas: igual, se abre ganando un All Stars
+  if (id === PAREJAS_ID) return wins.some((w) => /^esas/.test(w) || w === "escustom") ? { ok: true } : { ok: false, why: "Gana un All Stars" };
   return { ok: true };
 }
 /** All Winners: las ganadoras de las temporadas ya emitidas (si una repite, entra su finalista). */
@@ -171,6 +173,10 @@ export function allWinnersCast(): string[] {
 }
 /** All Stars por brackets (como el All Stars 10 y 11): reinas sin corona de todas las temporadas, en tres grupos. */
 export const BRACKETS_ID = "esbr";
+/** All Stars en parejas (como el primer All Stars de Estados Unidos): seis parejas; la que pierde el lip sync se va entera. */
+export const PAREJAS_ID = "espj";
+/** Reinas del All Stars en parejas (seis parejas). */
+export const PAREJAS_Q = 12;
 /** Puntos de cada resultado en la fase de grupos (como en el programa). */
 export { BRACKET_PTS } from "./alianzas";
 export function bracketsCast(): string[] {
