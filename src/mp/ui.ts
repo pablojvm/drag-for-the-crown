@@ -482,6 +482,8 @@ function render(s: RoomState) {
         const mc = mcOf(s);
         lines.splice(1, 0, ["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["host", "Cada una de vosotras hará un monólogo con una de ellas. La eliminada de la pareja ganadora... vuelve a la competición. Y las tres peores parejas: lip sync a tres bandas, se salva una."], ...(mc ? [["host", `${keyName(s, mc)}, tú ganaste la semana pasada: esta semana no compites. Serás nuestra maestra de ceremonias.`] as [string, string]] : []));
       }
+      // Supremme cierra siempre el anuncio del reto con su frase
+      if (!s.finalRun) lines.push(["host", "¡Y no, la, caguéis!"]);
       return lines;
     }, () => `${heartChoice(s)}${myStatus(s)}<p class="eyebrow">Episodio ${s.ep}${s.fmt && s.fmt !== "normal" ? ` · ${FORMATOS[s.fmt as Formato].icon} ${FORMATOS[s.fmt as Formato].n}` : ""}</p><h3>${esc(s.reto!.titulo)}</h3><p>${esc(s.reto!.desc)}</p>${s.reto!.cat ? `<p class="muted">👠 Después del reto, pasarela: la categoría se anuncia entonces.</p>` : ""}${s.ia ? `<p class="muted">✍️ Con IA: puedes hacerlo en directo, escribiendo tus frases.</p>` : ""}<p class="muted">Quedan ${aliveKeys(s).length} reinas. ${s.reto!.tipo === "lalaparuza" ? "Hoy no hay taller ni pasarela: lip syncs eliminatorios, ronda a ronda." : s.ritmo === "libre" ? "Sin límite de tiempo: se espera a que entreguéis todas." : `Para jugar el reto tenéis ${Math.round(((DURACION[s.ritmo].reto * (s.ia ? IA_EXTRA : 1)) / 60))} minutos.`}</p>`);
   }

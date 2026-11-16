@@ -384,11 +384,13 @@
       $("#story-go").addEventListener("click", next);
     };
     const ctx = ctxWith(pick1(S.rivals), { reto: S.curTitulo });
+    // Supremme cierra siempre el anuncio del reto con su frase
+    const dialogC = (lines, c, cb) => dialog([...lines, HISTORIA.cierreTaller], c, cb);
     const anuncio = () => S.curTipo === "repescaMakeover"
-      ? dialog([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", "Esta semana: makeover de familia drag. Cada una de vosotras transformará a una de ellas para que parezcáis familia."], ["host", "La pareja más floja manda a su reina al lip sync. Y la eliminada que mejor lo haga... vuelve a la competición."]], ctx, then)
+      ? dialogC([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", "Esta semana: makeover de familia drag. Cada una de vosotras transformará a una de ellas para que parezcáis familia."], ["host", "La pareja más floja manda a su reina al lip sync. Y la eliminada que mejor lo haga... vuelve a la competición."]], ctx, then)
       : S.curTipo === "repescaStand"
-      ? dialog([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", `Esta semana: ${S.curTitulo}. Cada una de vosotras hará un monólogo con una de ellas.`], ["host", "La eliminada de la pareja ganadora... vuelve a la competición. Y las reinas de las tres peores parejas harán un lip sync a tres bandas: solo se salva una."], ...(S.flags.immune ? [["host", `${S.flags.immune === "me" ? "{yo}" : (qById(S.flags.immune) || {}).name}, tú ganaste la semana pasada: esta semana no compites. Serás nuestra maestra de ceremonias.`]] : [])], ctx, then)
-      : dialog([...pickFresh(HISTORIA.anuncio), ...girosAnuncio()], ctx, then);
+      ? dialogC([["host", "Reinas, hoy no estáis solas. ¡Que pasen las eliminadas!"], ["r1", "¡¿QUÉ?! ¡Han vuelto!"], ["host", `Esta semana: ${S.curTitulo}. Cada una de vosotras hará un monólogo con una de ellas.`], ["host", "La eliminada de la pareja ganadora... vuelve a la competición. Y las reinas de las tres peores parejas harán un lip sync a tres bandas: solo se salva una."], ...(S.flags.immune ? [["host", `${S.flags.immune === "me" ? "{yo}" : (qById(S.flags.immune) || {}).name}, tú ganaste la semana pasada: esta semana no compites. Serás nuestra maestra de ceremonias.`]] : [])], ctx, then)
+      : dialogC([...pickFresh(HISTORIA.anuncio), ...girosAnuncio()], ctx, then);
     // All Stars: nada más entrar, Supremme pregunta a la que perdió el lip sync qué pintalabios había elegido
     const P = S.asPending && S.asPending.ep === S.ep - 1 ? S.asPending : null;
     if (S.ep !== 1 && P) {

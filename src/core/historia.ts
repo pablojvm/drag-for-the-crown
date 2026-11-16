@@ -215,6 +215,8 @@ export const HISTORIA: Record<string, any> = {
     },
   ],
   // Anuncio del reto
+  // Lo último que dice Supremme en el taller, siempre
+  cierreTaller: ["host", "¡Y no, la, caguéis!"],
   anuncio: [
     [["host", "Reinas, atención: el reto de esta semana es... ¡{reto}!"], ["host", "Quiero ver ideas claras y buena ejecución. Sorprendedme."]],
     [["host", "¡Chicas! Esta semana os enfrentáis a... ¡{reto}!"], ["host", "Nada de ir a lo seguro. Quiero riesgo."]],
