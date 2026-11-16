@@ -615,15 +615,17 @@
     save();
     Music.stop();
     header();
+    // All Stars por brackets: no hay reencuentro; con siete llega la Lalaparuza (y antes puede volver una eliminada)
+    const brk = seasonInfo().twist === "brackets" && S.br && !S.br.final;
     body().innerHTML = `
       <div class="story-card">
         <p class="eyebrow">Sashay away</p>
         <h3>${esc(S.queen.name)}, te vas a casa... puesto ${placeTxt(S.flags.myPlace)}</h3>
         ${by ? `<div class="vs"><img class="gone" src="${photo(S.queen)}"><span>💔</span><img src="${photo(by)}"></div>` : ""}
         <p>${reason || (by ? `${esc(by.name)} se queda en la competición.` : "")}</p>
-        <p class="muted">Pero la temporada sigue: verás cómo va cayendo cada reina hasta el reencuentro, donde aún puedes ganar Miss Simpatía, y la gran final.</p>
+        <p class="muted">${brk ? "Pero la temporada sigue: verás cómo va cayendo cada reina hasta que queden siete. Entonces, la mejor eliminada de cada bracket se juega volver antes de la Lalaparuza." : "Pero la temporada sigue: verás cómo va cayendo cada reina hasta el reencuentro, donde aún puedes ganar Miss Simpatía, y la gran final."}</p>
         <div class="row">
-          ${S.rivals.length > 4 ? `<button class="btn btn-ghost" id="story-skip">⏩ Saltar al reencuentro</button>` : ""}
+          ${S.rivals.length > (brk ? 7 : 4) ? `<button class="btn btn-ghost" id="story-skip">⏩ ${brk ? "Saltar a la Lalaparuza" : "Saltar al reencuentro"}</button>` : ""}
           <button class="btn btn-primary" id="story-next">Ver cómo sigue la temporada</button>
         </div>
       </div>`;

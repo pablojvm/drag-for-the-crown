@@ -94,7 +94,8 @@ Object.assign(TEMPORADAS_HISTORIA, {
     lema: "All Stars por brackets: alianzas, puntos y Lalaparuza final",
     intro: [
       ["host", "¡Bienvenidas, All Stars! Este año no competís todas juntas: os hemos repartido en tres brackets."],
-      ["host", "Cada bracket compite tres semanas. Nadie se va a casa: las dos mejores de cada semana hacen lip sync por la victoria, y cada resultado da puntos."],
+      ["host", "Cada bracket compite tres semanas. Nadie se va a casa: las dos mejores de cada semana se llevan 2 puntos y hacen lip sync por la victoria: la que gana, 1 más."],
+      ["host", "Las demás tenéis un punto MVQ para regalar a la compañera de bracket que queráis. Pensadlo bien."],
       ["host", "Dentro de cada bracket os aliaréis por parejas. Buscad a quien os complemente: os valoraremos juntas... salvo que una hunda a la otra."],
       ["host", "Las alianzas se pueden romper cada semana. Al acabar cada bracket, solo pasa la mitad: las que más puntos sumen."],
       ["host", "Luego, todas juntas y cada una por su cuenta. Y cuando quedéis siete... una eliminada volverá, y la corona se decidirá en una Lalaparuza."],

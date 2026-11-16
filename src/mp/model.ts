@@ -172,7 +172,7 @@ export interface RoomState {
   rp?: { ep: number; pairs: { c: string; o: string | null }[]; mc?: string };
   rpDone?: boolean;
   /** All Stars por brackets: los tres grupos, desde qué episodio y cuántas semanas compiten; al acabar, done. */
-  br?: { groups: string[][]; start: number; per: number; done?: boolean; back?: string; final?: boolean; /** Votos MVQ de cada semana (quién da su punto a quién). */ mvq?: Mvq };
+  br?: { groups: string[][]; start: number; per: number; done?: boolean; back?: string; final?: boolean; /** Votos MVQ de cada semana (quién da su punto a quién). */ mvq?: Mvq; /** Puntos de cada reina en el corte (al apuntar ELIM se pisa la etiqueta de esa semana). */ pts?: Record<string, number> };
   /** Alianzas por parejas de la semana (dentro de cada bracket) y el top 2 de cada bracket. */
   al?: { ep: number; pairs: string[][] };
   brTop?: string[][];
@@ -649,8 +649,10 @@ function bracketLipsync(s: RoomState, now: number, e: Engine): RoomState {
   const alive = new Set(aliveKeys(t));
   const gone: string[] = [];
   const adv: string[] = [];
+  const pts: Record<string, number> = {};
   B.groups.forEach((g) => {
     const cl = clasificacion(g.filter((k) => alive.has(k)), (k) => t.track[k], eps, e.rnd, B.mvq);
+    cl.forEach((x) => (pts[x.k] = x.p));
     const n = Math.ceil(g.length / 2);
     adv.push(...cl.slice(0, n).map((x) => x.k));
     gone.push(...cl.slice(n).map((x) => x.k));
@@ -659,7 +661,7 @@ function bracketLipsync(s: RoomState, now: number, e: Engine): RoomState {
   const place = gone.length > 1 ? `${A + 1}º/${A + gone.length}º` : `${A + 1}º`;
   gone.forEach((k) => (t = eliminate(t, k, place, "ELIM", e)));
   const note = `Ganan el lip sync por la victoria: ${wonTxt}. Votos MVQ: ${mvqTxt || "ninguno"}. Fin de los brackets (pasan las de más puntos): pasan ${adv.map(nm).join(", ")}. Desde ahora, cada una por su cuenta.`;
-  return { ...t, br: { ...B, done: true }, al: undefined, brTop: undefined, note, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+  return { ...t, br: { ...B, done: true, pts }, al: undefined, brTop: undefined, note, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
 }
 /** ¿Toca ya la final del All Stars por brackets? Con siete (o menos) tras los brackets. */
 const brFinalToca = (s: RoomState) => s.fmt === "brackets" && !!s.br?.done && !s.br.final && aliveKeys(s).length <= BRACKETS_FINAL;
@@ -673,7 +675,7 @@ function brFinalStart(s: RoomState, now: number, e: Engine): RoomState {
   const nm = (k: string) => nameOfKey(s, k, e);
   const outK = new Set(s.out.map((o) => o.key));
   const eps = Array.from({ length: B.per }, (_, i) => B.start + i);
-  const val = (k: string) => puntos(s.track[k], eps, s.br?.mvq, k) + ppeOf(s, k);
+  const val = (k: string) => (B.pts?.[k] ?? puntos(s.track[k], eps, B.mvq, k)) + ppeOf(s, k);
   const cands = B.groups.map((g) => g.filter((k) => outK.has(k)).sort((a, b) => val(b) - val(a))[0]).filter(Boolean).sort((a, b) => val(a) - val(b));
   let back = cands[0];
   cands.slice(1).forEach((c) => { const qa = queenOfKey(s, back), qc = queenOfKey(s, c); back = e.simLS(qa, qc) === qa ? back : c; });

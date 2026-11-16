@@ -181,6 +181,9 @@ function allWinnersOrigin() {
     const c = storyCrown(t.id);
     if (c) { if (!add(c.queen, { season: name, how: "win" })) add(c.runner, { season: name, how: "runner" }); return; }
     const cast = t.cast || [];
+    // Temporadas sin ganadora de verdad (brackets, a tu gusto): entra la que ganó tu última partida, aunque no fueras tú
+    const R = store.get("dftc-reinantes", {})[t.id];
+    if (!cast.length && R && R.queen && ALL_QUEEN_IDS().includes(R.queen)) { add(R.queen, { season: name, how: "canon" }); return; }
     if (cast.length > 1 && !t.enEmision && !add(cast[cast.length - 1], { season: name, how: "canon" })) add(cast[cast.length - 2], { season: name, how: "canon" });
   });
   return out;

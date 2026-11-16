@@ -169,7 +169,7 @@ const Story = (() => {
     desc: "Las eliminadas vuelven al taller. Cada reina en competición hace un monólogo a dúo con una de ellas. La eliminada de la pareja ganadora vuelve a la competición... y las tres peores parejas van a un lip sync a tres bandas: se salva una y se van dos.",
     ctrl: "Clic o teclas 1, 2 y 3",
     attrs: ["comedia", "carisma"],
-    run: (el, done) => (IA.ready() ? liveStandPair(el, done) : RETOS.comedia.run(el, done)),
+    run: (el, done) => aiOrClassic(el, "Stand-up en parejas", "🎙️", () => liveStandPair(el, done), () => RETOS.comedia.run(el, done)),
   };
   // Temporada 1: la repesca del makeover. Cada reina en competición transforma a una eliminada en su familia drag
   RETOS.repescaMakeover = {

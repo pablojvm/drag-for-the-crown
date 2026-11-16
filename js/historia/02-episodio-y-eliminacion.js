@@ -963,7 +963,8 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
       const critStep = (then) => {
         flowGo("criticas");
         const ctx = { ...ctxWith(pick1(S.rivals)), tension: false };
-        rivalCrit().then((rc) => {
+        // Si algo falla al escribir las críticas, se sigue con las de siempre (nunca se queda en «deliberando»)
+        rivalCrit().catch(() => []).then((rc) => {
           const bc = blockCrit();
           if (meSafe) return dialog(turnos([["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."], ...bc, ...rc.flat()]), ctx, then);
           const lab = labOf.get(meRow) || "";
@@ -982,7 +983,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           }
           const base = buildCritique(myScore, "none", tier);
           const k = Math.floor(rc.length / 2);
-          aiCritique(base, myScore, label).then((lines) => dialog(turnos([...bc, ...rc.slice(0, k).flat(), ...lines, ...extra, ...rc.slice(k).flat()]), ctx, then));
+          aiCritique(base, myScore, label).catch(() => base).then((lines) => dialog(turnos([...bc, ...rc.slice(0, k).flat(), ...lines, ...extra, ...rc.slice(k).flat()]), ctx, then));
         });
       };
       // Resultados en orden: ganadora, altas, bajas y bottom
@@ -1004,7 +1005,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
             <h3>${myLab === "TOP2" || myLab === "BTOP" ? "¡Estás en el top 2! 💄" : myLab === "WIN" ? "¡Has ganado el reto! 👑" : /^BTM/.test(myLab) ? (tw === "winners" ? "Semana floja... pero sigues" : "Vas al lip sync...") : myLab === "SAFE" ? "Estabas a salvo" : "Te salvas esta semana"}</h3>
             <div class="verdict">
               ${blocks ? `<div class="v-row win" style="--i:0"><b>🏆 ${blocks[0].name ? `Gana ${/^«/.test(blocks[0].name) ? "" : /^Pareja/.test(blocks[0].name) ? "la " : "el "}${esc(blocks[0].name)}` : "Grupo ganador"}</b>${faces(blocks[0].rows)}</div>` : teamLine}
-              <div class="v-row win" style="--i:0"><b>${tw === "winners" ? `<img class="ll-ic" src="./images/legendary-star-sm.png?v=2" alt=""> Top 2: os jugáis la Legendary Legend Star` : tw === "allstars" ? "💄 Top 2: os jugáis el poder" : tw === "brackets" ? "🏆 Top 2: os jugáis la victoria (10 y 9 puntos)" : n === 5 && S.flags.paseEp === S.ep ? "👑 Ganadora del reto y 🎟️ pase directo a la gran final" : n === 6 && S.flags.finalistaEp === S.ep ? "👑 Ganadora del reto y primera finalista" : "👑 Felicidrages, ganadora del reto"}</b>${tw === "winners" ? `<div class="call-faces">${wins.map((r, k) => `<span class="${r.me ? "me" : ""} ${labOf.get(r) === "TOP2" ? "ll-won" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}${labOf.get(r) === "TOP2" ? `<img class="ll-badge" src="./images/legendary-star-sm.png?v=2" alt="Legendary Legend Star">` : ""}</span>`).join("")}</div>` : faces(wins)}</div>
+              <div class="v-row win" style="--i:0"><b>${tw === "winners" ? `<img class="ll-ic" src="./images/legendary-star-sm.png?v=2" alt=""> Top 2: os jugáis la Legendary Legend Star` : tw === "allstars" ? "💄 Top 2: os jugáis el poder" : tw === "brackets" ? "🏆 Top 2: os jugáis la victoria (2 puntos cada una y 1 más la que gane)" : n === 5 && S.flags.paseEp === S.ep ? "👑 Ganadora del reto y 🎟️ pase directo a la gran final" : n === 6 && S.flags.finalistaEp === S.ep ? "👑 Ganadora del reto y primera finalista" : "👑 Felicidrages, ganadora del reto"}</b>${tw === "winners" ? `<div class="call-faces">${wins.map((r, k) => `<span class="${r.me ? "me" : ""} ${labOf.get(r) === "TOP2" ? "ll-won" : ""}" style="--i:${k}"><i style="background-image:url('${photo(r.q)}')"></i>${nm(r)}${labOf.get(r) === "TOP2" ? `<img class="ll-badge" src="./images/legendary-star-sm.png?v=2" alt="Legendary Legend Star">` : ""}</span>`).join("")}</div>` : faces(wins)}</div>
               ${highs.length ? `<div class="v-row high" style="--i:1"><b>✨ Buen trabajo, estáis a salvo</b>${faces(highs)}</div>` : ""}
               ${safesC.length ? `<div class="v-row high" style="--i:1"><b>🙂 Estáis a salvo</b>${faces(safesC)}</div>` : ""}
               ${lows.length ? `<div class="v-row low" style="--i:2"><b>😬 A salvo... por los pelos</b>${faces(lows)}</div>` : ""}
@@ -1556,7 +1557,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
               S.lipsyncs++;
               S.points += 1000;
               if (S.lipsyncs >= 3) Achievements.unlock("superviviente");
-              Toast.show("💄 ¡Has ganado el lip sync!", twistOf() === "allstars" ? "Saca tu pintalabios" : twistOf() === "brackets" ? "+10 puntos para ti en el bracket" : "Tienes el poder de decidir");
+              Toast.show("💄 ¡Has ganado el lip sync!", twistOf() === "allstars" ? "Saca tu pintalabios" : twistOf() === "brackets" ? "Sumas 3 puntos en el bracket (ella, 2)" : "Tienes el poder de decidir");
               mark(S.queen, winLab(S.queen));
               meWonReto();
               if (S.rivals.length + 1 === 5 && !["winners", "brackets"].includes(twistOf())) S.flags.pase = "me";
@@ -1564,7 +1565,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
               earn(300, "Ganas el reto de la semana");
               return then({ q: S.queen, me: true });
             }
-            Toast.show(`💄 ${rival.name} gana el lip sync`, twistOf() === "allstars" ? "Ella saca su pintalabios" : twistOf() === "brackets" ? "Se lleva los 10 puntos" : "Ella decide");
+            Toast.show(`💄 ${rival.name} gana el lip sync`, twistOf() === "allstars" ? "Ella saca su pintalabios" : twistOf() === "brackets" ? "Ella suma 3 puntos en el bracket; tú, 2" : "Ella decide");
             mark(rival, winLab(rival));
             if (S.rivals.length + 1 === 5 && !["winners", "brackets"].includes(twistOf())) S.flags.pase = rival.id;
             then({ q: rival });
@@ -1582,7 +1583,7 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
         <h3>${esc(w.name)} vs ${esc(l.name)}</h3>
         <p class="muted">${esc(fill(pickFresh(HISTORIA.lipsyncOtras), { a: w.name, b: l.name }))}</p>
         <div class="vs"><img src="${photo(w)}">${vsMid("👑")}<img src="${photo(l)}"></div>
-        <p><b>${esc(w.name)}</b> ${twistOf() === "winners" ? "gana el lip sync y el bloqueo. Las dos se llevan estrella ⭐ (si no están bloqueadas)." : twistOf() === "brackets" ? "gana el lip sync y el reto: 10 puntos para ella y 9 para la otra." : "gana el lip sync: va a sacar su pintalabios."}</p>
+        <p><b>${esc(w.name)}</b> ${twistOf() === "winners" ? "gana el lip sync y el bloqueo. Las dos se llevan estrella ⭐ (si no están bloqueadas)." : twistOf() === "brackets" ? "gana el lip sync y el reto: 3 puntos para ella y 2 para la otra." : "gana el lip sync: va a sacar su pintalabios."}</p>
         <button class="btn btn-primary" id="story-next">Continuar</button>
       </div>`;
     mark(w, winLab(w));
@@ -1986,7 +1987,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
   const brEps = (g) => Array.from({ length: S.br.per }, (_, i) => S.br.start[g] + i);
   const brFace = (k, extra = "") => `<span class="${k === "me" ? "me" : ""}"><i style="background-image:url('${photo(brQ(k))}')"></i>${esc(k === "me" ? "Tú" : brQ(k).name)}${extra}</span>`;
   function brTable(g, eps, adv) {
-    const R = brRank(S.br.groups[g], eps);
+    const R = (adv && S.br.fin && S.br.fin[g]) || brRank(S.br.groups[g], eps);
     return `<div class="br-box" style="--grp:${BR_COLORS[g].c}"><b>${BR_COLORS[g].n}</b>${R.map((x, i) => `<span class="${x.k === "me" ? "me" : ""} ${adv && i < S.br.adv ? "adv" : adv ? "fuera" : ""}"><i style="background-image:url('${photo(brQ(x.k))}')"></i>${esc(x.k === "me" ? "Tú" : brQ(x.k).name)}<em>${x.p} pts</em></span>`).join("")}</div>`;
   }
   // Alianzas por parejas dentro del bracket (regla compartida: src/core/alianzas.ts). Cada semana se pueden cambiar
@@ -2121,6 +2122,8 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     // Último episodio del bracket: pasan las mejores (la mitad); las demás, fuera (ELIM en esta semana)
     const R0 = brRank(B.groups[0], eps);
     const nAdv = B.adv;
+    // Se guarda la clasificación del corte: al apuntar ELIM se pisa la etiqueta de esa semana (y sus puntos)
+    B.fin = { 0: R0.map((x) => ({ k: x.k, p: x.p })) };
     const meAdv = R0.slice(0, nAdv).some((x) => x.k === "me");
     R0.slice(nAdv).forEach((x) => { if (x.k !== "me") eliminate(qById(x.k)); else mark(S.queen, "ELIM"); });
     const adv = R0.slice(0, nAdv).map((x) => x.k);
@@ -2132,6 +2135,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       const wins = [];
       for (let i = 0; i < B.per; i++) wins.push(brSimWeek(keys));
       const R = brRank(keys, brEps(g));
+      B.fin[g] = R.map((x) => ({ k: x.k, p: x.p }));
       R.slice(nAdv).forEach((x) => { S.track[x.k][S.ep] = "ELIM"; S.out.unshift(qById(x.k)); });
       adv.push(...R.slice(0, nAdv).map((x) => x.k));
       notes.push(`<b>${BR_COLORS[g].n}</b>: ganan reto ${wins.map((q) => esc(q.name)).join(", ")}. Pasan ${R.slice(0, nAdv).map((x) => `<b>${esc(qById(x.k).name)}</b>`).join(", ").replace(/, ([^,]*)$/, " y $1")}.`);
@@ -2182,7 +2186,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     const isOut = (k) => (k === "me" ? S.meOut : !S.rivals.some((q) => keyOf(q) === k));
     const lab = (k) => (k === "me" ? "Tú" : brQ(k).name);
     // La mejor eliminada de cada bracket, por sus puntos en el bracket (y su PPE de toda la temporada)
-    const cands = B.groups.map((g, gi) => g.filter(isOut).map((k) => ({ k, p: brPts(k, brEps(gi)) + DFTC.ppe(Object.values(S.track[k] || {})) })).sort((a, b) => b.p - a.p)[0]).filter(Boolean).sort((a, b) => a.p - b.p).map((x) => x.k);
+    const cands = B.groups.map((g, gi) => g.filter(isOut).map((k) => ({ k, p: (((B.fin || {})[gi] || []).find((x) => x.k === k) || { p: brPts(k, brEps(gi)) }).p + DFTC.ppe(Object.values(S.track[k] || {})) })).sort((a, b) => b.p - a.p)[0]).filter(Boolean).sort((a, b) => a.p - b.p).map((x) => x.k);
     const sk = (k) => (k === "me" ? 70 : skillOf(brQ(k)));
     const duel = (a, b, eyebrow, curtain, cb) => {
       if (a === "me" || b === "me") {
