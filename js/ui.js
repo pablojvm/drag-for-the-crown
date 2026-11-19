@@ -549,6 +549,8 @@ const UI = (() => {
     const R = store.get("dftc-reinantes", {});
     const fmtD = (d) => new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
     // Arriba la Reina de reinas (All Winners), luego los All Stars y después las temporadas normales
+    // Código de la temporada en la esquina: T1, AS2, AW...
+    const code = (s) => { const m = /^es(\d+)$/.exec(s.id) || null, a = /^esas(\d+)$/.exec(s.id) || null; return m ? `T${m[1]}` : a ? `AS${a[1]}` : ({ esaw: "AW", escustom: "AS+", esbr: "ASB", espj: "ASP" })[s.id] || "AS"; };
     const card = (s, i, cls = "") => {
       const r = R[s.id];
       const orig = s.enEmision || s.special ? null : queenById(s.winner);
@@ -557,10 +559,12 @@ const UI = (() => {
       const sub = r
         ? r.mine ? "Coronada en tu partida" : `Ganó en tu partida${player ? ` con ${esc(player.name)}` : ""}`
         : orig ? "Ganadora original" : s.special ? "Aún sin coronar" : "En emisión · aún sin reina";
+      const look = q ? lookOf(q, s.id) : null;
+      // La reina entera (sin fondo); si no hay, su retrato
+      const pic = look && look.sprite ? `<img class="reign-full" src="${look.sprite}" alt="" loading="lazy">` : look || PORTADAS[s.id] ? `<i class="reign-pic" style="background-image:url('${look ? look.portrait : PORTADAS[s.id]}')"></i>` : `<span class="reign-empty" aria-hidden="true">👑</span>`;
       return `<div class="reign ${cls} ${r ? (r.mine ? "mine" : "played") : ""}" style="--i:${i}">
-          <span class="tag-mini" style="background:${s.franchise.color}">${s.franchise.tag}</span>
-          <i class="reign-pic" style="background-image:url('${q ? lookOf(q, s.id).portrait : PORTADAS[s.id] || ""}')"></i>
-          <span class="reign-crown">${cls === "qoq" ? "👑👑" : "👑"}</span>
+          <span class="tag-mini reign-code" style="background:${s.franchise.color}">${code(s)}</span>
+          <div class="reign-stage">${pic}</div>
           <strong>${esc(q ? q.name : "¿?")}</strong>
           <small class="reign-season">${esc(s.name)}${s.year && !s.special ? ` · ${s.year}` : ""}</small>
           <small class="reign-sub">${sub}${r && r.reigns > 1 ? ` · ${r.reigns} coronas seguidas` : ""}</small>
@@ -573,10 +577,12 @@ const UI = (() => {
     const as = SS.filter((s) => frOf(s) === "esas" && s.special !== "winners");
     const reg = SS.filter((s) => frOf(s) !== "esas");
     let i = 0;
+    // Títulos centrados: la Reina de reinas con la corona en grande encima; los demás con dos iconos a cada lado
+    const head = (ic, t) => `<h4 class="reign-h"><i class="s1">${ic}</i><i class="s2">${ic}</i><b>${t}</b><i class="s2">${ic}</i><i class="s1">${ic}</i></h4>`;
     $("#reign-grid").innerHTML =
-      (aw ? `<h4 class="reign-h">👑 Reina de reinas</h4>${card(aw, i++, "qoq")}` : "") +
-      (as.length ? `<h4 class="reign-h">⭐ All Stars</h4>${as.map((s) => card(s, i++)).join("")}` : "") +
-      (reg.length ? `<h4 class="reign-h">💄 Temporadas</h4>${reg.map((s) => card(s, i++)).join("")}` : "");
+      (aw ? `<section class="reign-sec qoq-sec"><h4 class="reign-h qoq-h"><span class="big-crown">👑</span><b>Reina de reinas</b></h4><div class="reign-row">${card(aw, i++, "qoq")}</div></section>` : "") +
+      (as.length ? `<section class="reign-sec">${head("⭐", "All Stars")}<div class="reign-row">${as.map((s) => card(s, i++)).join("")}</div></section>` : "") +
+      (reg.length ? `<section class="reign-sec">${head("💄", "Temporadas")}<div class="reign-row">${reg.map((s) => card(s, i++)).join("")}</div></section>` : "");
   }
   // Track record de una partida guardada en el ranking
   function openEntryTrack(e) {

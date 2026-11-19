@@ -3217,3 +3217,34 @@ body.portrait .mp-cs-faces { flex-wrap: wrap; }
 .br-drop { position: fixed; z-index: 9999; display: grid; grid-template-columns: repeat(3, minmax(170px, 1fr)); gap: 10px; width: min(640px, 92vw); padding: 12px; border-radius: 18px; background: #fff; box-shadow: 0 20px 50px -20px rgba(40,0,60,.55); cursor: default; animation: fade-in .2s ease; }
 .br-drop .br-box span.out { opacity: .45; text-decoration: line-through; }
 body.portrait .br-drop { grid-template-columns: 1fr; max-height: 70vh; overflow-y: auto; }
+
+/* Reinas reinantes: cada sección centrada, títulos legibles y la reina entera en cada carta */
+#reign-grid { display: flex !important; flex-direction: column; align-items: center; gap: 48px; width: 1180px; }
+.reign-sec { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.reign-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px 44px; width: 100%; padding: 6px 0 10px; }
+.reign-h { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font: 400 30px/1 "Bungee", sans-serif; color: #fff; text-shadow: 0 0 14px rgba(255,61,154,.9), 0 3px 0 #7a0a4f; text-align: center; }
+.reign-h b { font-weight: 400; padding: 0 6px; }
+.reign-h i { font-style: normal; line-height: 1; filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)); }
+.reign-h .s1 { font-size: 20px; opacity: .85; }
+.reign-h .s2 { font-size: 32px; }
+.reign-h.qoq-h { flex-direction: column; gap: 4px; font-size: 38px; }
+.reign-h .big-crown { font-size: 78px; line-height: 1; filter: drop-shadow(0 6px 14px rgba(255,190,40,.7)); animation: corona-flota 3s ease-in-out infinite; }
+@keyframes corona-flota { 50% { transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .reign-h .big-crown { animation: none; } }
+.reign-row .reign { width: 260px; }
+.reign-row .reign.qoq { width: 340px; }
+.reign-stage { width: 100%; height: 230px; display: flex; align-items: flex-end; justify-content: center; border-radius: 16px; background: radial-gradient(70% 60% at 50% 70%, rgba(255,207,77,.35), transparent 70%); overflow: hidden; }
+.reign.qoq .reign-stage { height: 300px; background: radial-gradient(70% 60% at 50% 70%, rgba(200,215,245,.8), transparent 72%); }
+.reign-full { height: 100%; max-width: 100%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 10px 16px rgba(60,0,60,.3)); }
+.reign-stage .reign-pic { margin: auto; }
+.reign .reign-code { top: 10px; left: 10px; z-index: 1; font-size: 13px; padding: 4px 9px; }
+body.portrait #reign-grid { width: 100% !important; }
+body.portrait .reign-row .reign { width: calc(50% - 10px); }
+body.portrait .reign-row .reign.qoq { width: min(340px, 100%); }
+body.portrait .reign-stage { height: 180px; }
+body.portrait .reign-h { font-size: 22px; }
+/* Cada reina, única: más aire alrededor y su propio foco */
+.reign-row .reign { box-shadow: 0 22px 44px -26px rgba(60,0,60,.55); }
+body.portrait .reign-row { gap: 22px 16px; }
+body.portrait .reign-row .reign { width: calc(50% - 8px); }
+.reign-empty { margin: auto; font-size: 70px; opacity: .22; filter: grayscale(.4); }
