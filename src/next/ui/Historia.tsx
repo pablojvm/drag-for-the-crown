@@ -26,8 +26,8 @@ export function HistoriaUI() {
   }, []);
   return (
     <div className={`nx-historia ${ready ? "on" : ""} ${away ? "away" : ""}`}>
-      {!ready && <div className="nx-historia-wait" role="status"><h2>{historiaModo() === "mp" ? "Multijugador" : "Modo historia"}</h2><div className="nx-dots" aria-hidden="true"><i /><i /><i /></div></div>}
-      <iframe ref={frame} src={src} title={historiaModo() === "mp" ? "Multijugador" : "Modo historia"} className={ready ? "on" : ""} allow="autoplay; fullscreen; clipboard-write" />
+      {!ready && <div className="nx-historia-wait" role="status"><h2>{historiaModo() === "mp" ? "Multijugador" : historiaModo() === "fama" ? "Hall of Fame" : "Modo historia"}</h2><div className="nx-dots" aria-hidden="true"><i /><i /><i /></div></div>}
+      <iframe ref={frame} src={src} title={historiaModo() === "mp" ? "Multijugador" : historiaModo() === "fama" ? "Hall of Fame" : "Modo historia"} className={ready ? "on" : ""} allow="autoplay; fullscreen; clipboard-write" />
     </div>
   );
 }

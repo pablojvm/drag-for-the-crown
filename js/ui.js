@@ -806,6 +806,8 @@ const UI = (() => {
       embedOn = true;
       mode = "story";
       if (EMBED_MODE === "nueva") show("franchise");
+      // Hall of Fame de la versión clásica, desde la portada de la nueva (al volver, se cierra el marco)
+      else if (EMBED_MODE === "fama") { scoresTab = "story"; show("scores"); }
       else {
         Story.menu(() => show("franchise"));
         const c = $("#story-continue");

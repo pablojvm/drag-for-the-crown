@@ -13,7 +13,7 @@ import type { LsAttrs } from "../../core/lipsync";
 import type { Tag } from "../../core/runway";
 import type { TrackSnap } from "./track";
 
-export type HistoriaModo = "" | "nueva" | "seguir" | "mp";
+export type HistoriaModo = "" | "nueva" | "seguir" | "mp" | "fama";
 let modo: HistoriaModo = "";
 let frame: Window | null = null;
 export const historiaModo = () => modo;

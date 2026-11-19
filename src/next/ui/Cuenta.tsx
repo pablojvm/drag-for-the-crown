@@ -1,5 +1,7 @@
 // Barra del menú: tu cuenta, tus rudollars y lipsticks, Hall of Fame, logros y ajustes.
 import { useEffect, useState } from "react";
+// El Hall of Fame es el de la versión clásica (con sus pestañas y las Reinas reinantes), dentro de un marco
+import { openHistoria } from "../game/historia";
 import { useGame, setMuted } from "../store";
 import { signIn, signOut, refreshAcct, localBoard, worldTop, playerName, setPlayerName, storyWins, type TopRow } from "../game/cuenta";
 import type { TrackSnap } from "../game/track";
@@ -28,7 +30,7 @@ export function MenuBar() {
         <div className="nx-topbar-r">
           <span className="nx-chip" title="Rudollars (modo normal)">💵 {rudollars().toLocaleString("es-ES")}</span>
           <span className="nx-chip" title="Lipsticks (multijugador)">💄 {sequins().toLocaleString("es-ES")}</span>
-          <button className="nx-round nx-wide-only" aria-label="Hall of Fame" title="Hall of Fame" onClick={() => toggle("fama")}>🏆</button>
+          <button className="nx-round nx-wide-only" aria-label="Hall of Fame" title="Hall of Fame" onClick={() => openHistoria("fama")}>🏆</button>
           <button className="nx-round nx-wide-only" aria-label="Logros" title="Logros" onClick={() => toggle("logros")}>🎖️</button>
           <button className="nx-round nx-wide-only" aria-label="Ajustes" title="Ajustes" onClick={() => toggle("ajustes")}>⚙️</button>
           <button className="nx-round nx-menu-btn" aria-label="Menú" aria-expanded={menu} onClick={() => setMenu(!menu)}>{menu ? "✕" : "☰"}</button>
@@ -36,7 +38,7 @@ export function MenuBar() {
         {menu && (
           <div className="nx-dropdown" role="menu">
             <button role="menuitem" onClick={() => { setMenu(false); setPanel("cuenta"); }}>👤 Tu cuenta</button>
-            <button role="menuitem" onClick={() => { setMenu(false); setPanel("fama"); }}>🏆 Hall of Fame</button>
+            <button role="menuitem" onClick={() => { setMenu(false); openHistoria("fama"); }}>🏆 Hall of Fame</button>
             <button role="menuitem" onClick={() => { setMenu(false); setPanel("logros"); }}>🎖️ Logros</button>
             <button role="menuitem" onClick={() => { setMenu(false); setPanel("ajustes"); }}>⚙️ Ajustes</button>
           </div>
