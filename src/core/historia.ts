@@ -713,6 +713,49 @@ export const REENCUENTRO: any = {
     [["r1", "Ah, mira quién está en la final. Qué sorpresa."], ["r1", "Yo me acuerdo de todo, {yo}. De TODO."], ["host", "Uy, uy, uy. Esto no lo esperaba."]],
     [["r1", "Tengo una cosa que decirte delante de todas."], ["r1", "Lo que me hiciste no estuvo bien. Y viéndolo desde casa, peor."]],
   ],
+  // Si tú también estás eliminada y hablas con una finalista
+  aFinalista: {
+    buena: [
+      [["me", "¡{r1}! Estás en la final, ¡qué orgullo!"], ["r1", "Gracias, {yo}. Esta corona también es un poco tuya."]],
+      [["r1", "¡{yo}! Ven, que te necesito aquí: dime que me ves con la corona."], ["me", "Te veo con la corona, el cetro y la capa."]],
+    ],
+    neutra: [
+      [["me", "Enhorabuena por llegar a la final, {r1}."], ["r1", "Gracias. Dentro no hablamos mucho... pero te vi trabajar."]],
+      [["r1", "Hola, {yo}. ¿Qué tal se ve todo desde fuera?"], ["me", "Con menos nervios. Disfrútalo."]],
+    ],
+    mala: [
+      [["r1", "Mira quién viene a felicitarme."], ["r1", "Desde la final se ve todo muy distinto, {yo}."]],
+      [["r1", "¿Vienes a desearme suerte o a echarme el mal de ojo?"], ["me", "Tú sabrás lo que te mereces."]],
+    ],
+  },
+  // Las dos eliminadas: depende de quién se fue antes
+  eliminadas: {
+    antes: [
+      [["r1", "Te he visto cada semana desde el sofá, {yo}, gritando como una loca."], ["r1", "Ni mi madre me anima así en los partidos."]],
+      [["r1", "Yo me fui antes, pero te seguí todas las semanas. ¡Qué pasarelas!"], ["me", "Ay, {r1}, que me lo creo."]],
+    ],
+    despues: [
+      [["me", "¡{r1}! Te vi cada semana desde el sofá."], ["r1", "¿Y gritabas? Dime que gritabas."]],
+      [["me", "Desde casa te veía y pensaba: esa llega lejos."], ["r1", "Pues casi, {yo}. Casi."]],
+    ],
+    juntas: [
+      [["r1", "Nos fuimos juntas, {yo}. Y aquí estamos otra vez."], ["me", "Lo que vivimos ahí dentro no nos lo quita nadie."]],
+      [["r1", "Salimos por la misma puerta la misma noche."], ["me", "Y volvemos por la misma puerta, mira tú."]],
+    ],
+    pareja: [
+      [["r1", "Nos fuimos de la mano, {yo}. Lo volvería a hacer contigo."], ["me", "Y yo contigo. Fuimos la mejor pareja, digan lo que digan."]],
+      [["r1", "Perdimos juntas y aquí estamos, juntas otra vez."], ["me", "Para lo bueno y para el lip sync."]],
+    ],
+    mala: [
+      [["r1", "Ah, {yo}. ¿Tú también fuera? Qué pena..."], ["r1", "Bueno, no tanta."]],
+      [["r1", "Las dos en el sofá. Al menos ya no tengo que verte en el taller."], ["me", "Pues aquí me tienes otra vez."]],
+    ],
+  },
+  // Si tú también estás fuera (sin corona de por medio)
+  choicesMalaFuera: [
+    { txt: "Tienes razón. Te pido perdón.", rel: { r1: 2 }, reply: ["r1", "Vale... Eso no me lo esperaba. Gracias."] },
+    { txt: "Era una competición. No me arrepiento.", bonus: 200, reply: ["r1", "Pues mira, por lo menos eres sincera."] },
+  ],
   choicesMala: [
     { txt: "Tienes razón. Te pido perdón.", rel: { r1: 2 }, reply: ["r1", "Vale... Eso no me lo esperaba. Gracias."] },
     { txt: "Era una competición. No me arrepiento.", bonus: 200, reply: ["r1", "Pues que te aproveche la corona. Si la ganas."] },

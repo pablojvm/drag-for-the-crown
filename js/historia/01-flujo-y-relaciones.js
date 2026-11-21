@@ -629,7 +629,7 @@
     if (tw === "makeover") chip = S.flags.repesca ? "💄 La repesca: hecha" : "💄 Cuando queden seis... vuelven";
     if (tw === "repesca") chip = S.flags.repesca ? "🔁 Segunda Oportunidrag: hecha" : "🔁 Segunda Oportunidrag: pendiente";
     if (tw === "allstars") chip = "💄 Decide la ganadora";
-    if (tw === "parejas" && S.pj) { const m = pjMate("me"); chip = m ? `👯 Tu pareja: ${pjQ(m).name}` : "👯 En parejas"; }
+    if (tw === "parejas" && S.pj) { const m = pjMate("me"); chip = m ? `👯 ${pjNameOf(["me", m])} · con ${pjQ(m).name}` : "👯 En parejas"; }
     if (tw === "winners") chip = `Tus estrellas: ${(S.stars || {}).me || 0}${S.ep === winnersWeeks() ? " · 🌟 Esta semana el top 2 gana 3 estrellas" : ""}${S.block && S.block.ep === S.ep ? ` · 🚫 Bloqueada: ${S.block.id === "me" ? "tú" : nameOfKey(S.block.id)}` : ""}`;
     $("#story-ep").textContent = S.meOut ? "Fuera de la competición" : isFinal() ? (S.flags.reunion ? "Gran final" : "El reencuentro") : `Episodio ${S.ep}`;
     if (chip) $("#story-season").innerHTML += ` <span class="twist-chip">${esc(chip)}</span>`;

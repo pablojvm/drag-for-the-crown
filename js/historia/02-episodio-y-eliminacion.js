@@ -741,10 +741,14 @@
     if (pjOn() && !sc.__pj) {
       sc.__pj = 1;
       const ra = (k) => retoAttrOf(pjQ(k));
-      pjPairs().forEach(([a, b]) => [[a, b], [b, a]].forEach(([k, o]) => {
-        const x = DFTC.alianzas.ayudaAliada(ra(k), ra(o));
-        if (k === "me") { myScore = clamp(myScore + x, 0, 100); sc.__me = myScore; } else if (sc[k] != null) sc[k] = clamp(sc[k] + x, 0, 99);
-      }));
+      const v = (k) => (k === "me" ? myScore : sc[k]);
+      pjPairs().forEach(([a, b]) => {
+        if (v(a) == null || v(b) == null) return;
+        // El reto lo hacen juntas: las dos sacan la misma nota (la media, con la ayuda de la que mejor se le da)
+        const xa = v(a) + DFTC.alianzas.ayudaAliada(ra(a), ra(b)), xb = v(b) + DFTC.alianzas.ayudaAliada(ra(b), ra(a));
+        const m = clamp(Math.round((xa + xb) / 2), 0, 99);
+        [a, b].forEach((k) => { if (k === "me") { myScore = m; sc.__me = m; } else sc[k] = m; });
+      });
     }
     if (S.phase && S.phase.ep === S.ep && !S.phase.sc) { S.phase.sc = { ...sc }; save(); }
     let teamLine = "";
@@ -1959,12 +1963,41 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
   const pjAlive = (k) => (k === "me" ? !S.meOut : S.rivals.some((q) => q.id === k));
   const pjPairs = () => (S.pj ? S.pj.pairs.filter((p) => p.length === 2 && p.every(pjAlive)) : []);
   const pjMate = (k) => { const p = S.pj && S.pj.pairs.find((x) => x.includes(k)); return p ? p.find((x) => x !== k) || null : null; };
-  const pjName = (i) => `Pareja ${GROUP_NAMES[Math.max(0, i) % GROUP_NAMES.length]}`;
+  // Cada pareja con un nombre hecho con los de las dos (como en el primer All Stars: Rujubee, Yarlexis, Latrila...)
+  const pjName = (i) => (S.pj && S.pj.names && S.pj.names[i]) || (S.pj && S.pj.pairs[i] && S.pj.pairs[i].length === 2 ? pjMix(pjQ(S.pj.pairs[i][0]).name, pjQ(S.pj.pairs[i][1]).name) : `Pareja ${i + 1}`);
+  /** Mezcla dos nombres de reina en uno (sin IA): «Raven» + «Jujubee» → «Rujubee». */
+  function pjMix(a, b) {
+    const word = (n) => { const w = n.replace(/[^\p{L}\s-]/gu, "").split(/[\s-]+/).filter((x) => x && !/^(la|el|las|los|drag|miss|von|der|de|del|di)$/i.test(x)); return (w[0] || n).toLowerCase(); };
+    const A = word(a), B = word(b);
+    const onset = (w) => (w.match(/^[^aeiouáéíóú]*/i) || [""])[0];
+    const firstSyl = (w) => (w.match(/^[^aeiouáéíóú]*[aeiouáéíóú]+[^aeiouáéíóú]?/i) || [w])[0];
+    const tailFrom = (w) => { const i = w.slice(1).search(/[aeiouáéíóú]/i); return i < 0 ? w : w.slice(i + 1); };
+    const cands = [onset(A) + B.slice(onset(B).length), firstSyl(A) + tailFrom(B), firstSyl(B) + tailFrom(A), onset(B) + A.slice(onset(A).length)]
+      .filter((c) => c.length >= 4 && c.length <= 10 && c !== A && c !== B);
+    const n = cands[0] || A.slice(0, 3) + B.slice(-4);
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  }
+  /** Los nombres de las parejas: los inventa la IA (si está) y, si no, se mezclan aquí. Uno por pareja para toda la temporada. */
+  async function pjNombres(pairs) {
+    const full = pairs.map((p) => p.map((k) => pjQ(k).name));
+    let names = full.map(([a, b]) => (b ? pjMix(a, b) : a));
+    if (IA.ready()) {
+      aiWait("Producción bautiza a las parejas...");
+      const r = await IA.chat(
+        "Inventas nombres de pareja para un All Stars de drag por parejas, mezclando los nombres artísticos de las dos reinas en una sola palabra corta y pegadiza (como Rujubee de Raven y Jujubee, Yarlexis de Yara Sofia y Alexis Mateo, Latrila de Latrice Royale y Manila Luzon, Mandora de Mimi Imfurst y Pandora Boxx). Si no sale bien en una palabra, vale «X & Y» o un nombre corto que las junte.",
+        `Parejas:\n${full.map((p, i) => `${i + 1}. ${p.join(" y ")}`).join("\n")}\nDevuelve JSON {"nombres":["...", ...]} con un nombre por pareja, en el mismo orden. Máximo 14 letras cada uno. Sin repetir.`,
+        { json: true, max: 200, temp: 0.9, timeout: 12000 },
+      ).catch(() => null);
+      const L = r && Array.isArray(r.nombres) ? r.nombres.map((x) => IA.clean(String(x || "")).replace(/["«»]/g, "").trim().slice(0, 22)) : [];
+      if (L.length === names.length && L.every(Boolean) && new Set(L).size === L.length) names = L;
+    }
+    return names;
+  }
   const pjNameOf = (p) => pjName(S.pj.pairs.findIndex((x) => x.includes(p[0])));
   const pjNm = (k) => (k === "me" ? "Tú" : pjQ(k).name);
   const pjNames = (p) => p.map((k) => esc(pjNm(k))).join(" y ");
   const pjFace = (k, cls = "") => `<span class="${k === "me" ? "me" : ""} ${cls}"><i style="background-image:url('${photo(pjQ(k))}')"></i>${esc(pjNm(k))}</span>`;
-  const pjBox = (p, cls = "") => `<div class="al-pair ${p.includes("me") ? "mine" : ""} ${cls}" style="--grp:${PJ_COLORS[Math.max(0, S.pj.pairs.findIndex((x) => x.includes(p[0]))) % PJ_COLORS.length]}">${p.map((k) => pjFace(k)).join("")}</div>`;
+  const pjBox = (p, cls = "") => `<div class="al-pair ${p.includes("me") ? "mine" : ""} ${cls}" style="--grp:${PJ_COLORS[Math.max(0, S.pj.pairs.findIndex((x) => x.includes(p[0]))) % PJ_COLORS.length]}"><b class="pj-name">${esc(pjNameOf(p))}</b>${p.map((k) => pjFace(k)).join("")}</div>`;
   // La que mejor defiende un lip sync de una pareja (de las reinas del juego)
   const pjLsPow = (k) => skillOf(pjQ(k)) + (traitsOf(pjQ(k)).fort === "lipsync" ? 10 : 0) - (traitsOf(pjQ(k)).deb === "lsFlojo" ? 8 : 0);
   const pjRep = (p) => p.filter((k) => k !== "me").sort((a, b) => pjLsPow(b) - pjLsPow(a))[0];
@@ -1981,6 +2014,8 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       // En secreto hasta la final: si la corona es para la pareja o solo para una. Y la semana en la que no se va nadie
       S.pj = { pairs, duo: typeof window.__pjDuo === "boolean" ? window.__pjDuo : Math.random() < 0.5, // (window.__pjDuo: solo pruebas)
         libre: 2 + Math.floor(Math.random() * 3) };
+      pjNombres(pairs).then((names) => {
+      S.pj.names = names;
       const mate = pjMate("me");
       if (mate) changeRel(pjQ(mate), 1);
       logEv(`All Stars en parejas: ${pairs.map((p) => p.map((k) => (k === "me" ? S.queen.name : pjQ(k).name)).join(" y ")).join(" · ")}`);
@@ -1988,13 +2023,14 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       body().innerHTML = `
         <div class="story-card">
           <p class="eyebrow">👯 All Stars en parejas</p>
-          <h3>${mate ? `Tu pareja: ${esc(pjQ(mate).name)}` : "Así quedan las parejas"}</h3>
+          <h3>${mate ? `Sois ${esc(pjNameOf(["me", mate]))}: ${esc(pjQ(mate).name)} y tú` : "Así quedan las parejas"}</h3>
           ${msg ? `<p class="twist-note">${msg}</p>` : ""}
           <div class="al-grid">${pairs.map((p) => pjBox(p)).join("")}</div>
           <p class="muted">Desde hoy ganáis juntas y caéis juntas: el jurado valora a la pareja. Lo que a una le falta, que lo ponga la otra.</p>
           <button class="btn btn-primary" id="story-next">¡Al taller!</button>
         </div>`;
       $("#story-next").addEventListener("click", then);
+      });
     };
     const mineA = at("me");
     const cands = keys.filter((k) => k !== "me").map((k) => {

@@ -27,6 +27,7 @@ await page.locator(".season-card", { hasText: process.env.TXT || "por brackets" 
 await page.evaluate(([v, f]) => { window.__forceScore = v; window.__hastaFinal = f; }, [Number(process.env.SCORE || 55), process.env.HASTA === "final"]);
 // Dos pasos: tu reina y, después, las 17 rivales al azar (empieza la temporada directamente)
 await page.locator(".cc-q").first().click();
+await page.locator("#cc-me").click();
 await page.locator("#cc-rnd").click();
 // JURADO=1: la pasarela con concepto, con un jurado de prueba (el resto de textos, los de siempre)
 if (process.env.JURADO) await page.evaluate(() => {

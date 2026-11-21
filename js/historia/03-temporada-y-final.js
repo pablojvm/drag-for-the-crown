@@ -116,28 +116,43 @@
     $("#story-ep").textContent = "El reencuentro";
     const all = () => [...S.rivals, ...S.out];
     scene("reunion", [...pickFresh(REENCUENTRO.intro), ...pickFresh(JAVIS.reencuentro)], ctxWith(S.out[0] || S.rivals[0]), pickTalk);
+    // Si vuelves como eliminada, puedes hablar con cualquiera: también con las finalistas
+    const talkTo = () => (S.meOut ? [...S.rivals, ...S.out.filter((q) => q !== S.queen)] : S.out);
+    const outEpOf = (q) => Math.max(0, ...Object.keys(S.track[q.id] || {}).map(Number).filter((e) => S.epNames[e] !== "Reencuentro"));
+    // Lo que se dicen depende de quién está en la final y de quién se fue antes
+    function talkLines(q, r) {
+      const kind = r >= 1 ? "buena" : r <= -1 ? "mala" : "neutra";
+      if (!S.meOut) return [...pickFresh(REENCUENTRO[kind])];
+      if (S.rivals.includes(q)) return [...pickFresh(REENCUENTRO.aFinalista[kind])];
+      const E = REENCUENTRO.eliminadas;
+      if (r <= -1) return [...pickFresh(E.mala)];
+      const mine = S.flags.outEp || 0, hers = outEpOf(q);
+      const mate = typeof pjMate === "function" && S.pj ? pjMate("me") : null;
+      if (mate === q.id && hers === mine) return [...pickFresh(E.pareja)];
+      return [...pickFresh(hers < mine ? E.antes : hers > mine ? E.despues : E.juntas)];
+    }
     function pickTalk() {
-      if (!S.out.length) return drama();
+      if (!talkTo().length) return drama();
       body().innerHTML = `
         <div class="story-card">
           <p class="eyebrow">💋 El reencuentro</p>
-          <h3>Vuelven las eliminadas. ¿Con quién hablas?</h3>
-          <p class="muted">Se acuerdan de todo lo que pasó dentro.</p>
-          <div class="hub-grid">${S.out
+          <h3>${S.meOut ? "Vuelves al plató. ¿Con quién hablas?" : "Vuelven las eliminadas. ¿Con quién hablas?"}</h3>
+          <p class="muted">${S.meOut ? "Con cualquiera: las eliminadas y también las finalistas." : "Se acuerdan de todo lo que pasó dentro."}</p>
+          <div class="hub-grid">${talkTo()
             .map((q, i) => `<button class="hub-q ${relOf(q) >= 2 ? "ally" : relOf(q) <= -2 ? "enemy" : ""}" style="--i:${i}" data-id="${q.id}"><i style="background-image:url('${photo(q)}')"></i><span>${esc(q.name)}</span><small>${relLabel(q)}</small>${roleChip(q)}</button>`)
             .join("")}</div>
         </div>`;
       body().querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => {
         const q = qById(b.dataset.id);
         const r = relOf(q);
-        const lines = [...pickFresh(REENCUENTRO[r >= 1 ? "buena" : r <= -1 ? "mala" : "neutra"])];
+        const lines = talkLines(q, r);
         if (roleOf(q)) lines.push(["r1", roleOf(q).reencuentro]);
         reveal(q);
         const ctx = { ...ctxWith(q), q: { r1: q, r2: S.rivals[0], r3: S.rivals[1] }, r1: q.name, tension: r <= -1 };
         scene("reunion", lines, ctx, () => {
           if (r >= 0) changeRel(q, 1);
           drama();
-        }, r <= -1 ? REENCUENTRO.choicesMala : undefined);
+        }, r <= -1 ? (S.meOut ? REENCUENTRO.choicesMalaFuera : REENCUENTRO.choicesMala) : undefined);
       }));
     }
     function drama() {
