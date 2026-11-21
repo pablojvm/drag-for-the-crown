@@ -163,6 +163,13 @@ const UI = (() => {
   // All Stars por brackets: 1) eliges tu reina (de cualquier temporada); 2) eliges a tus 17 rivales o las sorteas.
   // Después empieza la temporada directamente.
   // (El All Stars en parejas usa el mismo selector, con 11 rivales.)
+  // Ficha corta de una reina (sus habilidades de historia, carácter y fortaleza), sin mejoras: para los selectores
+  function statsCard(q) {
+    if (!q) return "";
+    const P = Story.preview ? Story.preview(q) : null;
+    const rows = P ? Object.entries(P.attrs).map(([k, v]) => `<div class="stat-row story-stat"><span>${P.names[k]}</span><span class="pips ten">${Array.from({ length: 10 }, (_, i) => `<i class="${i < v ? "on" : ""}"></i>`).join("")}</span><b class="stat-n">${v}</b></div>`).join("") : "";
+    return `<span class="cc-prev-pic" style="background-image:${portraitBg(q)}"></span><h4>${esc(q.name)}</h4>${rows}${P && P.car ? `<p class="wallet-line">🎭 Carácter: <b>${esc(P.car.n)}</b></p>` : ""}${P && P.fort ? `<p class="wallet-line">${P.fort.icon} Fortaleza: <b>${esc(P.fort.n)}</b> · ${esc(P.fort.d)}</p>` : ""}`;
+  }
   function bracketsQueenPicker(o = { id: "esbr", key: "dftc-brackets-cast", n: 17, title: "🏆 All Stars por brackets" }) {
     const N = o.n;
     const ids = ALL_QUEEN_IDS().filter((id) => queenById2(id));
@@ -186,14 +193,22 @@ const UI = (() => {
       m.innerHTML = `<div class="cc-box">
         <h3>${o.title} · 1/2</h3>
         <p class="muted">Elige la reina con la que vas a participar.</p>
-        <div class="cc-grid">${ids.map((id) => card(id, id === prev[0])).join("")}</div>
-        <div class="cc-bar"><span>Pulsa tu reina</span><button class="btn btn-ghost" id="cc-x">Cancelar</button></div>
+        <div class="cc-split"><div class="cc-grid">${ids.map((id) => card(id, id === (mine || prev[0]))).join("")}</div><div class="cc-prev" aria-live="polite"></div></div>
+        <div class="cc-bar"><span>Pulsa una reina para ver sus estadísticas</span><button class="btn btn-ghost" id="cc-x">Cancelar</button><button class="btn btn-primary" id="cc-me" disabled>Participar con ella</button></div>
       </div>`;
-      m.querySelectorAll(".cc-q").forEach((b) => b.addEventListener("click", () => {
-        mine = b.dataset.id;
-        sel = sel.filter((x) => x !== mine);
-        step2();
-      }));
+      // Al pulsar una reina se ven sus estadísticas; luego se confirma
+      const look = (id) => {
+        mine = id;
+        m.querySelectorAll(".cc-q").forEach((x) => x.classList.toggle("on", x.dataset.id === id));
+        const q = queenById2(id);
+        m.querySelector(".cc-prev").innerHTML = statsCard(q);
+        const b = m.querySelector("#cc-me");
+        b.disabled = false;
+        b.textContent = `Participar con ${q.name}`;
+      };
+      m.querySelectorAll(".cc-q").forEach((b) => b.addEventListener("click", () => look(b.dataset.id)));
+      if (mine || (prev[0] && ids.includes(prev[0]))) look(mine || prev[0]);
+      m.querySelector("#cc-me").addEventListener("click", () => { if (!mine) return; sel = sel.filter((x) => x !== mine); step2(); });
       m.querySelector("#cc-x").addEventListener("click", () => m.remove());
     };
     // Paso 2: tus 17 rivales (las eliges, completas al azar o todas al azar)
@@ -385,6 +400,8 @@ const UI = (() => {
       // Modo historia: sus atributos de historia (1-10), no las estadísticas del arcade
       const P = Story.preview(q);
       const up = Mejoras.of(q.id);
+      // Mejorar habilidades: solo en las temporadas normales (T1, T2...). En las demás se ven, pero no se mejoran
+      const normal = !!currentSeason && !currentSeason.special && ((currentSeason.franchise && currentSeason.franchise.id) || currentSeason.franchise) === "es";
       // Mejoras de reina: +1 a una habilidad con rudollars (hasta 2 por habilidad)
       $("#det-stats").innerHTML =
         Object.entries(P.attrs)
@@ -393,10 +410,10 @@ const UI = (() => {
           <span>${P.names[k]}</span>
           <span class="pips ten">${Array.from({ length: 10 }, (_, i) => `<i class="${i < v - (up[k] || 0) ? "on" : i < v ? "on up" : ""}"></i>`).join("")}</span>
           <b class="stat-n">${v}</b>
-          ${locked ? "" : Mejoras.can(q.id, k, v) ? `<button class="up-btn" data-k="${k}" data-v="${v}" title="Mejorar ${esc(P.names[k])}">+1 · ${Mejoras.cost(q.id, k, v).toLocaleString("es-ES")} 💵</button>` : `<span class="up-max">${(up[k] || 0) ? "MAX" : ""}</span>`}
+          ${locked || !normal ? "" : Mejoras.can(q.id, k, v) ? `<button class="up-btn" data-k="${k}" data-v="${v}" title="Mejorar ${esc(P.names[k])}">+1 · ${Mejoras.cost(q.id, k, v).toLocaleString("es-ES")} 💵</button>` : `<span class="up-max">${(up[k] || 0) ? "MAX" : ""}</span>`}
         </div>`)
           .join("") +
-        `<p class="wallet-line">💵 Tienes <b class="rudollars">${Rudollars.balance.toLocaleString("es-ES")}</b> rudollars · cada habilidad se puede mejorar dos veces</p>` +
+        (normal ? `<p class="wallet-line">💵 Tienes <b class="rudollars">${Rudollars.balance.toLocaleString("es-ES")}</b> rudollars · cada habilidad se puede mejorar dos veces</p>` : `<p class="wallet-line">💡 Las habilidades se mejoran en las temporadas normales</p>`) +
         `<p class="wallet-line">${P.fort ? `${P.fort.icon} Fortaleza: <b>${esc(P.fort.n)}</b> · ${esc(P.fort.d)}` : ""}</p>` +
         (P.titles.length ? `<p class="wallet-line">👑 Coronas en historia: <b>${P.titles.map(esc).join(", ")}</b></p>` : "");
       $("#det-stats").querySelectorAll(".up-btn").forEach((b) =>

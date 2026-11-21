@@ -3248,3 +3248,18 @@ body.portrait .reign-h { font-size: 22px; }
 body.portrait .reign-row { gap: 22px 16px; }
 body.portrait .reign-row .reign { width: calc(50% - 8px); }
 .reign-empty { margin: auto; font-size: 70px; opacity: .22; filter: grayscale(.4); }
+
+/* Selector de reina (brackets, parejas): la lista y, al lado, sus estadísticas */
+.cc-split { display: grid; grid-template-columns: 1fr 320px; gap: 14px; min-height: 0; flex: 1; }
+.cc-split .cc-grid { max-height: 62vh; }
+.cc-prev { overflow-y: auto; max-height: 62vh; padding: 12px; border-radius: 18px; background: #fff5fb; border: 2px solid #f0d8e6; color: #3b0d4f; text-align: left; }
+.cc-prev:empty::before { content: "👈 Pulsa una reina"; display: block; padding: 40px 0; text-align: center; color: #8a6f94; font-weight: 700; }
+.cc-prev-pic { display: block; width: 100%; height: 150px; border-radius: 14px; background: center 20% / cover; margin-bottom: 8px; }
+.cc-prev h4 { margin: 0 0 8px; font: 400 20px "Bungee", sans-serif; color: #ff3d9a; }
+.cc-prev .stat-row { display: grid; grid-template-columns: 96px 1fr 22px; align-items: center; gap: 6px; font-size: 13px; }
+body.portrait .cc-split { grid-template-columns: 1fr; }
+body.portrait .cc-split .cc-grid { max-height: 40vh; }
+body.portrait .cc-prev { max-height: 34vh; }
+.cc-prev .pips { display: flex; gap: 3px; min-width: 0; }
+.cc-prev .pips i { flex: 1; min-width: 0; width: auto !important; height: 8px !important; border-radius: 4px; }
+.cc-prev .stat-n { text-align: right; font-size: 13px; }
