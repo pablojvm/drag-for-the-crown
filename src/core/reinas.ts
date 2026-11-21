@@ -258,6 +258,8 @@ export const PORTADAS: Record<string, string> = {
   esas2: "./images/temporadas/esas2.jpg?v=4",
   escustom: "./images/temporadas/escustom.jpg",
   esaw: "./images/temporadas/esaw.jpg?v=6",
+  esbr: "./images/temporadas/esbr.jpg",
+  espj: "./images/temporadas/espj.jpg",
 };
 
 // Temporadas anunciadas que aún no se pueden jugar (reparto pendiente)
