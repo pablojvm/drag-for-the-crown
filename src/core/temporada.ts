@@ -153,8 +153,13 @@ export function desbloqueo(id: string, wins: string[]): { ok: boolean; why?: str
   const need = ({ esas1: ["es3"], esas2: ["es5"] } as Record<string, string[]>)[id];
   if (need) return need.every((x) => wins.includes(x)) ? { ok: true } : { ok: false, why: `Gana la ${nombre(need[0])}` };
   if (id === "escustom") return reg.every((t) => wins.includes(t.id)) ? { ok: true } : { ok: false, why: "Gana todas las temporadas" };
-  // All Winners: basta con haber ganado una temporada (te presentas con una de tus ganadoras)
-  if (id === "esaw") return wins.some((w) => w !== "esaw") ? { ok: true } : { ok: false, why: "Gana al menos una temporada" };
+  // All Winners, la última: hay que haber ganado todas las anteriores (las normales, los All Stars y los especiales)
+  if (id === "esaw") {
+    const antes = [...reg.map((t) => t.id), ...ALLSTARS().map((t) => t.id), "escustom", "esbr", "espj"];
+    const falta = antes.find((x) => !wins.includes(x));
+    const especial: Record<string, string> = { escustom: "All Stars a tu gusto", esbr: "All Stars por brackets", espj: "All Stars en parejas" };
+    return falta ? { ok: false, why: `Gana todas las anteriores (te falta ${especial[falta] || nombre(falta)})` } : { ok: true };
+  }
   // All Stars por brackets: se abre ganando un All Stars
   if (id === BRACKETS_ID) return wins.some((w) => /^esas/.test(w) || w === "escustom") ? { ok: true } : { ok: false, why: "Gana un All Stars" };
   // All Stars en parejas: igual, se abre ganando un All Stars

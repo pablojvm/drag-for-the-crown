@@ -219,9 +219,10 @@ function specialSeasons() {
   const custom = (store.get("dftc-custom-cast", []) || []).filter((id) => ALL_QUEEN_IDS().includes(id)).slice(0, 14);
   return [
     { franchise: "esas", id: "escustom", name: "All Stars a tu gusto", year: "Tú eliges", cast: custom, special: "custom", index: 2 },
-    { franchise: "esas", id: "esaw", name: "All Winners", year: "Solo ganadoras", cast: allWinnersCast(), special: "winners", index: 5 },
     { franchise: "esas", id: "esbr", name: "All Stars por brackets", year: "Tres grupos", cast: bracketsCastSaved(), special: "brackets", index: 4 },
     { franchise: "esas", id: "espj", name: "All Stars en parejas", year: "Seis parejas", cast: parejasCastSaved(), special: "parejas", index: 3 },
+    // All Winners, la última: se abre al ganar todas las anteriores
+    { franchise: "esas", id: "esaw", name: "All Winners", year: "Solo ganadoras", cast: allWinnersCast(), special: "winners", index: 5 },
   ];
 }
 // Qué temporadas tienes abiertas en el modo historia y qué te falta para abrir las demás

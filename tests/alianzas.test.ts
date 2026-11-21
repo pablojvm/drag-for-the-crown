@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { repartirBrackets, clasificacion, complemento, formarAlianzas, notaEnPareja, ayudaAliada, rompe, HUNDIDA, mvqDe, eligeMvq, votanMvq, type Mvq } from "../src/core/alianzas";
 import { weekLabels } from "../src/core/week";
-import { bracketsCast, desbloqueo, seasonById } from "../src/core/temporada";
+import { bracketsCast, desbloqueo, seasonById, REGULARES, ALLSTARS } from "../src/core/temporada";
 import { makeRng } from "../src/core";
 
 describe("All Stars por brackets y alianzas", () => {
@@ -64,5 +64,11 @@ describe("All Stars por brackets y alianzas", () => {
     // El All Stars en parejas se abre igual: ganando un All Stars
     expect(desbloqueo("espj", ["es1"]).ok).toBe(false);
     expect(desbloqueo("espj", ["esas1"]).ok).toBe(true);
+  });
+  it("All Winners va la última: solo se abre al ganar todas las anteriores", () => {
+    const todas = [...REGULARES().map((t) => t.id), ...ALLSTARS().map((t) => t.id), "escustom", "esbr", "espj"];
+    expect(desbloqueo("esaw", todas).ok).toBe(true);
+    expect(desbloqueo("esaw", todas.filter((x) => x !== "espj")).ok).toBe(false);
+    expect(desbloqueo("esaw", ["es1"]).ok).toBe(false);
   });
 });
