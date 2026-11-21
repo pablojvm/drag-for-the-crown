@@ -2026,9 +2026,25 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
           <h3>${mate ? `Sois ${esc(pjNameOf(["me", mate]))}: ${esc(pjQ(mate).name)} y tú` : "Así quedan las parejas"}</h3>
           ${msg ? `<p class="twist-note">${msg}</p>` : ""}
           <div class="al-grid">${pairs.map((p) => pjBox(p)).join("")}</div>
+          ${mate ? `<form class="pj-rename" id="pj-rename"><label for="pj-nm">✏️ ¿No os gusta el nombre? Ponedle el vuestro</label><div class="row"><input id="pj-nm" maxlength="18" autocomplete="off" value="${esc(pjNameOf(["me", mate]))}"><button class="btn btn-ghost" type="submit">Cambiar nombre</button></div></form>` : ""}
           <p class="muted">Desde hoy ganáis juntas y caéis juntas: el jurado valora a la pareja. Lo que a una le falta, que lo ponga la otra.</p>
           <button class="btn btn-primary" id="story-next">¡Al taller!</button>
         </div>`;
+      // Vuestro nombre de pareja, el que queráis (para toda la temporada)
+      const fr = $("#pj-rename");
+      if (fr) fr.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const v = $("#pj-nm").value.replace(/[<>]/g, "").trim().slice(0, 18);
+        const i = S.pj.pairs.findIndex((x) => x.includes("me"));
+        if (!v || i < 0) return;
+        if (S.pj.names.some((n, j) => j !== i && n.toLowerCase() === v.toLowerCase())) return Toast.show("Ese nombre ya lo tiene otra pareja", "Prueba con otro");
+        S.pj.names[i] = v;
+        document.querySelector(".al-pair.mine .pj-name").textContent = v;
+        document.querySelector(".story-card h3").textContent = `Sois ${v}: ${pjQ(mate).name} y tú`;
+        header();
+        save();
+        Toast.show("✏️ ¡Nombre cambiado!", `Desde hoy sois ${v}`);
+      });
       $("#story-next").addEventListener("click", then);
       });
     };
