@@ -95,3 +95,21 @@ export function rompe(o: { suya: string | undefined; deEllaAntes: string | undef
   if (o.rel < 0) p += 0.2;
   return o.rnd() < p;
 }
+
+// ------------------------------ All Stars en parejas ------------------------------
+/** Mezcla dos nombres de reina en uno, como en el primer All Stars (Raven + Jujubee → Rujubee). */
+export function nombrePareja(a: string, b: string): string {
+  const word = (n: string) => { const w = n.replace(/[^\p{L}\s-]/gu, "").split(/[\s-]+/).filter((x) => x && !/^(la|el|las|los|drag|miss|von|der|de|del|di)$/i.test(x)); return (w[0] || n).toLowerCase(); };
+  const A = word(a), B = word(b);
+  const onset = (w: string) => (w.match(/^[^aeiouáéíóú]*/i) || [""])[0];
+  const firstSyl = (w: string) => (w.match(/^[^aeiouáéíóú]*[aeiouáéíóú]+[^aeiouáéíóú]?/i) || [w])[0];
+  const tailFrom = (w: string) => { const i = w.slice(1).search(/[aeiouáéíóú]/i); return i < 0 ? w : w.slice(i + 1); };
+  const cands = [onset(A) + B.slice(onset(B).length), firstSyl(A) + tailFrom(B), firstSyl(B) + tailFrom(A), onset(B) + A.slice(onset(A).length)]
+    .filter((c) => c.length >= 4 && c.length <= 10 && c !== A && c !== B);
+  const n = cands[0] || A.slice(0, 3) + B.slice(-4);
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}
+/** Etiquetas de una semana por parejas (filas ya ordenadas por pareja): gana una pareja entera y las dos peores, al lip sync. */
+export function etiquetasParejas(groupPos: number[], nGroups: number): string[] {
+  return groupPos.map((g) => (g === 0 ? "WIN" : nGroups >= 3 && g >= nGroups - 2 ? "BTM2" : g === 1 && nGroups >= 5 ? "HIGH" : g === nGroups - 3 && nGroups >= 5 ? "LOW" : "SAFE"));
+}

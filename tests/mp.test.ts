@@ -227,7 +227,7 @@ describe("temporada en directo", () => {
     while (s.phase !== "corona" && guard++ < 3000) { onStep && onStep(s); s = advance(s, guard * 1000, e); }
     return s;
   };
-  for (const fmt of ["normal", "allstars", "winners", "repesca", "suerte", "corazon", "moneda", "brackets"]) {
+  for (const fmt of ["normal", "allstars", "winners", "repesca", "suerte", "corazon", "moneda", "brackets", "parejas"]) {
     it(`la dinámica ${fmt} llega hasta la corona con una sola ganadora`, () => {
       for (const seed of [1, 2, 3, 9, 21]) {
         const { s: s0, c } = fmtRoom(fmt, seed);
@@ -319,6 +319,25 @@ describe("temporada en directo", () => {
       expect(labs).toContain("WINNER");
       expect(aliveKeys(s)).toHaveLength(1);
       expect(s.out.filter((o) => o.place === "3º/4º")).toHaveLength(2);
+    }
+  });
+  it("All Stars en parejas: parejas fijas con nombre, la misma nota, las dos peores parejas al lip sync y se va la pareja entera", () => {
+    for (const seed of [1, 2, 3, 9, 21]) {
+      const e = engine(seed);
+      let { s } = fmtRoom("parejas", seed, 10);
+      let names: string[] = [], dobles = 0, libres = 0, mismaNota = true;
+      s = runAll(s, e, (x) => {
+        if (x.pj && !names.length) names = x.pj.names;
+        if (x.phase === "veredicto" && x.rows && x.pj && aliveKeys(x).length > 4) x.pj.pairs.forEach((p) => { const R = x.rows!.filter((r) => p.includes(r.key)); if (R.length === 2 && R[0].score !== R[1].score) mismaNota = false; });
+        if (x.phase === "track" && x.note && /pareja entera/.test(x.note)) dobles++;
+        if (x.phase === "track" && x.note && /no se va nadie/.test(x.note)) libres++;
+      });
+      expect(names).toHaveLength(5);
+      expect(new Set(names).size).toBe(5);
+      expect(mismaNota).toBe(true);
+      expect(dobles).toBeGreaterThan(0);
+      expect(libres).toBeLessThanOrEqual(1);
+      expect(aliveKeys(s)).toHaveLength(1);
     }
   });
   it("Segunda Oportunidrag: con siete, una eliminada vuelve y hay lip sync a tres bandas", () => {
