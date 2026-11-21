@@ -577,12 +577,22 @@ const UI = (() => {
         ? r.mine ? "Coronada en tu partida" : `Ganó en tu partida${player ? ` con ${esc(player.name)}` : ""}`
         : orig ? "Ganadora original" : s.special ? "Aún sin coronar" : "En emisión · aún sin reina";
       const look = q ? lookOf(q, s.id) : null;
-      // La reina entera (sin fondo); si no hay, su retrato
-      const pic = look && look.sprite ? `<img class="reign-full" src="${look.sprite}" alt="" loading="lazy">` : look || PORTADAS[s.id] ? `<i class="reign-pic" style="background-image:url('${look ? look.portrait : PORTADAS[s.id]}')"></i>` : `<span class="reign-empty" aria-hidden="true">👑</span>`;
-      return `<div class="reign ${cls} ${r ? (r.mine ? "mine" : "played") : ""}" style="--i:${i}">
+      // Corona doble (All Stars en parejas): las dos reinas, juntas
+      // (las coronas de antes de guardarse la segunda: se busca en el track record de esa partida)
+      if (r && !r.queen2 && s.special === "parejas") {
+        const e = (store.get("dftc-story-board", []) || []).find((x) => x.season === s.id && x.date === r.date && x.trackData);
+        const ks = e ? e.trackData.rows.filter((row) => (row.cells[row.cells.length - 1] || {}).t === "GANADORA").map((row) => (row.key === "me" ? e.queen : row.key)) : [];
+        const other = ks.find((k) => k !== r.queen);
+        if (other) r.queen2 = other;
+      }
+      const q2 = r && r.queen2 ? queenById(r.queen2) : null;
+      const look2 = q2 ? lookOf(q2, s.id) : null;
+      const pic = look && look.sprite && look2 && look2.sprite ? `<img class="reign-full duo" src="${look.sprite}" alt="" loading="lazy"><img class="reign-full duo" src="${look2.sprite}" alt="" loading="lazy">` : look && look.sprite ? `<img class="reign-full" src="${look.sprite}" alt="" loading="lazy">` : look || PORTADAS[s.id] ? `<i class="reign-pic" style="background-image:url('${look ? look.portrait : PORTADAS[s.id]}')"></i>` : `<span class="reign-empty" aria-hidden="true">👑</span>`;
+      return `<div class="reign ${cls} ${q2 ? "duo" : ""} ${r ? (r.mine ? "mine" : "played") : ""}" style="--i:${i}">
           <span class="tag-mini reign-code" style="background:${s.franchise.color}">${code(s)}</span>
           <div class="reign-stage">${pic}</div>
-          <strong>${esc(q ? q.name : "¿?")}</strong>
+          ${r && r.pair ? `<small class="reign-pair">👯 ${esc(r.pair)}</small>` : ""}
+          <strong>${esc(q ? q.name : "¿?")}${q2 ? ` &amp; ${esc(q2.name)}` : ""}</strong>
           <small class="reign-season">${esc(s.name)}${s.year && !s.special ? ` · ${s.year}` : ""}</small>
           <small class="reign-sub">${sub}${r && r.reigns > 1 ? ` · ${r.reigns} coronas seguidas` : ""}</small>
           ${r ? `<small class="muted">${fmtD(r.date)}${orig && orig.id !== r.queen ? ` · Original: ${esc(orig.name)}` : ""}</small>` : ""}

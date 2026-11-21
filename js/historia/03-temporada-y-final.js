@@ -843,11 +843,15 @@
     // La reina que reina ahora en esta temporada: la ganadora de tu última partida
     {
       const fe2 = Object.keys(S.epNames).map(Number).sort((a, b) => b - a)[0];
-      const champ = [S.queen, ...S.rivals, ...S.out].find((x) => (S.track[keyOf(x)] || {})[fe2] === "WINNER");
+      // Con corona doble (All Stars en parejas) reinan las dos: tu reina primero si eres una de ellas
+      const champs = [S.queen, ...S.rivals, ...S.out].filter((x, i, a) => a.indexOf(x) === i && (S.track[keyOf(x)] || {})[fe2] === "WINNER");
+      const champ = champs[0];
       if (champ) {
         const R = store.get("dftc-reinantes", {});
         const prev = R[S.season.id] || {};
-        R[S.season.id] = { queen: champ.id, mine: champ === S.queen, player: S.queen.id, date: entry.date, reigns: (prev.queen === champ.id ? prev.reigns || 1 : 0) + 1 };
+        const duo = champs[1] || null;
+        const pjI = duo && S.pj ? S.pj.pairs.findIndex((p) => p.includes(keyOf(champ)) && p.includes(keyOf(duo))) : -1;
+        R[S.season.id] = { queen: champ.id, ...(duo ? { queen2: duo.id, pair: pjI >= 0 && S.pj.names ? S.pj.names[pjI] : "" } : {}), mine: champ === S.queen || duo === S.queen, player: S.queen.id, date: entry.date, reigns: (prev.queen === champ.id ? prev.reigns || 1 : 0) + 1 };
         store.set("dftc-reinantes", R);
         entry.champ = champ.id;
       }
