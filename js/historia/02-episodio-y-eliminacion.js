@@ -747,6 +747,9 @@
         // El reto lo hacen juntas: las dos sacan la misma nota (la media, con la ayuda de la que mejor se le da)
         const xa = v(a) + DFTC.alianzas.ayudaAliada(ra(a), ra(b)), xb = v(b) + DFTC.alianzas.ayudaAliada(ra(b), ra(a));
         const m = clamp(Math.round((xa + xb) / 2), 0, 99);
+        // Lo que ha hecho cada una por su cuenta (el jurado lo dice en las críticas: quién ha hundido a quién)
+        S.pjInd = S.pjInd && S.pjInd.ep === S.ep ? S.pjInd : { ep: S.ep, sc: {} };
+        S.pjInd.sc[a] = Math.round(xa); S.pjInd.sc[b] = Math.round(xb);
         [a, b].forEach((k) => { if (k === "me") { myScore = m; sc.__me = m; } else sc[k] = m; });
       });
     }
@@ -998,7 +1001,21 @@ Devuelve JSON {"criticas":[{"reina":"nombre","reto":"...","pasarela":"...","javi
           let tier = /WIN|TOP2|HIGH/.test(lab) ? "top" : /BTM|LOW/.test(lab) ? "low" : "mid";
           let label = lab === "WIN" || lab === "TOP2" || lab === "BTOP" ? "muy buena" : lab === "HIGH" ? "buena" : /^BTM/.test(lab) ? "muy mala" : lab === "LOW" ? "floja" : "correcta";
           const extra = [];
-          if (blocks) {
+          // All Stars en parejas: la nota es de la pareja, pero el jurado dice quién ha tirado de quién
+          const pjI = pjOn() && S.pjInd && S.pjInd.ep === S.ep ? S.pjInd.sc : null;
+          const pjM = pjI ? pjMate("me") : null;
+          if (pjI && pjM && pjI.me != null && pjI[pjM] != null) {
+            const mate = pjQ(pjM).name, d = pjI.me - pjI[pjM];
+            const top = /WIN|TOP2|HIGH/.test(lab), low = /BTM|LOW/.test(lab);
+            if (d >= 10) {
+              tier = "top"; label = "muy buena a título individual";
+              extra.push(["judge", low ? `{yo}, lo tuyo hoy ha sido de lo mejor de la noche. Pero esto es por parejas... y ${mate} os ha hundido a las dos.` : top ? `{yo}, hoy has tirado tú de la pareja. ${mate}, te ha llevado en volandas.` : `{yo}, tú has estado muy por encima. A ${mate} le ha faltado ponerse a tu altura.`]);
+            } else if (d <= -10) {
+              tier = "low"; label = "floja a título individual";
+              extra.push(["judge", low ? `${mate} ha estado brillante, {yo}. Tú no: hoy has sido tú la que ha hundido a la pareja.` : top ? `{yo}, que no se te suba: esta victoria es sobre todo de ${mate}.` : `{yo}, ${mate} ha sostenido a la pareja. Tú te has quedado por detrás.`]);
+            } else extra.push(["host", pick1([`Habéis ido a una, ${mate} y tú: lo bueno y lo malo, a medias.`, `${mate} y tú habéis estado a la par. Eso es una pareja.`])]);
+          }
+          if (blocks && !pjI) {
             const mine = blocks.find((b) => b.rows.includes(meRow));
             const pos = rows.slice().sort((a, b) => b.s - a.s).indexOf(meRow);
             const ind = pos < n * 0.34 ? "top" : pos >= n * 0.67 ? "low" : "mid";
