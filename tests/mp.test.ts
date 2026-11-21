@@ -327,7 +327,7 @@ describe("temporada en directo", () => {
       let { s } = fmtRoom("parejas", seed, 10);
       let names: string[] = [], dobles = 0, libres = 0, mismaNota = true;
       s = runAll(s, e, (x) => {
-        if (x.pj && !names.length) names = x.pj.names;
+        if (x.pj && x.pj.chosen && !names.length) names = x.pj.names;
         if (x.phase === "veredicto" && x.rows && x.pj && aliveKeys(x).length > 4) x.pj.pairs.forEach((p) => { const R = x.rows!.filter((r) => p.includes(r.key)); if (R.length === 2 && R[0].score !== R[1].score) mismaNota = false; });
         if (x.phase === "track" && x.note && /pareja entera/.test(x.note)) dobles++;
         if (x.phase === "track" && x.note && /no se va nadie/.test(x.note)) libres++;
@@ -339,6 +339,20 @@ describe("temporada en directo", () => {
       expect(libres).toBeLessThanOrEqual(1);
       expect(aliveKeys(s)).toHaveLength(1);
     }
+  });
+  it("All Stars en parejas: las jugadoras eligen pareja el primer día (si se eligen entre ellas, van juntas)", () => {
+    const e = engine(4);
+    let { s } = fmtRoom("parejas", 4, 10);
+    let guard = 0;
+    while (!(s.phase === "equipos" && s.pj && !s.pj.chosen) && guard++ < 200) s = advance(s, guard * 1000, e);
+    expect(s.pj?.chosen).toBe(false);
+    s = applySubmit(s, "A", s.ep, "equipos", { pick: pkey("B") }, 300000);
+    expect(s.pj?.chosen).toBe(false);
+    s = applySubmit(s, "B", s.ep, "equipos", { pick: pkey("A") }, 300001);
+    s = tick(s, 300500, e);
+    expect(s.pj?.chosen).toBe(true);
+    expect(s.pj!.pairs.some((p) => p.includes(pkey("A")) && p.includes(pkey("B")))).toBe(true);
+    expect(s.pj!.pairs.flat().sort()).toEqual(aliveKeys(s).sort());
   });
   it("Segunda Oportunidrag: con siete, una eliminada vuelve y hay lip sync a tres bandas", () => {
     const e = engine(8);

@@ -178,7 +178,7 @@ export interface RoomState {
   al?: { ep: number; pairs: string[][] };
   brTop?: string[][];
   /** All Stars en parejas: las parejas (con su nombre) y la semana en la que no se va nadie. */
-  pj?: { pairs: string[][]; names: string[]; libre: number };
+  pj?: { pairs: string[][]; names: string[]; libre: number; /** El primer día cada jugadora elige con quién quiere ir */ picks?: Record<string, string>; chosen?: boolean; at?: number };
   /** Minirreto de la semana: cuál es y, al acabar, la nota de cada una y el orden (la primera, la ganadora). */
   mini?: MiniDef & { ep: number; scores?: Record<string, number>; rank?: string[] };
   /** Reto por grupos: las capitanas (las mejores del minirreto) eligen por turnos. members[i][0] es la capitana. */
@@ -332,14 +332,7 @@ function nextEpisode(s0: RoomState, now: number, e: Engine): RoomState {
     return { ...s, ep, reto: r, used: [...s.used, r.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, decision: undefined, twist: undefined, twistResult: undefined, bottom: undefined, triple: undefined, note: undefined, script: undefined, rp, rpDone: true, lala: undefined, planShift: (s.planShift || 0) + 1, epNames: { ...s.epNames, [ep]: r.titulo }, phase: "anuncio", deadline: 0, v: s.v + 1 };
   }
   // All Stars en parejas: el primer episodio se forman las parejas, cada una con su nombre
-  if (s.fmt === "parejas" && !s.pj) {
-    const alive = aliveKeys(s).map((k) => [e.rnd(), k] as const).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
-    const pairs: string[][] = [];
-    for (let i = 0; i < alive.length; i += 2) pairs.push(alive.slice(i, i + 2));
-    const nm = (k: string) => e.queenName(isP(k) ? queenOfKey(s, k) : idOf(k));
-    const names = pairs.map((p) => (p.length === 2 ? nombrePareja(nm(p[0]), nm(p[1])) : nm(p[0])));
-    s.pj = { pairs, names: names.map((n, i) => (names.indexOf(n) === i ? n : `${n} ${i + 1}`)), libre: ep + 1 + Math.floor(e.rnd() * 3) };
-  }
+  if (s.fmt === "parejas" && !s.pj) s.pj = { pairs: [], names: [], libre: ep + 1 + Math.floor(e.rnd() * 3), picks: {}, chosen: false };
   // All Stars por brackets: el primer episodio se reparten los tres grupos (hacen falta al menos nueve)
   if (s.fmt === "brackets" && !s.br) {
     const alive = aliveKeys(s);
@@ -454,9 +447,33 @@ function afterMini(s: RoomState, now: number, e: Engine): RoomState {
 /** All Stars en parejas: ¿siguen las parejas? (con cuatro o menos, cada una por su cuenta) */
 export const pjPhase = (s: Pick<RoomState, "fmt" | "pj" | "players" | "npcs">) => s.fmt === "parejas" && !!s.pj && aliveKeys(s as RoomState).length > 4;
 const pjAlivePairs = (s: RoomState) => { const al = new Set(aliveKeys(s)); return (s.pj?.pairs || []).map((p, i) => ({ p: p.filter((k) => al.has(k)), name: s.pj!.names[i] })).filter((x) => x.p.length); };
+/** Forma las parejas con lo que ha elegido cada jugadora: primero las que se eligen entre sí, luego por orden y el resto al azar. */
+export function pjForm(s: RoomState, now: number, e: Pick<Engine, "rnd" | "queenName">): RoomState {
+  const alive = aliveKeys(s);
+  const picks = s.pj?.picks || {};
+  const used = new Set<string>();
+  const pairs: string[][] = [];
+  const add = (a: string, b: string) => { if (a !== b && !used.has(a) && !used.has(b) && alive.includes(a) && alive.includes(b)) { pairs.push([a, b]); used.add(a); used.add(b); } };
+  Object.entries(picks).forEach(([a, b]) => { if (picks[b] === a) add(a, b); });
+  Object.entries(picks).forEach(([a, b]) => add(a, b));
+  const rest = alive.filter((k) => !used.has(k)).map((k) => [e.rnd(), k] as const).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+  for (let i = 0; i < rest.length; i += 2) pairs.push(rest.slice(i, i + 2));
+  // Las parejas con alguna jugadora, primero
+  pairs.sort((a, b) => Number(b.some(isP)) - Number(a.some(isP)));
+  const nm = (k: string) => e.queenName(isP(k) ? queenOfKey(s, k) : idOf(k));
+  const raw = pairs.map((p) => (p.length === 2 ? nombrePareja(nm(p[0]), nm(p[1])) : nm(p[0])));
+  const names = raw.map((n, i) => (raw.indexOf(n) === i ? n : `${n} ${i + 1}`));
+  const t: RoomState = { ...s, pj: { ...s.pj!, pairs, names, chosen: true } };
+  return { ...t, groups: { ep: s.ep, size: 2, names, members: pairs.map((p) => p.slice()), turn: pairs.length, at: now, done: true }, phase: "equipos", deadline: now + VER_EQUIPOS * 2, v: s.v + 1 };
+}
 /** Cada semana se compite con la pareja de siempre (se ve antes del reto). */
 function parejasStep(s: RoomState, now: number): RoomState | null {
   if (!pjPhase(s) || s.finalRun || !s.reto || s.reto.tipo === LALA.tipo) return null;
+  // El primer día: cada jugadora escribe con quién quiere ir (las reinas del juego aceptan; si dos jugadoras se eligen, sois pareja)
+  if (!s.pj!.chosen) {
+    const anyP = alivePlayers(s).length > 0;
+    return { ...s, pj: { ...s.pj!, picks: {}, at: now }, phase: "equipos", deadline: anyP ? (s.ritmo === "libre" ? 0 : now + PICK_MS * 2) : now + 1000, v: s.v + 1 };
+  }
   const P = pjAlivePairs(s);
   return { ...s, groups: { ep: s.ep, size: 2, names: P.map((x) => x.name), members: P.map((x) => x.p), turn: P.length, at: now, done: true }, phase: "equipos", deadline: now + VER_EQUIPOS, v: s.v + 1 };
 }
@@ -1237,6 +1254,8 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
     case "mini":
       return afterMini(endMini(s, e), now, e);
     case "equipos": {
+      // All Stars en parejas: se acabó el tiempo para elegir pareja
+      if (s.fmt === "parejas" && s.pj && !s.pj.chosen) return pjForm(s, now, e);
       // Si no ha terminado la elección (se acabó el tiempo o la anfitriona sigue), se completa sola
       const g = s.groups && s.groups.ep === s.ep ? s.groups : null;
       if (g && !g.done) { let t = s; while (t.groups && !t.groups.done) t = draftPick(t, capOf(t), autoPick(t, e), now); return t; }
@@ -1530,6 +1549,14 @@ export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase,
   if (data.duelMove) return addDuelMove(s, pkey(pid), data.duelStep ?? -1, data.duelMove);
   // Elección de grupos (la capitana a la que le toca) o de la pareja de la Segunda Oportunidrag
   if (phase === "equipos" && data.pick) {
+    // All Stars en parejas: con quién quieres ir (cuando lo han dicho todas, se forman las parejas)
+    if (s.fmt === "parejas" && s.pj && !s.pj.chosen) {
+      const me = pkey(pid), to = String(data.pick);
+      if (me === to || !aliveKeys(s).includes(to) || !aliveKeys(s).includes(me)) return s;
+      const t: RoomState = { ...s, pj: { ...s.pj, picks: { ...(s.pj.picks || {}), [me]: to } }, v: s.v + 1 };
+      // Cuando lo han dicho todas, se forman ya (en el siguiente paso de la sala)
+      return alivePlayers(t).every((p) => t.pj!.picks![pkey(p.id)]) ? { ...t, deadline: now + 300 } : t;
+    }
     if (s.groups && s.groups.ep === s.ep && !s.groups.done) return draftPick(s, pkey(pid), String(data.pick), now);
     if (s.draft && s.draft.ep === s.ep && !s.draft.done && s.draft.by === pkey(pid)) return pairPick(s, pkey(pid), String(data.pick), now);
     return s;

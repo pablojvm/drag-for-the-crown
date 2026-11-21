@@ -706,11 +706,20 @@ const bindPicks = () => document.querySelectorAll<HTMLElement>("[data-pick]").fo
 function equiposPhase(s: RoomState) {
   api().scene("werkroom");
   const me = pkey(room.me);
+  // All Stars en parejas: el primer día, cada una dice con quién quiere ir
+  if (s.fmt === "parejas" && s.pj && !s.pj.chosen) {
+    const picks = s.pj.picks || {};
+    const alive = aliveKeys(s);
+    const mine = picks[me];
+    const quien = alivePlayers(s).map((p) => `${esc(p.name)} ${picks[pkey(p.id)] ? "✅" : "⏳"}`).join(" · ");
+    if (alive.includes(me) && !mine) return info(`<p class="eyebrow">👯 All Stars en parejas · los carteles</p><h3>¿Con quién quieres ir?</h3><p class="muted">Escribe en tu cartel el nombre de la reina con la que quieres hacer pareja toda la temporada. Las reinas del juego aceptan; si otra jugadora te elige a ti y tú a ella, sois pareja seguro.</p><div class="hub-grid">${alive.filter((k) => k !== me).map((k) => qBtn(s, k)).join("")}</div><p class="muted">${quien}</p>`, bindPicks);
+    return info(`<p class="eyebrow">👯 All Stars en parejas · los carteles</p><h3>${mine ? `Has elegido a ${esc(keyName(s, mine))}` : "Las reinas eligen pareja..."}</h3><p class="muted">Esperando a que las demás escriban su cartel: ${quien}</p>`);
+  }
   const G = s.groups && s.groups.ep === s.ep ? s.groups : null;
   if (G) {
     const cap = G.done ? null : capOf(s);
     const mine = cap === me;
-    const cols = G.members.map((m, i) => `<div class="group-col ${m.includes(me) ? "mine" : ""} ${!G.done && i === G.turn % G.members.length ? "on" : ""}" style="--i:${i}"><b>${esc(G.names[i])}</b>${m.map((k, j) => `<span><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i>${esc(k === me ? "Tú" : keyName(s, k))}${j === 0 ? " 👑" : ""}</span>`).join("")}</div>`).join("");
+    const cols = G.members.map((m, i) => `<div class="group-col ${m.includes(me) ? "mine" : ""} ${!G.done && i === G.turn % G.members.length ? "on" : ""}" style="--i:${i}"><b>${esc(G.names[i])}</b>${m.map((k, j) => `<span><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i>${esc(k === me ? "Tú" : keyName(s, k))}${j === 0 && s.fmt !== "parejas" && !brPhase(s) ? " 👑" : ""}</span>`).join("")}</div>`).join("");
     return info(`${miniRes(s)}<p class="eyebrow">${pjPhase(s) ? "👯 All Stars en parejas · el reto lo hacéis juntas: la misma nota para las dos" : brPhase(s) ? "👯 Alianzas de la semana · el jurado os valora en pareja (si una hunde a la otra, por separado)" : `${G.size === 2 ? "Reto por parejas" : "Reto por grupos"} · las ganadoras del minirreto son las capitanas`}</p><h3>${G.done ? (G.size === 2 ? "¡Así quedan las parejas!" : "¡Así quedan los grupos!") : mine ? "Te toca elegir" : `Elige ${esc(keyName(s, cap!))}...`}</h3><div class="groups-grid">${cols}</div>${mine ? `<div class="hub-grid">${draftPool(s).map((k) => qBtn(s, k)).join("")}</div>${s.ritmo === "libre" ? "" : `<p class="muted">Si no eliges a tiempo, elige el juego por ti.</p>`}` : G.done ? `<p class="muted">Ahora, ¡al reto!</p>` : ""}`, bindPicks);
   }
   // Segunda Oportunidrag: la ganadora del minirreto elige a su eliminada; el resto, a sorteo
