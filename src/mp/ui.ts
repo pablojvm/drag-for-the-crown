@@ -141,19 +141,13 @@ function entry() {
   };
   $("#mp-join")!.onclick = () => { const c = ($("#mp-code") as HTMLInputElement).value.trim().toUpperCase(); if (c.length === 5) { const name = nm(); room.join(c, name); body().innerHTML = `<div class="story-card"><h3>Entrando en la sala ${esc(c)}...</h3></div>`; } };
   const back = $("#mp-back"); if (back) back.onclick = exit;
-  // Partidas pausadas: la reabre una (lleva la sala) y las demás vuelven a entrar con el código
+  // Partidas pausadas: un solo botón. Primero intenta entrar en la sala por si otra ya la ha reabierto; si no existe, la reabre ella.
   document.querySelectorAll<HTMLElement>("[data-resume]").forEach((b) => (b.onclick = () => {
     const sv = savedAll()[b.dataset.resume!];
     if (!sv) return;
     pendingLocal = sv.local;
-    room.resume(sv.state, sv.me, sv.sig);
-  }));
-  document.querySelectorAll<HTMLElement>("[data-rejoin]").forEach((b) => (b.onclick = () => {
-    const sv = savedAll()[b.dataset.rejoin!];
-    if (!sv) return;
-    pendingLocal = sv.local;
-    room.rejoin(sv.state.code, sv.name, sv.me);
-    body().innerHTML = `<div class="story-card"><h3>Entrando en la sala ${esc(sv.state.code)}...</h3><p class="muted">Si nadie la ha reabierto todavía, ábrela tú con «Reabrir».</p></div>`;
+    body().innerHTML = `<div class="story-card"><h3>Volviendo a la sala ${esc(sv.state.code)}...</h3></div>`;
+    room.continuar(sv.state, sv.me, sv.name, sv.sig);
   }));
   document.querySelectorAll<HTMLElement>("[data-forget]").forEach((b) => (b.onclick = () => ask("La partida guardada se borrará de este dispositivo.", { title: "¿Borrar la partida guardada?", ok: "Borrar", icon: "🗑️", danger: true }).then((y) => { if (y) { savedPut(b.dataset.forget!, null); entry(); } })));
 }
@@ -324,7 +318,7 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
 function savedHTML() {
   const list = Object.values(savedAll()).sort((a, b) => b.date - a.date);
   if (!list.length) return "";
-  return `<div class="mp-saved"><h4>⏸️ Partidas pausadas</h4>${list.map((sv) => { const se = W.seasonById(sv.state.season); const mine = sv.state.players.find((p) => p.id === sv.me); return `<div class="mp-saved-row"><span><b>${esc(se?.name || sv.state.season)}</b> · sala ${esc(sv.state.code)} · episodio ${sv.state.ep} · ${esc(sv.name)}<small>${esc(sv.state.players.map((p) => p.name).join(", "))}${mine?.queen ? ` · tú: ${esc(Q(mine.queen, sv.state.season).name)}` : ""}</small></span><span class="mp-saved-btns"><button class="btn btn-primary" data-resume="${esc(sv.state.code)}:${esc(sv.me)}">Reabrir</button><button class="btn btn-ghost" data-rejoin="${esc(sv.state.code)}:${esc(sv.me)}">Volver a entrar</button><button class="btn btn-ghost small-btn" data-forget="${esc(sv.state.code)}:${esc(sv.me)}" aria-label="Borrar">🗑️</button></span></div>`; }).join("")}</div>`;
+  return `<div class="mp-saved"><h4>⏸️ Partidas pausadas</h4>${list.map((sv) => { const se = W.seasonById(sv.state.season); const mine = sv.state.players.find((p) => p.id === sv.me); return `<div class="mp-saved-row"><span><b>${esc(se?.name || sv.state.season)}</b> · sala ${esc(sv.state.code)} · episodio ${sv.state.ep} · ${esc(sv.name)}<small>${esc(sv.state.players.map((p) => p.name).join(", "))}${mine?.queen ? ` · tú: ${esc(Q(mine.queen, sv.state.season).name)}` : ""}</small></span><span class="mp-saved-btns"><button class="btn btn-primary" data-resume="${esc(sv.state.code)}:${esc(sv.me)}">Continuar</button><button class="btn btn-ghost small-btn" data-forget="${esc(sv.state.code)}:${esc(sv.me)}" aria-label="Borrar">🗑️</button></span></div>`; }).join("")}</div>`;
 }
 
 // ---------------------------------- Con sala ----------------------------------
@@ -451,7 +445,9 @@ function render(s: RoomState) {
   heartModal(s);
   const mine = s.players.find((p) => p.id === room.me);
   // Pausa: con el sí de todas se guarda y se sale
+  if (s.paused && room.resumeOnJoin) { room.resumeOnJoin = false; room.reanudar(); return info(`<p class="eyebrow">▶️ Reanudando</p><h3>Volviendo a la temporada...</h3>`); }
   if (s.paused) return pausedOut(s);
+  room.resumeOnJoin = false;
   if (s.pause) askPause(s);
   // Cambió la fase: si estaba jugando algo de otra fase, se corta
   if (playing && (playing.ep !== s.ep || playing.phase !== s.phase)) { api().abort(); playing = null; }
@@ -784,7 +780,7 @@ function pausedOut(s: RoomState) {
   savedPut(`${s.code}:${room.me}`, { state: s, me: room.me, name: mine?.name || myName(), local: api().local(), date: Date.now(), sig: room.sig });
   saveLocal(s.code);
   const code = s.code;
-  info(`<p class="eyebrow">⏸️ Partida pausada</p><h3>Temporada guardada</h3><p>Para seguir, una de vosotras la reabre desde Multijugador y las demás entran con el código <b class="mp-code">${esc(code)}</b>.</p><button class="btn btn-primary" id="mp-exit3">Volver al menú</button>`, () => { $("#mp-exit3")!.onclick = exit; });
+  info(`<p class="eyebrow">⏸️ Partida pausada</p><h3>Temporada guardada</h3><p>Para seguir, entrad en Multijugador y pulsad «Continuar» en la partida pausada (o entrad con el código <b class="mp-code">${esc(code)}</b>).</p><button class="btn btn-primary" id="mp-exit3">Volver al menú</button>`, () => { $("#mp-exit3")!.onclick = exit; });
 }
 document.addEventListener("click", (e) => {
   if (!(e.target as HTMLElement).closest?.("#mp-pause")) return;

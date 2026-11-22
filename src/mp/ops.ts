@@ -1,6 +1,6 @@
 // Lo que puede pedir cada jugadora a la sala, como datos. Lo aplican igual la anfitriona (sala entre navegadores)
 // y el servidor (Colyseus): así las reglas viven en un solo sitio (model.ts) y el servidor no se fía de nadie.
-import { startSeason, applySubmit, setScript, hostNext, proposePause, votePause, advance, type RoomState, type Engine, type Phase, type Sub, type Player } from "./model";
+import { startSeason, applySubmit, setScript, hostNext, proposePause, votePause, advance, resumeRoom, type RoomState, type Engine, type Phase, type Sub, type Player } from "./model";
 
 export type Op =
   | { t: "join"; name: string; joined?: number }
@@ -9,6 +9,7 @@ export type Op =
   | { t: "submit"; ep: number; phase: Phase; data: Sub }
   | { t: "pausa" }
   | { t: "voto"; yes: boolean }
+  | { t: "reanudar" }
   // Solo la anfitriona (quien lleva la sala: pasa pantallas, empieza, cambia la partida personalizada)
   | { t: "script"; key: string; lines: [string, string][] }
   | { t: "next" }
@@ -48,6 +49,9 @@ export function applyOp(s: RoomState, from: string, op: Op, now: number, e: Engi
       return proposePause(s, from, now);
     case "voto":
       return votePause(s, from, !!op.yes, now);
+    // Alguien vuelve a una sala que sigue abierta pero pausada: se sigue (lleva la sala la misma de antes)
+    case "reanudar":
+      return s.paused ? resumeRoom(s, s.host, now) : s;
     case "script":
       return Array.isArray(op.lines) ? setScript(s, str(op.key, 80), op.lines.slice(0, 60).map(([w, t]) => [str(w, 40), str(t, 600)] as [string, string])) : s;
     case "next":

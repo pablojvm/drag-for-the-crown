@@ -182,6 +182,9 @@ export class Room {
   /** Propone pausar y guardar (hace falta el sí de todas). */
   pause() { this.do({ t: "pausa" }); }
   vote(yes: boolean) { this.do({ t: "voto", yes }); }
+  /** Al volver con «Continuar» a una sala que sigue pausada, se pide seguir. */
+  resumeOnJoin = false;
+  reanudar() { this.do({ t: "reanudar" }); }
   pick(queen: string) { this.do({ t: "pick", queen }); }
   /** Partida personalizada: la anfitriona cambia cómo se eligen las rivales o cuáles. */
   setCustom(c: NonNullable<RoomState["custom"]>) { this.do({ t: "custom", c }); }
@@ -244,6 +247,34 @@ export class Room {
     return serverUp(this.onWait).then((up) => {
       if (up) return void this.serverJoin({ name: saved.players.find((p) => p.id === myOldId)?.name || "Reina", resume: saved, sig, create: { season: saved.season, ritmo: saved.ritmo, content: this.content() } }).catch((e) => this.fail(e));
       this.connect(saved.code);
+      this.state = resumeRoom(saved, this.me, Date.now());
+      this.onChange(this.state);
+      this.broadcast();
+    });
+  }
+  /** Continuar una partida pausada: si otra ya ha reabierto la sala se entra en ella; si no, se reabre (y se lleva la sala). */
+  continuar(saved: RoomState, myOldId: string, name: string, sig = ""): Promise<void> {
+    this.me = myOldId;
+    sessionStorage.setItem("dftc-mp-id", myOldId);
+    const code = saved.code;
+    this.resumeOnJoin = true;
+    return serverUp(this.onWait).then(async (up) => {
+      if (up) {
+        try { await this.serverJoin({ name }, code); return; } catch (e) {
+          if (!/not found|no rooms|not exist|locked/i.test(String((e as Error)?.message))) return this.fail(e);
+        }
+        return this.resume(saved, myOldId, sig);
+      }
+      // Sin servidor: se escucha el canal un momento; si nadie responde con la sala, se reabre aquí
+      this.connect(code);
+      const hello = () => { this.bus?.send("op", { t: "join", name, joined: this.joinedAt }); this.bus?.send("hello", {}); };
+      hello();
+      const t0 = Date.now();
+      await new Promise<void>((res) => { const t = window.setInterval(() => { if (this.state || Date.now() - t0 > 4500) { clearInterval(t); res(); } else hello(); }, 1500); });
+      if (this.state) return;
+      this.bus?.close();
+      this.bus = null;
+      this.connect(code);
       this.state = resumeRoom(saved, this.me, Date.now());
       this.onChange(this.state);
       this.broadcast();

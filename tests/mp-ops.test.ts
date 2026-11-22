@@ -21,6 +21,15 @@ describe("peticiones a la sala (ops)", () => {
     expect(applyOp(s, "bea", { t: "next" }, 10, e)).toBe(s);
     expect(applyOp(s, "ana", { t: "start", cast }, 10, e).phase).not.toBe("lobby");
   });
+  it("volver a una sala pausada que sigue abierta la reanuda", () => {
+    let s = applyOp(base(), "bea", { t: "join", name: "Bea" }, 10, e);
+    s = { ...s, phase: "reto", paused: true, deadline: 30000 } as typeof s;
+    const r = applyOp(s, "bea", { t: "reanudar" }, 1000, e);
+    expect(r.paused).toBe(false);
+    expect(r.host).toBe("ana");
+    expect(r.deadline).toBe(31000);
+    expect(applyOp(r, "bea", { t: "reanudar" }, 1000, e)).toBe(r);
+  });
   it("dos jugadoras no pueden elegir la misma reina", () => {
     let s = applyOp(base(), "bea", { t: "join", name: "Bea" }, 10, e);
     s = applyOp(s, "ana", { t: "pick", queen: "pupi" }, 10, e);

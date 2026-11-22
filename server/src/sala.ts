@@ -2,14 +2,14 @@
 // La «anfitriona» sigue existiendo: es quien pasa las pantallas que se miran y empieza la temporada.
 import { Room, matchMaker, type Client } from "@colyseus/core";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { newRoom, tick, resumeRoom, type RoomState, type Ritmo, type Formato } from "../../src/mp/model";
+import { newRoom, tick, resumeRoom, FORMATOS, type RoomState, type Ritmo, type Formato } from "../../src/mp/model";
 import { applyOp, handOver, cleanCustom, canon, type Op } from "../../src/mp/ops";
 import { coreEngine, cleanContent, type Content } from "../../src/mp/engine-core";
 
 const ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const newCode = () => Array.from({ length: 5 }, () => ABC[Math.floor(Math.random() * ABC.length)]).join("");
 const RITMOS: Ritmo[] = ["normal", "rapido", "libre"];
-const FMTS: Formato[] = ["normal", "allstars", "winners", "repesca", "suerte", "corazon", "moneda"];
+const FMTS = Object.keys(FORMATOS) as Formato[];
 const str = (v: unknown, n: number) => String(v ?? "").slice(0, n);
 const okId = (v: unknown) => typeof v === "string" && /^[a-z0-9]{4,20}$/i.test(v);
 
