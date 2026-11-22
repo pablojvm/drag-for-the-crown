@@ -185,6 +185,9 @@ export class Room {
   /** Al volver con «Continuar» a una sala que sigue pausada, se pide seguir. */
   resumeOnJoin = false;
   reanudar() { this.do({ t: "reanudar" }); }
+  /** All Stars en parejas: nombre de la pareja (el tuyo) y los de la IA (la anfitriona). */
+  pjNombre(name: string) { this.do({ t: "pjnombre", name }); }
+  pjNombres(names: string[]) { this.do({ t: "pjnombres", names }); }
   pick(queen: string) { this.do({ t: "pick", queen }); }
   /** Partida personalizada: la anfitriona cambia cómo se eligen las rivales o cuáles. */
   setCustom(c: NonNullable<RoomState["custom"]>) { this.do({ t: "custom", c }); }

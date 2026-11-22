@@ -699,6 +699,39 @@ function myGroup(s: RoomState): { team?: string[]; band?: string } {
 }
 const qBtn = (s: RoomState, k: string) => `<button class="hub-q" data-pick="${esc(k)}"><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i><span>${esc(keyName(s, k))}</span>${keyPlayer(s, k) ? `<small>${esc(keyPlayer(s, k)!)}</small>` : ""}</button>`;
 const bindPicks = () => document.querySelectorAll<HTMLElement>("[data-pick]").forEach((b) => (b.onclick = () => { document.querySelectorAll<HTMLButtonElement>("[data-pick]").forEach((x) => (x.disabled = true)); room.submit({ pick: b.dataset.pick! }); }));
+// All Stars en parejas: la anfitriona pide a la IA los nombres de las parejas (una vez)
+let pjAiAsked = "";
+function pjBautizo(s: RoomState) {
+  const pj = s.pj;
+  if (!pj || !pj.chosen || pj.ai || !room.isHost || pjAiAsked === s.code) return;
+  pjAiAsked = s.code;
+  const full = pj.pairs.map((p) => p.map((k) => Q(keyQueen(s, k)).name));
+  Promise.resolve(api().pjNombres?.(full)).then((L: string[] | null) => { if (L && room.state?.pj && !room.state.pj.ai) room.pjNombres(L); }).catch(() => {});
+}
+/** Tu pareja: su nombre y, si no os gusta, uno vuestro (lo que vas escribiendo no se pierde si se repinta la pantalla). */
+let pjDraft: string | null = null;
+function pjRenameHTML(s: RoomState) {
+  const pj = s.pj;
+  const i = pj && pj.chosen && pjPhase(s) ? pj.pairs.findIndex((p) => p.includes(pkey(room.me))) : -1;
+  if (!pj || i < 0) return "";
+  return `<form class="pj-rename" id="mp-pj-rename"><label for="mp-pj-name">Nombre de vuestra pareja</label><input id="mp-pj-name" maxlength="22" autocomplete="off" value="${esc(pjDraft ?? pj.names[i])}"><button class="btn btn-ghost" type="submit">Cambiar nombre</button></form>`;
+}
+function bindPjRename(s: RoomState) {
+  const f = $("#mp-pj-rename") as HTMLFormElement | null;
+  if (!f) return;
+  const inp = $("#mp-pj-name") as HTMLInputElement;
+  inp.oninput = () => (pjDraft = inp.value);
+  if (pjDraft != null) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  f.onsubmit = (ev) => {
+    ev.preventDefault();
+    const v = ($("#mp-pj-name") as HTMLInputElement).value.trim();
+    const i = s.pj!.pairs.findIndex((p) => p.includes(pkey(room.me)));
+    if (!v || v === s.pj!.names[i]) return;
+    if (s.pj!.names.some((n, j) => j !== i && n.toLowerCase() === v.toLowerCase())) return void ask("Ya hay otra pareja con ese nombre.", { title: "Nombre repetido", ok: "Vale", icon: "👯" });
+    pjDraft = null;
+    room.pjNombre(v);
+  };
+}
 function equiposPhase(s: RoomState) {
   api().scene("werkroom");
   const me = pkey(room.me);
@@ -712,11 +745,12 @@ function equiposPhase(s: RoomState) {
     return info(`<p class="eyebrow">👯 All Stars en parejas · los carteles</p><h3>${mine ? `Has elegido a ${esc(keyName(s, mine))}` : "Las reinas eligen pareja..."}</h3><p class="muted">Esperando a que las demás escriban su cartel: ${quien}</p>`);
   }
   const G = s.groups && s.groups.ep === s.ep ? s.groups : null;
+  pjBautizo(s);
   if (G) {
     const cap = G.done ? null : capOf(s);
     const mine = cap === me;
     const cols = G.members.map((m, i) => `<div class="group-col ${m.includes(me) ? "mine" : ""} ${!G.done && i === G.turn % G.members.length ? "on" : ""}" style="--i:${i}"><b>${esc(G.names[i])}</b>${m.map((k, j) => `<span><i style="background-image:url('${Q(keyQueen(s, k)).photo}')"></i>${esc(k === me ? "Tú" : keyName(s, k))}${j === 0 && s.fmt !== "parejas" && !brPhase(s) ? " 👑" : ""}</span>`).join("")}</div>`).join("");
-    return info(`${miniRes(s)}<p class="eyebrow">${pjPhase(s) ? "👯 All Stars en parejas · el reto lo hacéis juntas: la misma nota para las dos" : brPhase(s) ? "👯 Alianzas de la semana · el jurado os valora en pareja (si una hunde a la otra, por separado)" : `${G.size === 2 ? "Reto por parejas" : "Reto por grupos"} · las ganadoras del minirreto son las capitanas`}</p><h3>${G.done ? (G.size === 2 ? "¡Así quedan las parejas!" : "¡Así quedan los grupos!") : mine ? "Te toca elegir" : `Elige ${esc(keyName(s, cap!))}...`}</h3><div class="groups-grid">${cols}</div>${mine ? `<div class="hub-grid">${draftPool(s).map((k) => qBtn(s, k)).join("")}</div>${s.ritmo === "libre" ? "" : `<p class="muted">Si no eliges a tiempo, elige el juego por ti.</p>`}` : G.done ? `<p class="muted">Ahora, ¡al reto!</p>` : ""}`, bindPicks);
+    return info(`${miniRes(s)}<p class="eyebrow">${pjPhase(s) ? "👯 All Stars en parejas · el reto lo hacéis juntas: la misma nota para las dos" : brPhase(s) ? "👯 Alianzas de la semana · el jurado os valora en pareja (si una hunde a la otra, por separado)" : `${G.size === 2 ? "Reto por parejas" : "Reto por grupos"} · las ganadoras del minirreto son las capitanas`}</p><h3>${G.done ? (G.size === 2 ? "¡Así quedan las parejas!" : "¡Así quedan los grupos!") : mine ? "Te toca elegir" : `Elige ${esc(keyName(s, cap!))}...`}</h3><div class="groups-grid">${cols}</div>${mine ? `<div class="hub-grid">${draftPool(s).map((k) => qBtn(s, k)).join("")}</div>${s.ritmo === "libre" ? "" : `<p class="muted">Si no eliges a tiempo, elige el juego por ti.</p>`}` : G.done ? `${pjRenameHTML(s)}<p class="muted">Ahora, ¡al reto!</p>` : ""}`, () => { bindPicks(); bindPjRename(s); });
   }
   // Segunda Oportunidrag: la ganadora del minirreto elige a su eliminada; el resto, a sorteo
   const d = s.draft && s.draft.ep === s.ep ? s.draft : null;

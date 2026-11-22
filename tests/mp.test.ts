@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, standings, ppeOf, setScript, hostNext, proposePause, votePause, resumeRoom, winnersWeeks, type Engine, type RoomState } from "../src/mp/model";
+import { planCats, newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, standings, ppeOf, setScript, hostNext, proposePause, votePause, resumeRoom, winnersWeeks, type Engine, type RoomState } from "../src/mp/model";
 import { makeRng } from "../src/core";
 
 const engine = (seed = 1): Engine => {
@@ -238,6 +238,16 @@ describe("temporada en directo", () => {
       }
     });
   }
+  it("las maletas piden tantos looks como pasarelas hay de verdad (también en parejas y brackets)", () => {
+    for (const fmt of ["normal", "parejas", "brackets"]) for (const [n, seed] of [[10, 1], [12, 2], [18, 3], [14, 9]] as const) {
+      const { s: s0 } = fmtRoom(fmt, seed, n);
+      const pasarelas = new Set<number>();
+      runAll(s0, engine(seed), (x) => { if (x.phase === "pasarela" && x.reto?.cat) pasarelas.add(x.ep); });
+      const pedidos = planCats(s0).length;
+      expect(pedidos, `${fmt} ${n}`).toBeGreaterThanOrEqual(pasarelas.size - 1);
+      expect(pedidos, `${fmt} ${n}`).toBeLessThanOrEqual(pasarelas.size + 1);
+    }
+  });
   it("All Winners: nadie se va hasta la final y van las 4 con más estrellas", () => {
     const e = engine(5);
     const { s: s0, c } = fmtRoom("winners", 5);

@@ -79,6 +79,17 @@
     },
     /** ¿Hay IA disponible para ofrecerla al crear la sala? */
     iaReady: () => __REAL_IA.ready(),
+    /** All Stars en parejas: la IA bautiza cada pareja mezclando los nombres (como Rujubee). Null si no hay IA o falla. */
+    pjNombres: async (pairs) => {
+      if (!__REAL_IA.ready()) return null;
+      const r = await __REAL_IA.chat(
+        "Inventas nombres de pareja para un All Stars de drag por parejas, mezclando los nombres artísticos de las dos reinas en una sola palabra corta y pegadiza (como Rujubee de Raven y Jujubee, Yarlexis de Yara Sofia y Alexis Mateo, Latrila de Latrice Royale y Manila Luzon, Mandora de Mimi Imfurst y Pandora Boxx). Si no sale bien en una palabra, vale «X & Y» o un nombre corto que las junte.",
+        `Parejas:\n${pairs.map((p, i) => `${i + 1}. ${p.join(" y ")}`).join("\n")}\nDevuelve JSON {"nombres":["...", ...]} con un nombre por pareja, en el mismo orden. Máximo 14 letras cada uno. Sin repetir.`,
+        { json: true, max: 200, temp: 0.9, timeout: 12000 },
+      ).catch(() => null);
+      const L = r && Array.isArray(r.nombres) ? r.nombres.map((x) => __REAL_IA.clean(String(x || "")).replace(/["«»]/g, "").trim().slice(0, 22)) : [];
+      return L.length === pairs.length && L.every(Boolean) && new Set(L).size === L.length ? L : null;
+    },
     /** Formato de la temporada para la sala. */
     formato: (seasonId) => {
       const t = (TEMPORADAS_HISTORIA[seasonId] || {}).twist;

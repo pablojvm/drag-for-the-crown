@@ -178,7 +178,7 @@ export interface RoomState {
   al?: { ep: number; pairs: string[][] };
   brTop?: string[][];
   /** All Stars en parejas: las parejas (con su nombre) y la semana en la que no se va nadie. */
-  pj?: { pairs: string[][]; names: string[]; libre: number; /** El primer día cada jugadora elige con quién quiere ir */ picks?: Record<string, string>; chosen?: boolean; at?: number };
+  pj?: { pairs: string[][]; names: string[]; libre: number; /** Ya bautizadas por la IA (o con nombre puesto por ellas) */ ai?: boolean; custom?: number[]; /** El primer día cada jugadora elige con quién quiere ir */ picks?: Record<string, string>; chosen?: boolean; at?: number };
   /** Minirreto de la semana: cuál es y, al acabar, la nota de cada una y el orden (la primera, la ganadora). */
   mini?: MiniDef & { ep: number; scores?: Record<string, number>; rank?: string[] };
   /** Reto por grupos: las capitanas (las mejores del minirreto) eligen por turnos. members[i][0] es la capitana. */
@@ -272,13 +272,24 @@ export const nameOfKey = (s: RoomState, k: string, e: Pick<Engine, "queenName">)
   return p ? `${e.queenName(p.queen || "")} (${p.name})` : "?";
 };
 
+/** Cuántos episodios con pasarela tiene la temporada (lo que hay que llevar en la maleta). */
+export function planWeeks(fmt: Formato | undefined, n: number): number {
+  // En parejas se va una pareja entera cada semana (y una semana no se va nadie) hasta quedar cuatro
+  if (fmt === "parejas" && n > 4) return Math.ceil((n - 4) / 2) + 1;
+  // Brackets: tres semanas por bracket (a la vez), pasa la mitad de cada uno y se compite sola hasta quedar 7 (luego, la final)
+  if (fmt === "brackets" && n >= 9) {
+    const adv = [0, 1, 2].reduce((t, g) => t + Math.ceil((Math.floor(n / 3) + (g < n % 3 ? 1 : 0)) / 2), 0);
+    return BRACKET_SEMANAS + Math.max(0, adv - BRACKETS_FINAL);
+  }
+  return n - 4;
+}
 /** Empieza la temporada: las reinas que nadie ha cogido juegan como rivales del juego. */
 export function startSeason(s: RoomState, cast: string[], now: number, e: Engine): RoomState {
   const taken = new Set(s.players.map((p) => p.queen).filter(Boolean) as string[]);
   const players = s.players.map((p) => ({ ...p, alive: !!p.queen }));
   // Se sabe desde el principio qué reto y qué pasarela tiene cada episodio (hasta quedar 4)
   const weeks = isAW(s) ? winnersWeeks(cast.length) : undefined;
-  const plan = makePlan(Math.max(1, weeks || cast.length - 4), e);
+  const plan = makePlan(Math.max(1, weeks || planWeeks(s.fmt, cast.length)), e);
   // Lalaparuza: en All Winners una semana al azar; con 8 reinas o menos, al principio (nunca llegan a quedar 8 tras el primero)
   const lzEp = weeks ? Math.min(weeks, 3 + Math.floor(e.rnd() * 3)) : cast.length <= 8 && cast.length >= 6 ? 2 + (cast.length >= 7 ? Math.floor(e.rnd() * 2) : 0) : undefined;
   const base: RoomState = { ...s, players, cast, npcs: cast.filter((q) => !taken.has(q)), ep: 0, plan, weeks, lzEp, subs: {}, hearts: {}, pendingHearts: [], stars: {}, phase: "maletas", deadline: limite(now, DURACION[s.ritmo].maletas), v: s.v + 1 };
@@ -407,6 +418,8 @@ export const PICK_MS = 25000;
 export const NPC_PICK_MS = 1400;
 /** Tiempo para ver cómo han quedado los grupos o el sorteo de las parejas antes del reto. */
 export const VER_EQUIPOS = 7000;
+/** All Stars en parejas: tiempo para ver la pareja y ponerle nombre el primer día. */
+export const PJ_NOMBRE_MS = 40000;
 export const VER_SORTEO = 16000;
 const miniKeys = (s: RoomState) => aliveKeys(s).filter((k) => k !== mcOf(s));
 function startMini(s: RoomState, now: number, e: Engine): RoomState | null {
@@ -464,7 +477,9 @@ export function pjForm(s: RoomState, now: number, e: Pick<Engine, "rnd" | "queen
   const raw = pairs.map((p) => (p.length === 2 ? nombrePareja(nm(p[0]), nm(p[1])) : nm(p[0])));
   const names = raw.map((n, i) => (raw.indexOf(n) === i ? n : `${n} ${i + 1}`));
   const t: RoomState = { ...s, pj: { ...s.pj!, pairs, names, chosen: true } };
-  return { ...t, groups: { ep: s.ep, size: 2, names, members: pairs.map((p) => p.slice()), turn: pairs.length, at: now, done: true }, phase: "equipos", deadline: now + VER_EQUIPOS * 2, v: s.v + 1 };
+  // Con jugadoras, un rato más para ver la pareja y, si queréis, cambiarle el nombre
+  const ver = alivePlayers(s).length ? PJ_NOMBRE_MS : VER_EQUIPOS * 2;
+  return { ...t, groups: { ep: s.ep, size: 2, names, members: pairs.map((p) => p.slice()), turn: pairs.length, at: now, done: true }, phase: "equipos", deadline: now + ver, v: s.v + 1 };
 }
 /** Cada semana se compite con la pareja de siempre (se ve antes del reto). */
 function parejasStep(s: RoomState, now: number): RoomState | null {

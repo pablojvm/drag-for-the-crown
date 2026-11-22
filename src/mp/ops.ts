@@ -10,6 +10,9 @@ export type Op =
   | { t: "pausa" }
   | { t: "voto"; yes: boolean }
   | { t: "reanudar" }
+  // All Stars en parejas: una jugadora le cambia el nombre a su pareja; la anfitriona pone los de la IA
+  | { t: "pjnombre"; name: string }
+  | { t: "pjnombres"; names: string[] }
   // Solo la anfitriona (quien lleva la sala: pasa pantallas, empieza, cambia la partida personalizada)
   | { t: "script"; key: string; lines: [string, string][] }
   | { t: "next" }
@@ -17,7 +20,7 @@ export type Op =
   | { t: "start"; cast: string[]; names?: Record<string, string> }
   | { t: "custom"; c: NonNullable<RoomState["custom"]> };
 
-export const HOST_OPS: Op["t"][] = ["script", "next", "skip", "start", "custom"];
+export const HOST_OPS: Op["t"][] = ["script", "next", "skip", "start", "custom", "pjnombres"];
 const str = (v: unknown, n: number) => String(v ?? "").slice(0, n);
 
 // La hora de cada movimiento del duelo la pone quien aplica (su reloj es el que cuenta para los topes)
@@ -52,6 +55,24 @@ export function applyOp(s: RoomState, from: string, op: Op, now: number, e: Engi
     // Alguien vuelve a una sala que sigue abierta pero pausada: se sigue (lleva la sala la misma de antes)
     case "reanudar":
       return s.paused ? resumeRoom(s, s.host, now) : s;
+    case "pjnombre": {
+      const pj = s.pj;
+      const name = str(op.name, 22).replace(/[<>"«»]/g, "").trim();
+      const i = pj && pj.chosen ? pj.pairs.findIndex((p) => p.includes(`p:${from}`)) : -1;
+      if (!pj || i < 0 || !name || pj.names.some((n, j) => j !== i && n.toLowerCase() === name.toLowerCase())) return s;
+      const names = pj.names.map((n, j) => (j === i ? name : n));
+      return { ...s, pj: { ...pj, names, custom: [...new Set([...(pj.custom || []), i])] }, groups: s.groups && s.groups.size === 2 ? { ...s.groups, names } : s.groups, v: s.v + 1 };
+    }
+    case "pjnombres": {
+      const pj = s.pj;
+      if (!pj || !pj.chosen || pj.ai || !Array.isArray(op.names) || op.names.length !== pj.names.length) return s;
+      const L = op.names.map((n) => str(n, 22).replace(/[<>"«»]/g, "").trim());
+      if (!L.every(Boolean)) return s;
+      // Las que ya se han puesto nombre ellas lo conservan
+      const names = pj.names.map((n, j) => ((pj.custom || []).includes(j) || pj.names.includes(L[j]) && pj.names.indexOf(L[j]) !== j ? n : L[j]));
+      if (new Set(names).size !== names.length) return { ...s, pj: { ...pj, ai: true }, v: s.v + 1 };
+      return { ...s, pj: { ...pj, names, ai: true }, groups: s.groups && s.groups.size === 2 ? { ...s.groups, names } : s.groups, v: s.v + 1 };
+    }
     case "script":
       return Array.isArray(op.lines) ? setScript(s, str(op.key, 80), op.lines.slice(0, 60).map(([w, t]) => [str(w, 40), str(t, 600)] as [string, string])) : s;
     case "next":

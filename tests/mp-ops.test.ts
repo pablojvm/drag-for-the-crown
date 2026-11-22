@@ -30,6 +30,17 @@ describe("peticiones a la sala (ops)", () => {
     expect(r.deadline).toBe(31000);
     expect(applyOp(r, "bea", { t: "reanudar" }, 1000, e)).toBe(r);
   });
+  it("parejas: cada una cambia el nombre de la suya y la IA no pisa los nombres puestos", () => {
+    let s = applyOp(base(), "bea", { t: "join", name: "Bea" }, 10, e);
+    s = { ...s, fmt: "parejas", pj: { pairs: [["p:ana", "n:pupi"], ["p:bea", "n:inti"]], names: ["Anpupi", "Beinti"], libre: 3, chosen: true } } as typeof s;
+    expect(applyOp(s, "bea", { t: "pjnombre", name: "Anpupi" }, 10, e)).toBe(s); // repetido
+    s = applyOp(s, "bea", { t: "pjnombre", name: "Las Chulas" }, 10, e);
+    expect(s.pj!.names).toEqual(["Anpupi", "Las Chulas"]);
+    expect(applyOp(s, "bea", { t: "pjnombres", names: ["X", "Y"] }, 10, e)).toBe(s); // solo la anfitriona
+    s = applyOp(s, "ana", { t: "pjnombres", names: ["Rupupi", "Otra"] }, 10, e);
+    expect(s.pj!.names).toEqual(["Rupupi", "Las Chulas"]);
+    expect(applyOp(s, "ana", { t: "pjnombres", names: ["A", "B"] }, 10, e)).toBe(s); // una sola vez
+  });
   it("dos jugadoras no pueden elegir la misma reina", () => {
     let s = applyOp(base(), "bea", { t: "join", name: "Bea" }, 10, e);
     s = applyOp(s, "ana", { t: "pick", queen: "pupi" }, 10, e);
