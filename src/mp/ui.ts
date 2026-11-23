@@ -1,5 +1,5 @@
 // Pantallas de la temporada en directo (dentro de la pantalla del modo historia, con su propio flujo)
-import { Room, wakeServer } from "./room";
+import { Room, wakeServer, liveGet } from "./room";
 import { carousel } from "../ui/carousel";
 import { ask } from "../ui/confirm";
 import { mcOf, capOf, brPhase, pjPhase, draftPool, FINALES, finalVoters, type FinalFmt, type LzMatch, type DuelMove, DUEL_STEP_MS, DURACION, IA_EXTRA, FORMATOS, topeEpisodio, alivePlayers, aliveKeys, standings, ppeOf, planCats, isWatch, isP, idOf, pkey, type RoomState, type Engine, type Ritmo, type Formato } from "./model";
@@ -102,7 +102,7 @@ function entry() {
           <div class="mp-join-row"><input id="mp-code" maxlength="5" placeholder="ABCDE" autocapitalize="characters" aria-label="Código de la sala"><button class="btn btn-primary" id="mp-join">Unirse</button></div>
         </div>
       </div>
-      ${savedHTML()}
+      ${liveHTML()}${savedHTML()}
       <div class="mp-create">
         <h4>O crea una sala: elige temporada</h4>
         <div class="car mp-car" id="mp-seasons" aria-roledescription="carrusel" aria-label="Temporadas">
@@ -149,6 +149,14 @@ function entry() {
     body().innerHTML = `<div class="story-card"><h3>Volviendo a la sala ${esc(sv.state.code)}...</h3></div>`;
     room.continuar(sv.state, sv.me, sv.name, sv.sig);
   }));
+  const lv = $("#mp-live");
+  if (lv) lv.onclick = () => {
+    const L = liveGet();
+    if (!L) return entry();
+    pendingLocal = loadLocal(L.code);
+    body().innerHTML = `<div class="story-card"><h3>Volviendo a la sala ${esc(L.code)}...</h3></div>`;
+    room.rejoin(L.code, L.name, L.me);
+  };
   document.querySelectorAll<HTMLElement>("[data-forget]").forEach((b) => (b.onclick = () => ask("La partida guardada se borrará de este dispositivo.", { title: "¿Borrar la partida guardada?", ok: "Borrar", icon: "🗑️", danger: true }).then((y) => { if (y) { savedPut(b.dataset.forget!, null); entry(); } })));
 }
 // Partida personalizada: dinámica, cuántas reinas y cómo se eligen las rivales
@@ -314,6 +322,12 @@ function customSetup(name: string, ritmo: Ritmo, ia: boolean) {
     if (fmt === "winners" && !(api().myWinners() as unknown[]).length) { W.Toast?.show?.("👑 All Winners", "Gana al menos una temporada en el modo historia para presentarte con tu ganadora."); return; }
     room.create(name, CUSTOM, ritmo, { fmt, ia, custom: { pick, size, rivals: [] } });
   };
+}
+// Partida en curso (se cerró la pestaña, se recargó o se cortó): volver a entrar con la misma reina
+function liveHTML() {
+  const L = liveGet();
+  if (!L || savedAll()[`${L.code}:${L.me}`]) return "";
+  return `<div class="mp-saved mp-live"><h4>▶️ Partida en curso</h4><div class="mp-saved-row"><span><b>Sala ${esc(L.code)}</b> · ${esc(L.name)}<small>Se cortó o cerraste la pestaña. Vuelve con tu misma reina.</small></span><span class="mp-saved-btns"><button class="btn btn-primary" id="mp-live">Volver a la sala</button></span></div></div>`;
 }
 function savedHTML() {
   const list = Object.values(savedAll()).sort((a, b) => b.date - a.date);
@@ -1340,10 +1354,23 @@ W.__mpHeader = () => header(room.state);
 (window as any).__mpRoom = room; // para depurar desde la consola
 // Sin sala (no existe, está llena o se ha cortado el servidor): se dice y se vuelve a la entrada
 room.onFail = (msg) => {
-  room.leave();
+  if (playing) api().abort();
+  playing = null;
+  room.leave(true);
+  if (begun) api().end();
+  begun = false;
   body().innerHTML = `<div class="story-card"><p class="eyebrow">📡 Sala</p><h3>${esc(msg)}</h3><button class="btn btn-primary" id="mp-fail-back">Volver</button></div>`;
   $("#mp-fail-back")!.onclick = () => entry();
 };
+// Se ha cortado la conexión: aviso mientras se vuelve a entrar sola
+room.onRetry = (n) => {
+  let t = document.querySelector<HTMLElement>("#mp-retry");
+  if (!n) return void t?.remove();
+  if (!t) { t = document.createElement("div"); t.id = "mp-retry"; t.className = "mp-retry"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+  t.textContent = `📡 Se ha cortado la conexión. Volviendo a la sala... (intento ${n})`;
+};
+// Al volver a la pestaña (el móvil se bloqueó): si se cortó, se vuelve a entrar
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && room.state && !room.online && room.state.code && !room.bus) room.reconnect(); });
 room.onChat = (m) => { chatLog.push({ name: m.name, text: m.text, me: m.from === room.me }); drawChat(); };
 
 // Servidor gratuito despertando: se avisa en la pantalla de «Abriendo/Entrando en la sala...»

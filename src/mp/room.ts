@@ -12,6 +12,10 @@ const myId = () => {
   if (!id) { id = rid(); sessionStorage.setItem("dftc-mp-id", id); }
   return id;
 };
+/** La sala en la que estás jugando (por si se cierra la pestaña o se recarga: se puede volver a entrar). */
+export type Live = { code: string; me: string; name: string; at: number };
+export const liveGet = (): Live | null => { try { const v = JSON.parse(localStorage.getItem("dftc-mp-live") || "null"); return v && Date.now() - v.at < 12 * 3600e3 ? v : null; } catch { return null; } };
+const liveSet = (v: Live | null) => { try { if (v) localStorage.setItem("dftc-mp-live", JSON.stringify(v)); else localStorage.removeItem("dftc-mp-live"); } catch { /* sin almacenamiento */ } };
 /** Contraseña de cada jugadora en el servidor (para que nadie entre con su id); se guarda en este dispositivo. */
 const secretOf = (id: string) => {
   const k = `dftc-mp-secret-${id}`;
@@ -107,16 +111,42 @@ export class Room {
       this.offset = d.now - Date.now();
       // Firma del servidor de la partida pausada (hace falta para reanudarla)
       this.sig = d.sig || "";
+      if (d.s.phase === "corona" || d.s.paused) liveSet(null);
       this.state = d.s;
       this.onChange(d.s);
     });
     r.onMessage("chat", (m) => m && m.from !== this.me && this.onChat(m));
-    r.onLeave((code: number) => { if (this.srv === r && code !== 1000 && code !== 4000) { this.srv = null; this.onFail("Se ha perdido la conexión con la sala."); } });
+    r.onLeave((code: number) => { if (this.srv === r && code !== 1000 && code !== 4000) { this.srv = null; this.reconnect(); } });
     r.send("hello");
+    this.liveName = String(opts.name || this.liveName || "Reina");
+    liveSet({ code: r.roomId, me: this.me, name: this.liveName, at: Date.now() });
     return r.roomId;
   }
+  /** Nombre con el que se entró (para volver a entrar igual). */
+  liveName = "";
+  private retrying = false;
+  /** Se ha cortado (móvil bloqueado, wifi...): se vuelve a entrar sola con la misma jugadora unas cuantas veces. */
+  async reconnect() {
+    const code = this.state?.code;
+    if (!code || this.retrying) return;
+    this.retrying = true;
+    for (const [i, wait] of [1000, 2000, 3000, 5000, 8000, 12000, 20000].entries()) {
+      this.onRetry(i + 1);
+      await new Promise((r) => setTimeout(r, wait));
+      if (this.srv || !this.state || this.state.code !== code) { this.retrying = false; return; }
+      try { await this.serverJoin({ name: this.liveName || "Reina" }, code); this.retrying = false; this.onRetry(0); return; } catch (e) {
+        if (/not found|no rooms|not exist/i.test(String((e as Error)?.message))) break;
+      }
+    }
+    this.retrying = false;
+    this.onRetry(0);
+    this.onFail("Se ha perdido la conexión con la sala. Puedes volver a entrar desde Multijugador con el código " + code + ".");
+  }
+  /** Mientras se intenta volver a entrar (0 = ya no). */
+  onRetry: (n: number) => void = () => {};
   private fail(e: unknown) {
     const m = String((e as Error)?.message || e || "");
+    if (/not found|no rooms|not exist/i.test(m)) liveSet(null);
     this.onFail(/ya está/.test(m) ? "Esa jugadora ya está en la sala." : /not found|no rooms|locked|full/i.test(m) ? "No existe esa sala o está llena." : `No se ha podido conectar con la sala.${m ? ` (${m.slice(0, 80)})` : ""}`);
   }
 
@@ -289,7 +319,8 @@ export class Room {
     sessionStorage.setItem("dftc-mp-id", myOldId);
     return this.join(code, name);
   }
-  leave() {
+  leave(keepLive = false) {
+    if (!keepLive) liveSet(null);
     if (this.srv) { const r = this.srv; this.srv = null; r.leave(true).catch(() => {}); }
     else this.bus?.send("op", { t: "leave" });
     clearInterval(this.loop);

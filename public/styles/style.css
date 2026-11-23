@@ -3276,3 +3276,7 @@ body.portrait .cc-prev { max-height: 34vh; }
 .reign-row .reign.duo { width: 340px; }
 .reign-stage .reign-full.duo { max-width: 52%; margin: 0 -14px; }
 .reign-pair { font: 400 14px "Bungee", sans-serif !important; color: #e0458f; }
+
+/* Multijugador: volviendo a la sala tras un corte, y la partida en curso */
+.mp-retry { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 9999; background: #3b0d4f; color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-width: calc(100vw - 32px); text-align: center; }
+.mp-live { border-color: #ff3d9a; }
