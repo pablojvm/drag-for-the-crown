@@ -2030,7 +2030,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       const pairs = DFTC.alianzas.formarAlianzas(keys, val, mine ? [mine] : []).sort((a, b) => (b.includes("me") ? 1 : 0) - (a.includes("me") ? 1 : 0));
       // En secreto hasta la final: si la corona es para la pareja o solo para una. Y la semana en la que no se va nadie
       S.pj = { pairs, duo: typeof window.__pjDuo === "boolean" ? window.__pjDuo : Math.random() < 0.5, // (window.__pjDuo: solo pruebas)
-        libre: 2 + Math.floor(Math.random() * 3) };
+        libre: Math.random() < 0.5 ? 2 + Math.floor(Math.random() * 3) : -1 }; // la semana sin eliminación puede no haberla
       pjNombres(pairs).then((names) => {
       S.pj.names = names;
       const mate = pjMate("me");

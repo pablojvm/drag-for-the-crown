@@ -347,7 +347,8 @@ function nextEpisode(s0: RoomState, now: number, e: Engine): RoomState {
     return { ...s, ep, reto: r, used: [...s.used, r.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, decision: undefined, twist: undefined, twistResult: undefined, bottom: undefined, triple: undefined, note: undefined, script: undefined, rp, rpDone: true, lala: undefined, planShift: (s.planShift || 0) + 1, epNames: { ...s.epNames, [ep]: r.titulo }, phase: "anuncio", deadline: 0, v: s.v + 1 };
   }
   // All Stars en parejas: el primer episodio se forman las parejas, cada una con su nombre
-  if (s.fmt === "parejas" && !s.pj) s.pj = { pairs: [], names: [], libre: ep + 1 + Math.floor(e.rnd() * 3), picks: {}, chosen: false };
+  // La semana en la que no se va nadie (doble shantay) puede no haberla
+  if (s.fmt === "parejas" && !s.pj) s.pj = { pairs: [], names: [], libre: e.rnd() < 0.5 ? ep + 1 + Math.floor(e.rnd() * 3) : -1, picks: {}, chosen: false };
   // All Stars por brackets: el primer episodio se reparten los tres grupos (hacen falta al menos nueve)
   if (s.fmt === "brackets" && !s.br) {
     const alive = aliveKeys(s);
@@ -359,7 +360,8 @@ function nextEpisode(s0: RoomState, now: number, e: Engine): RoomState {
     return { ...s, ep, reto: { ...LALA }, used: [...s.used, LALA.tipo], subs: {}, rows: undefined, crit: undefined, pairs: undefined, decision: undefined, twist: undefined, twistResult: undefined, bottom: undefined, triple: undefined, protectedKeys: undefined, rp: undefined, lala: undefined, note: undefined, script: undefined, reveal: s.reveal && s.reveal.ep === s.ep ? s.reveal : undefined, planShift: (s.planShift || 0) + 1, epNames: { ...s.epNames, [ep]: LALA.titulo }, phase: "anuncio", deadline: 0, v: s.v + 1 };
   }
   // A veces, con seis, la ganadora será la primera finalista; con cinco, la ganadora tiene el pase directo a la final
-  const giros = !isAS(s) && !isAW(s);
+  // (no en parejas ni brackets: ahí se gana en pareja o en alianza, y el pase sería solo para una)
+  const giros = !isAS(s) && !isAW(s) && s.fmt !== "parejas" && s.fmt !== "brackets";
   if (giros && n === 6 && s.finalistaEp == null && e.rnd() < 0.4) s.finalistaEp = ep;
   else if (giros && n === 5 && s.paseEp == null && !s.pase && e.rnd() < 0.4) s.paseEp = ep;
   const planned = (s.plan || [])[ep - 1 - (s.planShift || 0)];
@@ -638,7 +640,7 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
     // Supremme: «Hablamos con» a la primera y «Ahora hablamos con» a las demás
     .map((c, i) => (c.lines[0] && /^(Ahora h|H)ablamos con /.test(c.lines[0][1]) ? { ...c, lines: [[c.lines[0][0], c.lines[0][1].replace(/^(Ahora h|H)ablamos con /, i ? "Ahora hablamos con " : "Hablamos con ")] as [string, string], ...c.lines.slice(1)] } : c));
   // Por grupos: antes de las críticas una a una, el jurado valora cada grupo por su nombre
-  const gcrit = G ? (isAW(s) ? order.slice(0, 1) : order).map((gi, pos) => ({ name: G.names[gi], keys: G.members[gi], lines: grupoCritica(G.names[gi], pos === 0 ? "top" : pos === order.length - 1 ? "low" : "mid", e.rnd).map(([k, t]) => [NOMBRE_JURADO[k], t] as [string, string]) })) : undefined;
+  const gcrit = G ? (isAW(s) ? order.slice(0, 1) : order).map((gi, pos) => ({ name: G.names[gi], keys: G.members[gi], lines: grupoCritica(G.names[gi], pos === 0 ? "top" : pos === order.length - 1 || (pjPhase(s) && order.length >= 3 && pos === order.length - 2) ? "low" : "mid", e.rnd).map(([k, t]) => [NOMBRE_JURADO[k], t] as [string, string]) })) : undefined;
   return { ...s, rows, crit, gcrit, brTop };
 }
 

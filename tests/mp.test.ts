@@ -382,6 +382,18 @@ describe("temporada en directo", () => {
     expect(fallos).toBeGreaterThan(0);
     expect(doble).toBeGreaterThan(0);
   });
+  it("All Stars en parejas: el doble shantay no es obligatorio y no hay premios para una sola (pase directo, primera finalista)", () => {
+    let sinLibre = 0, conLibre = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const { s: s0 } = fmtRoom("parejas", seed, 12);
+      let premio = false;
+      const s = runAll(s0, engine(seed), (x) => { if (x.finalistaEp != null || x.paseEp != null) premio = true; });
+      expect(premio).toBe(false);
+      if ((s.pj?.libre ?? -1) < 0) sinLibre++; else conLibre++;
+    }
+    expect(sinLibre).toBeGreaterThan(0);
+    expect(conLibre).toBeGreaterThan(0);
+  });
   it("All Stars en parejas: las jugadoras eligen pareja el primer día (si se eligen entre ellas, van juntas)", () => {
     const e = engine(4);
     let { s } = fmtRoom("parejas", 4, 10);

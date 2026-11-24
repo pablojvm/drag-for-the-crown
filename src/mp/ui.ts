@@ -344,6 +344,15 @@ const callOf = (s: RoomState) => {
   const judged = keys.filter((k) => crit.has(k)), safe = keys.filter((k) => !crit.has(k));
   return { safe, judged, allCrit: !safe.length && s.fmt !== "winners" && keys.length <= 6 };
 };
+/** All Stars en parejas: los nombres de las parejas de esas reinas (cada pareja una vez). */
+const pjNames = (s: RoomState, ks: string[]) => {
+  const pj = s.pj;
+  if (!pj) return ks.map((k) => keyName(s, k));
+  const out: string[] = [];
+  ks.forEach((k) => { const i = pj.pairs.findIndex((p) => p.includes(k)); const n = i >= 0 ? pj.names[i] : keyName(s, k); if (!out.includes(n)) out.push(n); });
+  return out;
+};
+const pjList = (s: RoomState, ks: string[]) => pjNames(s, ks).join(", ").replace(/, ([^,]*)$/, " y $1");
 const names = (s: RoomState, ks: string[]) => ks.map((k) => keyName(s, k)).join(", ").replace(/, ([^,]*)$/, " y $1");
 const SPEAKER: Record<string, string> = { Supremme: "host", "Supremme de Luxe": "host", "Ana Locking": "judge", "Javier Ambrossi": "ambrossi", "Javier Calvo": "calvo" };
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
@@ -543,17 +552,21 @@ function render(s: RoomState) {
       // «Ya no hay salvadas» se explica solo la primera semana que pasa
       const prevN = Object.keys(s.track).filter((k) => (s.track[k] || {})[s.ep - 1]).length;
       const firstAll = allCrit && (s.ep === 1 || prevN > 6);
-      const safeL: [string, string][] = safe.length ? [["host", `${names(s, sh(safe))}: estáis salvadas. Podéis volver al backstage.`]] : [];
-      const judgedL: [string, string][] = [["host", allCrit ? (firstAll ? `Quedáis ${n}: a partir de ahora ya no hay salvadas. ${names(s, sh(judged))}, todas recibís la valoración del jurado.` : `${names(s, sh(judged))}: todas recibís la valoración del jurado.`) : s.fmt === "winners" ? `${names(s, sh(judged))}: esta semana recibís las críticas del jurado.` : `${names(s, sh(judged))}... sois las mejores y las peores del programa de hoy.`]];
+      const pjW = pjPhase(s) && !!s.gcrit?.length;
+      const nmL = (ks: string[]) => (pjW ? pjList(s, ks) : names(s, ks));
+      const safeL: [string, string][] = safe.length ? [["host", `${nmL(sh(safe))}: estáis salvadas. Podéis volver al backstage.`]] : [];
+      const judgedL: [string, string][] = [["host", allCrit ? (firstAll ? `Quedáis ${n}: a partir de ahora ya no hay salvadas. ${names(s, sh(judged))}, todas recibís la valoración del jurado.` : `${nmL(sh(judged))}: todas recibís la valoración del jurado.`) : s.fmt === "winners" ? `${names(s, sh(judged))}: esta semana recibís las críticas del jurado.` : `${nmL(sh(judged))}... sois las ${pjW ? "mejores y las peores parejas" : "mejores y las peores"} del programa de hoy.`]];
       // Lalaparuza: primero, cómo ha quedado el cuadro
       const lz: [string, string][] = s.lala?.done ? [["host", `${names(s, s.lala.bottom || [])}: habéis perdido todos vuestros duelos.`], ["@lala", ""]] : [];
-      const lines: [string, string][] = [...lz, ["host", s.lala?.done ? "Reinas, el torneo ha terminado. Tengo algo que deciros..." : "Reinas, la pasarela ha terminado. Tengo algo que deciros..."], ...(Math.random() < 0.5 ? [...safeL, ...judgedL] : [...judgedL, ...(safe.length ? [["host", `Las demás, ${names(s, sh(safe))}: estáis a salvo.`] as [string, string]] : [])]), ["@call", ""]];
+      const lines: [string, string][] = [...lz, ["host", s.lala?.done ? "Reinas, el torneo ha terminado. Tengo algo que deciros..." : "Reinas, la pasarela ha terminado. Tengo algo que deciros..."], ...(Math.random() < 0.5 ? [...safeL, ...judgedL] : [...judgedL, ...(safe.length ? [["host", `Las demás, ${nmL(sh(safe))}: estáis a salvo.`] as [string, string]] : [])]), ["@call", ""]];
       if (safe.length) lines.push(["host", "Reinas salvadas, al backstage. Jurado, es vuestro turno."]);
       // Por grupos: primero cada grupo, por su nombre
+      // En parejas, el jurado valora a cada pareja (no una a una)
+      if (pjW) { s.gcrit!.forEach((g) => g.lines.forEach(([who, t]) => lines.push([SPEAKER[who] || "host", t]))); return lines; }
       if (s.gcrit?.length) { lines.push(["host", "Vamos a empezar por los grupos."]); s.gcrit.forEach((g) => g.lines.forEach(([who, t]) => lines.push([SPEAKER[who] || "host", t]))); lines.push(["host", "Y ahora, una a una."]); }
       (s.crit || []).forEach((c) => c.lines.forEach(([who, t]) => lines.push([SPEAKER[who] || "host", t])));
       return lines;
-    }, () => `<p class="eyebrow">Las críticas del jurado</p>${(s.gcrit || []).map((g) => `<div class="mp-crit-row mp-gcrit"><div class="call-faces">${g.keys.map((k) => face(s, k)).join("")}</div><div><p><b>${esc(g.name)}</b></p>${g.lines.map(([who, t]) => `<p><b>${esc(who)}:</b> ${esc(t)}</p>`).join("")}</div></div>`).join("")}<div class="mp-crit">${(s.crit || []).map((c) => `<div class="mp-crit-row">${face(s, c.key)}<div>${c.lines.map(([who, t]) => `<p><b>${esc(who)}:</b> ${esc(t)}</p>`).join("")}</div></div>`).join("")}</div>`);
+    }, () => `<p class="eyebrow">Las críticas del jurado</p>${(s.gcrit || []).map((g) => `<div class="mp-crit-row mp-gcrit"><div class="call-faces">${g.keys.map((k) => face(s, k)).join("")}</div><div><p><b>${esc(g.name)}</b></p>${g.lines.map(([who, t]) => `<p><b>${esc(who)}:</b> ${esc(t)}</p>`).join("")}</div></div>`).join("")}<div class="mp-crit">${(pjPhase(s) && s.gcrit?.length ? [] : s.crit || []).map((c) => `<div class="mp-crit-row">${face(s, c.key)}<div>${c.lines.map(([who, t]) => `<p><b>${esc(who)}:</b> ${esc(t)}</p>`).join("")}</div></div>`).join("")}</div>`);
   }
   if (s.phase === "untucked") return untucked(s);
   if (s.phase === "veredicto") {
@@ -567,6 +580,13 @@ function render(s: RoomState) {
     const block = s.block && s.block.ep === s.ep ? s.block : null;
     if (s.finalRun) return watch(s, "panel", () => [["host", "Reinas, he tomado una decisión."], ["host", `${names(s, of("TOP2"))}: sois el top 2 de la gran final. Os jugáis la corona en un último lip sync.`], ["host", `${names(s, of("3ª"))}: habéis llegado hasta la final, y eso ya es historia. Pero esta noche la corona no es para vosotras.`]],
       () => `<p class="eyebrow">👑 Gran final · las decisiones del jurado</p><div class="verdict">${grp(["TOP2"], "👑 Top 2: lip sync por la corona", "win")}${grp(["3ª"], "💐 Finalistas: terceras", "high")}</div>`);
+    // All Stars en parejas: se gana y se pierde en pareja (nada de «doble victoria» ni de premios para una sola)
+    if (pjPhase(s)) {
+      const grpP = (labs: string[], t: string, cls: string) => { const ks = rows.filter((x) => labs.includes(x.label)).map((x) => x.key); return ks.length ? `<div class="v-row ${cls}"><b>${t}</b><p class="pj-name">${esc(pjList(s, ks))}</p><div class="call-faces">${ks.map((k) => face(s, k)).join("")}</div></div>` : ""; };
+      const nb = pjNames(s, btm).length;
+      return watch(s, "panel", () => [["host", "Reinas, he tomado algunas decisiones."], ["host", `${pjList(s, of("WIN"))}, ¡enhorabuena, habéis ganado el reto!`], ...(of("HIGH").length ? [["host", `${pjList(s, of("HIGH"))}: buen trabajo, estáis a salvo.`] as [string, string]] : []), ["host", nb >= 2 ? `${pjList(s, btm)}: sois las dos peores parejas de la semana. Cada pareja elegirá quién hace el lip sync, y la pareja que pierda puede irse a casa.` : `${pjList(s, btm)}: es la hora del lip sync for your life.`]],
+        () => `<p class="eyebrow">Las decisiones del jurado</p><div class="verdict">${grpP(["WIN"], "👑 Pareja ganadora del reto", "win")}${grpP(["HIGH"], "✨ Buen trabajo, estáis a salvo", "high")}${grpP(["SAFE"], "🙂 A salvo", "high")}${grpP(["LOW"], "😬 A salvo... por los pelos", "low")}${grpP(["BTM2", "BTM3"], "💔 Bottom: las dos peores parejas", "btm")}</div>`);
+    }
     return watch(s, "panel", () => AW
       ? [["host", "Reinas, he tomado algunas decisiones."], ["host", `${names(s, [...of("TOP2"), ...of("BTOP")])}: sois las dos mejores de la semana. ¡Os jugáis la Legendary Legend Star en un lip sync!`], ...(of("BTOP").length ? [["host", `${names(s, of("BTOP"))}, estás bloqueada: esta semana no hay estrella para ti.`] as [string, string]] : []), ["host", "El resto, estáis a salvo. Aquí no se va nadie."]]
       : AS(s)
