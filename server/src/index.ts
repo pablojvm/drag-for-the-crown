@@ -9,7 +9,9 @@ const fast = Number(process.env.MP_FAST || 1);
 if (fast > 1) Object.values(DURACION).forEach((d: Record<string, number>) => Object.keys(d).forEach((k) => (d[k] = d[k] > 0 ? Math.max(4, Math.round(d[k] / fast)) : 0)));
 
 const server = new Server({
-  transport: new WebSocketTransport({ pingInterval: 5000, pingMaxRetries: 3 }),
+  // maxPayload: por defecto Colyseus corta la conexión (1009) si una jugadora manda más de 4 KB, y el guion de las
+  // críticas o el reparto al empezar lo pasan: la anfitriona se quedaba colgada. Con 512 KB cabe todo.
+  transport: new WebSocketTransport({ pingInterval: 5000, pingMaxRetries: 3, maxPayload: 512 * 1024 }),
   greet: false,
   // /salud (y /health, el nombre que suelen pedir los alojamientos) para comprobar que está vivo
   express: (app) => { ["/salud", "/health"].forEach((p) => app.get(p, (_req: unknown, res: { setHeader(k: string, v: string): void; json(v: unknown): void }) => { res.setHeader("Access-Control-Allow-Origin", "*"); res.json({ ok: true }); })); },

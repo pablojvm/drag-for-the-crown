@@ -61,7 +61,7 @@ await A.waitForTimeout(1500);
 // Un clic «humano»: lo primero que haya que pulsar en pantalla
 const clicker = async (p) => p.evaluate(() => {
   const vis = (x) => x && x.offsetParent && !x.disabled && !x.closest(".mp-chat,.chat,#mp-chat");
-  const sel = ["#dlg-skip", "#mp-ccreate", ".modal.open .btn-primary", ".dlg .btn-primary", "#mp-mini-go", "#mp-mini-play", "#mp-next", "[data-pick]", "[data-box]", "[data-vote]", "[data-heart]", "[data-duel]", "[data-coin]", ".dc-opt:not(.picked):not(.dim)", "[data-o]", "#story-go", "#story-next", ".screen.active .btn-primary:not(#mp-exit2):not(#mp-exit3):not(#mp-exit)", "#mp-skip", "#mp-play button", "#mp-play [role=button]", "#mp-play .tile, #mp-play .card", "[data-k]", "[data-miss]"];
+  const sel = ["#dlg-skip", "#mp-ccreate", ".modal.open .btn-primary", ".dlg .btn-primary", "#mp-mini-go", "#mp-mini-play", "#mp-next", "[data-pick^=\"p:\"]", "[data-pick]", "[data-box]", "[data-vote]", "[data-heart]", "[data-duel]", "[data-coin]", ".dc-opt:not(.picked):not(.dim)", "[data-o]", "#story-go", "#story-next", ".screen.active .btn-primary:not(#mp-exit2):not(#mp-exit3):not(#mp-exit)", "#mp-skip", "#mp-play button", "#mp-play [role=button]", "#mp-play .tile, #mp-play .card", "[data-k]", "[data-miss]"];
   for (const s of sel) {
     const L = [...document.querySelectorAll(s)].filter(vis);
     const b = s.startsWith("#mp-play") || s === ".dc-opt:not(.picked):not(.dim)" || s === "[data-o]" ? L[Math.floor(Math.random() * L.length)] : L[0];
