@@ -30,7 +30,14 @@ for (const seed of SEEDS) {
   await page.click("#btn-story");
   await page.locator(".franchise-card").nth(FR).click();
   if (/^\d+$/.test(SE)) await page.locator(".season-card").nth(Number(SE)).click(); else await page.locator(".season-card", { hasText: SE }).click();
-  if (await page.locator(".cc-q").first().isVisible().catch(() => false)) { await page.locator(".cc-q").first().click(); await page.locator("#cc-rnd").click(); }
+  // DUO=1/0 antes de empezar: la final (y si la corona es doble) se decide al empezar la temporada
+  await page.evaluate((duo) => { if (duo) window.__pjDuo = duo === "1"; }, process.env.DUO || "");
+  if (await page.locator(".cc-q").first().isVisible().catch(() => false)) {
+    await page.locator(".cc-q").first().click();
+    if (await page.locator("#cc-me").isVisible().catch(() => false)) await page.locator("#cc-me").click();
+    await page.locator("#cc-rnd").click();
+    if (await page.locator("#cc-ok").isVisible().catch(() => false)) await page.locator("#cc-ok").click();
+  }
   else if (/Winners/.test(SE)) await page.locator("#queen-grid > *:not(.locked)").first().click();
   else await page.locator("#queen-grid > *").nth(seed % 5).click();
   await page.evaluate(([sc, duo]) => { if (sc !== "libre") window.__forceScore = Number(sc); if (duo) window.__pjDuo = duo === "1"; }, [SCORE, process.env.DUO || ""]); // DUO=1/0: fuerza la corona doble o individual en parejas

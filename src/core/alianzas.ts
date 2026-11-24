@@ -113,3 +113,16 @@ export function nombrePareja(a: string, b: string): string {
 export function etiquetasParejas(groupPos: number[], nGroups: number): string[] {
   return groupPos.map((g) => (g === 0 ? "WIN" : nGroups >= 3 && g >= nGroups - 2 ? "BTM2" : g === 1 && nGroups >= 5 ? "HIGH" : g === nGroups - 3 && nGroups >= 5 ? "LOW" : "SAFE"));
 }
+
+/**
+ * All Stars en parejas, corona doble: la pareja ganadora se corona entera si las dos han ido parejas toda la
+ * temporada; si una ha estado claramente por encima, la corona es solo para ella. Un poco de azar en el corte.
+ * Devuelve a quién se corona: "ambas", "a" o "b".
+ */
+export function coronaPareja(a: number[], b: number[], rnd: () => number): "ambas" | "a" | "b" {
+  const med = (x: number[]) => (x.length ? x.reduce((t, v) => t + v, 0) / x.length : 0);
+  const ma = med(a), mb = med(b);
+  const corte = 4 + rnd() * 5; // entre 4 y 9 puntos de diferencia media
+  if (Math.abs(ma - mb) <= corte) return "ambas";
+  return ma > mb ? "a" : "b";
+}

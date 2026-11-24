@@ -10,7 +10,7 @@ import { BANDAS, COLORES_GRUPO, grupoCritica, NOMBRE_JURADO } from "../core/crit
 import { allWinnersCut, allWinnersBottom } from "../core/finales";
 import { lalaStart, lalaPending, lalaResolve, lalaScoreDe, type Lala } from "../core/lala";
 import { rescueFromBottom, coinResult, lipstickKind, addHalfHearts } from "../core/dinamicas";
-import { repartirBrackets, clasificacion, formarAlianzas, notaEnPareja, rompe, puntos, eligeMvq, votanMvq, BRACKET_NOMBRES, BRACKET_SEMANAS, BRACKETS_FINAL, nombrePareja, etiquetasParejas, type Mvq } from "../core/alianzas";
+import { repartirBrackets, clasificacion, formarAlianzas, notaEnPareja, rompe, puntos, eligeMvq, votanMvq, BRACKET_NOMBRES, BRACKET_SEMANAS, BRACKETS_FINAL, nombrePareja, etiquetasParejas, coronaPareja, type Mvq } from "../core/alianzas";
 
 export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "quien" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "reencuentro" | "finalistas" | "votacion" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
@@ -209,6 +209,16 @@ export interface RoomState {
   quad?: string[];
   /** All Stars en parejas: en las dos peores parejas, quién hace el lip sync (lo eligen las jugadoras de cada pareja). */
   quien?: { pairs: string[][]; picks: Record<string, string> };
+  /** All Stars en parejas: si la final es pareja contra pareja (se decide al empezar y se anuncia al final). */
+  pjDuo?: boolean;
+  /** Final pareja contra pareja en marcha. */
+  pjFinal?: boolean;
+  /** Lo que ha hecho cada una por su cuenta en las semanas por parejas (decide si se corona a las dos). */
+  pjTray?: Record<string, Record<number, number>>;
+  /** Corona doble: la otra ganadora. */
+  champion2?: string;
+  /** Reto final decidido al empezar (si la final es un reto con pasarela, su look va en la maleta). */
+  finalReto?: { tipo: string; cat?: { n: string; d: string } };
   /** Lo que dice Supremme después del lip sync (antes del track record). */
   fallo?: [string, string][];
   /** Cómo se resolvió: en orden (de la cuarta a la primera), una fuera y dos subcampeonas, o solo la ganadora. Orden de la mejor a la peor. */
@@ -287,6 +297,25 @@ export function planWeeks(fmt: Formato | undefined, n: number): number {
   }
   return n - 4;
 }
+/** Cómo será la final (brackets y All Winners tienen la suya). En parejas, a veces pareja contra pareja. */
+function decideFinal(fmt: Formato | undefined, plan: PlanEp[], e: Pick<Engine, "retos" | "categorias" | "rnd">): Partial<RoomState> {
+  if (fmt === "brackets" || fmt === "winners") return {};
+  if (fmt === "parejas" && e.rnd() < 0.5) return { pjDuo: true, finalFmt: "parejas" };
+  const opts: FinalFmt[] = ["torneo", "reto", "track", "votan", "cuatro", "cadena"].filter((f) => fmt !== "parejas" || f !== "torneo") as FinalFmt[];
+  const finalFmt = opts[Math.floor(e.rnd() * opts.length)];
+  if (finalFmt !== "reto") return { finalFmt };
+  // El reto final: uno que no salga en la temporada, con su pasarela (distinta de las de la temporada)
+  const enPlan = new Set(plan.map((p) => p.tipo));
+  const all = e.retos().filter((r) => !r.groups && r.tipo !== LALA.tipo && r.tipo !== TALENTO && !r.noRunway);
+  const pool = all.filter((r) => !enPlan.has(r.tipo));
+  const src = pool.length ? pool : all;
+  if (!src.length) return { finalFmt };
+  const r = src[Math.floor(e.rnd() * src.length)];
+  const usadas = new Set(plan.map((p) => p.cat?.n));
+  const cats = e.categorias().filter((c) => !usadas.has(c.n));
+  const cs = cats.length ? cats : e.categorias();
+  return { finalFmt, finalReto: { tipo: r.tipo, cat: cs[Math.floor(e.rnd() * cs.length)] } };
+}
 /** Empieza la temporada: las reinas que nadie ha cogido juegan como rivales del juego. */
 export function startSeason(s: RoomState, cast: string[], now: number, e: Engine): RoomState {
   const taken = new Set(s.players.map((p) => p.queen).filter(Boolean) as string[]);
@@ -296,7 +325,9 @@ export function startSeason(s: RoomState, cast: string[], now: number, e: Engine
   const plan = makePlan(Math.max(1, weeks || planWeeks(s.fmt, cast.length)), e);
   // Lalaparuza: en All Winners una semana al azar; con 8 reinas o menos, al principio (nunca llegan a quedar 8 tras el primero)
   const lzEp = weeks ? Math.min(weeks, 3 + Math.floor(e.rnd() * 3)) : cast.length <= 8 && cast.length >= 6 ? 2 + (cast.length >= 7 ? Math.floor(e.rnd() * 2) : 0) : undefined;
-  const base: RoomState = { ...s, players, cast, npcs: cast.filter((q) => !taken.has(q)), ep: 0, plan, weeks, lzEp, subs: {}, hearts: {}, pendingHearts: [], stars: {}, phase: "maletas", deadline: limite(now, DURACION[s.ritmo].maletas), v: s.v + 1 };
+  // La final se decide en secreto antes de empezar (se anuncia en el reencuentro): así se sabe si hace falta un último look
+  const fin = decideFinal(s.fmt, plan, e);
+  const base: RoomState = { ...s, ...fin, players, cast, npcs: cast.filter((q) => !taken.has(q)), ep: 0, plan, weeks, lzEp, subs: {}, hearts: {}, pendingHearts: [], stars: {}, phase: "maletas", deadline: limite(now, DURACION[s.ritmo].maletas), v: s.v + 1 };
   // Reina de la suerte: una de las cajitas la tiene (en secreto)
   if (s.fmt === "suerte") { const all = aliveKeys(base); base.luck = all[Math.floor(e.rnd() * all.length)]; }
   return base;
@@ -331,7 +362,7 @@ export function makePlan(n: number, e: Pick<Engine, "retos" | "categorias" | "rn
   return out;
 }
 /** Categorías de pasarela del plan (lo que hay que llevar en la maleta). */
-export const planCats = (s: Pick<RoomState, "plan">) => (s.plan || []).map((p) => p.cat?.n).filter(Boolean) as string[];
+export const planCats = (s: Pick<RoomState, "plan" | "finalReto">) => [...(s.plan || []).map((p) => p.cat?.n), s.finalReto?.cat?.n].filter(Boolean) as string[];
 
 function nextEpisode(s0: RoomState, now: number, e: Engine): RoomState {
   const s: RoomState = { ...s0, mini: undefined, groups: undefined, draft: undefined, quien: undefined, fallo: undefined };
@@ -567,9 +598,13 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
     ra.score = r.a; rb.score = r.b;
   });
   // All Stars en parejas: el reto lo hacen juntas, las dos sacan la misma nota (la media)
+  let pjTray = s.pjTray;
   if (pjPhase(s) && G) G.members.forEach((m) => {
     const R = rows.filter((r) => m.includes(r.key));
     if (R.length < 2) return;
+    // Lo que ha hecho cada una por su cuenta (cuenta en la final, para coronar a una o a las dos)
+    pjTray = { ...(pjTray || {}) };
+    R.forEach((r) => (pjTray![r.key] = { ...(pjTray![r.key] || {}), [s.ep]: r.score }));
     const avg = Math.round(R.reduce((t, r) => t + r.score, 0) / R.length);
     R.forEach((r) => (r.score = avg));
   });
@@ -641,7 +676,7 @@ export function scoreWeek(s: RoomState, e: Engine): RoomState {
     .map((c, i) => (c.lines[0] && /^(Ahora h|H)ablamos con /.test(c.lines[0][1]) ? { ...c, lines: [[c.lines[0][0], c.lines[0][1].replace(/^(Ahora h|H)ablamos con /, i ? "Ahora hablamos con " : "Hablamos con ")] as [string, string], ...c.lines.slice(1)] } : c));
   // Por grupos: antes de las críticas una a una, el jurado valora cada grupo por su nombre
   const gcrit = G ? (isAW(s) ? order.slice(0, 1) : order).map((gi, pos) => ({ name: G.names[gi], keys: G.members[gi], lines: grupoCritica(G.names[gi], pos === 0 ? "top" : pos === order.length - 1 || (pjPhase(s) && order.length >= 3 && pos === order.length - 2) ? "low" : "mid", e.rnd).map(([k, t]) => [NOMBRE_JURADO[k], t] as [string, string]) })) : undefined;
-  return { ...s, rows, crit, gcrit, brTop };
+  return { ...s, rows, crit, gcrit, brTop, pjTray };
 }
 
 const writeTrack = (s: RoomState, rows: Row[]) => {
@@ -714,8 +749,8 @@ function parejasLipsync(s: RoomState, now: number, e: Engine): RoomState {
   const place = lose.p.length > 1 ? `${n - lose.p.length + 1}º/${n}º` : `${n}º`;
   lose.p.forEach((k) => (t = eliminate(t, k, place, "ELIM", e)));
   const solas = aliveKeys(t).length <= 4;
-  const fallo: [string, string][] = [...abre, ["host", `${win.name}... shantay, you stay.`], ["host", `${lose.name}, ha sido un placer veros juntas. Ahora... sashay away.`], ...(solas ? [["host", "Reinas, se acabaron las parejas: desde ahora, cada una por su cuenta."] as [string, string]] : [])];
-  return { ...t, fallo, note: `${who} gana el lip sync. ${lost}, sashay away: se va la pareja entera.${solas ? " Y desde ahora, cada una por su cuenta." : ""}`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+  const fallo: [string, string][] = [...abre, ["host", `${win.name}... shantay, you stay.`], ["host", `${lose.name}, ha sido un placer veros juntas. Ahora... sashay away.`], ...(solas ? [["host", "Quedan cuatro reinas. ¿Cómo será la gran final? Eso lo sabréis en el reencuentro."] as [string, string]] : [])];
+  return { ...t, fallo, note: `${who} gana el lip sync. ${lost}, sashay away: se va la pareja entera.${solas ? " Quedan cuatro: la forma de la final se anuncia en el reencuentro." : ""}`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
 }
 
 // ------------------------------ All Stars por brackets ------------------------------
@@ -1096,11 +1131,35 @@ function bracketNext(s: RoomState, now: number, e: Engine): RoomState {
   return { ...t, champion: alive[0], phase: "corona", deadline: 0, v: s.v + 1 };
 }
 // ------------------------------ Reencuentro y gran final ------------------------------
+/** Etapa de la final pareja contra pareja. */
+const PJ_FINAL = 9;
+/** Gana una pareja: se corona a las dos si han ido parejas toda la temporada, o solo a la que ha tirado de la otra. */
+function pjFinalEnd(s: RoomState, e: Engine): RoomState {
+  const pairs = resolvePairs(s, e);
+  const p = pairs[0];
+  const q = s.quien!;
+  const wi = q.pairs.findIndex((x) => x.includes(p.winner!));
+  const win = q.pairs[wi], lose = q.pairs[1 - wi];
+  const tray = (k: string) => Object.values((s.pjTray || {})[k] || {});
+  const who = coronaPareja(tray(win[0]), tray(win[1]), e.rnd);
+  const crowned = who === "ambas" ? win.slice() : [who === "a" ? win[0] : win[1]];
+  const partner = win.find((k) => !crowned.includes(k));
+  let t: RoomState = { ...s, pairs };
+  lose.forEach((k) => (t = eliminate(t, k, partner ? "3º/4º" : "3º/4º", partner ? "3ª" : "RUNNER-UP", e)));
+  if (partner) t = eliminate(t, partner, "2º", "RUNNER-UP", e);
+  const track = { ...t.track };
+  crowned.forEach((k) => (track[k] = { ...(track[k] || {}), [s.ep]: "WINNER" }));
+  return { ...t, track, champion: crowned[0], champion2: crowned[1], pjFinal: false, phase: "corona", deadline: 0, v: s.v + 1 };
+}
+/** Las dos parejas enteras que llegan a la final (para la final pareja contra pareja). */
+const pjFinalPairs = (s: RoomState) => { const al = aliveKeys(s); return al.length === 4 && s.pj ? s.pj.pairs.filter((p) => p.length === 2 && p.every((k) => al.includes(k))) : []; };
 /** El reencuentro: vuelven las eliminadas, se vota Miss Simpatía y se sortea cómo será la final. */
 function reunion(s: RoomState, e: Engine): RoomState {
   const n = aliveKeys(s).length;
-  const opts: FinalFmt[] = n >= 3 ? ["torneo", "reto", "track", "votan", "cuatro", "cadena"] : ["torneo", "reto", "track", "votan"];
-  const finalFmt = opts[Math.floor(e.rnd() * opts.length)];
+  const opts: FinalFmt[] = (n >= 3 ? ["torneo", "reto", "track", "votan", "cuatro", "cadena"] : ["torneo", "reto", "track", "votan"]).filter((f) => s.fmt !== "parejas" || f !== "torneo") as FinalFmt[];
+  // Se decidió al empezar; si ya no se puede (pareja contra pareja sin dos parejas enteras, o cuadros con menos de tres), otra
+  const ok = s.finalFmt && (s.finalFmt === "parejas" ? pjFinalPairs(s).length === 2 : opts.includes(s.finalFmt));
+  const finalFmt = ok ? s.finalFmt! : opts[Math.floor(e.rnd() * opts.length)];
   return { ...s, reunionDone: true, finalFmt, subs: {}, note: undefined, script: undefined, phase: "reencuentro", deadline: 0, v: s.v + 1 };
 }
 /** Miss Simpatía: votan todas (las jugadoras eligen; las reinas del juego, al azar). Nadie se vota a sí misma. */
@@ -1128,6 +1187,13 @@ function startFinal(s0: RoomState, now: number, e: Engine): RoomState {
     return { ...t, ...extra, pairs, finalStage, phase: "final", deadline: anyP ? limite(now, D.final) : now + 8000, v: s0.v + 1 };
   };
   const nm = (k: string) => nameOfKey(s, k, e);
+  // Pareja contra pareja: primero cada pareja elige quién baila
+  if (fmt === "parejas") {
+    const prs = pjFinalPairs(s);
+    const picks: Record<string, string> = {};
+    prs.forEach((p, i) => { if (!p.some(isP)) picks[i] = pjRep(s, p); });
+    return { ...s, pjFinal: true, quien: { pairs: prs, picks }, phase: "quien", deadline: limite(now, D.quien), v: s0.v + 1 };
+  }
   // Pase directo: la que lo tiene espera en la final; las demás se juegan el otro puesto
   const pase = s0.pase && sd.includes(s0.pase) && sd.length >= 3 ? s0.pase : undefined;
   const rest0 = pase ? sd.filter((k) => k !== pase) : sd;
@@ -1148,8 +1214,10 @@ function startFinal(s0: RoomState, now: number, e: Engine): RoomState {
     const all = e.retos().filter((r) => !r.groups && r.tipo !== LALA.tipo && r.tipo !== TALENTO && !r.noRunway);
     const pool = all.filter((r) => !s.used.includes(r.tipo));
     const src = pool.length ? pool : all.length ? all : e.retos();
-    const r: Reto = { ...src[Math.floor(e.rnd() * src.length)] };
-    if (!r.noRunway) { const cats = e.categorias(); r.cat = cats[Math.floor(e.rnd() * cats.length)]; }
+    // El que se decidió al empezar (su look ya va en la maleta)
+    const pre = s.finalReto && e.retos().find((x) => x.tipo === s.finalReto!.tipo);
+    const r: Reto = { ...(pre || src[Math.floor(e.rnd() * src.length)]) };
+    if (!r.noRunway) { const cats = e.categorias(); r.cat = pre && s.finalReto!.cat ? s.finalReto!.cat : cats[Math.floor(e.rnd() * cats.length)]; }
     return { ...s, reto: r, used: [...s.used, r.tipo], finalRun: true, epNames: { ...s.epNames, [ep]: `Gran final · ${r.titulo}` }, phase: "anuncio", deadline: 0, v: s0.v + 1 };
   }
   if (fmt === "track") {
@@ -1377,6 +1445,13 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       const q = s.quien!;
       const picks = { ...q.picks };
       q.pairs.forEach((p, i) => { if (!picks[i]) picks[i] = pjRep(s, p); });
+      // Final pareja contra pareja: lip sync por la corona entre las dos elegidas
+      if (s.pjFinal) {
+        const pairs: Pair[] = [{ a: picks[0], b: picks[1] }];
+        const anyP = pairs.some((p) => isP(p.a) || isP(p.b));
+        const subs = Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, ls: undefined, pick: undefined }]));
+        return { ...s, subs, quien: { ...q, picks }, pairs, finalStage: PJ_FINAL, phase: "final", deadline: anyP ? limite(now, D.final) : now + 8000, v: s.v + 1 };
+      }
       return toLipsync({ ...s, quien: { ...q, picks } }, now);
     }
     case "lipsync": {
@@ -1489,6 +1564,7 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
     case "votacion":
       return countVotes(s, now, e);
     case "final": {
+      if (s.finalStage === PJ_FINAL && s.quien) return pjFinalEnd(s, e);
       if (s.bracket) return bracketNext(s, now, e);
       if (s.quad) return quadNext(s, now, e);
       const pairs = resolvePairs(s, e);

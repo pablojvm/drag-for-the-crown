@@ -46,6 +46,8 @@
     // All Stars en parejas: sin retos de grupos de tres ni Lalaparuza (se quedan al final del orden, donde no se llega)
     if (twistOf() === "parejas") { const fuera = PJ_SIN.filter((t) => rest.includes(t)); rest.splice(0, rest.length, ...rest.filter((t) => !fuera.includes(t)), ...fuera); }
     S.order = rest;
+    // La final se decide en secreto antes de empezar (se anuncia al final): así se sabe si hará falta un último look
+    decideFinal();
     S.runwayPlan = buildPlan();
     // La memoria de otras temporadas: cómo te recuerdan las demás
     S.pacts = {};

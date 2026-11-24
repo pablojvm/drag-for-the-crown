@@ -217,7 +217,7 @@
             .join("")}</div>
           <p>Tu voto fue para <b>${esc(myVote.name)}</b>.</p>
           <p>👑 Las finalistas de ${esc(S.season.name)}: <b>${esc([...(S.meOut ? [] : [S.queen]), ...S.rivals].map((q) => (q === S.queen ? "tú" : q.name)).join(", ").replace(/, ([^,]*)$/, " y $1"))}</b>.</p>
-          <p class="twist-note">${DFTC.FINALES[finalFmtOf()].icon} La gran final será... <b>${esc(DFTC.FINALES[finalFmtOf()].n)}</b>. ${esc(DFTC.FINALES[finalFmtOf()].d)}</p>
+          ${(() => { const F = DFTC.FINALES[pjOn() && S.pj.duo && pjPairs().length === 2 ? "parejas" : finalFmtOf()]; return `<p class="twist-note">${F.icon} La gran final será... <b>${esc(F.n)}</b>. ${esc(F.d)}</p>`; })()}
           <button class="btn btn-primary" id="story-next">¡A la gran final!</button>
         </div>`;
       S.flags.reunion = true;

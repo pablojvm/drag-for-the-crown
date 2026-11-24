@@ -3,9 +3,29 @@
   // lip sync a cuatro o la reina de la pista. Con pase directo, la que lo tiene espera en el último duelo.
   // Si te han eliminado antes, la final se ve desde el público con la misma forma (y en «votan las eliminadas», votas).
   const FINALES = DFTC.FINALES;
+  const FINAL_RETOS = ["snatch", "roast", "diseno", "rusical", "actuacion", "makeover"];
+  /** Antes de empezar la temporada: cómo será la final (y, en parejas, si la corona es doble). Se anuncia al final. */
+  function decideFinal() {
+    const tw = twistOf();
+    if (tw === "brackets" || tw === "winners") return;
+    if (tw === "parejas") S.flags.pjDuo0 = typeof window.__pjDuo === "boolean" ? window.__pjDuo : Math.random() < 0.5; // (window.__pjDuo: solo pruebas)
+    // Corona doble: la final es un lip sync de pareja contra pareja (sin pasarela)
+    if (S.flags.pjDuo0) return;
+    // All Stars en parejas: la final individual nunca es un cuadro (acaban de separarse dos parejas)
+    S.flags.finalFmt = pick1(["torneo", "reto", "track", "votan", "cuatro", "cadena"].filter((f) => tw !== "parejas" || f !== "torneo"));
+    if (S.flags.finalFmt === "reto") {
+      // El reto final: uno que no salga en la temporada
+      const temporada = (S.order || []).slice(0, seasonEpisodes());
+      const pool = FINAL_RETOS.filter((t) => RETOS[t] && RETOS[t].run);
+      const libres = pool.filter((t) => !temporada.includes(t));
+      S.flags.finalTipo = pick1(libres.length ? libres : pool);
+    }
+  }
   function finalFmtOf() {
+    const n = S.rivals.length + (S.meOut ? 0 : 1);
+    // Decidida antes de empezar; si con las que quedan no se puede (cuadros con menos de tres), se elige otra
+    if (S.flags.finalFmt && n < 3 && ["cuatro", "cadena"].includes(S.flags.finalFmt)) S.flags.finalFmt = null;
     if (!S.flags.finalFmt) {
-      const n = S.rivals.length + (S.meOut ? 0 : 1);
       // All Stars en parejas: la final individual nunca es un cuadro (acaban de separarse dos parejas)
       S.flags.finalFmt = pick1((n >= 3 ? ["torneo", "reto", "track", "votan", "cuatro", "cadena"] : ["torneo", "reto", "track", "votan"]).filter((f) => !pjOn() || f !== "torneo"));
     }
@@ -229,10 +249,11 @@
     },
     // Reto final: un último reto (con su pasarela); las dos mejores (o la del pase y la mejor) al lip sync por la corona
     reto(four, pase, edge) {
-      const pool = ["snatch", "roast", "diseno", "rusical", "actuacion", "makeover"].filter((t) => RETOS[t] && RETOS[t].run);
+      const pool = FINAL_RETOS.filter((t) => RETOS[t] && RETOS[t].run);
       const used = Object.values(S.epNames);
       const fresh = pool.filter((t) => !used.includes(EP_SHORT[t]));
-      const tipo = pick1(fresh.length ? fresh : pool);
+      // El que se decidió antes de empezar (para llevar su look en la maleta)
+      const tipo = S.flags.finalTipo && pool.includes(S.flags.finalTipo) ? S.flags.finalTipo : pick1(fresh.length ? fresh : pool);
       const R = RETOS[tipo];
       const titulo = typeof R.titulo === "function" ? R.titulo() : R.titulo;
       const desc = typeof R.desc === "function" ? R.desc() : R.desc || "";
@@ -259,6 +280,9 @@
         R.run($("#story-play"), (raw) => {
           cleanup = null;
           if (R.noRunway) return decide(clamp(raw, 0, 100));
+          // La última pasarela es la que se preparó en casa para la final
+          const fi = S.flags.finalCat ? (S.runwayPlan || []).lastIndexOf(S.flags.finalCat) : -1;
+          if (fi >= 0) S.runwayIdx = fi;
           runway((walk) => decide(clamp(raw * 0.65 + walk * 0.35, 0, 100)));
         });
       });

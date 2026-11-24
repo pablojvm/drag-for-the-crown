@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { planCats, newRoom, startSeason, tick, advance, applySubmit, allIn, topeEpisodio, pkey, nkey, aliveKeys, standings, ppeOf, setScript, hostNext, proposePause, votePause, resumeRoom, winnersWeeks, type Engine, type RoomState } from "../src/mp/model";
 import { makeRng } from "../src/core";
+import { coronaPareja } from "../src/core/alianzas";
 
 const engine = (seed = 1): Engine => {
   const r = makeRng(seed);
@@ -233,8 +234,10 @@ describe("temporada en directo", () => {
         const { s: s0, c } = fmtRoom(fmt, seed);
         const s = runAll(s0, engine(seed));
         expect(s.phase).toBe("corona");
-        expect(aliveKeys(s)).toHaveLength(1);
-        expect(s.out.length).toBe(c.length - 1);
+        // En parejas, la final pareja contra pareja puede coronar a las dos
+        const reinas = s.champion2 ? 2 : 1;
+        expect(aliveKeys(s)).toHaveLength(reinas);
+        expect(s.out.length).toBe(c.length - reinas);
       }
     });
   }
@@ -347,7 +350,7 @@ describe("temporada en directo", () => {
       expect(mismaNota).toBe(true);
       expect(dobles).toBeGreaterThan(0);
       expect(libres).toBeLessThanOrEqual(1);
-      expect(aliveKeys(s)).toHaveLength(1);
+      expect(aliveKeys(s)).toHaveLength(s.champion2 ? 2 : 1);
     }
   });
   it("All Stars en parejas: la pareja elige quién hace el lip sync, Supremme da el fallo y avisa del doble shantay", () => {
@@ -364,8 +367,9 @@ describe("temporada en directo", () => {
             const mate = s.quien.pairs[i].find((k) => k !== pkey("A"))!;
             s = applySubmit(s, "A", s.ep, "quien", { pick: mate });
             expect(s.quien!.picks[i]).toBe(mate);
+            const fin = !!s.pjFinal;
             s = advance(s, guard * 1000, e);
-            expect(s.phase).toBe("lipsync");
+            expect(s.phase).toBe(fin ? "final" : "lipsync");
             expect(s.pairs!.some((p) => p.a === mate || p.b === mate)).toBe(true);
             expect(s.pairs!.some((p) => p.a === pkey("A") || p.b === pkey("A"))).toBe(false);
             elegida++;
@@ -393,6 +397,33 @@ describe("temporada en directo", () => {
     }
     expect(sinLibre).toBeGreaterThan(0);
     expect(conLibre).toBeGreaterThan(0);
+  });
+  it("All Stars en parejas: la final se decide al empezar; pareja contra pareja corona a las dos o a una según su temporada, y si es un reto su look va en la maleta", () => {
+    let duo = 0, ambas = 0, una = 0, retoConLook = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const e = engine(seed);
+      const { s: s0 } = fmtRoom("parejas", seed, 12);
+      expect(s0.finalFmt).toBeTruthy();
+      if (s0.finalFmt === "reto" && s0.finalReto?.cat) { retoConLook++; expect(planCats(s0)).toContain(s0.finalReto.cat.n); }
+      let vioQuien = false;
+      const s = runAll(s0, e, (x) => { if (x.phase === "quien" && x.pjFinal) vioQuien = true; });
+      expect(s.phase).toBe("corona");
+      if (s.finalFmt === "parejas") {
+        duo++;
+        expect(vioQuien).toBe(true);
+        const win = s.quien!.pairs.find((p) => p.includes(s.champion!))!;
+        if (s.champion2) { ambas++; expect(win).toContain(s.champion2); expect(s.track[s.champion2][s.ep]).toBe("WINNER"); }
+        else { una++; const mate = win.find((k) => k !== s.champion)!; expect(s.track[mate][s.ep]).toBe("RUNNER-UP"); }
+      }
+    }
+    expect(duo).toBeGreaterThan(0);
+    expect(ambas + una).toBe(duo);
+    expect(retoConLook).toBeGreaterThan(0);
+  });
+  it("coronaPareja: las dos si van parejas, solo la mejor si una ha tirado de la otra", () => {
+    expect(coronaPareja([80, 82, 79], [78, 81, 80], () => 0.5)).toBe("ambas");
+    expect(coronaPareja([90, 92, 88], [60, 58, 62], () => 0.5)).toBe("a");
+    expect(coronaPareja([50, 55], [85, 90], () => 0.5)).toBe("b");
   });
   it("All Stars en parejas: las jugadoras eligen pareja el primer día (si se eligen entre ellas, van juntas)", () => {
     const e = engine(4);

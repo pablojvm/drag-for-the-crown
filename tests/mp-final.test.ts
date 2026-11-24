@@ -44,7 +44,7 @@ describe("gran final del multijugador", () => {
     expect(f.phase).toBe("finalistas");
     expect(f.miss?.key).toBeTruthy();
   });
-  for (const fmt of Object.keys(FINALES) as FinalFmt[]) {
+  for (const fmt of (Object.keys(FINALES) as FinalFmt[]).filter((f) => f !== "parejas")) {
     it(`la final «${FINALES[fmt].n}» corona a una sola ganadora`, () => {
       for (const seed of [1, 2, 3, 7, 11]) {
         const r = toReunion(seed, fmt);
@@ -80,7 +80,7 @@ describe("gran final del multijugador", () => {
       expect(applySubmit(s, voter.id, s.ep, "votacion", { pick: "zz" }).subs[voter.id]).toBeUndefined();
     }
   });
-  for (const fmt of Object.keys(FINALES) as FinalFmt[]) {
+  for (const fmt of (Object.keys(FINALES) as FinalFmt[]).filter((f) => f !== "parejas")) {
     it(`con pase directo, la final «${FINALES[fmt].n}» llega a la corona y la del pase llega al último duelo`, () => {
       for (const seed of [1, 2, 3, 7]) {
         const r = toReunion(seed, fmt);

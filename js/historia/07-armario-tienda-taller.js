@@ -124,6 +124,13 @@
       if (!RETOS[tipo].noRunway) looks.push({ cat: take(), kind: "runway" });
       sched.push({ ep, tipo, looks });
     }
+    // Si la final (decidida antes de empezar) es un reto con pasarela, hace falta un último look
+    const ft = S.flags.finalFmt === "reto" && S.flags.finalTipo;
+    if (ft && RETOS[ft] && !RETOS[ft].noRunway) {
+      const cat = take();
+      S.flags.finalCat = cat;
+      sched.push({ ep: "final", tipo: ft, looks: [{ cat, kind: "runway", final: true }] });
+    }
     return sched;
   }
   function seenRunways() {

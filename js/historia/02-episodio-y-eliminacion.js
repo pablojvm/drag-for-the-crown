@@ -750,6 +750,9 @@
         // Lo que ha hecho cada una por su cuenta (el jurado lo dice en las críticas: quién ha hundido a quién)
         S.pjInd = S.pjInd && S.pjInd.ep === S.ep ? S.pjInd : { ep: S.ep, sc: {} };
         S.pjInd.sc[a] = Math.round(xa); S.pjInd.sc[b] = Math.round(xb);
+        // La trayectoria de cada una (decide si en la final se corona a las dos o solo a una)
+        S.pjTray = S.pjTray || {};
+        [[a, xa], [b, xb]].forEach(([k, x]) => { S.pjTray[k] = S.pjTray[k] || {}; S.pjTray[k][S.ep] = Math.round(x); });
         [a, b].forEach((k) => { if (k === "me") { myScore = m; sc.__me = m; } else sc[k] = m; });
       });
     }
@@ -2029,7 +2032,7 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       const val = (a, b) => ([a, b].includes("me") && [a, b].includes(no) ? -99 : comp(a, b) * 3 + rel(a, b) + rnd(-1.5, 1.5));
       const pairs = DFTC.alianzas.formarAlianzas(keys, val, mine ? [mine] : []).sort((a, b) => (b.includes("me") ? 1 : 0) - (a.includes("me") ? 1 : 0));
       // En secreto hasta la final: si la corona es para la pareja o solo para una. Y la semana en la que no se va nadie
-      S.pj = { pairs, duo: typeof window.__pjDuo === "boolean" ? window.__pjDuo : Math.random() < 0.5, // (window.__pjDuo: solo pruebas)
+      S.pj = { pairs, duo: typeof S.flags.pjDuo0 === "boolean" ? S.flags.pjDuo0 : typeof window.__pjDuo === "boolean" ? window.__pjDuo : Math.random() < 0.5, // (decidida antes de empezar)
         libre: Math.random() < 0.5 ? 2 + Math.floor(Math.random() * 3) : -1 }; // la semana sin eliminación puede no haberla
       pjNombres(pairs).then((names) => {
       S.pj.names = names;
@@ -2188,24 +2191,46 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
     const full = (p) => p.map((k) => (k === "me" ? S.queen.name : pjQ(k).name)).join(" y ");
     const intro = [
       ["host", pick1(["Reinas, bienvenidas a la gran final.", `Bienvenidas a la gran final de ${S.season.name}.`])],
-      ["host", "Llegasteis de dos en dos, habéis ganado de dos en dos... y así vais a terminar."],
-      ["host", "Esta temporada la corona es doble: se la lleva una pareja entera."],
-      ["judge", "Un último lip sync. Las cuatro en el escenario. Aquí no se regala nada."],
+      ["host", "Llegasteis de dos en dos, habéis ganado de dos en dos... y así vais a terminar: la final es pareja contra pareja."],
+      ["host", "La pareja que gane el lip sync se lleva la corona. Pero ojo: puede que se corone a las dos... o solo a una."],
+      ["judge", "Si las dos lo habéis dado todo cada semana, corona doble. Si una ha tirado de la otra toda la temporada, la corona es para ella."],
     ];
     const done = (win, lose) => {
-      win.forEach((k) => k !== "me" && mark(pjQ(k), "WINNER"));
-      lose.forEach((k) => k !== "me" && mark(pjQ(k), "RUNNER-UP"));
-      const crown = [
-        ["host", "Reinas, ha llegado el momento."],
-        ["host", `Las ganadoras de ${S.season.name}... las nuevas reinas de Drag Race España son... ¡${full(win)}!`],
-        ["ambrossi", "¡Que traigan dos coronas y dos cetros!"],
-        ["judge", "Larga vida a las reinas."],
-      ];
+      // ¿Las dos o solo una? Según lo que ha hecho cada una en la temporada (con un poco de azar)
+      const tray = (k) => Object.values((S.pjTray || {})[k] || {});
+      const quien = win.length === 2 ? DFTC.alianzas.coronaPareja(tray(win[0]), tray(win[1]), Math.random) : "a";
+      const crowned = quien === "ambas" ? win.slice() : [quien === "a" ? win[0] : win[1]];
+      const partner = win.find((k) => !crowned.includes(k));
+      const nmK = (k) => (k === "me" ? S.queen.name : pjQ(k).name);
+      crowned.forEach((k) => k !== "me" && mark(pjQ(k), "WINNER"));
+      if (partner && partner !== "me") mark(pjQ(partner), "RUNNER-UP");
+      lose.forEach((k) => k !== "me" && mark(pjQ(k), partner ? "3ª" : "RUNNER-UP"));
+      const crown = crowned.length === 2
+        ? [
+            ["host", "Reinas, ha llegado el momento."],
+            ["host", `${pjNameOf(win)}, habéis ganado el lip sync. Y las dos habéis ido de la mano toda la temporada...`],
+            ["host", `Las ganadoras de ${S.season.name}... las nuevas reinas de Drag Race España son... ¡${full(win)}!`],
+            ["ambrossi", "¡Que traigan dos coronas y dos cetros!"],
+            ["judge", "Larga vida a las reinas."],
+          ]
+        : [
+            ["host", "Reinas, ha llegado el momento."],
+            ["host", `${pjNameOf(win)}, habéis ganado el lip sync. Pero esta corona no se reparte.`],
+            ["judge", `${nmK(partner)}, has sido una gran compañera. Pero semana a semana, quien ha tirado de esta pareja ha sido ${nmK(crowned[0])}.`],
+            ["host", `La ganadora de ${S.season.name}... la nueva reina de Drag Race España es... ¡${nmK(crowned[0])}!`],
+            ["judge", "Larga vida a la reina."],
+          ];
+      const champ = crowned.find((k) => k !== "me") || crowned[0];
       dialog(crown, ctxWith(pjQ(win.find((k) => k !== "me"))), () => {
-        if (win.includes("me")) { Confetti.burst(3000); S.flags.pjDuo = pjQ(pjMate("me")).name; S.flags.pjDuoId = pjMate("me"); return theEnd(true, pjQ(lose[0]), true); }
-        if (mine) return theEnd(false, pjQ(win[0]), true, `La corona doble es para ${esc(full(win))}.`, 2);
+        if (crowned.includes("me")) {
+          Confetti.burst(3000);
+          if (crowned.length === 2) { S.flags.pjDuo = pjQ(pjMate("me")).name; S.flags.pjDuoId = pjMate("me"); }
+          return theEnd(true, pjQ(partner || lose[0]), true);
+        }
+        const msg = crowned.length === 2 ? `La corona doble es para ${esc(full(win))}.` : `La corona es para ${esc(nmK(crowned[0]))}.`;
+        if (mine) return theEnd(false, pjQ(champ), true, msg, partner === "me" ? 2 : 3);
         header();
-        showTrack(() => theEnd(false, pjQ(win[0]), false, `Te fuiste en el episodio ${S.flags.outEp || "?"}. La corona doble es para ${esc(full(win))}.`, S.flags.myPlace || S.out.length + 1), "Resultado final");
+        showTrack(() => theEnd(false, pjQ(champ), false, `Te fuiste en el episodio ${S.flags.outEp || "?"}. ${msg}`, S.flags.myPlace || S.out.length + 1), "Resultado final");
       });
     };
     dialog(intro, ctxWith(S.rivals[0]), () => {
@@ -2213,10 +2238,10 @@ Devuelve JSON {"lineas":[{"reina":"nombre","t":"..."}]}`,
       const rb = pjRep(B);
       body().innerHTML = `
         <div class="story-card">
-          <p class="eyebrow">👑 Gran final · corona doble</p>
+          <p class="eyebrow">👑 Gran final · pareja contra pareja</p>
           <h3>${esc(pjNameOf(A))} vs ${esc(pjNameOf(B))}</h3>
           <div class="al-grid">${pjBox(A)}${pjBox(B)}</div>
-          <p>${mine ? `Bailáis las cuatro. Tú te mides con <b>${esc(pjQ(rb).name)}</b>.` : "Las cuatro en el escenario. Una pareja se lleva las dos coronas."}</p>
+          <p>${mine ? `Bailáis las cuatro. Tú te mides con <b>${esc(pjQ(rb).name)}</b>.` : "Las cuatro en el escenario. La pareja que gane se lleva la corona: para las dos, o solo para una."}</p>
           <button class="btn btn-primary" id="story-next">${mine ? "👑 Lip sync por la corona" : "Ver el lip sync"}</button>
         </div>`;
       $("#story-next").addEventListener("click", () => {
