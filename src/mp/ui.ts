@@ -65,7 +65,7 @@ function header(s: RoomState | null) {
   if (ex && $("#screen-story")?.classList.contains("mp")) ex.innerHTML = s && !s.paused ? "<i>←</i><span>Salir de la sala</span>" : "<i>←</i><span>Volver</span>";
   const se = s ? W.seasonById(s.season) : null;
   $("#story-season")!.textContent = s ? `👯 Temporada en directo · ${s.season === CUSTOM ? `Personalizada · ${FORMATOS[(s.fmt || "normal") as Formato].n}` : se ? se.name : ""} · Sala ${s.code}` : "👯 Temporada en directo";
-  const title: Record<string, string> = { lobby: "Sala de espera", maletas: "Maletas", cajas: "La reina de la suerte", lalaparuza: "Lalaparuza", anuncio: `Episodio ${s?.ep}`, mini: "Minirreto", equipos: s?.groups && s.groups.ep === s.ep ? (s.groups.size === 2 ? "Las parejas" : "Los grupos") : "Las parejas", reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && s.fmt === "winners" ? "Lip sync por la estrella" : s && s.fmt === "allstars" ? "Lip sync por el poder" : s?.triple ? "Lip sync a tres bandas" : s && brPhase(s) ? "Lip sync por la victoria" : s && pjPhase(s) && (s.bottom || []).length >= 3 ? "Lip sync por parejas" : "Lip sync for your life", decision: "Los pintalabios", pintalabios: "El pintalabios", comodin: s?.twist ? ({ suerte: "La reina de la suerte", corazon: "El corazón", moneda: "La moneda", bloqueo: "El bloqueo", corte: "El corte del top 4" } as Record<string, string>)[s.twist.kind] : "Momento clave", sorpresa: "¡Sorpresa!", track: "Track record", reencuentro: "El reencuentro", finalistas: "Las finalistas", votacion: "Votan las eliminadas", final: "Gran final", corona: "¡Tenemos ganadora!" };
+  const title: Record<string, string> = { lobby: "Sala de espera", maletas: "Maletas", cajas: "La reina de la suerte", lalaparuza: "Lalaparuza", anuncio: `Episodio ${s?.ep}`, mini: "Minirreto", equipos: s?.groups && s.groups.ep === s.ep ? (s.groups.size === 2 ? "Las parejas" : "Los grupos") : "Las parejas", reto: s?.reto?.titulo || "El reto", pasarela: "Pasarela", resultados: "Las críticas", untucked: "Untucked", veredicto: "El veredicto", lipsync: s && s.fmt === "winners" ? "Lip sync por la estrella" : s && s.fmt === "allstars" ? "Lip sync por el poder" : s?.triple ? "Lip sync a tres bandas" : s && brPhase(s) ? "Lip sync por la victoria" : s && pjPhase(s) && (s.bottom || []).length >= 3 ? "Lip sync por parejas" : "Lip sync for your life", decision: "Los pintalabios", quien: "¿Quién hace el lip sync?", pintalabios: "El pintalabios", comodin: s?.twist ? ({ suerte: "La reina de la suerte", corazon: "El corazón", moneda: "La moneda", bloqueo: "El bloqueo", corte: "El corte del top 4" } as Record<string, string>)[s.twist.kind] : "Momento clave", sorpresa: "¡Sorpresa!", track: "Track record", reencuentro: "El reencuentro", finalistas: "Las finalistas", votacion: "Votan las eliminadas", final: "Gran final", corona: "¡Tenemos ganadora!" };
   $("#story-ep")!.innerHTML = `${esc(s ? (s.paused ? "Pausada" : title[s.phase]) : "Multijugador")} <span class="mp-timer" id="mp-timer"></span>`;
   // Pausa (con acuerdo de todas): solo con la temporada en marcha
   let pb = $("#mp-pause");
@@ -580,10 +580,12 @@ function render(s: RoomState) {
   if (s.phase === "lalaparuza") { api().scene("stage"); return lalaparuza(s, me ? pkey(me.id) : null); }
   if (s.phase === "lipsync" || s.phase === "final") { api().scene("stage"); return lipsync(s, me ? pkey(me.id) : null); }
   if (s.phase === "decision") { api().scene("panel"); return decision(s); }
+  if (s.phase === "quien") { api().scene("panel"); return quien(s); }
   if (s.phase === "comodin") { api().scene("panel"); return comodin(s); }
   if (s.phase === "sorpresa") return sorpresa(s);
   if (s.phase === "pintalabios") return lipstickReveal(s);
-  if (s.phase === "track") return watch(s, "werkroom", () => [], () => `${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${heartNote(s)}${heartChoice(s)}<h3>Track record</h3>${track(s)}${s.fmt === "corazon" ? heartsTable(s) : ""}${s.fmt === "winners" && s.ep >= (s.weeks || 0) ? `<p class="twist-note">${LL} Se acabaron las semanas: las 4 con más estrellas van a la gran final.</p>` : ""}`);
+  // Después del lip sync, primero habla Supremme (el fallo) y luego el track record
+  if (s.phase === "track") return watch(s, "werkroom", () => s.fallo || (s.note ? [["host", "Reinas, he tomado una decisión."], ["host", s.note]] : []), () => `${s.note ? `<p class="twist-note">${esc(s.note)}</p>` : ""}${heartNote(s)}${heartChoice(s)}<h3>Track record</h3>${track(s)}${s.fmt === "corazon" ? heartsTable(s) : ""}${s.fmt === "winners" && s.ep >= (s.weeks || 0) ? `<p class="twist-note">${LL} Se acabaron las semanas: las 4 con más estrellas van a la gran final.</p>` : ""}`);
   if (s.phase === "corona") {
     savedPut(`${s.code}:${room.me}`, null);
     payout(s);
@@ -595,6 +597,22 @@ function render(s: RoomState) {
       () => `<p class="eyebrow">Gran final${s.fmt === "winners" ? " · All Winners" : ""}</p>${qd ? `<p class="twist-note">💅 QoSDADHH: <b>${esc(qd)}</b></p>` : ""}<h3>👑 ${esc(champ)}${keyPlayer(s, s.champion!) ? ` (${esc(keyPlayer(s, s.champion!))})` : ""}, ¡eres la ganadora!</h3>${track(s)}${W.store?.get(`dftc-mp-paid:${s.code}:${room.me}`, 0) ? `<p class="twist-note">💄 Te llevas <b>${W.store.get(`dftc-mp-paid:${s.code}:${room.me}`, 0)}</b> lipsticks para tu armario del multijugador.</p>` : ""}<button class="btn btn-primary" id="mp-exit2">Salir</button>`,
       () => { $("#mp-exit2")!.onclick = exit; if (!crownShown) { crownShown = true; W.Confetti?.burst?.(2500); } });
   }
+}
+// All Stars en parejas: en las dos peores parejas, la pareja elige quién defiende el lip sync
+function quien(s: RoomState) {
+  const q = s.quien;
+  if (!q) return info(`<p class="muted">Un momento...</p>`);
+  const me = pkey(room.me);
+  const i = q.pairs.findIndex((p) => p.includes(me));
+  const pairName = (j: number) => { const pj = s.pj; const k = pj ? pj.pairs.findIndex((p) => p.includes(q.pairs[j][0])) : -1; return k >= 0 ? pj!.names[k] : q.pairs[j].map((x) => keyName(s, x)).join(" y "); };
+  const estado = q.pairs.map((p, j) => `<div class="mp-crit-row"><div class="call-faces">${p.map((k) => face(s, k, q.picks[j] === k ? "ok" : "")).join("")}</div><div><p><b>${esc(pairName(j))}</b></p><p>${q.picks[j] ? `💃 Baila <b>${esc(keyName(s, q.picks[j]))}</b>` : "Decidiendo..."}</p></div></div>`).join("");
+  const nota = s.pj && s.pj.libre === s.ep ? "" : `<p class="muted">La pareja que pierda el lip sync se va entera a casa.</p>`;
+  if (i >= 0 && q.pairs[i].length === 2) {
+    const yo = q.picks[i];
+    return info(`<p class="eyebrow">💔 Lip sync por parejas</p><h3>${yo ? `Baila ${esc(yo === me ? "tú" : keyName(s, yo))}` : "¿Quién hace el lip sync por vuestra pareja?"}</h3><p>Sois una de las dos peores parejas de la semana. Elegid quién sale a defenderos.${q.pairs[i].filter(isP).length > 1 ? " Lo podéis cambiar hasta que se acabe el tiempo." : ""}</p><div class="choice-col">${q.pairs[i].map((k) => `<button class="btn ${yo === k ? "btn-primary" : "btn-ghost"} role" data-quien="${esc(k)}"><b>${esc(k === me ? "Yo" : keyName(s, k))}</b><small>${esc(k === me ? "Salgo yo a darlo todo" : `${keyName(s, k)} defiende a la pareja`)}</small></button>`).join("")}</div>${nota}<div class="mp-crit">${estado}</div>`, () =>
+      document.querySelectorAll<HTMLElement>("[data-quien]").forEach((b) => (b.onclick = () => room.submit({ pick: b.dataset.quien! }))));
+  }
+  return info(`<p class="eyebrow">💔 Lip sync por parejas</p><h3>Las parejas eligen quién hace el lip sync...</h3>${nota}<div class="mp-crit">${estado}</div>${skipBtn(s)}`);
 }
 // ------------------------------ Reencuentro y gran final ------------------------------
 const finalists = (s: RoomState) => aliveKeys(s);

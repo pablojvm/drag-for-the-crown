@@ -350,6 +350,38 @@ describe("temporada en directo", () => {
       expect(aliveKeys(s)).toHaveLength(1);
     }
   });
+  it("All Stars en parejas: la pareja elige quién hace el lip sync, Supremme da el fallo y avisa del doble shantay", () => {
+    let vistas = 0, elegida = 0, fallos = 0, doble = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
+      const e = engine(seed);
+      let { s } = fmtRoom("parejas", seed, 10);
+      let guard = 0;
+      while (s.phase !== "corona" && guard++ < 3000) {
+        if (s.phase === "quien" && s.quien) {
+          vistas++;
+          const i = s.quien.pairs.findIndex((p) => p.includes(pkey("A")));
+          if (i >= 0 && s.quien.pairs[i].length === 2) {
+            const mate = s.quien.pairs[i].find((k) => k !== pkey("A"))!;
+            s = applySubmit(s, "A", s.ep, "quien", { pick: mate });
+            expect(s.quien!.picks[i]).toBe(mate);
+            s = advance(s, guard * 1000, e);
+            expect(s.phase).toBe("lipsync");
+            expect(s.pairs!.some((p) => p.a === mate || p.b === mate)).toBe(true);
+            expect(s.pairs!.some((p) => p.a === pkey("A") || p.b === pkey("A"))).toBe(false);
+            elegida++;
+            continue;
+          }
+        }
+        if (s.phase === "track" && s.fallo) { fallos++; if (s.fallo.some(([, t]) => /Shantay, os quedáis las dos parejas/.test(t))) doble++; }
+        s = advance(s, guard * 1000, e);
+      }
+      expect(s.phase).toBe("corona");
+    }
+    expect(vistas).toBeGreaterThan(0);
+    expect(elegida).toBeGreaterThan(0);
+    expect(fallos).toBeGreaterThan(0);
+    expect(doble).toBeGreaterThan(0);
+  });
   it("All Stars en parejas: las jugadoras eligen pareja el primer día (si se eligen entre ellas, van juntas)", () => {
     const e = engine(4);
     let { s } = fmtRoom("parejas", 4, 10);

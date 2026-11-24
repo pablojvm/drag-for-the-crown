@@ -12,7 +12,7 @@ import { lalaStart, lalaPending, lalaResolve, lalaScoreDe, type Lala } from "../
 import { rescueFromBottom, coinResult, lipstickKind, addHalfHearts } from "../core/dinamicas";
 import { repartirBrackets, clasificacion, formarAlianzas, notaEnPareja, rompe, puntos, eligeMvq, votanMvq, BRACKET_NOMBRES, BRACKET_SEMANAS, BRACKETS_FINAL, nombrePareja, etiquetasParejas, type Mvq } from "../core/alianzas";
 
-export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "reencuentro" | "finalistas" | "votacion" | "final" | "corona";
+export type Phase = "lobby" | "maletas" | "cajas" | "lalaparuza" | "anuncio" | "mini" | "equipos" | "reto" | "pasarela" | "resultados" | "untucked" | "veredicto" | "decision" | "quien" | "comodin" | "sorpresa" | "lipsync" | "pintalabios" | "track" | "reencuentro" | "finalistas" | "votacion" | "final" | "corona";
 export type Ritmo = "normal" | "rapido" | "libre";
 /** Formato de la temporada: normal (las dos peores hacen lip sync) o All Stars (lip sync del top 2 y la ganadora elimina). */
 export type Formato = "normal" | "allstars" | "winners" | "repesca" | "suerte" | "corazon" | "moneda" | "brackets" | "parejas";
@@ -40,9 +40,9 @@ const CAJAS_VER = 3500;
 export const DURACION: Record<Ritmo, Record<Exclude<Phase, "lobby" | "corona">, number>> = {
   // Las pantallas que se miran (anuncio, críticas, Untucked, veredicto, pintalabios, track) no tienen reloj:
   // las pasa la anfitriona, y todas ven lo mismo que ella. El reloj es solo para lo que se juega.
-  normal: { lalaparuza: 180, cajas: 60, maletas: 600, anuncio: 0, mini: 120, equipos: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 180, decision: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, reencuentro: 0, finalistas: 0, votacion: 60, final: 180 },
-  rapido: { lalaparuza: 150, cajas: 40, maletas: 420, anuncio: 0, mini: 90, equipos: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 150, decision: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, reencuentro: 0, finalistas: 0, votacion: 45, final: 150 },
-  libre: { lalaparuza: 0, cajas: 0, maletas: 0, anuncio: 0, mini: 0, equipos: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, comodin: 0, sorpresa: 0, pintalabios: 0, track: 0, reencuentro: 0, finalistas: 0, votacion: 0, final: 0 },
+  normal: { lalaparuza: 180, cajas: 60, maletas: 600, anuncio: 0, mini: 120, equipos: 0, reto: 240, pasarela: 150, resultados: 0, untucked: 0, veredicto: 0, lipsync: 180, decision: 45, quien: 45, comodin: 45, sorpresa: 0, pintalabios: 0, track: 0, reencuentro: 0, finalistas: 0, votacion: 60, final: 180 },
+  rapido: { lalaparuza: 150, cajas: 40, maletas: 420, anuncio: 0, mini: 90, equipos: 0, reto: 170, pasarela: 110, resultados: 0, untucked: 0, veredicto: 0, lipsync: 150, decision: 30, quien: 30, comodin: 30, sorpresa: 0, pintalabios: 0, track: 0, reencuentro: 0, finalistas: 0, votacion: 45, final: 150 },
+  libre: { lalaparuza: 0, cajas: 0, maletas: 0, anuncio: 0, mini: 0, equipos: 0, reto: 0, pasarela: 0, resultados: 0, untucked: 0, veredicto: 0, lipsync: 0, decision: 0, quien: 0, comodin: 0, sorpresa: 0, pintalabios: 0, track: 0, reencuentro: 0, finalistas: 0, votacion: 0, final: 0 },
 };
 /** Pantallas que lleva la anfitriona (diálogo sincronizado y botón de seguir). */
 export const WATCH: Phase[] = ["anuncio", "resultados", "untucked", "veredicto", "sorpresa", "pintalabios", "track", "reencuentro", "finalistas", "corona"];
@@ -207,6 +207,10 @@ export interface RoomState {
   finalRun?: boolean;
   /** Lip sync a cuatro (o a tres): las que bailan a la vez. */
   quad?: string[];
+  /** All Stars en parejas: en las dos peores parejas, quién hace el lip sync (lo eligen las jugadoras de cada pareja). */
+  quien?: { pairs: string[][]; picks: Record<string, string> };
+  /** Lo que dice Supremme después del lip sync (antes del track record). */
+  fallo?: [string, string][];
   /** Cómo se resolvió: en orden (de la cuarta a la primera), una fuera y dos subcampeonas, o solo la ganadora. Orden de la mejor a la peor. */
   quadResult?: { mode: "orden" | "unaFuera" | "ganadora"; order: string[] };
   /** La reina de la pista: las que esperan su turno (en orden). */
@@ -330,7 +334,7 @@ export function makePlan(n: number, e: Pick<Engine, "retos" | "categorias" | "rn
 export const planCats = (s: Pick<RoomState, "plan">) => (s.plan || []).map((p) => p.cat?.n).filter(Boolean) as string[];
 
 function nextEpisode(s0: RoomState, now: number, e: Engine): RoomState {
-  const s: RoomState = { ...s0, mini: undefined, groups: undefined, draft: undefined };
+  const s: RoomState = { ...s0, mini: undefined, groups: undefined, draft: undefined, quien: undefined, fallo: undefined };
   const all = e.retos();
   const ep = s.ep + 1;
   // Segunda Oportunidrag: cuando quedan siete, vuelven las eliminadas en parejas
@@ -396,6 +400,7 @@ export function allIn(s: RoomState): boolean {
     if (!d || !ps.length) return false; // si eligen reinas del juego, se espera al tope (se ve el momento)
     return ps.every((k) => s.subs[idOf(k)]?.elim != null);
   }
+  if (s.phase === "quien") return !!s.quien && s.quien.pairs.every((_, i) => s.quien!.picks[i]);
   if (s.phase === "votacion") {
     const vs = finalVoters(s).filter(isP).map(idOf);
     return vs.length > 0 && vs.every((id) => s.subs[id]?.pick != null);
@@ -697,11 +702,18 @@ function parejasLipsync(s: RoomState, now: number, e: Engine): RoomState {
   const D = DURACION[s.ritmo];
   if (!win || !lose) return { ...t, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
   const who = `${win.name} (${win.p.map(nm).join(" y ")})`, lost = `${lose.name} (${lose.p.map(nm).join(" y ")})`;
-  if (s.pj && s.pj.libre === s.ep) return { ...t, note: `${who} gana el lip sync a ${lost}... pero esta noche no se va nadie: las dos parejas siguen.`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+  const bailan = `${nm(p.a)} y ${nm(p.b)}`;
+  const abre: [string, string][] = [["host", `${bailan}, gracias por darlo todo. He tomado una decisión.`]];
+  if (s.pj && s.pj.libre === s.ep) {
+    const fallo: [string, string][] = [...abre, ["host", `${win.name}... shantay, you stay.`], ["host", `Y ${lose.name}...`], ["host", "¡Shantay, os quedáis las dos parejas! Esta noche no se va nadie a casa."], ["judge", "¡Doble shantay! Qué noche, reinas."]];
+    return { ...t, fallo, note: `¡Doble shantay! ${who} gana el lip sync a ${lost}, pero esta noche no se va nadie: las dos parejas siguen.`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+  }
   const n = aliveKeys(t).length;
   const place = lose.p.length > 1 ? `${n - lose.p.length + 1}º/${n}º` : `${n}º`;
   lose.p.forEach((k) => (t = eliminate(t, k, place, "ELIM", e)));
-  return { ...t, note: `${who} gana el lip sync. ${lost}, sashay away: se va la pareja entera.${aliveKeys(t).length <= 4 ? " Y desde ahora, cada una por su cuenta." : ""}`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
+  const solas = aliveKeys(t).length <= 4;
+  const fallo: [string, string][] = [...abre, ["host", `${win.name}... shantay, you stay.`], ["host", `${lose.name}, ha sido un placer veros juntas. Ahora... sashay away.`], ...(solas ? [["host", "Reinas, se acabaron las parejas: desde ahora, cada una por su cuenta."] as [string, string]] : [])];
+  return { ...t, fallo, note: `${who} gana el lip sync. ${lost}, sashay away: se va la pareja entera.${solas ? " Y desde ahora, cada una por su cuenta." : ""}`, phase: "track", deadline: limite(now, D.track), v: s.v + 1 };
 }
 
 // ------------------------------ All Stars por brackets ------------------------------
@@ -877,6 +889,8 @@ function continueChain(s: RoomState, from: number, now: number, e: Engine): Room
   }
   return toLipsync(s, now);
 }
+/** De una pareja, la que mejor defiende un lip sync (si nadie elige): la jugadora si la hay, si no la de mejor nota. */
+const pjRep = (s: RoomState, p: string[]) => p.find(isP) || p.slice().sort((x, y) => ppeOf(s, y) - ppeOf(s, x))[0];
 function toLipsync(s: RoomState, now: number): RoomState {
   const b = s.bottom || [];
   const subs = Object.fromEntries(Object.entries(s.subs).map(([k, v]) => [k, { ...v, ls: undefined }]));
@@ -887,8 +901,17 @@ function toLipsync(s: RoomState, now: number): RoomState {
   let pjP: Pair[] | null = null;
   if (pjPhase(s) && b.length >= 3) {
     const prs = pjAlivePairs(s).map((x) => x.p).filter((p) => p.some((k) => b.includes(k))).slice(0, 2);
-    const rep = (p: string[]) => p.find(isP) || p.slice().sort((x, y) => ppeOf(s, y) - ppeOf(s, x))[0];
-    if (prs.length === 2) pjP = [{ a: rep(prs[0]), b: rep(prs[1]) }];
+    if (prs.length === 2) {
+      // Si en alguna de las dos parejas hay una jugadora con compañera, primero se elige quién baila
+      const elige = prs.some((p) => p.length === 2 && p.some(isP));
+      if (elige && !s.quien) {
+        const picks: Record<string, string> = {};
+        prs.forEach((p, i) => { if (!p.some(isP) || p.length === 1) picks[i] = pjRep(s, p); });
+        return { ...s, subs, quien: { pairs: prs, picks }, twist: undefined, twistResult: undefined, phase: "quien", deadline: limite(now, DURACION[s.ritmo].quien), v: s.v + 1 };
+      }
+      const q = s.quien;
+      pjP = [{ a: q?.picks[0] || pjRep(s, prs[0]), b: q?.picks[1] || pjRep(s, prs[1]) }];
+    }
   }
   const pairs: Pair[] = brP || pjP || (!triple && b.length === 2 ? [{ a: b[0], b: b[1] }] : []);
   const anyP = [...b, ...pairs.flatMap((p) => [p.a, p.b])].some(isP);
@@ -1347,6 +1370,13 @@ function advanceRaw(s: RoomState, now: number, e: Engine): RoomState {
       if (!pairs.some((p) => isP(p.a) || isP(p.b))) return { ...next, phase: "lipsync", deadline: now + 6000, v: s.v + 1 };
       return { ...next, phase: "lipsync", deadline: limite(now, D.lipsync), v: s.v + 1 };
     }
+    case "quien": {
+      // Las que no han elegido a tiempo: baila la jugadora (o la mejor de la pareja)
+      const q = s.quien!;
+      const picks = { ...q.picks };
+      q.pairs.forEach((p, i) => { if (!picks[i]) picks[i] = pjRep(s, p); });
+      return toLipsync({ ...s, quien: { ...q, picks } }, now);
+    }
     case "lipsync": {
       if (brPhase(s)) return bracketLipsync(s, now, e);
       if (pjPhase(s) && s.pairs?.length === 1 && (s.bottom || []).length >= 3) return parejasLipsync(s, now, e);
@@ -1563,6 +1593,12 @@ export function applySubmit(s: RoomState, pid: string, ep: number, phase: Phase,
   if (ep !== s.ep || phase !== s.phase) return s;
   if (data.duelMove) return addDuelMove(s, pkey(pid), data.duelStep ?? -1, data.duelMove);
   // Elección de grupos (la capitana a la que le toca) o de la pareja de la Segunda Oportunidrag
+  if (phase === "quien" && data.pick && s.quien) {
+    const me = pkey(pid), to = String(data.pick);
+    const i = s.quien.pairs.findIndex((p) => p.includes(me));
+    if (i < 0 || !s.quien.pairs[i].includes(to)) return s;
+    return { ...s, quien: { ...s.quien, picks: { ...s.quien.picks, [i]: to } }, v: s.v + 1 };
+  }
   if (phase === "equipos" && data.pick) {
     // All Stars en parejas: con quién quieres ir (cuando lo han dicho todas, se forman las parejas)
     if (s.fmt === "parejas" && s.pj && !s.pj.chosen) {
